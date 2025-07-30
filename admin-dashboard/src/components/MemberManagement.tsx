@@ -204,7 +204,7 @@ const MemberManagement: React.FC = () => {
                 <div className="flex-shrink-0">
                   {member.profile_photo_url ? (
                     <img
-                      src={`${process.env.REACT_APP_API_URL}${member.profile_photo_url}`}
+                      src={member.profile_photo_url}
                       alt={member.name}
                       className="h-16 w-16 rounded-full object-cover"
                     />
@@ -379,7 +379,7 @@ const MemberManagement: React.FC = () => {
             {selectedMember.profile_photo_url && (
               <div className="mb-4 text-center">
                 <img
-                  src={`${process.env.REACT_APP_API_URL}${selectedMember.profile_photo_url}`}
+                  src={selectedMember.profile_photo_url}
                   alt={selectedMember.name}
                   className="h-32 w-32 rounded-full object-cover mx-auto mb-2"
                 />
