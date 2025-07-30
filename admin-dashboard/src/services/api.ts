@@ -157,4 +157,5 @@ export const bulletinService = {
   }
 };
 
+export { api };
 export default api;

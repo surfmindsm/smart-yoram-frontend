@@ -4,6 +4,11 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import Members from './components/Members';
+import MemberManagement from './components/MemberManagement';
+import SMSManagement from './components/SMSManagement';
+import QRCodeManagement from './components/QRCodeManagement';
+import StatisticsDashboard from './components/StatisticsDashboard';
+import ExcelManagement from './components/ExcelManagement';
 import Attendance from './components/Attendance';
 import Bulletins from './components/Bulletins';
 import ChurchInfo from './components/ChurchInfo';
@@ -25,6 +30,11 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="members" element={<Members />} />
+          <Route path="member-management" element={<MemberManagement />} />
+          <Route path="sms" element={<SMSManagement />} />
+          <Route path="qr-codes" element={<QRCodeManagement />} />
+          <Route path="statistics" element={<StatisticsDashboard />} />
+          <Route path="excel" element={<ExcelManagement />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="bulletins" element={<Bulletins />} />
           <Route path="church" element={<ChurchInfo />} />

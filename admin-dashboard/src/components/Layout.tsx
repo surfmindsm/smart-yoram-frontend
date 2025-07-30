@@ -14,7 +14,11 @@ const Layout: React.FC = () => {
 
   const menuItems = [
     { path: '/dashboard', name: '대시보드', icon: '📊' },
-    { path: '/members', name: '교인 관리', icon: '👥' },
+    { path: '/statistics', name: '통계 분석', icon: '📈' },
+    { path: '/member-management', name: '교인 관리', icon: '👥' },
+    { path: '/sms', name: 'SMS 발송', icon: '💬' },
+    { path: '/qr-codes', name: 'QR 코드', icon: '📱' },
+    { path: '/excel', name: '엑셀 관리', icon: '📋' },
     { path: '/attendance', name: '출석 관리', icon: '✅' },
     { path: '/bulletins', name: '주보 관리', icon: '📄' },
     { path: '/church', name: '교회 정보', icon: '⛪' },
