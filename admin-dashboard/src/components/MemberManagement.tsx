@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
+import { debounce } from 'lodash';
 
 interface Member {
   id: number;
@@ -20,6 +21,7 @@ const MemberManagement: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -35,15 +37,27 @@ const MemberManagement: React.FC = () => {
     district: ''
   });
 
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((searchValue: string) => {
+      setDebouncedSearchTerm(searchValue);
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    debouncedSearch(searchTerm);
+  }, [searchTerm, debouncedSearch]);
+
   useEffect(() => {
     fetchMembers();
-  }, [searchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter]);
 
   const fetchMembers = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (statusFilter !== 'all') params.append('member_status', statusFilter);
       
       const response = await api.get(`/members/?${params.toString()}`);
@@ -141,6 +155,12 @@ const MemberManagement: React.FC = () => {
     }
   };
 
+  // Clean photo URL by removing trailing '?'
+  const cleanPhotoUrl = (url: string | null) => {
+    if (!url) return null;
+    return url.endsWith('?') ? url.slice(0, -1) : url;
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
@@ -203,12 +223,24 @@ const MemberManagement: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
-                  {member.profile_photo_url ? (
-                    <img
-                      src={member.profile_photo_url}
-                      alt={member.name}
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
+                  {cleanPhotoUrl(member.profile_photo_url) ? (
+                    <>
+                      <img
+                        src={cleanPhotoUrl(member.profile_photo_url)!}
+                        alt={member.name}
+                        className="h-16 w-16 rounded-full object-cover"
+                        onError={(e) => {
+                          console.error('Image load error:', e);
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center hidden">
+                        <span className="text-gray-600 font-medium">
+                          {member.name.charAt(0)}
+                        </span>
+                      </div>
+                    </>
                   ) : (
                     <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
                       <span className="text-gray-600 font-medium">
@@ -377,12 +409,16 @@ const MemberManagement: React.FC = () => {
               {selectedMember.name}님 프로필 사진 관리
             </h3>
             
-            {selectedMember.profile_photo_url && (
+            {cleanPhotoUrl(selectedMember.profile_photo_url) && (
               <div className="mb-4 text-center">
                 <img
-                  src={selectedMember.profile_photo_url}
+                  src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                   alt={selectedMember.name}
                   className="h-32 w-32 rounded-full object-cover mx-auto mb-2"
+                  onError={(e) => {
+                    console.error('Modal image load error:', e);
+                    alert('사진을 불러올 수 없습니다.');
+                  }}
                 />
                 <button
                   onClick={() => handleDeletePhoto(selectedMember.id)}
