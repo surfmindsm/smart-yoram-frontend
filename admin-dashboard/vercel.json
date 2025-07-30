@@ -1,10 +1,10 @@
 {
   "env": {
-    "REACT_APP_API_URL": "https://rehabilitation-fonts-september-quizzes.trycloudflare.com/api/v1"
+    "REACT_APP_API_URL": "https://yes-open-readings-struck.trycloudflare.com/api/v1"
   },
   "build": {
     "env": {
-      "REACT_APP_API_URL": "https://rehabilitation-fonts-september-quizzes.trycloudflare.com/api/v1"
+      "REACT_APP_API_URL": "https://yes-open-readings-struck.trycloudflare.com/api/v1"
     }
   }
 }
