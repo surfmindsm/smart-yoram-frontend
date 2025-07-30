@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 테스트</title>
+</head>
+<body>
+    <h1>Supabase Storage 이미지 테스트</h1>
+    
+    <h2>테스트 1: 직접 URL</h2>
+    <img 
+        src="https://adzhdsajdamrflvybhxq.supabase.co/storage/v1/object/public/member-photos/6/63_20250730_150432_f1afd94b.png"
+        alt="Test Image 1"
+        style="width: 200px; height: 200px; object-fit: cover; border: 2px solid blue;"
+        onload="console.log('Image 1 loaded successfully')"
+        onerror="console.error('Image 1 failed to load')"
+    />
+    
+    <h2>테스트 2: URL without ?</h2>
+    <img 
+        src="https://adzhdsajdamrflvybhxq.supabase.co/storage/v1/object/public/member-photos/6/63_20250730_150432_f1afd94b.png"
+        alt="Test Image 2"
+        style="width: 200px; height: 200px; object-fit: cover; border: 2px solid green;"
+        onload="console.log('Image 2 loaded successfully')"
+        onerror="console.error('Image 2 failed to load')"
+    />
+    
+    <h2>테스트 3: 새 이미지</h2>
+    <img 
+        src="https://adzhdsajdamrflvybhxq.supabase.co/storage/v1/object/public/member-photos/6/64_20250730_152555_130ccd92.jpg"
+        alt="Test Image 3"
+        style="width: 200px; height: 200px; object-fit: cover; border: 2px solid red;"
+        onload="console.log('Image 3 loaded successfully')"
+        onerror="console.error('Image 3 failed to load')"
+    />
+    
+    <script>
+        // 콘솔에 추가 정보 출력
+        console.log('Current URL:', window.location.href);
+        console.log('User Agent:', navigator.userAgent);
+    </script>
+</body>
+</html>
