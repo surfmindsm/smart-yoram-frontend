@@ -101,9 +101,10 @@ const MemberManagement: React.FC = () => {
       
       setShowPhotoModal(false);
       alert('프로필 사진이 업로드되었습니다.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('사진 업로드 실패:', error);
-      alert('사진 업로드에 실패했습니다.');
+      const errorMessage = error.response?.data?.detail || '사진 업로드에 실패했습니다.';
+      alert(`사진 업로드 실패: ${errorMessage}`);
     }
   };
 
