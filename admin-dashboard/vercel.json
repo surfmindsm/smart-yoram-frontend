@@ -1,0 +1,10 @@
+{
+  "env": {
+    "REACT_APP_API_URL": "http://3.25.230.187/api/v1"
+  },
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "http://3.25.230.187/api/v1"
+    }
+  }
+}
