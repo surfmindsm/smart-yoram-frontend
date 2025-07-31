@@ -240,7 +240,8 @@ const QRCodeManagement: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
           {/* QR Code Display */}
           <div className="bg-white rounded-lg shadow p-6">

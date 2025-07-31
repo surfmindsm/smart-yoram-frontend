@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { bulletinService, api } from '../services/api';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Calendar, FileText, Plus, Edit2, Trash2, Upload } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface Bulletin {
   id: number;
@@ -128,26 +135,30 @@ const Bulletins: React.FC = () => {
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">주보 관리</h2>
-        <button
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">주보 관리</h2>
+        <Button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          className="flex items-center gap-2"
         >
+          <Plus className="w-4 h-4" />
           주보 추가
-        </button>
+        </Button>
       </div>
 
       {/* Bulletins Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {bulletins.map((bulletin) => (
-          <div key={bulletin.id} className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{bulletin.title}</h3>
-              <p className="text-sm text-gray-500 mb-4">
+          <Card key={bulletin.id} className="border-muted overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg">{bulletin.title}</CardTitle>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
                 {new Date(bulletin.date).toLocaleDateString('ko-KR')}
               </p>
+            </CardHeader>
+            <CardContent>
               {bulletin.content && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3">{bulletin.content}</p>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{bulletin.content}</p>
               )}
               <div className="flex justify-between items-center">
                 {bulletin.file_url ? (
@@ -155,73 +166,76 @@ const Bulletins: React.FC = () => {
                     href={bulletin.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-800 text-sm"
+                    className="text-primary hover:underline text-sm flex items-center gap-1"
                   >
+                    <FileText className="w-3 h-3" />
                     파일 보기
                   </a>
                 ) : (
-                  <span className="text-gray-400 text-sm">첨부파일 없음</span>
+                  <span className="text-muted-foreground text-sm">첨부파일 없음</span>
                 )}
-                <div className="space-x-2">
-                  <button
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleEdit(bulletin)}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm"
                   >
-                    수정
-                  </button>
-                  <button
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleDelete(bulletin.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    className="text-destructive hover:text-destructive"
                   >
-                    삭제
-                  </button>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+      <Dialog open={showAddModal} onOpenChange={handleCloseModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
               {editingBulletin ? '주보 수정' : '주보 추가'}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">날짜</label>
-                <input
-                  type="date"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  rows={4}
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">파일 업로드</label>
-                <input
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">제목</label>
+              <Input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">날짜</label>
+              <Input
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">내용</label>
+              <Textarea
+                rows={4}
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">파일 업로드</label>
+              <div className="flex items-center gap-2">
+                <Input
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   onChange={(e) => {
@@ -230,39 +244,39 @@ const Bulletins: React.FC = () => {
                       setSelectedFile(file);
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="flex-1"
                 />
-                {selectedFile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    선택된 파일: {selectedFile.name}
-                  </p>
-                )}
-                {editingBulletin?.file_url && !selectedFile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">보기</a>
-                  </p>
-                )}
+                <Upload className="w-4 h-4 text-muted-foreground" />
               </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploadingFile}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {uploadingFile ? '업로드 중...' : '저장'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  선택된 파일: {selectedFile.name}
+                </p>
+              )}
+              {editingBulletin?.file_url && !selectedFile && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">보기</a>
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseModal}
+              >
+                취소
+              </Button>
+              <Button
+                type="submit"
+                disabled={uploadingFile}
+              >
+                {uploadingFile ? '업로드 중...' : '저장'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

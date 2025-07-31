@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Checkbox } from './ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
+import { Badge } from './ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { MessageSquare, Send } from 'lucide-react';
 
 interface Member {
   id: number;
@@ -127,12 +135,12 @@ const SMSManagement: React.FC = () => {
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'sent': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'sent': return 'success' as const;
+      case 'failed': return 'destructive' as const;
+      case 'pending': return 'warning' as const;
+      default: return 'secondary' as const;
     }
   };
 
@@ -148,219 +156,220 @@ const SMSManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">SMS 관리</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">SMS 관리</h2>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('send')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'send'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'send' | 'history')}>
+        <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+          <TabsTrigger value="send" className="flex items-center gap-2">
+            <Send className="w-4 h-4" />
             SMS 발송
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'history'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
             발송 기록
-          </button>
-        </nav>
-      </div>
+          </TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'send' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Member Selection */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                교인 선택 ({selectedMembers.length}/{members.length})
-              </h3>
-              <button
-                onClick={handleSelectAll}
-                className="text-indigo-600 hover:text-indigo-800 text-sm"
-              >
-                {selectedMembers.length === members.length ? '전체 해제' : '전체 선택'}
-              </button>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center p-3 border-b border-gray-100 hover:bg-gray-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMembers.includes(member.id)}
-                    onChange={() => handleMemberToggle(member.id)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                        <p className="text-sm text-gray-500">{member.phone_number}</p>
-                      </div>
-                      <div className="text-right">
-                        {member.position && (
-                          <p className="text-xs text-gray-500">{member.position}</p>
-                        )}
-                        {member.district && (
-                          <p className="text-xs text-gray-500">{member.district}</p>
-                        )}
+        <TabsContent value="send">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Member Selection */}
+            <Card className="border-muted">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">
+                    교인 선택 ({selectedMembers.length}/{members.length})
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSelectAll}
+                  >
+                    {selectedMembers.length === members.length ? '전체 해제' : '전체 선택'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto border border-border rounded-md">
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center p-3 border-b border-border hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={selectedMembers.includes(member.id)}
+                        onCheckedChange={() => handleMemberToggle(member.id)}
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{member.name}</p>
+                            <p className="text-sm text-muted-foreground">{member.phone_number}</p>
+                          </div>
+                          <div className="text-right">
+                            {member.position && (
+                              <p className="text-xs text-muted-foreground">{member.position}</p>
+                            )}
+                            {member.district && (
+                              <p className="text-xs text-muted-foreground">{member.district}</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </CardContent>
+            </Card>
+
+            {/* Message Composition */}
+            <Card className="border-muted">
+              <CardHeader>
+                <CardTitle className="text-lg">메시지 작성</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Templates */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">템플릿 선택</label>
+                  <Select
+                    onValueChange={(value) => {
+                      const template = templates.find(t => t.id === parseInt(value));
+                      if (template) handleTemplateSelect(template);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="직접 작성" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">직접 작성</SelectItem>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Message Type */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">메시지 유형</label>
+                  <Select value={smsType} onValueChange={setSmsType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">일반</SelectItem>
+                      <SelectItem value="invitation">초대</SelectItem>
+                      <SelectItem value="notice">공지</SelectItem>
+                      <SelectItem value="emergency">긴급</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Message Text */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    메시지 내용 ({message.length}/1000자)
+                  </label>
+                  <Textarea
+                    rows={8}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="발송할 메시지를 입력하세요..."
+                    maxLength={1000}
+                  />
+                </div>
+
+                {/* Send Button */}
+                <Button
+                  onClick={handleSendSMS}
+                  disabled={loading || selectedMembers.length === 0 || !message.trim()}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      발송 중...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      {selectedMembers.length}명에게 SMS 발송
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
+        </TabsContent>
 
-          {/* Message Composition */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">메시지 작성</h3>
+        <TabsContent value="history">
+          <Card className="border-muted overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg">발송 기록</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        발송일시
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        수신자
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        메시지
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        유형
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        상태
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-background divide-y divide-border">
+                    {smsHistory.map((sms) => (
+                      <tr key={sms.id} className="hover:bg-muted/30">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                          {new Date(sms.created_at).toLocaleString('ko-KR')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                          {sms.recipient_phone}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-foreground max-w-xs truncate">
+                          {sms.message}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {sms.sms_type}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={getStatusBadgeVariant(sms.status)}>
+                            {getStatusText(sms.status)}
+                          </Badge>
+                          {sms.error_message && (
+                            <p className="text-xs text-destructive mt-1">{sms.error_message}</p>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Templates */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">템플릿 선택</label>
-              <select
-                onChange={(e) => {
-                  const template = templates.find(t => t.id === parseInt(e.target.value));
-                  if (template) handleTemplateSelect(template);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">직접 작성</option>
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Message Type */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">메시지 유형</label>
-              <select
-                value={smsType}
-                onChange={(e) => setSmsType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="general">일반</option>
-                <option value="invitation">초대</option>
-                <option value="notice">공지</option>
-                <option value="emergency">긴급</option>
-              </select>
-            </div>
-
-            {/* Message Text */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                메시지 내용 ({message.length}/1000자)
-              </label>
-              <textarea
-                rows={8}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="발송할 메시지를 입력하세요..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                maxLength={1000}
-              />
-            </div>
-
-            {/* Send Button */}
-            <button
-              onClick={handleSendSMS}
-              disabled={loading || selectedMembers.length === 0 || !message.trim()}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  발송 중...
-                </>
-              ) : (
-                `${selectedMembers.length}명에게 SMS 발송`
+              {smsHistory.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">발송 기록이 없습니다.</p>
+                </div>
               )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'history' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">발송 기록</h3>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    발송일시
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    수신자
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    메시지
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    유형
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {smsHistory.map((sms) => (
-                  <tr key={sms.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(sms.created_at).toLocaleString('ko-KR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sms.recipient_phone}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {sms.message}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {sms.sms_type}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(sms.status)}`}>
-                        {getStatusText(sms.status)}
-                      </span>
-                      {sms.error_message && (
-                        <p className="text-xs text-red-600 mt-1">{sms.error_message}</p>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {smsHistory.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">발송 기록이 없습니다.</p>
-            </div>
-          )}
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

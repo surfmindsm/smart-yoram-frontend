@@ -2,6 +2,11 @@ import React, { useState, useEffect, memo } from 'react';
 import { attendanceService, memberService, authService } from '../services/api';
 import { Calendar, Users, User, Check, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Badge } from './ui/badge';
 
 interface Member {
   id: number;
@@ -31,55 +36,57 @@ const MemberCard = memo(({ member, attendance, isUpdating, onToggle }: MemberCar
   const isChecked = attendance?.present || false;
   
   return (
-    <div
+    <Card
       className={cn(
-        "bg-white rounded-lg shadow p-4 cursor-pointer transition-all relative",
+        "cursor-pointer transition-all relative",
         isChecked
-          ? 'ring-2 ring-green-500 bg-green-50'
-          : 'hover:shadow-md hover:bg-gray-50',
+          ? 'ring-2 ring-green-500 bg-green-50 border-green-200'
+          : 'hover:shadow-md hover:bg-muted/50 border-muted',
         isUpdating && 'opacity-50 cursor-wait'
       )}
       onClick={() => !isUpdating && onToggle(member)}
     >
       {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+        <div className="absolute inset-0 flex items-center justify-center bg-background/75 rounded-lg z-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
-      <div className="text-center">
-        <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-2 flex items-center justify-center relative">
-          <User className="h-8 w-8 text-gray-600" />
-          {isChecked && (
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-              <Check className="h-4 w-4 text-white" />
-            </div>
+      <CardContent className="p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-2 flex items-center justify-center relative">
+            <User className="h-8 w-8 text-muted-foreground" />
+            {isChecked && (
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+            )}
+          </div>
+          <h3 className="font-medium text-foreground">{member.name}</h3>
+          <p className="text-sm text-muted-foreground">{member.position || '교인'}</p>
+          <div className="mt-2">
+            {isChecked ? (
+              <Badge variant="success" className="text-xs">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                출석
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                <XCircle className="h-3 w-3 mr-1" />
+                결석
+              </Badge>
+            )}
+          </div>
+          {attendance?.check_in_time && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {new Date(attendance.check_in_time).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
           )}
         </div>
-        <h3 className="font-medium text-gray-900">{member.name}</h3>
-        <p className="text-sm text-gray-500">{member.position || '교인'}</p>
-        <div className="mt-2">
-          {isChecked ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-500 text-white rounded-full">
-              <CheckCircle2 className="h-3 w-3" />
-              출석
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded-full">
-              <XCircle className="h-3 w-3" />
-              결석
-            </span>
-          )}
-        </div>
-        {attendance?.check_in_time && (
-          <p className="text-xs text-gray-400 mt-1">
-            {new Date(attendance.check_in_time).toLocaleTimeString('ko-KR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 });
 
@@ -290,71 +297,73 @@ const Attendance: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">출석 관리</h2>
+      <h2 className="text-3xl font-bold tracking-tight text-foreground mb-6">출석 관리</h2>
       
       {/* Date and Service Selection */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              날짜
-            </label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">예배</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-            >
-              {serviceTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="bg-indigo-50 px-4 py-2 rounded-md flex-1">
-              <p className="text-sm text-gray-600 flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                출석률
-              </p>
-              <p className="text-xl font-bold text-indigo-600">
-                {stats.present}/{stats.total} ({stats.percentage}%)
-              </p>
+      <Card className="border-muted mb-6">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1 flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                날짜
+              </label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
             </div>
-            <button
-              onClick={handleMarkAllPresent}
-              disabled={updating !== null}
-              className={cn(
-                "px-4 py-2 rounded-md text-sm font-medium flex items-center gap-1 whitespace-nowrap",
-                updating !== null
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              )}
-            >
-              {updating === -1 ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              <span>전체 출석</span>
-            </button>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">예배</label>
+              <Select value={selectedService} onValueChange={setSelectedService}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {serviceTypes.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Card className="border-muted flex-1">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    출석률
+                  </p>
+                  <p className="text-xl font-bold text-primary">
+                    {stats.present}/{stats.total} ({stats.percentage}%)
+                  </p>
+                </CardContent>
+              </Card>
+              <Button
+                onClick={handleMarkAllPresent}
+                disabled={updating !== null}
+                variant="default"
+                className="whitespace-nowrap"
+              >
+                {updating === -1 ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                전체 출석
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Members Grid */}
       {loading ? (
         <div className="text-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-500">로딩 중...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
+          <p className="text-muted-foreground">로딩 중...</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
