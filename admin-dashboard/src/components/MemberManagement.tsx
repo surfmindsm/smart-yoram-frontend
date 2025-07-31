@@ -236,10 +236,19 @@ const MemberManagement: React.FC = () => {
     }
   };
 
-  // Clean photo URL by removing trailing '?'
+  // Clean photo URL - handle both relative and absolute URLs
   const cleanPhotoUrl = (url: string | null) => {
     if (!url) return null;
-    return url.endsWith('?') ? url.slice(0, -1) : url;
+    // Remove trailing '?' if present
+    const cleanedUrl = url.endsWith('?') ? url.slice(0, -1) : url;
+    
+    // If it's already a full URL (starts with http:// or https://), return as-is
+    if (cleanedUrl.startsWith('http://') || cleanedUrl.startsWith('https://')) {
+      return cleanedUrl;
+    }
+    
+    // Otherwise, prepend the API base URL
+    return `${process.env.REACT_APP_API_URL}${cleanedUrl}`;
   };
 
   if (loading) {
