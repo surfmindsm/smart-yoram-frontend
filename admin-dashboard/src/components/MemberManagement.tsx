@@ -137,6 +137,7 @@ const MemberManagement: React.FC = () => {
     e.preventDefault();
     try {
       // Don't send church_id - backend will use current user's church_id
+      console.log('Sending member data:', newMember);
       const response = await api.post('/members/', newMember);
       setMembers([...members, response.data]);
       setShowAddModal(false);
