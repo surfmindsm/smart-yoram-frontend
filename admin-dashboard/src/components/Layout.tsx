@@ -13,9 +13,11 @@ import {
   Church,
   Menu,
   LogOut,
-  Megaphone
+  Megaphone,
+  X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,51 +43,60 @@ const Layout: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white shadow-sm fixed w-full top-0 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
+      <header className="bg-white border-b border-slate-200 fixed w-full top-0 z-50">
+        <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-md hover:bg-gray-100"
+              className="mr-4"
             >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="ml-4 text-xl font-semibold">스마트 요람 관리자</h1>
+              {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+            <h1 className="text-xl font-semibold text-slate-900">스마트 요람 관리자</h1>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLogout}
-            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2"
+            className="text-slate-600 hover:text-slate-900"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 mr-2" />
             로그아웃
-          </button>
+          </Button>
         </div>
       </header>
 
-      <div className="flex pt-16">
+      <div className="flex pt-14">
         {/* Sidebar */}
         <aside
-          className={`${
-            isSidebarOpen ? 'w-64' : 'w-0'
-          } bg-white shadow-md transition-all duration-300 overflow-hidden fixed h-full`}
+          className={cn(
+            "bg-white border-r border-slate-200 transition-all duration-300 fixed h-full z-40",
+            isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
+          )}
         >
-          <nav className="mt-5 px-2">
+          <nav className="p-4 space-y-1">
             {menuItems.map((item) => {
               const IconComponent = item.Icon;
+              const isActive = location.pathname === item.path;
+              
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md mb-1",
-                    location.pathname === item.path
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
-                  <IconComponent className="mr-3 h-5 w-5" />
+                  <IconComponent className={cn(
+                    "mr-3 h-5 w-5",
+                    isActive ? "text-sky-600" : "text-slate-400"
+                  )} />
                   {item.name}
                 </Link>
               );
@@ -94,9 +105,14 @@ const Layout: React.FC = () => {
         </aside>
 
         {/* Main Content */}
-        <main className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300`}>
+        <main className={cn(
+          "flex-1 transition-all duration-300",
+          isSidebarOpen ? "ml-64" : "ml-0"
+        )}>
           <div className="p-6">
-            <Outlet />
+            <div className="max-w-7xl mx-auto">
+              <Outlet />
+            </div>
           </div>
         </main>
       </div>

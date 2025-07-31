@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Pin, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, Pin, Filter } from 'lucide-react';
 import { announcementService } from '../services/api';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Checkbox } from './ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 interface Announcement {
   id: number;
@@ -149,201 +171,191 @@ const Announcements: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">공지사항 관리</h2>
-        <button
-          onClick={handleCreate}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
+        <h2 className="text-3xl font-bold text-slate-900">공지사항 관리</h2>
+        <Button onClick={handleCreate} className="gap-2">
+          <Plus className="w-4 h-4" />
           새 공지사항
-        </button>
+        </Button>
       </div>
 
       {/* Filter Buttons */}
-      <div className="mb-4 flex gap-2">
-        <button
+      <div className="mb-6 flex gap-2">
+        <Button
+          variant={filter === 'all' ? 'default' : 'outline'}
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-md ${
-            filter === 'all' 
-              ? 'bg-indigo-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
+          size="sm"
         >
           전체
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={filter === 'active' ? 'default' : 'outline'}
           onClick={() => setFilter('active')}
-          className={`px-4 py-2 rounded-md ${
-            filter === 'active' 
-              ? 'bg-indigo-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
+          size="sm"
         >
           활성
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={filter === 'pinned' ? 'default' : 'outline'}
           onClick={() => setFilter('pinned')}
-          className={`px-4 py-2 rounded-md ${
-            filter === 'pinned' 
-              ? 'bg-indigo-600 text-white' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
+          size="sm"
         >
           고정
-        </button>
+        </Button>
       </div>
 
       {/* Announcements List */}
       <div className="space-y-4">
         {filteredAnnouncements.map((announcement) => (
-          <div 
+          <Card 
             key={announcement.id} 
-            className={`bg-white p-4 rounded-lg shadow border-l-4 ${
-              announcement.is_pinned ? 'border-yellow-400' : 'border-indigo-400'
-            } ${!announcement.is_active ? 'opacity-60' : ''}`}
+            className={`${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
           >
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  {announcement.is_pinned && (
-                    <Pin className="w-4 h-4 text-yellow-600" />
-                  )}
-                  <h3 className="text-lg font-semibold">{announcement.title}</h3>
-                  {!announcement.is_active && (
-                    <span className="text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded">비활성</span>
-                  )}
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    {announcement.is_pinned && (
+                      <Pin className="w-4 h-4 text-yellow-600 fill-current" />
+                    )}
+                    {announcement.title}
+                    {!announcement.is_active && (
+                      <Badge variant="secondary">비활성</Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    작성자: {announcement.author_name} | 
+                    작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} | 
+                    대상: {getTargetAudienceText(announcement.target_audience)}
+                  </CardDescription>
                 </div>
-                <p className="text-gray-700 whitespace-pre-wrap mb-2">{announcement.content}</p>
-                <div className="text-sm text-gray-500">
-                  <span>작성자: {announcement.author_name}</span>
-                  <span className="mx-2">|</span>
-                  <span>작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')}</span>
-                  <span className="mx-2">|</span>
-                  <span>대상: {getTargetAudienceText(announcement.target_audience)}</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(announcement)}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleTogglePin(announcement.id)}
+                  >
+                    <Pin className={`w-4 h-4 ${announcement.is_pinned ? 'fill-current' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(announcement.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2 ml-4">
-                <button
-                  onClick={() => handleEdit(announcement)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  title="수정"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleTogglePin(announcement.id)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  title={announcement.is_pinned ? '고정 해제' : '고정'}
-                >
-                  <Pin className={`w-4 h-4 ${announcement.is_pinned ? 'fill-current' : ''}`} />
-                </button>
-                <button
-                  onClick={() => handleDelete(announcement.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded"
-                  title="삭제"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-600 whitespace-pre-wrap">{announcement.content}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       {filteredAnnouncements.length === 0 && (
-        <div className="text-center text-gray-500 py-8">
-          공지사항이 없습니다.
-        </div>
+        <Card className="text-center py-12">
+          <CardContent>
+            <p className="text-slate-500">공지사항이 없습니다.</p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold mb-4">
-              {selectedAnnouncement ? '공지사항 수정' : '새 공지사항'}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  제목
-                </label>
-                <input
-                  type="text"
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-[625px]">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAnnouncement ? '공지사항 수정' : '새 공지사항'}
+              </DialogTitle>
+              <DialogDescription>
+                공지사항 내용을 입력하세요.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">제목</Label>
+                <Input
+                  id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  내용
-                </label>
-                <textarea
+              <div className="grid gap-2">
+                <Label htmlFor="content">내용</Label>
+                <Textarea
+                  id="content"
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   rows={8}
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    대상
-                  </label>
-                  <select
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="target">대상</Label>
+                  <Select
                     value={formData.target_audience}
-                    onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
                   >
-                    <option value="all">전체</option>
-                    <option value="member">일반 교인</option>
-                    <option value="youth">청소년부</option>
-                    <option value="leader">리더</option>
-                  </select>
+                    <SelectTrigger id="target">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="member">일반 교인</SelectItem>
+                      <SelectItem value="youth">청소년부</SelectItem>
+                      <SelectItem value="leader">리더</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
+                <div className="space-y-3 pt-8">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pinned"
                       checked={formData.is_pinned}
-                      onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
-                      className="mr-2"
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, is_pinned: checked as boolean })
+                      }
                     />
-                    <span className="text-sm font-medium text-gray-700">상단 고정</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
+                    <Label htmlFor="pinned" className="text-sm font-normal cursor-pointer">
+                      상단 고정
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="active"
                       checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="mr-2"
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, is_active: checked as boolean })
+                      }
                     />
-                    <span className="text-sm font-medium text-gray-700">활성화</span>
-                  </label>
+                    <Label htmlFor="active" className="text-sm font-normal cursor-pointer">
+                      활성화
+                    </Label>
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  저장
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                취소
+              </Button>
+              <Button type="submit">저장</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
