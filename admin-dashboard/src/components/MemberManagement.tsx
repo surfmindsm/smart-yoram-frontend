@@ -136,9 +136,14 @@ const MemberManagement: React.FC = () => {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Get current user's church_id
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const church_id = user?.church_id || 1;
+      
       const response = await api.post('/members/', {
         ...newMember,
-        church_id: 1 // 현재 교회 ID
+        church_id
       });
       setMembers([...members, response.data]);
       setShowAddModal(false);

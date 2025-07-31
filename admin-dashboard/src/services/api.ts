@@ -42,13 +42,17 @@ export const authService = {
     formData.append('password', password);
     
     const response = await api.post(getApiUrl('/auth/login/access-token'), formData);
-    const { access_token } = response.data;
+    const { access_token, user } = response.data;
     localStorage.setItem('token', access_token);
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
     return response.data;
   },
   
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   },
   
   getCurrentUser: async () => {
