@@ -52,7 +52,7 @@ const QRCodeManagement: React.FC = () => {
       setQrCode(response.data);
       
       // QR 코드 이미지 URL 설정
-      const imageUrl = `${process.env.REACT_APP_API_URL}/api/v1/qr-codes/${response.data.code}/image`;
+      const imageUrl = `${process.env.REACT_APP_API_URL}/qr-codes/${response.data.code}/image`;
       setQrImageUrl(imageUrl);
       
     } catch (error) {
@@ -87,7 +87,7 @@ const QRCodeManagement: React.FC = () => {
       const response = await api.get(`/qr-codes/member/${memberId}`);
       if (response.data) {
         setQrCode(response.data);
-        const imageUrl = `${process.env.REACT_APP_API_URL}/api/v1/qr-codes/${response.data.code}/image`;
+        const imageUrl = `${process.env.REACT_APP_API_URL}/qr-codes/${response.data.code}/image`;
         setQrImageUrl(imageUrl);
       } else {
         setQrCode(null);
