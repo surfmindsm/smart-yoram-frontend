@@ -16,6 +16,8 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState([
@@ -103,49 +105,53 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">대시보드</h2>
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">대시보드</h2>
+      </div>
       
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
           const IconComponent = stat.Icon;
           return (
-            <div key={index} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className={cn(`${stat.color} bg-opacity-10 rounded-lg p-3`)}>
-                  <IconComponent className={cn(`h-6 w-6`, stat.color.replace('bg-', 'text-'))} />
+            <Card key={index} className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className={cn("p-3 rounded-lg", stat.color.replace('bg-', 'bg-') + '/10')}>
+                    <IconComponent className={cn("h-6 w-6", stat.color.replace('bg-', 'text-'))} />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">빠른 작업</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">빠른 작업</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quickActions.map((action, index) => {
             const IconComponent = action.Icon;
             return (
-              <Link
-                key={index}
-                to={action.link}
-                className="bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 p-6 block"
-              >
-                <div className="flex items-center">
-                  <div className={cn(`${action.color} bg-opacity-10 rounded-lg p-3`)}>
-                    <IconComponent className={cn(`h-6 w-6`, action.color.replace('bg-', 'text-'))} />
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">{action.title}</h4>
-                    <p className="text-sm text-gray-500">{action.description}</p>
-                  </div>
-                </div>
+              <Link key={index} to={action.link}>
+                <Card className="border-muted hover:shadow-md transition-shadow duration-200 cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className={cn("p-3 rounded-lg", action.color.replace('bg-', 'bg-') + '/10')}>
+                        <IconComponent className={cn("h-6 w-6", action.color.replace('bg-', 'text-'))} />
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-lg font-medium text-foreground">{action.title}</h4>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </Link>
             );
           })}
@@ -153,33 +159,34 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Activities */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">최근 활동</h3>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center text-sm text-gray-600">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <Activity className="h-4 w-4 text-green-600" />
-              </div>
-              <span>새로운 기능들이 추가되었습니다!</span>
+      <Card className="border-muted">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-foreground">최근 활동</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center mr-3">
+              <Activity className="h-4 w-4 text-green-600" />
             </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <Smartphone className="h-4 w-4 text-blue-600" />
-              </div>
-              <span>QR 코드 출석 체크 시스템이 활성화되었습니다.</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                <MessageCircle className="h-4 w-4 text-purple-600" />
-              </div>
-              <span>SMS 발송 기능을 사용할 수 있습니다.</span>
-            </div>
+            <span>새로운 기능들이 추가되었습니다!</span>
+            <Badge variant="success" className="ml-auto">신규</Badge>
           </div>
-        </div>
-      </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center mr-3">
+              <Smartphone className="h-4 w-4 text-blue-600" />
+            </div>
+            <span>QR 코드 출석 체크 시스템이 활성화되었습니다.</span>
+            <Badge variant="default" className="ml-auto">활성</Badge>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <div className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center mr-3">
+              <MessageCircle className="h-4 w-4 text-purple-600" />
+            </div>
+            <span>SMS 발송 기능을 사용할 수 있습니다.</span>
+            <Badge variant="outline" className="ml-auto">준비</Badge>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

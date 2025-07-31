@@ -20,6 +20,13 @@ import {
   EyeOff
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
+import { Textarea } from './ui/textarea';
 
 interface Member {
   id: number;
@@ -203,12 +210,12 @@ const MemberManagement: React.FC = () => {
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-yellow-100 text-yellow-800';
-      case 'transferred': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'success' as const;
+      case 'inactive': return 'warning' as const;
+      case 'transferred': return 'destructive' as const;
+      default: return 'secondary' as const;
     }
   };
 
@@ -261,121 +268,127 @@ const MemberManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">교인 관리</h2>
-        <button
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
+        <Button
           onClick={() => setShowAddModal(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center gap-2"
+          className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           교인 추가
-        </button>
+        </Button>
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white p-4 rounded-lg shadow space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">검색</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="이름 또는 전화번호 (초성 검색 가능: ㄱㅊㅅ)"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              <button
-                onClick={handleSearch}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center gap-2"
-              >
-                <Search className="w-4 h-4" />
-                검색
-              </button>
+      <Card className="border-muted">
+        <CardContent className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">검색</label>
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="이름 또는 전화번호 (초성 검색 가능: ㄱㅊㅅ)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSearch}
+                  className="flex items-center gap-2"
+                >
+                  <Search className="w-4 h-4" />
+                  검색
+                </Button>
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">전체</option>
-              <option value="active">활동</option>
-              <option value="inactive">비활동</option>
-              <option value="transferred">이전</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={fetchMembers}
-              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              새로고침
-            </button>
-          </div>
-        </div>
-        
-        {/* View Options */}
-        <div className="flex justify-between items-center border-t pt-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">보기 형태:</label>
-              <button
-                onClick={() => setViewType('card')}
-                className={cn(
-                  "px-3 py-1 rounded flex items-center gap-1",
-                  viewType === 'card' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'
-                )}
-              >
-                <LayoutGrid className="w-4 h-4" />
-                카드
-              </button>
-              <button
-                onClick={() => setViewType('grid')}
-                className={cn(
-                  "px-3 py-1 rounded flex items-center gap-1",
-                  viewType === 'grid' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'
-                )}
-              >
-                <Grid3X3 className="w-4 h-4" />
-                그리드
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">상태</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="active">활동</SelectItem>
+                  <SelectItem value="inactive">비활동</SelectItem>
+                  <SelectItem value="transferred">이전</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">페이지당:</label>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-1 border border-gray-300 rounded-md"
+            <div className="flex items-end">
+              <Button
+                onClick={fetchMembers}
+                variant="secondary"
+                className="flex items-center gap-2"
               >
-                <option value="10">10개</option>
-                <option value="20">20개</option>
-                <option value="30">30개</option>
-                <option value="40">40개</option>
-                <option value="50">50개</option>
-              </select>
+                <RefreshCw className="w-4 h-4" />
+                새로고침
+              </Button>
             </div>
           </div>
           
-          <div className="text-sm text-gray-600">
-            전체 {totalCount}명 중 {Math.min((currentPage - 1) * pageSize + 1, totalCount)}-{Math.min(currentPage * pageSize, totalCount)}
+          {/* View Options */}
+          <div className="flex justify-between items-center border-t border-border pt-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">보기 형태:</label>
+                <Button
+                  variant={viewType === 'card' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewType('card')}
+                  className="flex items-center gap-1"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  카드
+                </Button>
+                <Button
+                  variant={viewType === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewType('grid')}
+                  className="flex items-center gap-1"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                  그리드
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">페이지당:</label>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => {
+                    setPageSize(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10개</SelectItem>
+                    <SelectItem value="20">20개</SelectItem>
+                    <SelectItem value="30">30개</SelectItem>
+                    <SelectItem value="40">40개</SelectItem>
+                    <SelectItem value="50">50개</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              전체 {totalCount}명 중 {Math.min((currentPage - 1) * pageSize + 1, totalCount)}-{Math.min(currentPage * pageSize, totalCount)}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Members Display */}
       {viewType === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {members.map((member) => (
-            <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-6">
+            <Card key={member.id} className="border-muted overflow-hidden">
+              <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
                     {cleanPhotoUrl(member.profile_photo_url) ? (
@@ -419,9 +432,9 @@ const MemberManagement: React.FC = () => {
                     </h3>
                     <p className="text-sm text-gray-500">{member.phone}</p>
                     <div className="mt-1">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(member.member_status)}`}>
+                      <Badge variant={getStatusBadgeVariant(member.member_status)}>
                         {getStatusText(member.member_status)}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -445,43 +458,49 @@ const MemberManagement: React.FC = () => {
                 </div>
 
                 <div className="mt-4 flex space-x-2">
-                  <button
+                  <Button
                     onClick={() => {
                       setSelectedMember(member);
                       setShowPhotoModal(true);
                     }}
-                    className="flex-1 bg-blue-600 text-white px-2 py-2 rounded-md hover:bg-blue-700 text-sm flex items-center justify-center gap-1"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
                   >
-                    <Camera className="w-3 h-3" />
+                    <Camera className="w-3 h-3 mr-1" />
                     사진
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
                     onClick={() => navigate('/qr-management')}
-                    className="flex-1 bg-green-600 text-white px-2 py-2 rounded-md hover:bg-green-700 text-sm flex items-center justify-center gap-1"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
                   >
-                    <QrCode className="w-3 h-3" />
+                    <QrCode className="w-3 h-3 mr-1" />
                     QR
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
                     onClick={() => handleGetPassword(member.id)}
-                    className="flex-1 bg-purple-600 text-white px-2 py-2 rounded-md hover:bg-purple-700 text-sm flex items-center justify-center gap-1"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
                   >
-                    <Key className="w-3 h-3" />
+                    <Key className="w-3 h-3 mr-1" />
                     비밀번호
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <Card className="border-muted overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-muted/50">
                 <tr>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('name')}
                   >
                     <span className="flex items-center gap-1">
@@ -492,7 +511,7 @@ const MemberManagement: React.FC = () => {
                     </span>
                   </th>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('gender')}
                   >
                     <span className="flex items-center gap-1">
@@ -503,7 +522,7 @@ const MemberManagement: React.FC = () => {
                     </span>
                   </th>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('phone')}
                   >
                     <span className="flex items-center gap-1">
@@ -514,7 +533,7 @@ const MemberManagement: React.FC = () => {
                     </span>
                   </th>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('position')}
                   >
                     <span className="flex items-center gap-1">
@@ -525,7 +544,7 @@ const MemberManagement: React.FC = () => {
                     </span>
                   </th>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('district')}
                   >
                     <span className="flex items-center gap-1">
@@ -536,7 +555,7 @@ const MemberManagement: React.FC = () => {
                     </span>
                   </th>
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('member_status')}
                   >
                     <span className="flex items-center gap-1">
@@ -546,14 +565,14 @@ const MemberManagement: React.FC = () => {
                       )}
                     </span>
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     작업
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-background divide-y divide-border">
                 {members.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
+                  <tr key={member.id} className="hover:bg-muted/30">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -577,78 +596,82 @@ const MemberManagement: React.FC = () => {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                          <div className="text-sm font-medium text-foreground">{member.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.gender}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.phone}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.position || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.district || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(member.member_status)}`}>
+                      <Badge variant={getStatusBadgeVariant(member.member_status)}>
                         {getStatusText(member.member_status)}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <button
-                        onClick={() => {
-                          setSelectedMember(member);
-                          setShowPhotoModal(true);
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900 mr-3"
-                      >
-                        사진
-                      </button>
-                      <button 
-                        onClick={() => navigate('/qr-management')}
-                        className="text-green-600 hover:text-green-900 mr-3"
-                      >
-                        QR
-                      </button>
-                      <button 
-                        onClick={() => handleGetPassword(member.id)}
-                        className="text-purple-600 hover:text-purple-900"
-                      >
-                        비밀번호
-                      </button>
+                      <div className="flex justify-center space-x-2">
+                        <Button
+                          onClick={() => {
+                            setSelectedMember(member);
+                            setShowPhotoModal(true);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          사진
+                        </Button>
+                        <Button 
+                          onClick={() => navigate('/qr-management')}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          QR
+                        </Button>
+                        <Button 
+                          onClick={() => handleGetPassword(member.id)}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          비밀번호
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {members.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">등록된 교인이 없습니다.</p>
+          <p className="text-muted-foreground">등록된 교인이 없습니다.</p>
         </div>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center space-x-2 mt-6">
-          <button
+          <Button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className={cn(
-              "px-3 py-2 rounded-md flex items-center gap-1",
-              currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border'
-            )}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
           >
             <ChevronLeft className="w-4 h-4" />
             이전
-          </button>
+          </Button>
           
           {/* Page numbers */}
           {[...Array(Math.min(5, totalPages))].map((_, idx) => {
@@ -660,148 +683,140 @@ const MemberManagement: React.FC = () => {
               }
             }
             return (
-              <button
+              <Button
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
-                className={`px-3 py-2 rounded-md ${currentPage === pageNum ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50 border'}`}
+                variant={currentPage === pageNum ? 'default' : 'outline'}
+                size="sm"
               >
                 {pageNum}
-              </button>
+              </Button>
             );
           })}
           
-          <button
+          <Button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className={cn(
-              "px-3 py-2 rounded-md flex items-center gap-1",
-              currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border'
-            )}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
           >
             다음
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Add Member Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-90vh overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">새 교인 등록</h3>
-            <form onSubmit={handleAddMember} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이름 *</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.name}
-                  onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">이메일 *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="example@email.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.email}
-                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                />
-                <p className="text-xs text-gray-500 mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">성별</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.gender}
-                  onChange={(e) => setNewMember({...newMember, gender: e.target.value})}
-                >
-                  <option value="남">남</option>
-                  <option value="여">여</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">생년월일</label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.birthdate}
-                  onChange={(e) => setNewMember({...newMember, birthdate: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">전화번호 *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="010-1234-5678"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.phone}
-                  onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.address}
-                  onChange={(e) => setNewMember({...newMember, address: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">직분</label>
-                <input
-                  type="text"
-                  placeholder="집사, 권사, 장로 등"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.position}
-                  onChange={(e) => setNewMember({...newMember, position: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">구역</label>
-                <input
-                  type="text"
-                  placeholder="1구역, 2구역 등"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={newMember.district}
-                  onChange={(e) => setNewMember({...newMember, district: e.target.value})}
-                />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  등록
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>새 교인 등록</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddMember} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">이름 *</label>
+              <Input
+                type="text"
+                required
+                value={newMember.name}
+                onChange={(e) => setNewMember({...newMember, name: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+              <Input
+                type="email"
+                required
+                placeholder="example@email.com"
+                value={newMember.email}
+                onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+              <Select value={newMember.gender} onValueChange={(value) => setNewMember({...newMember, gender: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="남">남</SelectItem>
+                  <SelectItem value="여">여</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
+              <Input
+                type="date"
+                value={newMember.birthdate}
+                onChange={(e) => setNewMember({...newMember, birthdate: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+              <Input
+                type="tel"
+                required
+                placeholder="010-1234-5678"
+                value={newMember.phone}
+                onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">주소</label>
+              <Input
+                type="text"
+                value={newMember.address}
+                onChange={(e) => setNewMember({...newMember, address: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+              <Input
+                type="text"
+                placeholder="집사, 권사, 장로 등"
+                value={newMember.position}
+                onChange={(e) => setNewMember({...newMember, position: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">구역</label>
+              <Input
+                type="text"
+                placeholder="1구역, 2구역 등"
+                value={newMember.district}
+                onChange={(e) => setNewMember({...newMember, district: e.target.value})}
+              />
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                취소
+              </Button>
+              <Button type="submit">
+                등록
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Photo Management Modal */}
-      {showPhotoModal && selectedMember && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {selectedMember.name}님 프로필 사진 관리
-            </h3>
-            
-            {cleanPhotoUrl(selectedMember.profile_photo_url) && (
-              <div className="mb-4 text-center">
+      <Dialog open={showPhotoModal} onOpenChange={setShowPhotoModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedMember?.name}님 프로필 사진 관리
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedMember && cleanPhotoUrl(selectedMember.profile_photo_url) && (
+              <div className="text-center">
                 <img
                   src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                   alt={selectedMember.name}
@@ -811,109 +826,116 @@ const MemberManagement: React.FC = () => {
                     alert('사진을 불러올 수 없습니다.');
                   }}
                 />
-                <button
-                  onClick={() => handleDeletePhoto(selectedMember.id)}
-                  className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 mx-auto"
+                <Button
+                  onClick={() => selectedMember && handleDeletePhoto(selectedMember.id)}
+                  variant="destructive"
+                  size="sm"
+                  className="flex items-center gap-1"
                 >
                   <Trash2 className="w-4 h-4" />
                   현재 사진 삭제
-                </button>
+                </Button>
               </div>
             )}
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
                 새 사진 업로드
               </label>
-              <input
+              <Input
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handlePhotoUpload(file);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 JPG, PNG, GIF, WEBP 파일만 가능 (최대 5MB)
               </p>
             </div>
 
             <div className="flex justify-end">
-              <button
+              <Button
                 onClick={() => setShowPhotoModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                variant="outline"
               >
                 닫기
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Password View Modal */}
-      {showPasswordModal && passwordInfo && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {passwordInfo.member_name}님 계정 정보
-            </h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">이메일</label>
-                <p className="mt-1 text-sm text-gray-900">{passwordInfo.email}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={passwordInfo.password}
-                    readOnly
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                  <button
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-2 text-gray-600 hover:text-gray-800"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {passwordInfo?.member_name}님 계정 정보
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {passwordInfo && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-foreground">이메일</label>
+                  <p className="mt-1 text-sm text-foreground">{passwordInfo.email}</p>
                 </div>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                <p className="text-sm text-yellow-800">
-                  <strong>주의:</strong> 이 비밀번호는 교인의 개인정보입니다. 반드시 필요한 경우에만 확인하고, 타인에게 공유하지 마세요.
-                </p>
-              </div>
-            </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">비밀번호</label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={passwordInfo.password}
+                      readOnly
+                      className="flex-1 bg-muted"
+                    />
+                    <Button
+                      onClick={() => setShowPassword(!showPassword)}
+                      variant="ghost"
+                      size="icon"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  <p className="text-sm text-yellow-800">
+                    <strong>주의:</strong> 이 비밀번호는 교인의 개인정보입니다. 반드시 필요한 경우에만 확인하고, 타인에게 공유하지 마세요.
+                  </p>
+                </div>
+              </>
+            )}
 
-            <div className="flex justify-end mt-6 space-x-2">
-              <button
+            <div className="flex justify-end space-x-2">
+              <Button
                 onClick={() => {
-                  navigator.clipboard.writeText(passwordInfo.password);
-                  alert('비밀번호가 클립보드에 복사되었습니다.');
+                  if (passwordInfo) {
+                    navigator.clipboard.writeText(passwordInfo.password);
+                    alert('비밀번호가 클립보드에 복사되었습니다.');
+                  }
                 }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                variant="secondary"
               >
                 복사
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   setShowPasswordModal(false);
                   setPasswordInfo(null);
                   setShowPassword(false);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                variant="outline"
               >
                 닫기
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
