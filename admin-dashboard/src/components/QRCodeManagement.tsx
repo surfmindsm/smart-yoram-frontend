@@ -269,7 +269,7 @@ const QRCodeManagement: React.FC = () => {
             </CardHeader>
             <CardContent>
               {selectedMember ? (
-
+                <>
                   {qrCode ? (
                     <div className="text-center">
                       <div className="mb-4">
@@ -319,6 +319,7 @@ const QRCodeManagement: React.FC = () => {
                       </Button>
                     </div>
                   )}
+                </>
               ) : (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground mb-4">
