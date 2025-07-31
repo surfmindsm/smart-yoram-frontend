@@ -136,15 +136,8 @@ const MemberManagement: React.FC = () => {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Get current user's church_id
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const church_id = user?.church_id || 1;
-      
-      const response = await api.post('/members/', {
-        ...newMember,
-        church_id
-      });
+      // Don't send church_id - backend will use current user's church_id
+      const response = await api.post('/members/', newMember);
       setMembers([...members, response.data]);
       setShowAddModal(false);
       setNewMember({
