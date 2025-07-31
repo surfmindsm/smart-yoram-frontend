@@ -13,13 +13,17 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Trash2
+  Trash2,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface Member {
   id: number;
   name: string;
+  email: string;
   gender: string;
   birthdate: string | null;  // Changed from date_of_birth
   phone: string;  // Changed from phone_number
@@ -49,9 +53,13 @@ const MemberManagement: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [sortField, setSortField] = useState<keyof Member | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInfo, setPasswordInfo] = useState<{member_id: number, member_name: string, email: string, password: string} | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [newMember, setNewMember] = useState({
     name: '',
+    email: '',
     gender: '남',
     birthdate: '',
     phone: '',
@@ -136,6 +144,7 @@ const MemberManagement: React.FC = () => {
       setShowAddModal(false);
       setNewMember({
         name: '',
+        email: '',
         gender: '남',
         birthdate: '',
         phone: '',
@@ -199,6 +208,22 @@ const MemberManagement: React.FC = () => {
       case 'inactive': return 'bg-yellow-100 text-yellow-800';
       case 'transferred': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleGetPassword = async (memberId: number) => {
+    try {
+      const response = await api.get(`/members/${memberId}/password`);
+      setPasswordInfo(response.data);
+      setShowPasswordModal(true);
+      setShowPassword(false); // Reset to hidden state
+    } catch (error: any) {
+      console.error('비밀번호 조회 실패:', error);
+      if (error.response?.status === 404) {
+        alert('이 교인은 아직 계정이 생성되지 않았습니다.');
+      } else {
+        alert('비밀번호 조회에 실패했습니다.');
+      }
     }
   };
 
@@ -415,14 +440,21 @@ const MemberManagement: React.FC = () => {
                       setSelectedMember(member);
                       setShowPhotoModal(true);
                     }}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 text-sm flex items-center justify-center gap-1"
+                    className="flex-1 bg-blue-600 text-white px-2 py-2 rounded-md hover:bg-blue-700 text-sm flex items-center justify-center gap-1"
                   >
-                    <Camera className="w-4 h-4" />
-                    사진 관리
+                    <Camera className="w-3 h-3" />
+                    사진
                   </button>
-                  <button className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 text-sm flex items-center justify-center gap-1">
-                    <QrCode className="w-4 h-4" />
-                    QR 생성
+                  <button className="flex-1 bg-green-600 text-white px-2 py-2 rounded-md hover:bg-green-700 text-sm flex items-center justify-center gap-1">
+                    <QrCode className="w-3 h-3" />
+                    QR
+                  </button>
+                  <button 
+                    onClick={() => handleGetPassword(member.id)}
+                    className="flex-1 bg-purple-600 text-white px-2 py-2 rounded-md hover:bg-purple-700 text-sm flex items-center justify-center gap-1"
+                  >
+                    <Key className="w-3 h-3" />
+                    비밀번호
                   </button>
                 </div>
               </div>
@@ -563,8 +595,14 @@ const MemberManagement: React.FC = () => {
                       >
                         사진
                       </button>
-                      <button className="text-green-600 hover:text-green-900">
+                      <button className="text-green-600 hover:text-green-900 mr-3">
                         QR
+                      </button>
+                      <button 
+                        onClick={() => handleGetPassword(member.id)}
+                        className="text-purple-600 hover:text-purple-900"
+                      >
+                        비밀번호
                       </button>
                     </td>
                   </tr>
@@ -645,6 +683,18 @@ const MemberManagement: React.FC = () => {
                   value={newMember.name}
                   onChange={(e) => setNewMember({...newMember, name: e.target.value})}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이메일 *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="example@email.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                />
+                <p className="text-xs text-gray-500 mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">성별</label>
@@ -776,6 +826,70 @@ const MemberManagement: React.FC = () => {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowPhotoModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password View Modal */}
+      {showPasswordModal && passwordInfo && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {passwordInfo.member_name}님 계정 정보
+            </h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">이메일</label>
+                <p className="mt-1 text-sm text-gray-900">{passwordInfo.email}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordInfo.password}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  />
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-2 text-gray-600 hover:text-gray-800"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>주의:</strong> 이 비밀번호는 교인의 개인정보입니다. 반드시 필요한 경우에만 확인하고, 타인에게 공유하지 마세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6 space-x-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(passwordInfo.password);
+                  alert('비밀번호가 클립보드에 복사되었습니다.');
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              >
+                복사
+              </button>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordInfo(null);
+                  setShowPassword(false);
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 닫기
