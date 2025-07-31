@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { 
   Search, 
@@ -37,6 +38,7 @@ interface Member {
 }
 
 const MemberManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -453,7 +455,10 @@ const MemberManagement: React.FC = () => {
                     <Camera className="w-3 h-3" />
                     사진
                   </button>
-                  <button className="flex-1 bg-green-600 text-white px-2 py-2 rounded-md hover:bg-green-700 text-sm flex items-center justify-center gap-1">
+                  <button 
+                    onClick={() => navigate('/qr-management')}
+                    className="flex-1 bg-green-600 text-white px-2 py-2 rounded-md hover:bg-green-700 text-sm flex items-center justify-center gap-1"
+                  >
                     <QrCode className="w-3 h-3" />
                     QR
                   </button>
@@ -603,7 +608,10 @@ const MemberManagement: React.FC = () => {
                       >
                         사진
                       </button>
-                      <button className="text-green-600 hover:text-green-900 mr-3">
+                      <button 
+                        onClick={() => navigate('/qr-management')}
+                        className="text-green-600 hover:text-green-900 mr-3"
+                      >
                         QR
                       </button>
                       <button 
