@@ -219,7 +219,7 @@ const QRCodeManagement: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     {member.profile_photo_url ? (
                       <img
-                        src={`${process.env.REACT_APP_API_URL}${member.profile_photo_url}`}
+                        src={member.profile_photo_url?.startsWith('http') ? member.profile_photo_url : `${process.env.REACT_APP_API_URL}${member.profile_photo_url}`}
                         alt={member.name}
                         className="h-10 w-10 rounded-full object-cover"
                       />
@@ -363,7 +363,7 @@ const QRCodeManagement: React.FC = () => {
                     <div className="flex-shrink-0">
                       {scanResult.member.profile_photo_url ? (
                         <img
-                          src={`${process.env.REACT_APP_API_URL}${scanResult.member.profile_photo_url}`}
+                          src={scanResult.member.profile_photo_url?.startsWith('http') ? scanResult.member.profile_photo_url : `${process.env.REACT_APP_API_URL}${scanResult.member.profile_photo_url}`}
                           alt={scanResult.member.name}
                           className="h-16 w-16 rounded-full object-cover"
                         />
