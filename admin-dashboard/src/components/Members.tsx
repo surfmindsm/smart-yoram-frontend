@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Badge } from './ui/badge';
+import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface Member {
   id: number;
@@ -31,147 +40,172 @@ const Members: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">교인 관리</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground mb-6">교인 관리</h2>
         
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <input
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
               type="text"
               placeholder="이름, 전화번호로 검색"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            value={selectedPosition}
-            onChange={(e) => setSelectedPosition(e.target.value)}
-          >
-            {positions.map(pos => (
-              <option key={pos.value} value={pos.value}>{pos.label}</option>
-            ))}
-          </select>
-          <button
+          <Select value={selectedPosition} onValueChange={setSelectedPosition}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {positions.map(pos => (
+                <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
             onClick={handleAddMember}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="flex items-center gap-2"
           >
+            <Plus className="w-4 h-4" />
             교인 추가
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Members Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                이름
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                전화번호
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                직분
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                부서
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                상태
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                작업
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {members.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                  등록된 교인이 없습니다.
-                </td>
-              </tr>
-            ) : (
-              members.map((member) => (
-                <tr key={member.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {member.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {member.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {member.position}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {member.department}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      {member.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-indigo-600 hover:text-indigo-900 mr-3">수정</button>
-                    <button className="text-red-600 hover:text-red-900">삭제</button>
-                  </td>
+      <Card className="border-muted">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-muted">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    이름
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    전화번호
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    직분
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    부서
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    작업
+                  </th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="bg-background divide-y divide-muted">
+                {members.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                      등록된 교인이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  members.map((member) => (
+                    <tr key={member.id} className="hover:bg-muted/50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                        {member.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {member.phone}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {member.position}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {member.department}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant="success">
+                          {member.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Member Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">교인 추가</h3>
-            <form>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">이름</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
-                <input
-                  type="tel"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">직분</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>교인 추가</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4">
+            <div>
+              <Label htmlFor="name">이름</Label>
+              <Input
+                id="name"
+                type="text"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">전화번호</Label>
+              <Input
+                id="phone"
+                type="tel"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="position">직분</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="직분 선택" />
+                </SelectTrigger>
+                <SelectContent>
                   {positions.slice(1).map(pos => (
-                    <option key={pos.value} value={pos.value}>{pos.label}</option>
+                    <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>
                   ))}
-                </select>
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  저장
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                취소
+              </Button>
+              <Button type="submit">
+                저장
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
