@@ -161,5 +161,37 @@ export const bulletinService = {
   }
 };
 
+export const announcementService = {
+  getAnnouncements: async (params?: { is_active?: boolean; is_pinned?: boolean }) => {
+    const response = await api.get(getApiUrl('/announcements/'), { params });
+    return response.data;
+  },
+  
+  getAnnouncement: async (announcementId: number) => {
+    const response = await api.get(getApiUrl(`/announcements/${announcementId}`));
+    return response.data;
+  },
+  
+  createAnnouncement: async (announcementData: any) => {
+    const response = await api.post(getApiUrl('/announcements/'), announcementData);
+    return response.data;
+  },
+  
+  updateAnnouncement: async (announcementId: number, announcementData: any) => {
+    const response = await api.put(getApiUrl(`/announcements/${announcementId}`), announcementData);
+    return response.data;
+  },
+  
+  deleteAnnouncement: async (announcementId: number) => {
+    const response = await api.delete(getApiUrl(`/announcements/${announcementId}`));
+    return response.data;
+  },
+  
+  togglePin: async (announcementId: number) => {
+    const response = await api.put(getApiUrl(`/announcements/${announcementId}/toggle-pin`));
+    return response.data;
+  }
+};
+
 export { api };
 export default api;

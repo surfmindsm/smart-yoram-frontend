@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import Members from './components/Members';
 import MemberManagement from './components/MemberManagement';
+import Announcements from './components/Announcements';
 import SMSManagement from './components/SMSManagement';
 import QRCodeManagement from './components/QRCodeManagement';
 import StatisticsDashboard from './components/StatisticsDashboard';
@@ -31,6 +32,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="members" element={<Members />} />
           <Route path="member-management" element={<MemberManagement />} />
+          <Route path="announcements" element={<Announcements />} />
           <Route path="sms" element={<SMSManagement />} />
           <Route path="qr-codes" element={<QRCodeManagement />} />
           <Route path="statistics" element={<StatisticsDashboard />} />

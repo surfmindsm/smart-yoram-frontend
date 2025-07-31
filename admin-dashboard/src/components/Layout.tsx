@@ -12,7 +12,8 @@ import {
   FileText,
   Church,
   Menu,
-  LogOut
+  LogOut,
+  Megaphone
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -30,6 +31,7 @@ const Layout: React.FC = () => {
     { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
     { path: '/statistics', name: '통계 분석', Icon: ChartLine },
     { path: '/member-management', name: '교인 관리', Icon: Users },
+    { path: '/announcements', name: '공지사항', Icon: Megaphone },
     { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
     { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
     { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
