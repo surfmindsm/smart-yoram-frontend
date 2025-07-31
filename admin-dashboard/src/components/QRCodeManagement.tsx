@@ -367,7 +367,6 @@ const QRCodeManagement: React.FC = () => {
                       if (input?.value) verifyQRCode(input.value);
                     }}
                     disabled={loading}
-                    variant="success"
                   >
                     {loading ? '확인 중...' : '출석 체크'}
                   </Button>
