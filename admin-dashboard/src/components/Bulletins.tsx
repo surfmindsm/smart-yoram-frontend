@@ -39,6 +39,17 @@ const Bulletins: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+    if (!formData.date) {
+      alert('날짜를 선택해주세요.');
+      return;
+    }
+    
     try {
       let bulletinId: number;
       
@@ -62,9 +73,10 @@ const Bulletins: React.FC = () => {
               'Content-Type': 'multipart/form-data',
             },
           });
-        } catch (uploadError) {
+        } catch (uploadError: any) {
           console.error('Failed to upload file:', uploadError);
-          alert('파일 업로드에 실패했습니다.');
+          const errorMessage = uploadError.response?.data?.detail || '파일 업로드에 실패했습니다.';
+          alert(`파일 업로드 실패: ${errorMessage}`);
         } finally {
           setUploadingFile(false);
         }
@@ -72,9 +84,10 @@ const Bulletins: React.FC = () => {
       
       loadBulletins();
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save bulletin:', error);
-      alert('주보 저장에 실패했습니다.');
+      const errorMessage = error.response?.data?.detail || '주보 저장에 실패했습니다.';
+      alert(`주보 저장 실패: ${errorMessage}`);
     }
   };
 
