@@ -33,6 +33,7 @@ interface NotificationHistory {
   failed_count: number;
   sent_at: string;
   created_at: string;
+  status?: string;
 }
 
 const NOTIFICATION_TYPES = [
@@ -170,9 +171,25 @@ export default function PushNotifications() {
 
       if (response.ok) {
         const result = await response.json();
+        
+        // Show detailed notification result
+        let description = '';
+        if (result.message) {
+          description = result.message;
+        } else {
+          description = `전송: ${result.sent_count || 0}명`;
+          if (result.failed_count > 0) {
+            description += `, 실패: ${result.failed_count}명`;
+          }
+          if (result.no_device_users && result.no_device_users.length > 0) {
+            description += `, 기기 없음: ${result.no_device_users.length}명`;
+          }
+        }
+        
         toast({
-          title: '성공',
-          description: `푸시 알림이 발송되었습니다. ${result.success || result.total || 0}명에게 전송`,
+          title: result.success ? '발송 완료' : '발송 결과',
+          description,
+          variant: result.success ? 'default' : 'destructive',
         });
         
         // Reset form
@@ -189,16 +206,15 @@ export default function PushNotifications() {
         setSelectedMembers([]);
         
         // Refresh history
-        if (activeTab === 'history') {
-          fetchHistory();
-        }
+        fetchHistory();
       } else {
-        throw new Error('Failed to send notification');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send notification');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: '오류',
-        description: '푸시 알림 발송에 실패했습니다.',
+        description: error.message || '푸시 알림 발송에 실패했습니다.',
         variant: 'destructive',
       });
     } finally {
@@ -220,16 +236,49 @@ export default function PushNotifications() {
     return found ? found.label : type;
   };
 
+  const getStatusBadge = (item: NotificationHistory) => {
+    // Calculate status if not provided
+    let status = item.status;
+    if (!status) {
+      if (item.total_recipients === 0) {
+        status = 'no_recipients';
+      } else if (item.sent_count === 0 && item.failed_count === 0) {
+        status = 'pending';
+      } else if (item.sent_count > 0 && item.failed_count === 0) {
+        status = 'success';
+      } else if (item.sent_count === 0 && item.failed_count > 0) {
+        status = 'failed';
+      } else {
+        status = 'partial';
+      }
+    }
+
+    switch (status) {
+      case 'success':
+        return <Badge variant="success">발송 완료</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">발송 실패</Badge>;
+      case 'partial':
+        return <Badge variant="warning">일부 실패</Badge>;
+      case 'no_recipients':
+        return <Badge variant="secondary">대상 없음</Badge>;
+      case 'pending':
+        return <Badge variant="outline">대기중</Badge>;
+      default:
+        return null;
+    }
+  };
+
   const getTargetLabel = (targetType: string, totalRecipients: number) => {
     switch (targetType) {
-      case 'all':
+      case 'church':
         return `전체 (${totalRecipients}명)`;
       case 'group':
         return `그룹 (${totalRecipients}명)`;
       case 'individual':
-        return `개인`;
+        return `개인 (${totalRecipients}명)`;
       default:
-        return targetType;
+        return `${targetType} (${totalRecipients}명)`;
     }
   };
 
@@ -403,22 +452,40 @@ export default function PushNotifications() {
                         <h4 className="font-semibold">{item.title}</h4>
                         <p className="text-sm text-gray-600">{item.body}</p>
                       </div>
-                      <Badge variant="outline">{getTypeLabel(item.type)}</Badge>
+                      <div className="flex gap-2">
+                        {getStatusBadge(item)}
+                        <Badge variant="outline">{getTypeLabel(item.type)}</Badge>
+                      </div>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>{getTargetLabel(item.target_type, item.total_recipients)}</span>
-                      <span>•</span>
-                      <span>발송: {item.sent_count}</span>
-                      <span>•</span>
-                      <span>전달: {item.delivered_count}</span>
-                      <span>•</span>
-                      <span>읽음: {item.read_count}</span>
+                      {item.sent_count > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-green-600">성공: {item.sent_count}</span>
+                        </>
+                      )}
+                      {item.delivered_count > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>전달: {item.delivered_count}</span>
+                        </>
+                      )}
+                      {item.read_count > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>읽음: {item.read_count}</span>
+                        </>
+                      )}
                       {item.failed_count > 0 && (
                         <>
                           <span>•</span>
                           <span className="text-red-500">실패: {item.failed_count}</span>
                         </>
+                      )}
+                      {item.total_recipients === 0 && (
+                        <span className="text-gray-400">대상 없음</span>
                       )}
                     </div>
                     
