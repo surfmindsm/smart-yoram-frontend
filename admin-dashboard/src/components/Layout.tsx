@@ -16,7 +16,8 @@ import {
   Megaphone,
   BookOpen,
   X,
-  Clock
+  Clock,
+  Bell
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -38,6 +39,7 @@ const Layout: React.FC = () => {
     { path: '/announcements', name: '공지사항', Icon: Megaphone },
     { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
     { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
+    { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
     { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
     { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
     { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },

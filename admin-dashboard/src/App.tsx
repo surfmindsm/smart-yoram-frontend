@@ -15,6 +15,7 @@ import Bulletins from './components/Bulletins';
 import ChurchInfo from './components/ChurchInfo';
 import DailyVerses from './components/DailyVerses';
 import WorshipScheduleManagement from './components/worship/WorshipScheduleManagement';
+import PushNotifications from './components/PushNotifications';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
           <Route path="daily-verses" element={<DailyVerses />} />
           <Route path="church" element={<ChurchInfo />} />
           <Route path="worship-schedule" element={<WorshipScheduleManagement />} />
+          <Route path="push-notifications" element={<PushNotifications />} />
         </Route>
       </Routes>
     </Router>
