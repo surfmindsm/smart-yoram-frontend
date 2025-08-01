@@ -156,7 +156,7 @@ export default function WorshipScheduleManagement() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
       const response = await fetch(`/api/v1/worship/services/${id}`, {
