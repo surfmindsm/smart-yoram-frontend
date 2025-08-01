@@ -73,6 +73,9 @@ export default function WorshipScheduleManagement() {
     description: '',
     order_index: 0,
   });
+  
+  // Get church_id from localStorage
+  const churchId = JSON.parse(localStorage.getItem('user') || '{}')?.church_id || 1;
 
   useEffect(() => {
     fetchWorshipSchedule();
@@ -81,7 +84,7 @@ export default function WorshipScheduleManagement() {
 
   const fetchWorshipSchedule = async () => {
     try {
-      const response = await fetch('/api/v1/worship/services?church_id=1', {
+      const response = await fetch('/api/v1/worship/services', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -101,7 +104,7 @@ export default function WorshipScheduleManagement() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/v1/worship/categories?church_id=1', {
+      const response = await fetch('/api/v1/worship/categories', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -120,7 +123,7 @@ export default function WorshipScheduleManagement() {
     
     const url = editingService
       ? `/api/v1/worship/services/${editingService.id}`
-      : '/api/v1/worship/services?church_id=1';
+      : '/api/v1/worship/services';
     
     const method = editingService ? 'PATCH' : 'POST';
     

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
 
 // Vercel 프록시를 사용하는 경우 처리
 const isProxyMode = API_BASE_URL.startsWith('/api/proxy');
