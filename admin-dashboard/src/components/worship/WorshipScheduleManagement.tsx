@@ -84,7 +84,8 @@ export default function WorshipScheduleManagement() {
 
   const fetchWorshipSchedule = async () => {
     try {
-      const response = await fetch('/api/v1/worship/services', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const response = await fetch(`${API_BASE_URL}/worship/services`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -92,8 +93,11 @@ export default function WorshipScheduleManagement() {
       if (response.ok) {
         const data = await response.json();
         setServices(data);
+      } else {
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
+      console.error('Fetch error:', error);
       toast({
         title: '오류',
         description: '예배 일정을 불러오는데 실패했습니다.',
@@ -104,7 +108,8 @@ export default function WorshipScheduleManagement() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/v1/worship/categories', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const response = await fetch(`${API_BASE_URL}/worship/categories`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -121,9 +126,10 @@ export default function WorshipScheduleManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
     const url = editingService
-      ? `/api/v1/worship/services/${editingService.id}`
-      : '/api/v1/worship/services';
+      ? `${API_BASE_URL}/worship/services/${editingService.id}`
+      : `${API_BASE_URL}/worship/services`;
     
     const method = editingService ? 'PATCH' : 'POST';
     
@@ -162,7 +168,8 @@ export default function WorshipScheduleManagement() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`/api/v1/worship/services/${id}`, {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const response = await fetch(`${API_BASE_URL}/worship/services/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
