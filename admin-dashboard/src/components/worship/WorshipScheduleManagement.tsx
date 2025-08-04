@@ -84,7 +84,7 @@ export default function WorshipScheduleManagement() {
 
   const fetchWorshipSchedule = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
       const response = await fetch(`${API_BASE_URL}/worship/services`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -108,7 +108,7 @@ export default function WorshipScheduleManagement() {
 
   const fetchCategories = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
       const response = await fetch(`${API_BASE_URL}/worship/categories`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -126,7 +126,7 @@ export default function WorshipScheduleManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
     const url = editingService
       ? `${API_BASE_URL}/worship/services/${editingService.id}`
       : `${API_BASE_URL}/worship/services`;
@@ -168,7 +168,7 @@ export default function WorshipScheduleManagement() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
       const response = await fetch(`${API_BASE_URL}/worship/services/${id}`, {
         method: 'DELETE',
         headers: {

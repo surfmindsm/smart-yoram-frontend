@@ -95,7 +95,7 @@ export default function PushNotifications() {
 
   const fetchHistory = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
       const response = await fetch(`${API_BASE_URL}/notifications/history`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -122,7 +122,7 @@ export default function PushNotifications() {
     }
 
     setIsLoading(true);
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://packs-holds-marc-extended.trycloudflare.com/api/v1';
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
     
     try {
       let endpoint = '';
