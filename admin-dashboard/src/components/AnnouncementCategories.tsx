@@ -93,10 +93,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
           <SelectContent>
             {Object.entries(CATEGORIES).map(([key, cat]) => (
               <SelectItem key={key} value={key}>
-                <div>
-                  <div className="font-medium">{cat.label}</div>
-                  <div className="text-sm text-gray-500">{cat.description}</div>
-                </div>
+                {cat.label}
               </SelectItem>
             ))}
           </SelectContent>
