@@ -4,6 +4,7 @@ import { announcementService } from '../services/api';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { CategorySelect, CategoryBadge } from './AnnouncementCategories';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -28,6 +29,8 @@ interface Announcement {
   id: number;
   title: string;
   content: string;
+  category: string;
+  subcategory?: string;
   author_name: string;
   is_active: boolean;
   is_pinned: boolean;
@@ -47,6 +50,8 @@ const Announcements: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
+    category: '',
+    subcategory: '',
     target_audience: 'all',
     is_pinned: false,
     is_active: true,
@@ -93,6 +98,8 @@ const Announcements: React.FC = () => {
     setFormData({
       title: '',
       content: '',
+      category: '',
+      subcategory: '',
       target_audience: 'all',
       is_pinned: false,
       is_active: true,
@@ -105,6 +112,8 @@ const Announcements: React.FC = () => {
     setFormData({
       title: announcement.title,
       content: announcement.content,
+      category: announcement.category || '',
+      subcategory: announcement.subcategory || '',
       target_audience: announcement.target_audience,
       is_pinned: announcement.is_pinned,
       is_active: announcement.is_active,
@@ -223,6 +232,7 @@ const Announcements: React.FC = () => {
                     )}
                   </CardTitle>
                   <CardDescription>
+                    <CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | 
                     작성자: {announcement.author_name} | 
                     작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} | 
                     대상: {getTargetAudienceText(announcement.target_audience)}
@@ -301,6 +311,12 @@ const Announcements: React.FC = () => {
                   required
                 />
               </div>
+              <CategorySelect
+                category={formData.category}
+                subcategory={formData.subcategory}
+                onCategoryChange={(value) => setFormData({ ...formData, category: value })}
+                onSubcategoryChange={(value) => setFormData({ ...formData, subcategory: value })}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="target">대상</Label>
