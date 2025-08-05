@@ -77,7 +77,9 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
 }) => {
   const handleCategoryChange = (value: string) => {
     onCategoryChange(value);
-    onSubcategoryChange(''); // Reset subcategory when category changes
+    if (onSubcategoryChange) {
+      onSubcategoryChange(''); // Reset subcategory when category changes
+    }
   };
 
   return (

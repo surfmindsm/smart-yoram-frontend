@@ -146,6 +146,12 @@ const Announcements: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 카테고리 유효성 검사
+    if (!formData.category) {
+      alert('카테고리를 선택해주세요.');
+      return;
+    }
+
     try {
       if (selectedAnnouncement) {
         await announcementService.updateAnnouncement(selectedAnnouncement.id, formData);
@@ -232,7 +238,7 @@ const Announcements: React.FC = () => {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    <CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | 
+                    {announcement.category && <><CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | </> }
                     작성자: {announcement.author_name} | 
                     작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} | 
                     대상: {getTargetAudienceText(announcement.target_audience)}
