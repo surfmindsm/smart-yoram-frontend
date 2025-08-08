@@ -37,6 +37,7 @@ const AIChat: React.FC = () => {
   ]);
   const [currentChatId, setCurrentChatId] = useState<string>('1');
   const [showHistory, setShowHistory] = useState(true);
+  const [activeTab, setActiveTab] = useState<'history' | 'bookmarks' | 'ministry'>('history');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -130,12 +131,51 @@ const AIChat: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex bg-white rounded-lg shadow-sm border border-slate-200">
+    <div className="h-[calc(100vh-6rem)] flex bg-white rounded-lg shadow-sm border border-slate-200">
       {/* 채팅 히스토리 사이드바 */}
       <div className={cn(
         "border-r border-slate-200 transition-all duration-300",
-        showHistory ? "w-64" : "w-0 overflow-hidden"
+        showHistory ? "w-80" : "w-0 overflow-hidden"
       )}>
+        {/* 탭바 */}
+        <div className="border-b border-slate-200">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('history')}
+              className={cn(
+                "flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2",
+                activeTab === 'history' 
+                  ? "text-sky-600 border-sky-600" 
+                  : "text-slate-500 border-transparent hover:text-slate-700"
+              )}
+            >
+              히스토리
+            </button>
+            <button
+              onClick={() => setActiveTab('bookmarks')}
+              className={cn(
+                "flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2",
+                activeTab === 'bookmarks' 
+                  ? "text-sky-600 border-sky-600" 
+                  : "text-slate-500 border-transparent hover:text-slate-700"
+              )}
+            >
+              즐겨찾기
+            </button>
+            <button
+              onClick={() => setActiveTab('ministry')}
+              className={cn(
+                "flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2",
+                activeTab === 'ministry' 
+                  ? "text-sky-600 border-sky-600" 
+                  : "text-slate-500 border-transparent hover:text-slate-700"
+              )}
+            >
+              사역 도우미
+            </button>
+          </div>
+        </div>
+
         <div className="p-4">
           <Button
             onClick={handleNewChat}
@@ -144,8 +184,9 @@ const AIChat: React.FC = () => {
             + 새 채팅
           </Button>
           
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-slate-600 mb-3">대화 히스토리</h3>
+          {activeTab === 'history' && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-600 mb-3">대화 히스토리</h3>
             {chatHistory.map((chat) => (
               <div
                 key={chat.id}
@@ -175,8 +216,65 @@ const AIChat: React.FC = () => {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'bookmarks' && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-600 mb-3">즐겨찾기</h3>
+              <div className="space-y-2">
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <p className="text-sm font-medium text-slate-900">주일 출석 분석</p>
+                  <p className="text-xs text-slate-500 mt-1">매주 반복되는 출석 현황 체크</p>
+                </div>
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <p className="text-sm font-medium text-slate-900">새가족 관리</p>
+                  <p className="text-xs text-slate-500 mt-1">신규 등록자 관리 및 후속조치</p>
+                </div>
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <p className="text-sm font-medium text-slate-900">심방 대상자</p>
+                  <p className="text-xs text-slate-500 mt-1">우선 심방이 필요한 성도들</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ministry' && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-600 mb-3">사역 도우미</h3>
+              <div className="space-y-2">
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <div className="flex items-center mb-2">
+                    <BookOpen className="w-4 h-4 text-slate-600 mr-2" />
+                    <p className="text-sm font-medium text-slate-900">설교 준비</p>
+                  </div>
+                  <p className="text-xs text-slate-500">본문 분석, 개요 작성</p>
+                </div>
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <div className="flex items-center mb-2">
+                    <FileText className="w-4 h-4 text-slate-600 mr-2" />
+                    <p className="text-sm font-medium text-slate-900">주보 작성</p>
+                  </div>
+                  <p className="text-xs text-slate-500">교회 소식 및 일정 정리</p>
+                </div>
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <div className="flex items-center mb-2">
+                    <Users className="w-4 h-4 text-slate-600 mr-2" />
+                    <p className="text-sm font-medium text-slate-900">구역 관리</p>
+                  </div>
+                  <p className="text-xs text-slate-500">구역별 현황 및 관리</p>
+                </div>
+                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                  <div className="flex items-center mb-2">
+                    <Calendar className="w-4 h-4 text-slate-600 mr-2" />
+                    <p className="text-sm font-medium text-slate-900">일정 관리</p>
+                  </div>
+                  <p className="text-xs text-slate-500">교회 행사 및 예배 일정</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

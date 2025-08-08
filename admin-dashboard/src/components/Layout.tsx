@@ -117,8 +117,8 @@ const Layout: React.FC = () => {
           "flex-1 transition-all duration-300",
           isSidebarOpen ? "ml-64" : "ml-0"
         )}>
-          <div className="p-6">
-            <div className="max-w-7xl mx-auto">
+          <div className="p-3">
+            <div className="max-w-full mx-auto">
               <Outlet />
             </div>
           </div>
