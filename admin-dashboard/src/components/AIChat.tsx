@@ -22,10 +22,23 @@ interface ChatHistory {
   isBookmarked?: boolean;
 }
 
+interface Agent {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  detailedDescription: string;
+  icon: string;
+  usage: number;
+  isActive: boolean;
+  templates: string[];
+}
+
 const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
     {
       id: '1',
@@ -64,6 +77,21 @@ const AIChat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 컴포넌트 마운트 시 localStorage에서 선택된 에이전트 확인
+  useEffect(() => {
+    const savedAgent = localStorage.getItem('selectedAgent');
+    if (savedAgent) {
+      try {
+        const agent = JSON.parse(savedAgent);
+        setSelectedAgent(agent);
+        // localStorage에서 제거 (일회성)
+        localStorage.removeItem('selectedAgent');
+      } catch (error) {
+        console.error('Failed to parse selected agent:', error);
+      }
+    }
+  }, []);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -437,8 +465,20 @@ const AIChat: React.FC = () => {
                 )}
               </Button>
               <div className="flex items-center space-x-2">
-                <Bot className="h-6 w-6 text-sky-600" />
-                <h2 className="text-lg font-semibold text-slate-900">AI 교역자</h2>
+                {selectedAgent ? (
+                  <>
+                    <span className="text-xl">{selectedAgent.icon}</span>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">{selectedAgent.name}</h2>
+                      <p className="text-xs text-slate-500">{selectedAgent.category}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Bot className="h-6 w-6 text-sky-600" />
+                    <h2 className="text-lg font-semibold text-slate-900">AI 교역자</h2>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -449,14 +489,21 @@ const AIChat: React.FC = () => {
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-2xl">
-                <Bot className="h-12 w-12 text-sky-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  AI 교역자에게 무엇이든 물어보세요
-                </h3>
-                <p className="text-slate-600 mb-6">
-                  교회 사역과 관련된 다양한 업무를 도와드릴 수 있습니다.
-                </p>
-                
+                {selectedAgent ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl">{selectedAgent.icon}</span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">{selectedAgent.name}와 대화를 시작하세요</h3>
+                    <p className="text-slate-600 mb-6">{selectedAgent.description}</p>
+                  </>
+                ) : (
+                  <>
+                    <Bot className="h-12 w-12 text-sky-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">AI 교역자와 대화를 시작하세요</h3>
+                    <p className="text-slate-600 mb-6">교회 운영과 관련된 다양한 질문을 해보세요. AI가 도움을 드리겠습니다.</p>
+                  </>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { title: '생명당 조회', query: '최근 4주 연속 주일예배 결석자 명단과 심방 우선순위를 알려주세요' },

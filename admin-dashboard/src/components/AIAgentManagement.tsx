@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import {
@@ -26,6 +27,7 @@ interface Template {
 }
 
 const AIAgentManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'agents' | 'templates'>('agents');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,8 +143,10 @@ const AIAgentManagement: React.FC = () => {
   };
 
   const handleAgentClick = (agent: Agent) => {
-    setSelectedAgentForChat(agent);
-    setShowChatView(true);
+    // 선택된 에이전트 정보를 localStorage에 저장
+    localStorage.setItem('selectedAgent', JSON.stringify(agent));
+    // AI 채팅 화면으로 이동
+    navigate('/ai-chat');
   };
 
   const handleEditAgent = (agent: Agent) => {
