@@ -147,11 +147,18 @@ CREATE TABLE church_database_configs (
   "data": {
     "id": "uuid",
     "name": "예시교회",
-    "subscription_plan": "premium",
-    "max_agents": 50,
-    "current_agents_count": 12,
-    "gpt_api_key_configured": true,
-    "database_connected": true
+    "subscriptionPlan": "premium",
+    "maxAgents": 50,
+    "currentAgentsCount": 12,
+    "gptApiConfigured": true,
+    "databaseConnected": true,
+    "lastSync": "2025-08-08T10:30:00Z",
+    "monthlyUsage": {
+      "totalTokens": 28100,
+      "totalRequests": 152,
+      "totalCost": 14.05,
+      "remainingQuota": 71900
+    }
   }
 }
 ```
@@ -160,7 +167,38 @@ CREATE TABLE church_database_configs (
 GPT API 키 설정
 ```json
 {
-  "api_key": "sk-..."
+  "apiKey": "sk-...",
+  "model": "gpt-4",
+  "maxTokens": 4000,
+  "temperature": 0.7
+}
+```
+
+#### GET /api/church/system-status
+시스템 상태 확인
+```json
+{
+  "success": true,
+  "data": {
+    "gptApi": {
+      "configured": true,
+      "model": "gpt-4",
+      "lastTest": "2025-08-08T10:30:00Z",
+      "status": "active"
+    },
+    "database": {
+      "connected": true,
+      "lastSync": "2025-08-08T10:30:00Z",
+      "tablesCount": 8,
+      "status": "healthy"
+    },
+    "agents": {
+      "total": 12,
+      "active": 10,
+      "totalTokensThisMonth": 28100,
+      "totalCostThisMonth": 14.05
+    }
+  }
 }
 ```
 
@@ -178,12 +216,18 @@ GPT API 키 설정
         "name": "설교 도우미",
         "category": "설교 지원",
         "description": "설교 준비와 설교 연구를 도와드리는 전문 에이전트",
-        "detailed_description": "상세 설명...",
+        "detailedDescription": "상세 설명...",
         "icon": "📖",
         "usage": 45,
-        "is_active": true,
+        "isActive": true,
         "templates": ["uuid1", "uuid2"],
-        "created_at": "2025-08-08T10:30:00Z"
+        "createdAt": "2025-08-08T10:30:00Z",
+        "updatedAt": "2025-08-08T15:22:00Z",
+        "totalTokensUsed": 12500,
+        "totalCost": 6.25,
+        "systemPrompt": "당신은 설교 준비를 전문적으로 도와주는 AI입니다...",
+        "templateId": "official-template-1",
+        "version": "1.0.0"
       }
     ],
     "stats": {
@@ -203,11 +247,11 @@ GPT API 키 설정
   "name": "새 에이전트",
   "category": "목양 관리",
   "description": "간단 설명",
-  "detailed_description": "상세 설명",
+  "detailedDescription": "상세 설명",
   "icon": "❤️",
-  "system_prompt": "당신은 목양을 위한 전문 상담사입니다...",
-  "is_active": true,
-  "template_id": "uuid" // 공식 템플릿 기반 생성 시
+  "systemPrompt": "당신은 목양을 위한 전문 상담사입니다...",
+  "isActive": true,
+  "templateId": "uuid" // 공식 템플릿 기반 생성 시
 }
 ```
 
@@ -217,7 +261,7 @@ GPT API 키 설정
 {
   "name": "수정된 이름",
   "description": "수정된 설명",
-  "is_active": false
+  "isActive": false
 }
 ```
 
@@ -234,10 +278,27 @@ GPT API 키 설정
       "id": "uuid",
       "name": "설교 준비 도우미",
       "category": "설교 지원",
-      "description": "설교 준비를 체계적으로 도와주는 전문 에이전트",
+      "description": "성경 해석, 설교문 작성, 적용점 개발을 도와주는 전문 AI",
+      "detailedDescription": "설교 준비의 전 과정을 체계적으로 지원하는 전문 AI 에이전트입니다...",
       "icon": "📖",
-      "version": "1.2.0",
-      "created_by": "Smart Yoram Team"
+      "systemPrompt": "당신은 설교 준비를 전문적으로 도와주는 AI입니다...",
+      "isOfficial": true,
+      "version": "2.1.0",
+      "createdBy": "Smart Yoram Team",
+      "createdAt": "2025-07-01T10:00:00Z"
+    },
+    {
+      "id": "uuid2",
+      "name": "목양 및 심방 도우미",
+      "category": "목양 관리",
+      "description": "성도 상담, 심방 계획, 목양 지도를 도와주는 전문 AI",
+      "detailedDescription": "목양과 심방의 모든 단계를 전문적으로 지원하는 AI 에이전트입니다...",
+      "icon": "❤️",
+      "systemPrompt": "당신은 목양과 심방을 전문적으로 도와주는 AI입니다...",
+      "isOfficial": true,
+      "version": "1.8.0",
+      "createdBy": "Smart Yoram Team",
+      "createdAt": "2025-06-15T10:00:00Z"
     }
   ]
 }
@@ -247,6 +308,9 @@ GPT API 키 설정
 
 #### GET /api/chat/histories
 채팅 히스토리 목록
+**Query Parameters:**
+- `include_messages` (optional): true인 경우 각 히스토리의 최근 메시지들도 포함
+
 ```json
 {
   "success": true,
@@ -254,10 +318,19 @@ GPT API 키 설정
     {
       "id": "uuid",
       "title": "최근 4주 연속 주일예배...",
-      "agent_name": "설교 도우미",
-      "is_bookmarked": true,
-      "message_count": 8,
-      "created_at": "2025-08-08T10:30:00Z"
+      "agentName": "설교 도우미",
+      "isBookmarked": true,
+      "messageCount": 8,
+      "timestamp": "2025-08-08T10:30:00Z",
+      "messages": [  // include_messages=true일 때만
+        {
+          "id": "uuid",
+          "content": "마지막 메시지 내용",
+          "role": "assistant",
+          "tokensUsed": 25,
+          "timestamp": "2025-08-08T10:30:00Z"
+        }
+      ]
     }
   ]
 }
@@ -282,15 +355,15 @@ GPT API 키 설정
       "id": "uuid",
       "content": "안녕하세요",
       "role": "user",
-      "tokens_used": 0,
-      "created_at": "2025-08-08T10:30:00Z"
+      "tokensUsed": 0,
+      "timestamp": "2025-08-08T10:30:00Z"
     },
     {
       "id": "uuid",
       "content": "안녕하세요! 어떻게 도와드릴까요?",
       "role": "assistant", 
-      "tokens_used": 25,
-      "created_at": "2025-08-08T10:30:05Z"
+      "tokensUsed": 25,
+      "timestamp": "2025-08-08T10:30:05Z"
     }
   ]
 }
@@ -315,15 +388,15 @@ GPT API 키 설정
       "id": "uuid",
       "content": "이번 주 결석자 현황을 알려주세요",
       "role": "user",
-      "created_at": "2025-08-08T10:30:00Z"
+      "timestamp": "2025-08-08T10:30:00Z"
     },
     "ai_response": {
       "id": "uuid", 
       "content": "이번 주 결석자는 총 5명입니다...",
       "role": "assistant",
-      "tokens_used": 150,
-      "data_sources": ["church_members", "attendance_records"],
-      "created_at": "2025-08-08T10:30:05Z"
+      "tokensUsed": 150,
+      "dataSources": ["church_members", "attendance_records"],
+      "timestamp": "2025-08-08T10:30:05Z"
     }
   }
 }
@@ -334,7 +407,7 @@ GPT API 키 설정
 ```json
 {
   "title": "새로운 제목",
-  "is_bookmarked": true
+  "isBookmarked": true
 }
 ```
 

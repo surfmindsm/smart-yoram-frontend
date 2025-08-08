@@ -12,14 +12,26 @@ interface ChatMessage {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  // 추가된 필드들
+  tokensUsed?: number;
+  cost?: number;
+  dataSources?: string[];  // AI가 참조한 데이터 소스들
+  processingTime?: number;  // 응답 생성 시간 (ms)
 }
 
 interface ChatHistory {
   id: string;
   title: string;
   timestamp: Date;
-  messages: ChatMessage[];
+  agentId?: string;
+  agentName?: string;
+  messageCount: number;
   isBookmarked?: boolean;
+  // 옵션: 전체 메시지 배열 (로컬에서만 사용)
+  messages?: ChatMessage[];
+  // 통계 정보
+  totalTokensUsed?: number;
+  totalCost?: number;
 }
 
 interface Agent {
@@ -44,22 +56,37 @@ const AIChat: React.FC = () => {
       id: '1',
       title: '최근 4주 연속 주일예배...',
       timestamp: new Date('2025-08-08'),
-      messages: [],
-      isBookmarked: true
+      agentId: '1',
+      agentName: '설교 도우미',
+      messageCount: 8,
+      isBookmarked: true,
+      messages: [],  // 로컬 데이터
+      totalTokensUsed: 850,
+      totalCost: 0.42
     },
     {
       id: '2',
       title: '새 대화',
       timestamp: new Date('2025-08-08'),
+      agentId: '2',
+      agentName: '심방 관리 도우미',
+      messageCount: 0,
+      isBookmarked: false,
       messages: [],
-      isBookmarked: false
+      totalTokensUsed: 0,
+      totalCost: 0
     },
     {
       id: '3',
       title: '새가족 관리 현황',
       timestamp: new Date('2025-08-07'),
+      agentId: '2',
+      agentName: '심방 관리 도우미',
+      messageCount: 12,
+      isBookmarked: true,
       messages: [],
-      isBookmarked: true
+      totalTokensUsed: 1240,
+      totalCost: 0.62
     }
   ]);
   const [currentChatId, setCurrentChatId] = useState<string>('1');
@@ -108,12 +135,20 @@ const AIChat: React.FC = () => {
     setIsLoading(true);
 
     // AI 응답 시뮬레이션
+    const startTime = Date.now();
     setTimeout(() => {
+      const processingTime = Date.now() - startTime;
+      const aiResponseData = getAIResponse(inputValue);
+      
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: getAIResponse(inputValue),
+        content: aiResponseData.content,
         role: 'assistant',
-        timestamp: new Date()
+        timestamp: new Date(),
+        tokensUsed: aiResponseData.tokensUsed,
+        cost: aiResponseData.cost,
+        dataSources: aiResponseData.dataSources,
+        processingTime
       };
       
       setMessages(prev => [...prev, aiResponse]);
@@ -121,11 +156,26 @@ const AIChat: React.FC = () => {
     }, 1000);
   };
 
-  const getAIResponse = (userInput: string): string => {
+  const getAIResponse = (userInput: string): { content: string, tokensUsed: number, cost: number, dataSources: string[] } => {
     const responses = {
-      '결석자': '최근 4주 연속 주일예배 결석자는 총 12명입니다.\n\n**우선 심방 대상:**\n• 김○○ 집사 (연락처: 010-1234-5678)\n• 이○○ 권사 (연락처: 010-2345-6789)\n• 박○○ 성도 (연락처: 010-3456-7890)\n\n**심방 시 확인사항:**\n• 건강 상태 및 개인적 어려움\n• 교회 참석에 대한 의견\n• 필요한 도움이나 기도제목\n\n더 자세한 정보가 필요하시면 말씀해 주세요.',
-      '새가족': '최근 한 달간 새가족 등록 현황입니다.\n\n**신규 등록자 (5명):**\n• 최○○님 (20대, 대학생)\n• 정○○님 (30대, 직장인)\n• 한○○님 (40대, 주부)\n• 송○○님 (50대, 자영업)\n• 조○○님 (30대, 부부)\n\n**후속조치 계획:**\n1. 새가족반 안내 및 등록\n2. 담당 목자 배정\n3. 환영 심방 계획 수립\n4. 교회 소개 자료 전달\n\n각 새가족별 상세 정보가 필요하시면 말씀해 주세요.',
-      'default': '안녕하세요! AI 교역자입니다. 교회 사역과 관련된 다양한 질문에 도움을 드릴 수 있습니다.\n\n**주요 기능:**\n• 출석 및 결석자 관리\n• 새가족 현황 및 관리\n• 심방 대상자 우선순위\n• 각종 교회 업무 지원\n\n구체적인 질문을 해주시면 더 정확한 정보를 제공해드리겠습니다.'
+      '결석자': {
+        content: '최근 4주 연속 주일예배 결석자는 총 12명입니다.\n\n**우선 심방 대상:**\n• 김○○ 집사 (연락처: 010-1234-5678)\n• 이○○ 권사 (연락처: 010-2345-6789)\n• 박○○ 성도 (연락처: 010-3456-7890)\n\n**심방 시 확인사항:**\n• 건강 상태 및 개인적 어려움\n• 교회 참석에 대한 의견\n• 필요한 도움이나 기도제목\n\n더 자세한 정보가 필요하시면 말씨해 주세요.',
+        tokensUsed: 180,
+        cost: 0.09,
+        dataSources: ['attendance_records', 'member_info', 'contact_database']
+      },
+      '새가족': {
+        content: '최근 한 달간 새가족 등록 현황입니다.\n\n**신규 등록자 (5명):**\n• 최○○님 (20대, 대학생)\n• 정○○님 (30대, 직장인)\n• 한○○님 (40대, 주부)\n• 송○○님 (50대, 자영업)\n• 조○○님 (30대, 부부)\n\n**후속조치 계획:**\n1. 새가족반 안내 및 등록\n2. 담당 목자 배정\n3. 환영 심방 계획 수립\n4. 교회 소개 자료 전달\n\n각 새가족별 상세 정보가 필요하시면 말씨해 주세요.',
+        tokensUsed: 165,
+        cost: 0.08,
+        dataSources: ['new_member_registry', 'member_demographics', 'follow_up_schedule']
+      },
+      'default': {
+        content: '안녕하세요! AI 교역자입니다. 교회 사역과 관련된 다양한 질문에 도움을 드릴 수 있습니다.\n\n**주요 기능:**\n• 출석 및 결석자 관리\n• 새가족 현황 및 관리\n• 심방 대상자 우선순위\n• 각종 교회 업무 지원\n\n구체적인 질문을 해주시면 더 정확한 정보를 제공해드리겠습니다.',
+        tokensUsed: 95,
+        cost: 0.05,
+        dataSources: ['system_info']
+      }
     };
 
     if (userInput.includes('결석') || userInput.includes('출석')) {
@@ -143,8 +193,13 @@ const AIChat: React.FC = () => {
       id: Date.now().toString(),
       title: '새 대화',
       timestamp: new Date(),
-      messages: [],
-      isBookmarked: false
+      agentId: selectedAgent?.id,
+      agentName: selectedAgent?.name,
+      messageCount: 0,
+      isBookmarked: false,
+      messages: [],  // 로컬 데이터
+      totalTokensUsed: 0,
+      totalCost: 0
     };
     setChatHistory(prev => [newChat, ...prev]);
     setCurrentChatId(newChat.id);

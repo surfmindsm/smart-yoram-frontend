@@ -18,12 +18,27 @@ interface Agent {
   usage: number;
   isActive: boolean;
   templates: string[];
+  // 추가된 필드들
+  createdAt: Date;
+  updatedAt: Date;
+  totalTokensUsed: number;
+  totalCost: number;
+  systemPrompt?: string;
+  templateId?: string;  // 공식 템플릿 기반인 경우
+  version?: string;
 }
 
 interface Template {
   id: string;
   name: string;
   category: string;
+  description?: string;
+  icon?: string;
+  systemPrompt?: string;
+  isOfficial?: boolean;
+  version?: string;
+  createdBy?: string;
+  createdAt?: Date;
 }
 
 const AIAgentManagement: React.FC = () => {
@@ -38,6 +53,53 @@ const AIAgentManagement: React.FC = () => {
   const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  
+  // 사용량 통계 상태
+  const [usageStats, setUsageStats] = useState({
+    currentMonth: {
+      totalTokens: 28100,
+      totalRequests: 152,
+      totalCost: 14.05
+    },
+    topAgents: [
+      { id: '1', name: '설교 도우미', tokens: 12500, requests: 65 },
+      { id: '2', name: '심방 관리 도우미', tokens: 8900, requests: 45 },
+      { id: '3', name: '예배 기획자', tokens: 6700, requests: 42 }
+    ]
+  });
+  
+  // GPT API 키 및 데이터베이스 상태
+  const [systemStatus, setSystemStatus] = useState({
+    gptApiConfigured: true,
+    databaseConnected: true,
+    lastSync: new Date('2025-08-08T10:30:00Z')
+  });
+  
+  // 공식 템플릿 상태
+  const [officialTemplates, setOfficialTemplates] = useState<Template[]>([
+    {
+      id: 'official-1',
+      name: '설교 준비 도우미',
+      category: '설교 지원',
+      description: '성경 해석, 설교문 작성, 적용점 개발을 도와주는 전문 AI',
+      icon: '📖',
+      isOfficial: true,
+      version: '2.1.0',
+      createdBy: 'Smart Yoram Team',
+      createdAt: new Date('2025-07-01')
+    },
+    {
+      id: 'official-2', 
+      name: '목양 및 심방 도우미',
+      category: '목양 관리',
+      description: '성도 상담, 심방 계획, 목양 지도를 도와주는 전문 AI',
+      icon: '❤️',
+      isOfficial: true,
+      version: '1.8.0',
+      createdBy: 'Smart Yoram Team',
+      createdAt: new Date('2025-06-15')
+    }
+  ]);
 
   const [newAgent, setNewAgent] = useState({
     name: '',
@@ -46,7 +108,10 @@ const AIAgentManagement: React.FC = () => {
     description: '',
     detailedDescription: '',
     templates: [] as string[],
-    immediateActivation: true
+    immediateActivation: true,
+    systemPrompt: '',
+    templateId: '',
+    isFromTemplate: false
   });
 
   const categories = [
@@ -74,7 +139,14 @@ const AIAgentManagement: React.FC = () => {
       icon: '📖',
       usage: 45,
       isActive: true,
-      templates: ['1', '2']
+      templates: ['1', '2'],
+      createdAt: new Date('2025-07-15'),
+      updatedAt: new Date('2025-08-05'),
+      totalTokensUsed: 12500,
+      totalCost: 6.25,
+      systemPrompt: '당신은 설교 준비를 전문적으로 도와주는 AI입니다.',
+      templateId: 'template-1',
+      version: '1.0.0'
     },
     {
       id: '2', 
@@ -85,7 +157,13 @@ const AIAgentManagement: React.FC = () => {
       icon: '❤️',
       usage: 32,
       isActive: true,
-      templates: []
+      templates: [],
+      createdAt: new Date('2025-07-20'),
+      updatedAt: new Date('2025-08-01'),
+      totalTokensUsed: 8900,
+      totalCost: 4.45,
+      systemPrompt: '당신은 목양과 심방을 전문적으로 도와주는 AI입니다.',
+      version: '1.0.0'
     },
     {
       id: '3',
@@ -96,7 +174,13 @@ const AIAgentManagement: React.FC = () => {
       icon: '⛪',
       usage: 28,
       isActive: true,
-      templates: []
+      templates: [],
+      createdAt: new Date('2025-07-25'),
+      updatedAt: new Date('2025-08-03'),
+      totalTokensUsed: 6700,
+      totalCost: 3.35,
+      systemPrompt: '당신은 예배 순서와 기획을 전문적으로 도와주는 AI입니다.',
+      version: '1.0.0'
     }
   ]);
 
@@ -104,6 +188,8 @@ const AIAgentManagement: React.FC = () => {
   const activeAgents = agents.filter(agent => agent.isActive).length;
   const inactiveAgents = totalAgents - activeAgents;
   const totalUsage = agents.reduce((sum, agent) => sum + agent.usage, 0);
+  const totalTokensUsed = agents.reduce((sum, agent) => sum + agent.totalTokensUsed, 0);
+  const totalCostThisMonth = agents.reduce((sum, agent) => sum + agent.totalCost, 0);
 
   const handleCreateAgent = () => {
     if (!newAgent.name || newAgent.category === '카테고리 선택') {
@@ -120,7 +206,14 @@ const AIAgentManagement: React.FC = () => {
       icon: newAgent.icon,
       usage: 0,
       isActive: newAgent.immediateActivation,
-      templates: newAgent.templates
+      templates: newAgent.templates,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      totalTokensUsed: 0,
+      totalCost: 0,
+      systemPrompt: newAgent.systemPrompt || '',
+      templateId: newAgent.templateId,
+      version: '1.0.0'
     };
 
     setAgents([...agents, agent]);
@@ -132,7 +225,10 @@ const AIAgentManagement: React.FC = () => {
       description: '',
       detailedDescription: '',
       templates: [],
-      immediateActivation: true
+      immediateActivation: true,
+      systemPrompt: '',
+      templateId: '',
+      isFromTemplate: false
     });
   };
 
