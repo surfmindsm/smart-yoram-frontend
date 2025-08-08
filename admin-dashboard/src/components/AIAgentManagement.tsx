@@ -31,6 +31,11 @@ const AIAgentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('모든 카테고리');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [activeAgentMenu, setActiveAgentMenu] = useState<string | null>(null);
+  const [showChatView, setShowChatView] = useState(false);
+  const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   const [newAgent, setNewAgent] = useState({
     name: '',
@@ -133,6 +138,29 @@ const AIAgentManagement: React.FC = () => {
     setAgents(agents.map(agent => 
       agent.id === id ? { ...agent, isActive: !agent.isActive } : agent
     ));
+  };
+
+  const handleAgentClick = (agent: Agent) => {
+    setSelectedAgentForChat(agent);
+    setShowChatView(true);
+  };
+
+  const handleEditAgent = (agent: Agent) => {
+    setEditingAgent(agent);
+    setShowEditModal(true);
+    setActiveAgentMenu(null);
+  };
+
+  const handleDeleteAgent = (agentId: string) => {
+    if (window.confirm('이 에이전트를 삭제하시겠습니까?')) {
+      setAgents(agents.filter(agent => agent.id !== agentId));
+      setActiveAgentMenu(null);
+    }
+  };
+
+  const handleBackToAgentList = () => {
+    setShowChatView(false);
+    setSelectedAgentForChat(null);
   };
 
   const filteredAgents = agents.filter(agent => {
@@ -277,7 +305,11 @@ const AIAgentManagement: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAgents.map((agent) => (
-                <div key={agent.id} className="bg-white p-6 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                <div 
+                  key={agent.id} 
+                  className="bg-white p-6 rounded-lg border border-slate-200 hover:shadow-md transition-shadow cursor-pointer relative"
+                  onClick={() => handleAgentClick(agent)}
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center mr-3">
@@ -285,14 +317,50 @@ const AIAgentManagement: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900">{agent.name}</h4>
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded mt-1">
-                          활성
+                        <span className={`inline-block px-2 py-1 text-xs font-medium rounded mt-1 ${
+                          agent.isActive 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {agent.isActive ? '활성' : '비활성'}
                         </span>
                       </div>
                     </div>
-                    <button className="text-slate-400 hover:text-slate-600">
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="relative">
+                      <button 
+                        className="text-slate-400 hover:text-slate-600 p-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveAgentMenu(activeAgentMenu === agent.id ? null : agent.id);
+                        }}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      {activeAgentMenu === agent.id && (
+                        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-md shadow-lg z-20">
+                          <button
+                            className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditAgent(agent);
+                            }}
+                          >
+                            <Settings className="h-4 w-4" />
+                            수정
+                          </button>
+                          <button
+                            className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAgent(agent.id);
+                            }}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            삭제
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <p className="text-sm text-slate-600 mb-4">{agent.description}</p>
@@ -307,7 +375,10 @@ const AIAgentManagement: React.FC = () => {
                       <span className="text-slate-600">활성화</span>
                     </div>
                     <button
-                      onClick={() => toggleAgentStatus(agent.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAgentStatus(agent.id);
+                      }}
                       className={cn(
                         "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
                         agent.isActive ? "bg-sky-600" : "bg-slate-200"
@@ -326,6 +397,145 @@ const AIAgentManagement: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* AI 채팅 화면 */}
+      {showChatView && selectedAgentForChat && (
+        <div className="fixed inset-0 bg-white z-50">
+          <div className="h-full flex flex-col">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBackToAgentList}
+                  className="text-slate-600 hover:text-slate-800"
+                >
+                  ← 돌아가기
+                </button>
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <span className="text-sm">{selectedAgentForChat.icon}</span>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-slate-900">{selectedAgentForChat.name}</h2>
+                  <p className="text-xs text-slate-500">{selectedAgentForChat.category}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* 채팅 영역 */}
+            <div className="flex-1 p-4 bg-slate-50">
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg p-6 shadow-sm">
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl">{selectedAgentForChat.icon}</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      {selectedAgentForChat.name}와 대화를 시작하세요
+                    </h3>
+                    <p className="text-slate-600 mb-6">{selectedAgentForChat.description}</p>
+                    
+                    {/* 추천 질문들 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        '어떤 도움을 받을 수 있나요?',
+                        '주요 기능을 알려주세요',
+                        '사용법을 설명해주세요',
+                        '예시를 보여주세요'
+                      ].map((question) => (
+                        <button
+                          key={question}
+                          className="p-3 text-left border border-slate-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
+                        >
+                          <div className="text-sm text-slate-700">{question}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* 입력 영역 */}
+            <div className="p-4 border-t border-slate-200 bg-white">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="메시지를 입력하세요..."
+                    className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
+                  <button className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg">
+                    전송
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 에이전트 수정 모달 */}
+      {showEditModal && editingAgent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">에이전트 수정</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  에이전트 이름
+                </label>
+                <input
+                  type="text"
+                  value={editingAgent.name}
+                  onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  설명
+                </label>
+                <textarea
+                  value={editingAgent.description}
+                  onChange={(e) => setEditingAgent({ ...editingAgent, description: e.target.value })}
+                  rows={3}
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-8">
+              <Button
+                variant="ghost"
+                onClick={() => setShowEditModal(false)}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={() => {
+                  setAgents(agents.map(agent => 
+                    agent.id === editingAgent.id ? editingAgent : agent
+                  ));
+                  setShowEditModal(false);
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white"
+              >
+                저장
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 에이전트 생성 모달 */}
