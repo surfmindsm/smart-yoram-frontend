@@ -63,7 +63,7 @@ const Layout: React.FC = () => {
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="mr-4"
             >
-              {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-semibold text-slate-900">스마트 요람 관리자</h1>
           </div>
