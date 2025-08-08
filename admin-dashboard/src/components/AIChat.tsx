@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, MoreHorizontal, Trash2, Copy, RefreshCw, Users, Heart, UserPlus, BookOpen, FileText, Calendar } from 'lucide-react';
+import { Send, Bot, User, MoreHorizontal, Trash2, Copy, RefreshCw, Users, Heart, UserPlus, BookOpen, FileText, Calendar, Star, Edit3, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 
@@ -15,6 +15,14 @@ interface ChatHistory {
   title: string;
   timestamp: Date;
   messages: ChatMessage[];
+}
+
+interface Bookmark {
+  id: string;
+  title: string;
+  description: string;
+  query: string;
+  timestamp: Date;
 }
 
 const AIChat: React.FC = () => {
@@ -38,6 +46,33 @@ const AIChat: React.FC = () => {
   const [currentChatId, setCurrentChatId] = useState<string>('1');
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'bookmarks' | 'ministry'>('history');
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([
+    {
+      id: '1',
+      title: '주일 출석 분석',
+      description: '매주 반복되는 출석 현황 체크',
+      query: '최근 4주 주일예배 출석 현황을 분석해주세요',
+      timestamp: new Date('2025-08-08')
+    },
+    {
+      id: '2', 
+      title: '새가족 관리',
+      description: '신규 등록자 관리 및 후속조치',
+      query: '최근 등록된 새가족 현황과 후속조치 계획을 알려주세요',
+      timestamp: new Date('2025-08-08')
+    },
+    {
+      id: '3',
+      title: '심방 대상자', 
+      description: '우선 심방이 필요한 성도들',
+      query: '우선적으로 심방이 필요한 성도 명단을 보여주세요',
+      timestamp: new Date('2025-08-08')
+    }
+  ]);
+  const [currentBookmarkStatus, setCurrentBookmarkStatus] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [editingChat, setEditingChat] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -123,6 +158,92 @@ const AIChat: React.FC = () => {
     setTimeout(() => handleSendMessage(), 100);
   };
 
+  const handleBookmark = () => {
+    if (messages.length === 0) return;
+    
+    const currentChat = chatHistory.find(chat => chat.id === currentChatId);
+    if (currentChat && !currentBookmarkStatus) {
+      const newBookmark: Bookmark = {
+        id: Date.now().toString(),
+        title: currentChat.title.length > 20 ? currentChat.title.substring(0, 20) + '...' : currentChat.title,
+        description: messages.length > 1 ? '대화 내용을 즐겨찾기에 저장' : '단일 메시지',
+        query: messages[0]?.content || '',
+        timestamp: new Date()
+      };
+      
+      setBookmarks(prev => [newBookmark, ...prev]);
+      setCurrentBookmarkStatus(true);
+    } else if (currentBookmarkStatus) {
+      // 즐겨찾기에서 제거
+      setBookmarks(prev => prev.filter(bookmark => 
+        !bookmark.query.includes(messages[0]?.content || '')
+      ));
+      setCurrentBookmarkStatus(false);
+    }
+  };
+
+  const handleBookmarkSelect = (bookmark: Bookmark) => {
+    setInputValue(bookmark.query);
+    // 자동으로 메시지 전송
+    setTimeout(() => handleSendMessage(), 100);
+  };
+
+  const handleMenuToggle = (chatId: string) => {
+    setActiveMenu(activeMenu === chatId ? null : chatId);
+  };
+
+  const handleDeleteChat = (chatId: string) => {
+    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+    if (currentChatId === chatId) {
+      const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+      if (remainingChats.length > 0) {
+        setCurrentChatId(remainingChats[0].id);
+      } else {
+        setMessages([]);
+        setCurrentChatId('');
+      }
+    }
+    setActiveMenu(null);
+  };
+
+  const handleBookmarkChat = (chat: ChatHistory) => {
+    const newBookmark: Bookmark = {
+      id: Date.now().toString(),
+      title: chat.title,
+      description: '대화를 즐겨찾기에 저장',
+      query: chat.messages[0]?.content || chat.title,
+      timestamp: new Date()
+    };
+    
+    setBookmarks(prev => [newBookmark, ...prev]);
+    setActiveMenu(null);
+  };
+
+  const handleEditTitle = (chatId: string, currentTitle: string) => {
+    setEditingChat(chatId);
+    setEditingTitle(currentTitle);
+    setActiveMenu(null);
+  };
+
+  const handleSaveTitle = (chatId: string) => {
+    if (editingTitle.trim()) {
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, title: editingTitle.trim() }
+            : chat
+        )
+      );
+    }
+    setEditingChat(null);
+    setEditingTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingChat(null);
+    setEditingTitle('');
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -187,35 +308,121 @@ const AIChat: React.FC = () => {
           {activeTab === 'history' && (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-slate-600 mb-3">대화 히스토리</h3>
-            {chatHistory.map((chat) => (
-              <div
-                key={chat.id}
-                onClick={() => setCurrentChatId(chat.id)}
-                className={cn(
-                  "p-3 rounded-lg cursor-pointer transition-colors",
-                  currentChatId === chat.id 
-                    ? "bg-sky-50 border-l-2 border-sky-500" 
-                    : "hover:bg-slate-50"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">
-                      {chat.title}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {chat.timestamp.toLocaleDateString()}
-                    </p>
+              {chatHistory.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={cn(
+                    "relative p-3 rounded-lg transition-colors group",
+                    currentChatId === chat.id 
+                      ? "bg-sky-50 border-l-2 border-sky-500" 
+                      : "hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => setCurrentChatId(chat.id)}
+                    >
+                      {editingChat === chat.id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSaveTitle(chat.id);
+                              } else if (e.key === 'Escape') {
+                                handleCancelEdit();
+                              }
+                            }}
+                            className="text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 w-full focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                            autoFocus
+                          />
+                          <div className="flex space-x-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveTitle(chat.id)}
+                              className="h-6 px-2 text-xs bg-sky-600 hover:bg-sky-700"
+                            >
+                              저장
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEdit}
+                              className="h-6 px-2 text-xs"
+                            >
+                              취소
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {chat.title}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {chat.timestamp.toLocaleDateString()}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    
+                    {editingChat !== chat.id && (
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMenuToggle(chat.id);
+                          }}
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                        
+                        {activeMenu === chat.id && (
+                          <div className="absolute right-0 top-6 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                            <div className="py-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditTitle(chat.id, chat.title);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                              >
+                                <Edit3 className="w-4 h-4 mr-2" />
+                                이름변경
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleBookmarkChat(chat);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                              >
+                                <Star className="w-4 h-4 mr-2" />
+                                즐겨찾기
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteChat(chat.id);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
                 </div>
-              </div>
               ))}
             </div>
           )}
@@ -224,18 +431,32 @@ const AIChat: React.FC = () => {
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-slate-600 mb-3">즐겨찾기</h3>
               <div className="space-y-2">
-                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                  <p className="text-sm font-medium text-slate-900">주일 출석 분석</p>
-                  <p className="text-xs text-slate-500 mt-1">매주 반복되는 출석 현황 체크</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                  <p className="text-sm font-medium text-slate-900">새가족 관리</p>
-                  <p className="text-xs text-slate-500 mt-1">신규 등록자 관리 및 후속조치</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                  <p className="text-sm font-medium text-slate-900">심방 대상자</p>
-                  <p className="text-xs text-slate-500 mt-1">우선 심방이 필요한 성도들</p>
-                </div>
+                {bookmarks.length === 0 ? (
+                  <div className="p-4 text-center text-slate-500">
+                    <Star className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm">아직 즐겨찾기한 대화가 없습니다.</p>
+                    <p className="text-xs mt-1">대화 중에 ⭐ 버튼을 눌러 즐겨찾기에 추가하세요.</p>
+                  </div>
+                ) : (
+                  bookmarks.map((bookmark) => (
+                    <div
+                      key={bookmark.id}
+                      onClick={() => handleBookmarkSelect(bookmark)}
+                      className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium text-slate-900 truncate flex-1">
+                          {bookmark.title}
+                        </p>
+                        <Star className="w-4 h-4 text-yellow-500 fill-current ml-2 flex-shrink-0" />
+                      </div>
+                      <p className="text-xs text-slate-500 mb-1">{bookmark.description}</p>
+                      <p className="text-xs text-slate-400">
+                        {bookmark.timestamp.toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -282,16 +503,38 @@ const AIChat: React.FC = () => {
       <div className="flex-1 flex flex-col">
         {/* 헤더 */}
         <div className="p-4 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center mr-3">
-              <Bot className="w-4 h-4 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center mr-3">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-900">AI 교역자</h2>
+                <p className="text-sm text-slate-500">
+                  최근 4주 연속 주일예배 결석자 명단을 보여드릴까요?
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-semibold text-slate-900">AI 교역자</h2>
-              <p className="text-sm text-slate-500">
-                최근 4주 연속 주일예배 결석자 명단을 보여드릴까요?
-              </p>
-            </div>
+            
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBookmark}
+                className={cn(
+                  "transition-colors",
+                  currentBookmarkStatus 
+                    ? "text-yellow-500 hover:text-yellow-600" 
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+                title={currentBookmarkStatus ? "즐겨찾기에서 제거" : "즐겨찾기에 추가"}
+              >
+                <Star className={cn(
+                  "w-5 h-5",
+                  currentBookmarkStatus && "fill-current"
+                )} />
+              </Button>
+            )}
           </div>
         </div>
 
