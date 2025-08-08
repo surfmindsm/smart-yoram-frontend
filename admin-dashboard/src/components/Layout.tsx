@@ -38,6 +38,7 @@ const Layout: React.FC = () => {
     { path: '/statistics', name: '통계 분석', Icon: ChartLine },
     { path: '/member-management', name: '교인 관리', Icon: Users },
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
+    { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
     { path: '/announcements', name: '공지사항', Icon: Megaphone },
     { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
     { path: '/worship-schedule', name: '예배 시간', Icon: Clock },

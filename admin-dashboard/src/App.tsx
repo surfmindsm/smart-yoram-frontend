@@ -17,6 +17,7 @@ import DailyVerses from './components/DailyVerses';
 import WorshipScheduleManagement from './components/worship/WorshipScheduleManagement';
 import PushNotifications from './components/PushNotifications';
 import AIChat from './components/AIChat';
+import AIAgentManagement from './components/AIAgentManagement';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="members" element={<Members />} />
           <Route path="member-management" element={<MemberManagement />} />
           <Route path="ai-chat" element={<AIChat />} />
+          <Route path="ai-agent-management" element={<AIAgentManagement />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="sms" element={<SMSManagement />} />
           <Route path="qr-codes" element={<QRCodeManagement />} />
