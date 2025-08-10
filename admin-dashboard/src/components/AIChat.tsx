@@ -39,6 +39,8 @@ const AIChat: React.FC = () => {
   const [showHistory, setShowHistory] = useState(true);
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
+  const [agents, setAgents] = useState<Agent[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -105,19 +107,44 @@ const AIChat: React.FC = () => {
         // 에이전트 로드
         try {
           const agentList = await agentService.getAgents();
+          setAgents(agentList);
           if (agentList.length > 0) {
             setSelectedAgent(agentList[0]);
           }
         } catch (error) {
           console.warn('API 실패, Mock 에이전트 사용:', error);
-          const mockAgent: Agent = {
-            id: 'agent-1',
-            name: '일반 교역 도우미',
-            category: '일반',
-            description: '교회 업무 전반을 도와드립니다',
-            isActive: true
-          };
-          setSelectedAgent(mockAgent);
+          const mockAgents: Agent[] = [
+            {
+              id: 'agent-1',
+              name: '일반 교역 도우미',
+              category: '일반',
+              description: '교회 일반 업무를 도와드립니다',
+              isActive: true
+            },
+            {
+              id: 'agent-2', 
+              name: '새가족 담당자',
+              category: '새가족',
+              description: '새가족 관리와 양육을 도와드립니다',
+              isActive: true
+            },
+            {
+              id: 'agent-3',
+              name: '심방 도우미',
+              category: '심방',
+              description: '교인 심방과 관리를 도와드립니다',
+              isActive: true
+            },
+            {
+              id: 'agent-4',
+              name: '예배 준비 도우미',
+              category: '예배',
+              description: '예배 준비와 진행을 도와드립니다',
+              isActive: true
+            }
+          ];
+          setAgents(mockAgents);
+          setSelectedAgent(mockAgents[0]);
         }
 
       } finally {
@@ -222,49 +249,132 @@ const AIChat: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-6rem)] flex bg-white rounded-lg shadow-sm border border-slate-200">
-      {/* 채팅 히스토리 사이드바 */}
+      {/* 사이드바 */}
       {showHistory && (
         <div className="w-80 border-r border-slate-200">
-          <div className="p-4 border-b border-slate-200">
-            <Button 
-              onClick={handleNewChat}
-              className="w-full bg-sky-600 hover:bg-sky-700 text-white"
-            >
-              새 대화 시작
-            </Button>
-          </div>
-          
-          <div className="p-4 overflow-y-auto h-[calc(100%-80px)]">
-            <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
-              <History className="w-4 h-4 mr-1" />
-              최근 대화
-            </h3>
-            
-            {chatHistory.map((chat) => (
-              <div
-                key={chat.id}
+          {/* 탭 헤더 */}
+          <div className="border-b border-slate-200">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('history')}
                 className={cn(
-                  "p-3 rounded-lg cursor-pointer transition-colors mb-2",
-                  currentChatId === chat.id 
-                    ? "bg-sky-50 border-l-2 border-sky-500" 
-                    : "hover:bg-slate-50"
+                  "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+                  activeTab === 'history'
+                    ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 )}
-                onClick={() => setCurrentChatId(chat.id)}
               >
-                <div className="flex items-center space-x-2">
-                  <Star className={cn(
-                    "h-3 w-3",
-                    chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
-                  )} />
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    {chat.title}
-                  </p>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {chat.timestamp.toLocaleDateString()}
-                </p>
-              </div>
-            ))}
+                히스토리
+              </button>
+              <button
+                onClick={() => setActiveTab('agents')}
+                className={cn(
+                  "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+                  activeTab === 'agents'
+                    ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                목회도우미
+              </button>
+            </div>
+          </div>
+
+          {/* 새 대화 시작 버튼 */}
+          {activeTab === 'history' && (
+            <div className="p-4 border-b border-slate-200">
+              <Button 
+                onClick={handleNewChat}
+                className="w-full bg-sky-600 hover:bg-sky-700 text-white"
+              >
+                새 대화 시작
+              </Button>
+            </div>
+          )}
+          
+          {/* 탭 내용 */}
+          <div className="p-4 overflow-y-auto h-[calc(100%-120px)]">
+            {activeTab === 'history' ? (
+              <>
+                <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
+                  <History className="w-4 h-4 mr-1" />
+                  최근 대화
+                </h3>
+                
+                {chatHistory.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={cn(
+                      "p-3 rounded-lg cursor-pointer transition-colors mb-2",
+                      currentChatId === chat.id 
+                        ? "bg-sky-50 border-l-2 border-sky-500" 
+                        : "hover:bg-slate-50"
+                    )}
+                    onClick={() => setCurrentChatId(chat.id)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Star className={cn(
+                        "h-3 w-3",
+                        chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
+                      )} />
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {chat.title}
+                      </p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {chat.timestamp.toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
+                  <Bot className="w-4 h-4 mr-1" />
+                  에이전트 선택
+                </h3>
+                
+                {agents.map((agent) => (
+                  <div
+                    key={agent.id}
+                    className={cn(
+                      "p-3 rounded-lg cursor-pointer transition-colors mb-2 border",
+                      selectedAgent?.id === agent.id 
+                        ? "bg-sky-50 border-sky-200" 
+                        : "border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                    )}
+                    onClick={() => setSelectedAgent(agent)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <Bot className={cn(
+                            "h-4 w-4",
+                            selectedAgent?.id === agent.id ? "text-sky-600" : "text-slate-400"
+                          )} />
+                          <p className="text-sm font-medium text-slate-900">
+                            {agent.name}
+                          </p>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 ml-6">
+                          {agent.description}
+                        </p>
+                        <div className="flex items-center space-x-2 mt-2 ml-6">
+                          <span className="px-2 py-1 text-xs bg-slate-100 text-slate-600 rounded">
+                            {agent.category}
+                          </span>
+                          {agent.isActive && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">
+                              활성
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
