@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { agentService, analyticsService, churchConfigService } from '../services/api';
 import {
   Bot, Plus, Eye, Settings, MoreHorizontal, Search,
   ChevronDown, X, BookOpen, Heart, Calendar, 
-  GraduationCap, FileText
+  GraduationCap, FileText, AlertCircle
 } from 'lucide-react';
 
 interface Agent {
@@ -54,52 +55,34 @@ const AIAgentManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   
+  // API 연동을 위한 상태
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<string | null>(null);
+  
   // 사용량 통계 상태
   const [usageStats, setUsageStats] = useState({
     currentMonth: {
-      totalTokens: 28100,
-      totalRequests: 152,
-      totalCost: 14.05
+      totalTokens: 0,
+      totalRequests: 0,
+      totalCost: 0
     },
-    topAgents: [
-      { id: '1', name: '설교 도우미', tokens: 12500, requests: 65 },
-      { id: '2', name: '심방 관리 도우미', tokens: 8900, requests: 45 },
-      { id: '3', name: '예배 기획자', tokens: 6700, requests: 42 }
-    ]
+    topAgents: []
   });
   
   // GPT API 키 및 데이터베이스 상태
   const [systemStatus, setSystemStatus] = useState({
-    gptApiConfigured: true,
-    databaseConnected: true,
-    lastSync: new Date('2025-08-08T10:30:00Z')
+    gptApiConfigured: false,
+    databaseConnected: false,
+    lastSync: null as Date | null
   });
   
   // 공식 템플릿 상태
-  const [officialTemplates, setOfficialTemplates] = useState<Template[]>([
-    {
-      id: 'official-1',
-      name: '설교 준비 도우미',
-      category: '설교 지원',
-      description: '성경 해석, 설교문 작성, 적용점 개발을 도와주는 전문 AI',
-      icon: '📖',
-      isOfficial: true,
-      version: '2.1.0',
-      createdBy: 'Smart Yoram Team',
-      createdAt: new Date('2025-07-01')
-    },
-    {
-      id: 'official-2', 
-      name: '목양 및 심방 도우미',
-      category: '목양 관리',
-      description: '성도 상담, 심방 계획, 목양 지도를 도와주는 전문 AI',
-      icon: '❤️',
-      isOfficial: true,
-      version: '1.8.0',
-      createdBy: 'Smart Yoram Team',
-      createdAt: new Date('2025-06-15')
-    }
-  ]);
+  const [officialTemplates, setOfficialTemplates] = useState<Template[]>([]);
 
   const [newAgent, setNewAgent] = useState({
     name: '',
@@ -122,120 +105,152 @@ const AIAgentManagement: React.FC = () => {
     '행정 지원'
   ];
 
-  const templates: Template[] = [
-    { id: '1', name: '본문 주석 및 해석 (설교 도우미)', category: '설교 지원' },
-    { id: '2', name: '강해설교 구조 설계 (설교 도우미)', category: '설교 지원' },
-    { id: '3', name: '주제설교 구조 설계 (설교 도우미)', category: '설교 지원' },
-    { id: '4', name: '적용점 개발 (설교 도우미)', category: '설교 지원' }
-  ];
+  // 컴포넌트 마운트 시 데이터 로딩
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const [agents, setAgents] = useState<Agent[]>([
-    {
-      id: '1',
-      name: '설교 도우미',
-      category: '설교 지원',
-      description: '설교 준비와 설교 연구를 도와드리는 전문 에이전트',
-      detailedDescription: '설교 준비와 설교 연구를 도와드리는 전문 에이전트',
-      icon: '📖',
-      usage: 45,
-      isActive: true,
-      templates: ['1', '2'],
-      createdAt: new Date('2025-07-15'),
-      updatedAt: new Date('2025-08-05'),
-      totalTokensUsed: 12500,
-      totalCost: 6.25,
-      systemPrompt: '당신은 설교 준비를 전문적으로 도와주는 AI입니다.',
-      templateId: 'template-1',
-      version: '1.0.0'
-    },
-    {
-      id: '2', 
-      name: '심방 관리 도우미',
-      category: '목양 관리',
-      description: '심방 일정과 목양을 위한 전문 상담 에이전트',
-      detailedDescription: '심방 일정과 목양을 위한 전문 상담 에이전트',
-      icon: '❤️',
-      usage: 32,
-      isActive: true,
-      templates: [],
-      createdAt: new Date('2025-07-20'),
-      updatedAt: new Date('2025-08-01'),
-      totalTokensUsed: 8900,
-      totalCost: 4.45,
-      systemPrompt: '당신은 목양과 심방을 전문적으로 도와주는 AI입니다.',
-      version: '1.0.0'
-    },
-    {
-      id: '3',
-      name: '예배 기획자',
-      category: '예배 지원', 
-      description: '예배 순서와 준비사항을 체계적으로 관리하는 에이전트',
-      detailedDescription: '예배 순서와 준비사항을 체계적으로 관리하는 에이전트',
-      icon: '⛪',
-      usage: 28,
-      isActive: true,
-      templates: [],
-      createdAt: new Date('2025-07-25'),
-      updatedAt: new Date('2025-08-03'),
-      totalTokensUsed: 6700,
-      totalCost: 3.35,
-      systemPrompt: '당신은 예배 순서와 기획을 전문적으로 도와주는 AI입니다.',
-      version: '1.0.0'
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadAgents(),
+        loadTemplates(),
+        loadUsageStats(),
+        loadSystemStatus()
+      ]);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      setError('데이터를 불러올 수 없습니다.');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  const loadAgents = async () => {
+    try {
+      const agentList = await agentService.getAgents();
+      setAgents(agentList);
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const templateList = await agentService.getAgentTemplates();
+      setTemplates(templateList);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  };
+
+  const loadUsageStats = async () => {
+    try {
+      const stats = await analyticsService.getUsageStats({ period: 'current_month' });
+      setUsageStats(stats);
+    } catch (error) {
+      console.error('Failed to load usage stats:', error);
+    }
+  };
+
+  const loadSystemStatus = async () => {
+    try {
+      const config = await churchConfigService.getGptConfig();
+      setSystemStatus({
+        gptApiConfigured: !!config.api_key,
+        databaseConnected: config.database_connected || false,
+        lastSync: config.last_sync ? new Date(config.last_sync) : null
+      });
+    } catch (error) {
+      console.error('Failed to load system status:', error);
+    }
+  };
+
+  // 더미 데이터는 API에서 로드됨
 
   const totalAgents = agents.length;
-  const activeAgents = agents.filter(agent => agent.isActive).length;
-  const inactiveAgents = totalAgents - activeAgents;
-  const totalUsage = agents.reduce((sum, agent) => sum + agent.usage, 0);
-  const totalTokensUsed = agents.reduce((sum, agent) => sum + agent.totalTokensUsed, 0);
-  const totalCostThisMonth = agents.reduce((sum, agent) => sum + agent.totalCost, 0);
+  const activeAgents = agents.filter(agent => agent.isActive);
+  const inactiveAgents = totalAgents - activeAgents.length;
+  const totalUsage = agents.reduce((sum, agent) => sum + (agent.usage || 0), 0);
+  const totalTokensUsed = agents.reduce((sum, agent) => sum + (agent.totalTokensUsed || 0), 0);
+  const totalCostThisMonth = agents.reduce((sum, agent) => sum + (agent.totalCost || 0), 0);
 
-  const handleCreateAgent = () => {
-    if (!newAgent.name || newAgent.category === '카테고리 선택') {
-      alert('필수 정보를 입력해주세요.');
+  const filteredAgents = agents.filter(agent => {
+    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         agent.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === '모든 카테고리' || agent.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleCreateAgent = async () => {
+    if (!newAgent.name.trim() || newAgent.category === '카테고리 선택') {
+      setError('에이전트 이름과 카테고리를 입력해주세요.');
       return;
     }
 
-    const agent: Agent = {
-      id: (agents.length + 1).toString(),
-      name: newAgent.name,
-      category: newAgent.category,
-      description: newAgent.description,
-      detailedDescription: newAgent.detailedDescription,
-      icon: newAgent.icon,
-      usage: 0,
-      isActive: newAgent.immediateActivation,
-      templates: newAgent.templates,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      totalTokensUsed: 0,
-      totalCost: 0,
-      systemPrompt: newAgent.systemPrompt || '',
-      templateId: newAgent.templateId,
-      version: '1.0.0'
-    };
+    try {
+      setCreating(true);
+      
+      const agentData = {
+        name: newAgent.name,
+        category: newAgent.category,
+        description: newAgent.description,
+        detailed_description: newAgent.detailedDescription,
+        icon: newAgent.icon,
+        is_active: newAgent.immediateActivation,
+        system_prompt: newAgent.systemPrompt,
+        template_id: newAgent.isFromTemplate ? newAgent.templateId : undefined
+      };
 
-    setAgents([...agents, agent]);
-    setShowCreateModal(false);
-    setNewAgent({
-      name: '',
-      category: '카테고리 선택',
-      icon: '🤖',
-      description: '',
-      detailedDescription: '',
-      templates: [],
-      immediateActivation: true,
-      systemPrompt: '',
-      templateId: '',
-      isFromTemplate: false
-    });
+      const createdAgent = await agentService.createAgent(agentData);
+      
+      // 로컬 상태 업데이트
+      setAgents(prev => [createdAgent, ...prev]);
+      
+      // 모달 닫기 및 상태 초기화
+      setShowCreateModal(false);
+      setNewAgent({
+        name: '',
+        category: '카테고리 선택',
+        icon: '🤖',
+        description: '',
+        detailedDescription: '',
+        templates: [],
+        immediateActivation: true,
+        systemPrompt: '',
+        templateId: '',
+        isFromTemplate: false
+      });
+      
+    } catch (error) {
+      console.error('Failed to create agent:', error);
+      setError('에이전트 생성에 실패했습니다.');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const toggleAgentStatus = (id: string) => {
-    setAgents(agents.map(agent => 
-      agent.id === id ? { ...agent, isActive: !agent.isActive } : agent
-    ));
+  const toggleAgentStatus = async (id: string) => {
+    try {
+      const agent = agents.find(a => a.id === id);
+      if (!agent) return;
+      
+      if (agent.isActive) {
+        await agentService.deactivateAgent(id);
+      } else {
+        await agentService.activateAgent(id);
+      }
+      
+      // 로컬 상태 업데이트
+      setAgents(prev => prev.map(a => 
+        a.id === id ? { ...a, isActive: !a.isActive } : a
+      ));
+      
+    } catch (error) {
+      console.error('Failed to toggle agent status:', error);
+      setError('에이전트 상태 변경에 실패했습니다.');
+    }
   };
 
   const handleAgentClick = (agent: Agent) => {
@@ -252,23 +267,33 @@ const AIAgentManagement: React.FC = () => {
   };
 
   const handleDeleteAgent = (agentId: string) => {
-    if (window.confirm('이 에이전트를 삭제하시겠습니까?')) {
-      setAgents(agents.filter(agent => agent.id !== agentId));
-      setActiveAgentMenu(null);
+    setAgentToDelete(agentId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (agentToDelete) {
+      try {
+        await agentService.deleteAgent(agentToDelete);
+        setAgents(prev => prev.filter(a => a.id !== agentToDelete));
+        setShowDeleteModal(false);
+        setAgentToDelete(null);
+      } catch (error) {
+        console.error('Failed to delete agent:', error);
+        setError('에이전트 삭제에 실패했습니다.');
+      }
     }
+  };
+
+  const cancelDeleteAgent = () => {
+    setShowDeleteModal(false);
+    setAgentToDelete(null);
   };
 
   const handleBackToAgentList = () => {
     setShowChatView(false);
     setSelectedAgentForChat(null);
   };
-
-  const filteredAgents = agents.filter(agent => {
-    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         agent.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '모든 카테고리' || agent.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   return (
     <div className="p-6">
@@ -318,7 +343,7 @@ const AIAgentManagement: React.FC = () => {
             <div className="bg-white p-6 rounded-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{activeAgents}</p>
+                  <p className="text-2xl font-bold text-green-600">{activeAgents.length}</p>
                   <p className="text-sm text-slate-600">활성 에이전트</p>
                 </div>
               </div>
@@ -860,6 +885,43 @@ const AIAgentManagement: React.FC = () => {
                 className="bg-slate-800 hover:bg-slate-900 text-white"
               >
                 생성
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">에이전트 삭제</h3>
+              <button
+                onClick={cancelDeleteAgent}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <p className="text-slate-600 mb-6">
+              정말로 이 에이전트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                onClick={cancelDeleteAgent}
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={confirmDeleteAgent}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                삭제
               </Button>
             </div>
           </div>

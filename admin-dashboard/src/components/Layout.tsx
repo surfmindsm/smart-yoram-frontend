@@ -18,7 +18,9 @@ import {
   X,
   Clock,
   Bell,
-  Bot
+  Bot,
+  Settings,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -36,6 +38,7 @@ const Layout: React.FC = () => {
   const menuItems = [
     { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
     { path: '/statistics', name: '통계 분석', Icon: ChartLine },
+    { path: '/analytics', name: 'AI 사용량 분석', Icon: TrendingUp },
     { path: '/member-management', name: '교인 관리', Icon: Users },
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
     { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
@@ -49,6 +52,7 @@ const Layout: React.FC = () => {
     { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
     { path: '/bulletins', name: '주보 관리', Icon: FileText },
     { path: '/church', name: '교회 정보', Icon: Church },
+    { path: '/church-settings', name: '시스템 설정', Icon: Settings },
   ];
 
   return (

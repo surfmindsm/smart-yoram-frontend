@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { chatService, agentService } from '../services/api';
 import { 
   Send, History, Bot, Star, MoreHorizontal, Edit3, Trash2,
   BookOpen, FileText, Users, Calendar, CheckSquare, MessageSquare,
@@ -51,50 +52,16 @@ const AIChat: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
-    {
-      id: '1',
-      title: '최근 4주 연속 주일예배...',
-      timestamp: new Date('2025-08-08'),
-      agentId: '1',
-      agentName: '설교 도우미',
-      messageCount: 8,
-      isBookmarked: true,
-      messages: [],  // 로컬 데이터
-      totalTokensUsed: 850,
-      totalCost: 0.42
-    },
-    {
-      id: '2',
-      title: '새 대화',
-      timestamp: new Date('2025-08-08'),
-      agentId: '2',
-      agentName: '심방 관리 도우미',
-      messageCount: 0,
-      isBookmarked: false,
-      messages: [],
-      totalTokensUsed: 0,
-      totalCost: 0
-    },
-    {
-      id: '3',
-      title: '새가족 관리 현황',
-      timestamp: new Date('2025-08-07'),
-      agentId: '2',
-      agentName: '심방 관리 도우미',
-      messageCount: 12,
-      isBookmarked: true,
-      messages: [],
-      totalTokensUsed: 1240,
-      totalCost: 0.62
-    }
-  ]);
-  const [currentChatId, setCurrentChatId] = useState<string>('1');
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'ministry'>('history');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [editingChat, setEditingChat] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -105,14 +72,17 @@ const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // 컴포넌트 마운트 시 localStorage에서 선택된 에이전트 확인
+  // 컴포넌트 마운트 시 데이터 로딩
   useEffect(() => {
+    loadChatHistory();
+    loadAgents();
+    
+    // localStorage에서 선택된 에이전트 확인
     const savedAgent = localStorage.getItem('selectedAgent');
     if (savedAgent) {
       try {
         const agent = JSON.parse(savedAgent);
         setSelectedAgent(agent);
-        // localStorage에서 제거 (일회성)
         localStorage.removeItem('selectedAgent');
       } catch (error) {
         console.error('Failed to parse selected agent:', error);
@@ -120,40 +90,100 @@ const AIChat: React.FC = () => {
     }
   }, []);
 
+  // 현재 채팅의 메시지 로딩
+  useEffect(() => {
+    if (currentChatId) {
+      loadChatMessages(currentChatId);
+    }
+  }, [currentChatId]);
+
+  const loadChatHistory = async () => {
+    try {
+      setLoadingChats(true);
+      const histories = await chatService.getChatHistories({ limit: 50 });
+      setChatHistory(histories);
+      
+      // 첫 번째 채팅을 현재 채팅으로 설정
+      if (histories.length > 0 && !currentChatId) {
+        setCurrentChatId(histories[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      setError('채팅 기록을 불러올 수 없습니다.');
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  const loadAgents = async () => {
+    try {
+      const agentList = await agentService.getAgents();
+      setAgents(agentList);
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+    }
+  };
+
+  const loadChatMessages = async (chatId: string) => {
+    try {
+      const messages = await chatService.getChatMessages(chatId);
+      setMessages(messages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      setMessages([]);
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !currentChatId) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: inputValue.trim(),
-      role: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
+    const userMessage = inputValue.trim();
     setInputValue('');
     setIsLoading(true);
 
-    // AI 응답 시뮬레이션
-    const startTime = Date.now();
-    setTimeout(() => {
-      const processingTime = Date.now() - startTime;
-      const aiResponseData = getAIResponse(inputValue);
+    try {
+      const response = await chatService.sendMessage(
+        currentChatId,
+        userMessage,
+        selectedAgent?.id
+      );
       
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: aiResponseData.content,
-        role: 'assistant',
-        timestamp: new Date(),
-        tokensUsed: aiResponseData.tokensUsed,
-        cost: aiResponseData.cost,
-        dataSources: aiResponseData.dataSources,
-        processingTime
-      };
+      // 새 메시지들을 상태에 추가
+      if (response.user_message) {
+        setMessages(prev => [...prev, {
+          id: response.user_message.id,
+          content: response.user_message.content,
+          role: 'user',
+          timestamp: new Date(response.user_message.timestamp)
+        }]);
+      }
       
-      setMessages(prev => [...prev, aiResponse]);
+      if (response.ai_message) {
+        setMessages(prev => [...prev, {
+          id: response.ai_message.id,
+          content: response.ai_message.content,
+          role: 'assistant',
+          timestamp: new Date(response.ai_message.timestamp),
+          tokensUsed: response.ai_message.tokens_used,
+          cost: response.ai_message.cost,
+          dataSources: response.ai_message.data_sources,
+          processingTime: response.ai_message.processing_time
+        }]);
+      }
+      
+      // 채팅 히스토리 업데이트
+      setChatHistory(prev => prev.map(chat => 
+        chat.id === currentChatId 
+          ? { ...chat, messageCount: chat.messageCount + 2 }
+          : chat
+      ));
+      
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setError('메시지 전송에 실패했습니다.');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const getAIResponse = (userInput: string): { content: string, tokensUsed: number, cost: number, dataSources: string[] } => {
@@ -188,22 +218,20 @@ const AIChat: React.FC = () => {
     return responses['default'];
   };
 
-  const handleNewChat = () => {
-    const newChat: ChatHistory = {
-      id: Date.now().toString(),
-      title: '새 대화',
-      timestamp: new Date(),
-      agentId: selectedAgent?.id,
-      agentName: selectedAgent?.name,
-      messageCount: 0,
-      isBookmarked: false,
-      messages: [],  // 로컬 데이터
-      totalTokensUsed: 0,
-      totalCost: 0
-    };
-    setChatHistory(prev => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
-    setMessages([]);
+  const handleNewChat = async () => {
+    try {
+      const newChat = await chatService.createNewChat(
+        selectedAgent?.id,
+        '새 대화'
+      );
+      
+      setChatHistory(prev => [newChat, ...prev]);
+      setCurrentChatId(newChat.id);
+      setMessages([]);
+    } catch (error) {
+      console.error('Failed to create new chat:', error);
+      setError('새 대화를 생성할 수 없습니다.');
+    }
   };
 
   const handleCategorySelect = (category: string, question: string) => {
@@ -211,30 +239,53 @@ const AIChat: React.FC = () => {
     setTimeout(() => handleSendMessage(), 100);
   };
 
-  const handleToggleChatBookmark = (chatId: string, e: React.MouseEvent) => {
+  const handleToggleChatBookmark = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setChatHistory(prev => prev.map(chat => 
-      chat.id === chatId 
-        ? { ...chat, isBookmarked: !chat.isBookmarked }
-        : chat
-    ));
+    
+    const chat = chatHistory.find(c => c.id === chatId);
+    if (!chat) return;
+    
+    try {
+      if (chat.isBookmarked) {
+        await chatService.unbookmarkChat(chatId);
+      } else {
+        await chatService.bookmarkChat(chatId);
+      }
+      
+      setChatHistory(prev => prev.map(c => 
+        c.id === chatId 
+          ? { ...c, isBookmarked: !c.isBookmarked }
+          : c
+      ));
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
   };
 
   const handleMenuToggle = (chatId: string) => {
     setActiveMenu(activeMenu === chatId ? null : chatId);
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-    if (currentChatId === chatId) {
-      const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
-      if (remainingChats.length > 0) {
-        setCurrentChatId(remainingChats[0].id);
-      } else {
-        setMessages([]);
-        setCurrentChatId('');
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await chatService.deleteChat(chatId);
+      
+      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+      
+      if (currentChatId === chatId) {
+        const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChatId(remainingChats[0].id);
+        } else {
+          setCurrentChatId(null);
+          setMessages([]);
+        }
       }
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      setError('채팅 삭제에 실패했습니다.');
     }
+    
     setActiveMenu(null);
   };
 
@@ -244,14 +295,20 @@ const AIChat: React.FC = () => {
     setActiveMenu(null);
   };
 
-  const handleSaveTitle = (chatId: string) => {
-    if (editingTitle.trim()) {
+  const handleSaveTitle = async (chatId: string) => {
+    try {
+      await chatService.updateChatTitle(chatId, editingTitle);
+      
       setChatHistory(prev => prev.map(chat => 
         chat.id === chatId 
-          ? { ...chat, title: editingTitle.trim() }
+          ? { ...chat, title: editingTitle }
           : chat
       ));
+    } catch (error) {
+      console.error('Failed to update chat title:', error);
+      setError('제목 변경에 실패했습니다.');
     }
+    
     setEditingChat(null);
     setEditingTitle('');
   };
@@ -502,46 +559,57 @@ const AIChat: React.FC = () => {
         </div>
       </div>
 
-      {/* 메인 채팅 영역 */}
-      <div className="flex-1 flex flex-col">
-        {/* 채팅 헤더 */}
+      {/* 메인 콘텐츠 */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* 에러 표시 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mx-4 mt-4 rounded-md">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">{error}</span>
+              <button 
+                onClick={() => setError(null)}
+                className="text-red-400 hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* 상단 헤더 - 현재 대화 정보 */}
         <div className="border-b border-slate-200 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowHistory(!showHistory)}
-              >
-                {showHistory ? (
-                  <ChevronsLeft className="h-5 w-5" />
-                ) : (
-                  <ChevronsRight className="h-5 w-5" />
-                )}
-              </Button>
-              <div className="flex items-center space-x-2">
-                {selectedAgent ? (
-                  <>
-                    <span className="text-xl">{selectedAgent.icon}</span>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">{selectedAgent.name}</h2>
-                      <p className="text-xs text-slate-500">{selectedAgent.category}</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Bot className="h-6 w-6 text-sky-600" />
-                    <h2 className="text-lg font-semibold text-slate-900">AI 교역자</h2>
-                  </>
-                )}
+              <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                <Bot className="h-4 w-4 text-sky-600" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-slate-900">
+                  {selectedAgent ? selectedAgent.name : 'AI 채팅'}
+                </h1>
+                <p className="text-sm text-slate-500">
+                  {selectedAgent ? selectedAgent.description : '스마트한 교회 운영 도우미'}
+                </p>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              {showHistory ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
 
-        {/* 메시지 영역 */}
+        {/* 대화 내용 */}
         <div className="flex-1 overflow-y-auto p-4">
-          {messages.length === 0 ? (
+          {loadingChats ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-slate-400">채팅 기록을 불러오는 중...</div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-2xl">
                 {selectedAgent ? (
@@ -570,7 +638,9 @@ const AIChat: React.FC = () => {
                   ].map((category) => (
                     <button
                       key={category.title}
-                      onClick={() => handleCategorySelect(category.title, category.query)}
+                      onClick={() => {
+                        setInputValue(category.query);
+                      }}
                       className="p-3 text-left border border-slate-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
                     >
                       <div className="text-sm font-medium text-slate-900">
@@ -603,14 +673,29 @@ const AIChat: React.FC = () => {
                     )}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
-                    <p
-                      className={cn(
-                        "text-xs mt-1",
-                        message.role === 'user' ? "text-sky-100" : "text-slate-500"
+                    <div className="flex items-center justify-between mt-2">
+                      <p
+                        className={cn(
+                          "text-xs",
+                          message.role === 'user' ? "text-sky-100" : "text-slate-500"
+                        )}
+                      >
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                      {message.role === 'assistant' && (
+                        <div className={cn(
+                          "text-xs flex items-center space-x-2",
+                          "text-slate-400"
+                        )}>
+                          {message.tokensUsed && (
+                            <span>{message.tokensUsed} 토큰</span>
+                          )}
+                          {message.cost && (
+                            <span>₩{message.cost.toFixed(2)}</span>
+                          )}
+                        </div>
                       )}
-                    >
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
+                    </div>
                   </div>
                 </div>
               ))}
