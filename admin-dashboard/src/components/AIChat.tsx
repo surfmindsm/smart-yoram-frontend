@@ -192,14 +192,15 @@ const AIChat: React.FC = () => {
       // API 시도
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgent?.id);
       
-      if (response.ai_message) {
+      // Edge Function에서 직접 메시지 객체를 반환하므로 바로 사용
+      if (response && response.content) {
         setMessages(prev => [...prev, {
-          id: response.ai_message.id,
-          content: response.ai_message.content,
-          role: 'assistant',
-          timestamp: new Date(response.ai_message.timestamp),
-          tokensUsed: response.ai_message.tokens_used,
-          cost: response.ai_message.cost
+          id: response.id,
+          content: response.content,
+          role: response.role,
+          timestamp: response.timestamp,
+          tokensUsed: response.tokensUsed,
+          cost: response.cost
         }]);
       }
       setIsLoading(false);
