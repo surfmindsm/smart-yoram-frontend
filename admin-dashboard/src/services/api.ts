@@ -236,6 +236,9 @@ export const agentService = {
   }
 };
 
+// Supabase Edge Function 설정
+const SUPABASE_PROJECT_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+
 // Chat System Service
 export const chatService = {
   getChatHistories: async (params?: { limit?: number; skip?: number }) => {
@@ -249,11 +252,43 @@ export const chatService = {
   },
   
   sendMessage: async (chatId: string, message: string, agentId?: string) => {
-    const response = await api.post(getApiUrl(`/chat/${chatId}/messages`), {
-      content: message,
-      agent_id: agentId
-    });
-    return response.data;
+    try {
+      // Supabase Edge Function 호출
+      const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/chat-gpt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI0MDYxMTksImV4cCI6MjAzNzk4MjExOX0.iiT25ZHxV3rGYqF7TbkT3h5KbBfTF8OekGLHi8YdoIY'}`
+        },
+        body: JSON.stringify({
+          prompt: message
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Edge Function 호출 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // 결과를 기존 API 응답 형식으로 변환
+      return {
+        id: `msg-${Date.now()}`,
+        content: result.text,
+        role: 'assistant',
+        timestamp: new Date(),
+        tokensUsed: result.tokensUsed || 0,
+        cost: result.cost || 0
+      };
+    } catch (error) {
+      console.error('Edge Function 호출 실패:', error);
+      // 폴백으로 기존 API 호출
+      const response = await api.post(getApiUrl(`/chat/${chatId}/messages`), {
+        content: message,
+        agent_id: agentId
+      });
+      return response.data;
+    }
   },
   
   createNewChat: async (agentId?: string, title?: string) => {
