@@ -239,84 +239,64 @@ export const agentService = {
 // Supabase Edge Function 설정
 const SUPABASE_PROJECT_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
 
-// Chat System Service
+// Chat System Service (API 명세서에 맞게 수정)
 export const chatService = {
-  getChatHistories: async (params?: { limit?: number; skip?: number }) => {
+  // 채팅 히스토리 목록 조회
+  getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     const response = await api.get(getApiUrl('/chat/histories'), { params });
     return response.data;
   },
   
-  getChatMessages: async (chatId: string) => {
-    const response = await api.get(getApiUrl(`/chat/${chatId}/messages`));
+  // 특정 채팅의 메시지 목록 조회
+  getChatMessages: async (historyId: string) => {
+    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
     return response.data;
   },
   
-  sendMessage: async (chatId: string, message: string, agentId?: string) => {
-    try {
-      // Supabase Edge Function 호출
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/chat-gpt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c'}`
-        },
-        body: JSON.stringify({
-          prompt: message
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Edge Function 호출 실패: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      // 결과를 기존 API 응답 형식으로 변환
-      return {
-        id: `msg-${Date.now()}`,
-        content: result.text,
-        role: 'assistant',
-        timestamp: new Date(),
-        tokensUsed: result.tokensUsed || 0,
-        cost: result.cost || 0
-      };
-    } catch (error) {
-      console.error('Edge Function 호출 실패:', error);
-      // 폴백으로 기존 API 호출
-      const response = await api.post(getApiUrl(`/chat/${chatId}/messages`), {
-        content: message,
-        agent_id: agentId
-      });
-      return response.data;
-    }
-  },
-  
-  createNewChat: async (agentId?: string, title?: string) => {
-    const response = await api.post(getApiUrl('/chat/'), {
+  // 메시지 전송 및 AI 응답 생성 (백엔드 API 사용)
+  sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
+    const response = await api.post(getApiUrl('/chat/messages'), {
+      chat_history_id: chatHistoryId,
       agent_id: agentId,
-      title: title
+      content: message
     });
     return response.data;
   },
   
-  updateChatTitle: async (chatId: string, title: string) => {
-    const response = await api.put(getApiUrl(`/chat/${chatId}`), { title });
+  // 새 채팅 시작
+  createNewChat: async (agentId?: string, title?: string) => {
+    const response = await api.post(getApiUrl('/chat/histories'), {
+      agent_id: agentId,
+      title: title || '새 대화'
+    });
     return response.data;
   },
   
-  deleteChat: async (chatId: string) => {
-    const response = await api.delete(getApiUrl(`/chat/${chatId}`));
+  // 채팅 제목 수정
+  updateChatTitle: async (historyId: string, title: string) => {
+    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), { 
+      title 
+    });
     return response.data;
   },
   
-  bookmarkChat: async (chatId: string) => {
-    const response = await api.put(getApiUrl(`/chat/${chatId}/bookmark`));
+  // 채팅 히스토리 삭제
+  deleteChat: async (historyId: string) => {
+    const response = await api.delete(getApiUrl(`/chat/histories/${historyId}`));
     return response.data;
   },
   
-  unbookmarkChat: async (chatId: string) => {
-    const response = await api.delete(getApiUrl(`/chat/${chatId}/bookmark`));
+  // 북마크 토글 (제목 수정과 같은 엔드포인트 사용)
+  bookmarkChat: async (historyId: string, isBookmarked: boolean) => {
+    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), {
+      isBookmarked
+    });
     return response.data;
+  },
+  
+  // 북마크 해제 (북마크 토글로 통합)
+  unbookmarkChat: async (historyId: string) => {
+    return chatService.bookmarkChat(historyId, false);
   }
 };
 

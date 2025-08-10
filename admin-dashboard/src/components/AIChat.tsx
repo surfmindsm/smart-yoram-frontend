@@ -161,7 +161,8 @@ const AIChat: React.FC = () => {
       if (!currentChatId) return;
 
       try {
-        const messageList = await chatService.getChatMessages(currentChatId);
+        const response = await chatService.getChatMessages(currentChatId);
+        const messageList = response.data || response;
         setMessages(messageList);
       } catch (error) {
         console.warn('메시지 로딩 실패, 빈 채팅으로 시작:', error);
@@ -179,33 +180,45 @@ const AIChat: React.FC = () => {
     setInputValue('');
     setIsLoading(true);
 
-    // 사용자 메시지 추가
-    const newUserMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      content: userMessage,
-      role: 'user',
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, newUserMessage]);
-
     try {
-      // API 시도
+      // API 호출 (백엔드가 사용자 메시지와 AI 응답을 모두 처리)
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgent?.id);
       
-      // Edge Function에서 직접 메시지 객체를 반환하므로 바로 사용
-      if (response && response.content) {
-        setMessages(prev => [...prev, {
-          id: response.id,
-          content: response.content,
-          role: response.role,
-          timestamp: response.timestamp,
-          tokensUsed: response.tokensUsed,
-          cost: response.cost
-        }]);
+      // API 명세서에 따른 응답 구조: { success: true, data: { user_message: {...}, ai_response: {...} } }
+      const responseData = response.data || response;
+      
+      if (responseData.user_message && responseData.ai_response) {
+        // 사용자 메시지와 AI 응답을 모두 추가
+        setMessages(prev => [
+          ...prev,
+          {
+            id: responseData.user_message.id,
+            content: responseData.user_message.content,
+            role: responseData.user_message.role,
+            timestamp: new Date(responseData.user_message.timestamp)
+          },
+          {
+            id: responseData.ai_response.id,
+            content: responseData.ai_response.content,
+            role: responseData.ai_response.role,
+            timestamp: new Date(responseData.ai_response.timestamp),
+            tokensUsed: responseData.ai_response.tokensUsed,
+            cost: responseData.ai_response.cost
+          }
+        ]);
       }
       setIsLoading(false);
     } catch (error) {
       console.warn('API 실패, Mock 응답 사용:', error);
+      
+      // 사용자 메시지 먼저 추가
+      const newUserMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        content: userMessage,
+        role: 'user',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, newUserMessage]);
       
       // Mock 응답 생성
       setTimeout(() => {
@@ -216,18 +229,39 @@ const AIChat: React.FC = () => {
     }
   };
 
-  const handleNewChat = () => {
-    const newChat: ChatHistory = {
-      id: `chat-${Date.now()}`,
-      title: '새 대화',
-      timestamp: new Date(),
-      messageCount: 0,
-      isBookmarked: false
-    };
-    
-    setChatHistory(prev => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
-    setMessages([]);
+  const handleNewChat = async () => {
+    try {
+      // API로 새 채팅 생성
+      const response = await chatService.createNewChat(selectedAgent?.id);
+      const responseData = response.data || response;
+      
+      const newChat: ChatHistory = {
+        id: responseData.id,
+        title: responseData.title || '새 대화',
+        timestamp: new Date(responseData.timestamp || Date.now()),
+        messageCount: 0,
+        isBookmarked: false
+      };
+      
+      setChatHistory(prev => [newChat, ...prev]);
+      setCurrentChatId(newChat.id);
+      setMessages([]);
+    } catch (error) {
+      console.warn('새 채팅 생성 실패, Mock 데이터 사용:', error);
+      
+      // Mock 새 채팅
+      const newChat: ChatHistory = {
+        id: `chat-${Date.now()}`,
+        title: '새 대화',
+        timestamp: new Date(),
+        messageCount: 0,
+        isBookmarked: false
+      };
+      
+      setChatHistory(prev => [newChat, ...prev]);
+      setCurrentChatId(newChat.id);
+      setMessages([]);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
