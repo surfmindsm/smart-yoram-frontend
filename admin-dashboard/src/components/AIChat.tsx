@@ -84,10 +84,19 @@ const AIChat: React.FC = () => {
         
         // 채팅 히스토리 로드
         try {
-          const histories = await chatService.getChatHistories({ limit: 50 });
-          setChatHistory(histories);
-          if (histories.length > 0) {
-            setCurrentChatId(histories[0].id);
+          const response = await chatService.getChatHistories({ limit: 50 });
+          // 백엔드 API 응답 구조 처리: { success: true, data: [...] } 또는 { data: [...] } 또는 배열
+          const histories = response.data || response;
+          
+          // 배열인지 확인하고 설정
+          if (Array.isArray(histories)) {
+            setChatHistory(histories);
+            if (histories.length > 0) {
+              setCurrentChatId(histories[0].id);
+            }
+          } else {
+            console.warn('채팅 히스토리가 배열이 아닙니다:', histories);
+            setChatHistory([]);
           }
         } catch (error) {
           console.warn('API 실패, Mock 데이터 사용:', error);
@@ -106,10 +115,19 @@ const AIChat: React.FC = () => {
 
         // 에이전트 로드
         try {
-          const agentList = await agentService.getAgents();
-          setAgents(agentList);
-          if (agentList.length > 0) {
-            setSelectedAgent(agentList[0]);
+          const response = await agentService.getAgents();
+          // 백엔드 API 응답 구조 처리: { success: true, data: [...] } 또는 { data: [...] } 또는 배열
+          const agentList = response.data || response;
+          
+          // 배열인지 확인하고 설정
+          if (Array.isArray(agentList)) {
+            setAgents(agentList);
+            if (agentList.length > 0) {
+              setSelectedAgent(agentList[0]);
+            }
+          } else {
+            console.warn('에이전트 목록이 배열이 아닙니다:', agentList);
+            setAgents([]);
           }
         } catch (error) {
           console.warn('API 실패, Mock 에이전트 사용:', error);
