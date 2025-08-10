@@ -162,8 +162,13 @@ export const bulletinService = {
 };
 
 export const announcementService = {
-  getAnnouncements: async (params?: { is_active?: boolean; is_pinned?: boolean }) => {
+  getAnnouncements: async (params?: { is_active?: boolean; is_pinned?: boolean; category?: string; subcategory?: string; skip?: number; limit?: number }) => {
     const response = await api.get(getApiUrl('/announcements/'), { params });
+    return response.data;
+  },
+  
+  getCategories: async () => {
+    const response = await api.get(getApiUrl('/announcements/categories'));
     return response.data;
   },
   
