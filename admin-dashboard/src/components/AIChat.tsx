@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { Bot, History, Send, Star } from 'lucide-react';
+import { Bot, History, Send, Star, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { chatService, agentService } from '../services/api';
 
 interface ChatMessage {
@@ -41,6 +41,9 @@ const AIChat: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -293,6 +296,94 @@ const AIChat: React.FC = () => {
     }
   };
 
+  // 채팅 삭제 핸들러
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await chatService.deleteChat(chatId);
+      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+      
+      // 삭제된 채팅이 현재 채팅이면 새 채팅으로 전환
+      if (currentChatId === chatId) {
+        const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChatId(remainingChats[0].id);
+        } else {
+          handleNewChat();
+        }
+      }
+    } catch (error) {
+      console.warn('채팅 삭제 실패:', error);
+      // Mock 환경에서는 로컬 상태만 업데이트
+      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+      if (currentChatId === chatId) {
+        handleNewChat();
+      }
+    }
+    setOpenMenuId(null);
+  };
+
+  // 채팅 이름 변경 시작
+  const handleStartEditTitle = (chatId: string, currentTitle: string) => {
+    setEditingChatId(chatId);
+    setEditingTitle(currentTitle);
+    setOpenMenuId(null);
+  };
+
+  // 채팅 이름 변경 완료
+  const handleSaveTitle = async (chatId: string) => {
+    if (!editingTitle.trim()) {
+      setEditingChatId(null);
+      return;
+    }
+
+    try {
+      await chatService.updateChatTitle(chatId, editingTitle.trim());
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, title: editingTitle.trim() }
+            : chat
+        )
+      );
+    } catch (error) {
+      console.warn('채팅 제목 변경 실패:', error);
+      // Mock 환경에서는 로컬 상태만 업데이트
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, title: editingTitle.trim() }
+            : chat
+        )
+      );
+    }
+    
+    setEditingChatId(null);
+    setEditingTitle('');
+  };
+
+  // 채팅 이름 변경 취소
+  const handleCancelEdit = () => {
+    setEditingChatId(null);
+    setEditingTitle('');
+  };
+
+  // 메뉴 토글
+  const toggleMenu = (chatId: string) => {
+    setOpenMenuId(openMenuId === chatId ? null : chatId);
+  };
+
+  // 외부 클릭 시 메뉴 닫기
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openMenuId) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
+
   if (loadingChats) {
     return (
       <div className="h-[calc(100vh-6rem)] flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-200">
@@ -362,25 +453,89 @@ const AIChat: React.FC = () => {
                   <div
                     key={chat.id}
                     className={cn(
-                      "p-3 rounded-lg cursor-pointer transition-colors mb-2",
+                      "p-3 rounded-lg transition-colors mb-2 relative group",
                       currentChatId === chat.id 
                         ? "bg-sky-50 border-l-2 border-sky-500" 
                         : "hover:bg-slate-50"
                     )}
-                    onClick={() => setCurrentChatId(chat.id)}
                   >
-                    <div className="flex items-center space-x-2">
-                      <Star className={cn(
-                        "h-3 w-3",
-                        chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
-                      )} />
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {chat.title}
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => setCurrentChatId(chat.id)}
+                    >
+                      <div className="flex items-center space-x-2 pr-8">
+                        <Star className={cn(
+                          "h-3 w-3",
+                          chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
+                        )} />
+                        {editingChatId === chat.id ? (
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onBlur={() => handleSaveTitle(chat.id)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSaveTitle(chat.id);
+                              } else if (e.key === 'Escape') {
+                                handleCancelEdit();
+                              }
+                            }}
+                            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {chat.title}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {chat.timestamp.toLocaleDateString()}
                       </p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {chat.timestamp.toLocaleDateString()}
-                    </p>
+                    
+                    {/* 더보기 메뉴 버튼 */}
+                    <div className="absolute right-2 top-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMenu(chat.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-opacity"
+                      >
+                        <MoreVertical className="h-4 w-4 text-slate-500" />
+                      </button>
+                      
+                      {/* 드롭다운 메뉴 */}
+                      {openMenuId === chat.id && (
+                        <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditTitle(chat.id, chat.title);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
+                          >
+                            <Edit className="h-3 w-3" />
+                            <span>이름 변경</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('정말로 이 대화를 삭제하시겠습니까?')) {
+                                handleDeleteChat(chat.id);
+                              }
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>삭제</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </>
