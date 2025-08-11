@@ -220,5 +220,90 @@ export const gptService = {
   }
 };
 
+export const chatService = {
+  // Get chat histories
+  getHistories: async (includeMessages: boolean = false) => {
+    const response = await api.get(getApiUrl('/chat/histories'), {
+      params: { include_messages: includeMessages }
+    });
+    return response.data;
+  },
+  
+  // Create new chat history
+  createHistory: async (agentId: number | string, title?: string) => {
+    const response = await api.post(getApiUrl('/chat/histories'), {
+      agent_id: String(agentId),
+      title: title || '새 대화'
+    });
+    return response.data;
+  },
+  
+  // Get messages for a chat history
+  getMessages: async (historyId: number | string) => {
+    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
+    return response.data;
+  },
+  
+  // Send message and get AI response
+  sendMessage: async (chatHistoryId: number | string, agentId: number | string, content: string) => {
+    const response = await api.post(getApiUrl('/chat/messages'), {
+      chat_history_id: String(chatHistoryId),
+      agent_id: String(agentId),
+      content: content
+    });
+    return response.data;
+  },
+  
+  // Update chat history (title, bookmark)
+  updateHistory: async (historyId: number | string, data: { title?: string; is_bookmarked?: boolean }) => {
+    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), data);
+    return response.data;
+  },
+  
+  // Delete chat history
+  deleteHistory: async (historyId: number | string) => {
+    const response = await api.delete(getApiUrl(`/chat/histories/${historyId}`));
+    return response.data;
+  }
+};
+
+export const aiAgentService = {
+  // Get all agents
+  getAgents: async () => {
+    const response = await api.get(getApiUrl('/agents/'));
+    return response.data;
+  },
+  
+  // Get agent by ID
+  getAgent: async (agentId: number | string) => {
+    const response = await api.get(getApiUrl(`/agents/${agentId}`));
+    return response.data;
+  },
+  
+  // Create new agent
+  createAgent: async (data: {
+    name: string;
+    category: string;
+    system_prompt: string;
+    description?: string;
+    is_active?: boolean;
+  }) => {
+    const response = await api.post(getApiUrl('/agents/'), data);
+    return response.data;
+  },
+  
+  // Update agent
+  updateAgent: async (agentId: number | string, data: any) => {
+    const response = await api.put(getApiUrl(`/agents/${agentId}`), data);
+    return response.data;
+  },
+  
+  // Delete agent
+  deleteAgent: async (agentId: number | string) => {
+    const response = await api.delete(getApiUrl(`/agents/${agentId}`));
+    return response.data;
+  }
+};
+
 export { api };
 export default api;

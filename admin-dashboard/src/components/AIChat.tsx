@@ -4,32 +4,30 @@ import { cn } from '../lib/utils';
 import { 
   Send, History, Bot, Star, MoreHorizontal, Edit3, Trash2,
   BookOpen, FileText, Users, Calendar, CheckSquare, MessageSquare,
-  ChevronsLeftRight, ChevronsLeft, ChevronsRight
+  ChevronsLeft, ChevronsRight, Loader2, AlertCircle
 } from 'lucide-react';
+import { chatService, aiAgentService } from '../services/api';
 
 interface ChatMessage {
   id: string;
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  // 추가된 필드들
   tokensUsed?: number;
   cost?: number;
-  dataSources?: string[];  // AI가 참조한 데이터 소스들
-  processingTime?: number;  // 응답 생성 시간 (ms)
+  dataSources?: string[];
+  processingTime?: number;
 }
 
 interface ChatHistory {
   id: string;
   title: string;
   timestamp: Date;
-  agentId?: string;
-  agentName?: string;
-  messageCount: number;
-  isBookmarked?: boolean;
-  // 옵션: 전체 메시지 배열 (로컬에서만 사용)
+  agent_id?: string;
+  agent_name?: string;
+  message_count: number;
+  is_bookmarked?: boolean;
   messages?: ChatMessage[];
-  // 통계 정보
   totalTokensUsed?: number;
   totalCost?: number;
 }
@@ -39,11 +37,9 @@ interface Agent {
   name: string;
   category: string;
   description: string;
-  detailedDescription: string;
-  icon: string;
-  usage: number;
-  isActive: boolean;
-  templates: string[];
+  system_prompt?: string;
+  is_active: boolean;
+  usage_count?: number;
 }
 
 const AIChat: React.FC = () => {
@@ -51,538 +47,496 @@ const AIChat: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
-    {
-      id: '1',
-      title: '최근 4주 연속 주일예배...',
-      timestamp: new Date('2025-08-08'),
-      agentId: '1',
-      agentName: '설교 도우미',
-      messageCount: 8,
-      isBookmarked: true,
-      messages: [],  // 로컬 데이터
-      totalTokensUsed: 850,
-      totalCost: 0.42
-    },
-    {
-      id: '2',
-      title: '새 대화',
-      timestamp: new Date('2025-08-08'),
-      agentId: '2',
-      agentName: '심방 관리 도우미',
-      messageCount: 0,
-      isBookmarked: false,
-      messages: [],
-      totalTokensUsed: 0,
-      totalCost: 0
-    },
-    {
-      id: '3',
-      title: '새가족 관리 현황',
-      timestamp: new Date('2025-08-07'),
-      agentId: '2',
-      agentName: '심방 관리 도우미',
-      messageCount: 12,
-      isBookmarked: true,
-      messages: [],
-      totalTokensUsed: 1240,
-      totalCost: 0.62
-    }
-  ]);
-  const [currentChatId, setCurrentChatId] = useState<string>('1');
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'ministry'>('history');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [editingChat, setEditingChat] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load agents on mount
+  useEffect(() => {
+    loadAgents();
+    loadChatHistories();
+  }, []);
+
+  const loadAgents = async () => {
+    try {
+      const response = await aiAgentService.getAgents();
+      if (response && Array.isArray(response)) {
+        setAgents(response);
+        if (response.length > 0 && !selectedAgent) {
+          setSelectedAgent(response[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+      setError('에이전트를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const loadChatHistories = async () => {
+    try {
+      const response = await chatService.getHistories(false);
+      if (response?.success && response.data) {
+        const histories = response.data.map((h: any) => ({
+          ...h,
+          timestamp: new Date(h.timestamp)
+        }));
+        setChatHistory(histories);
+      }
+    } catch (error) {
+      console.error('Failed to load chat histories:', error);
+      setError('대화 기록을 불러오는데 실패했습니다.');
+    }
+  };
+
+  const loadMessages = async (historyId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await chatService.getMessages(historyId);
+      if (response?.success && response.data) {
+        const loadedMessages = response.data.map((msg: any) => ({
+          id: msg.id,
+          content: msg.content,
+          role: msg.role,
+          timestamp: new Date(msg.timestamp),
+          tokensUsed: msg.tokens_used
+        }));
+        setMessages(loadedMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      setError('메시지를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // 컴포넌트 마운트 시 localStorage에서 선택된 에이전트 확인
-  useEffect(() => {
-    const savedAgent = localStorage.getItem('selectedAgent');
-    if (savedAgent) {
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+    
+    if (!selectedAgent) {
+      setError('에이전트를 선택해주세요.');
+      return;
+    }
+
+    let chatId = currentChatId;
+    
+    // Create new chat if needed
+    if (!chatId) {
       try {
-        const agent = JSON.parse(savedAgent);
-        setSelectedAgent(agent);
-        // localStorage에서 제거 (일회성)
-        localStorage.removeItem('selectedAgent');
+        const newChat = await chatService.createHistory(selectedAgent.id, inputValue.substring(0, 30) + '...');
+        chatId = newChat.id;
+        setCurrentChatId(chatId);
+        await loadChatHistories();
       } catch (error) {
-        console.error('Failed to parse selected agent:', error);
+        console.error('Failed to create chat:', error);
+        setError('대화를 생성하는데 실패했습니다.');
+        return;
       }
     }
-  }, []);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const newMessage: ChatMessage = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      content: inputValue.trim(),
+      content: inputValue,
       role: 'user',
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setError(null);
 
-    // AI 응답 시뮬레이션
-    const startTime = Date.now();
-    setTimeout(() => {
-      const processingTime = Date.now() - startTime;
-      const aiResponseData = getAIResponse(inputValue);
+    try {
+      const response = await chatService.sendMessage(chatId!, selectedAgent.id, userMessage.content);
       
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: aiResponseData.content,
-        role: 'assistant',
-        timestamp: new Date(),
-        tokensUsed: aiResponseData.tokensUsed,
-        cost: aiResponseData.cost,
-        dataSources: aiResponseData.dataSources,
-        processingTime
-      };
-      
-      setMessages(prev => [...prev, aiResponse]);
+      if (response?.success && response.data) {
+        const aiResponse = response.data.ai_response;
+        const assistantMessage: ChatMessage = {
+          id: aiResponse.id,
+          content: aiResponse.content,
+          role: 'assistant',
+          timestamp: new Date(aiResponse.timestamp),
+          tokensUsed: aiResponse.tokens_used,
+          dataSources: aiResponse.data_sources
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        await loadChatHistories();
+      }
+    } catch (error: any) {
+      console.error('Failed to send message:', error);
+      setError(error.response?.data?.detail || '메시지 전송에 실패했습니다.');
+      // Remove the user message if sending failed
+      setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const getAIResponse = (userInput: string): { content: string, tokensUsed: number, cost: number, dataSources: string[] } => {
-    const responses = {
-      '결석자': {
-        content: '최근 4주 연속 주일예배 결석자는 총 12명입니다.\n\n**우선 심방 대상:**\n• 김○○ 집사 (연락처: 010-1234-5678)\n• 이○○ 권사 (연락처: 010-2345-6789)\n• 박○○ 성도 (연락처: 010-3456-7890)\n\n**심방 시 확인사항:**\n• 건강 상태 및 개인적 어려움\n• 교회 참석에 대한 의견\n• 필요한 도움이나 기도제목\n\n더 자세한 정보가 필요하시면 말씨해 주세요.',
-        tokensUsed: 180,
-        cost: 0.09,
-        dataSources: ['attendance_records', 'member_info', 'contact_database']
-      },
-      '새가족': {
-        content: '최근 한 달간 새가족 등록 현황입니다.\n\n**신규 등록자 (5명):**\n• 최○○님 (20대, 대학생)\n• 정○○님 (30대, 직장인)\n• 한○○님 (40대, 주부)\n• 송○○님 (50대, 자영업)\n• 조○○님 (30대, 부부)\n\n**후속조치 계획:**\n1. 새가족반 안내 및 등록\n2. 담당 목자 배정\n3. 환영 심방 계획 수립\n4. 교회 소개 자료 전달\n\n각 새가족별 상세 정보가 필요하시면 말씨해 주세요.',
-        tokensUsed: 165,
-        cost: 0.08,
-        dataSources: ['new_member_registry', 'member_demographics', 'follow_up_schedule']
-      },
-      'default': {
-        content: '안녕하세요! AI 교역자입니다. 교회 사역과 관련된 다양한 질문에 도움을 드릴 수 있습니다.\n\n**주요 기능:**\n• 출석 및 결석자 관리\n• 새가족 현황 및 관리\n• 심방 대상자 우선순위\n• 각종 교회 업무 지원\n\n구체적인 질문을 해주시면 더 정확한 정보를 제공해드리겠습니다.',
-        tokensUsed: 95,
-        cost: 0.05,
-        dataSources: ['system_info']
-      }
-    };
-
-    if (userInput.includes('결석') || userInput.includes('출석')) {
-      return responses['결석자'];
-    }
-    if (userInput.includes('새가족')) {
-      return responses['새가족'];
-    }
-
-    return responses['default'];
+  const handleChatSelect = async (chatId: string) => {
+    setCurrentChatId(chatId);
+    await loadMessages(chatId);
   };
 
   const handleNewChat = () => {
-    const newChat: ChatHistory = {
-      id: Date.now().toString(),
-      title: '새 대화',
-      timestamp: new Date(),
-      agentId: selectedAgent?.id,
-      agentName: selectedAgent?.name,
-      messageCount: 0,
-      isBookmarked: false,
-      messages: [],  // 로컬 데이터
-      totalTokensUsed: 0,
-      totalCost: 0
-    };
-    setChatHistory(prev => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
+    setCurrentChatId(null);
     setMessages([]);
+    setError(null);
   };
 
-  const handleCategorySelect = (category: string, question: string) => {
-    setInputValue(question);
-    setTimeout(() => handleSendMessage(), 100);
-  };
-
-  const handleToggleChatBookmark = (chatId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setChatHistory(prev => prev.map(chat => 
-      chat.id === chatId 
-        ? { ...chat, isBookmarked: !chat.isBookmarked }
-        : chat
-    ));
-  };
-
-  const handleMenuToggle = (chatId: string) => {
-    setActiveMenu(activeMenu === chatId ? null : chatId);
-  };
-
-  const handleDeleteChat = (chatId: string) => {
-    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-    if (currentChatId === chatId) {
-      const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
-      if (remainingChats.length > 0) {
-        setCurrentChatId(remainingChats[0].id);
-      } else {
-        setMessages([]);
-        setCurrentChatId('');
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await chatService.deleteHistory(chatId);
+      await loadChatHistories();
+      if (currentChatId === chatId) {
+        handleNewChat();
       }
-    }
-    setActiveMenu(null);
-  };
-
-  const handleEditTitle = (chatId: string, currentTitle: string) => {
-    setEditingChat(chatId);
-    setEditingTitle(currentTitle);
-    setActiveMenu(null);
-  };
-
-  const handleSaveTitle = (chatId: string) => {
-    if (editingTitle.trim()) {
-      setChatHistory(prev => prev.map(chat => 
-        chat.id === chatId 
-          ? { ...chat, title: editingTitle.trim() }
-          : chat
-      ));
-    }
-    setEditingChat(null);
-    setEditingTitle('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingChat(null);
-    setEditingTitle('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      setError('대화 삭제에 실패했습니다.');
     }
   };
 
-  const renderChatItem = (chat: ChatHistory) => (
-    <div
-      key={chat.id}
-      className={cn(
-        "relative p-3 rounded-lg transition-colors group",
-        currentChatId === chat.id 
-          ? "bg-sky-50 border-l-2 border-sky-500" 
-          : "hover:bg-slate-50"
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div 
-          className="flex-1 min-w-0 cursor-pointer"
-          onClick={() => setCurrentChatId(chat.id)}
-        >
-          {editingChat === chat.id ? (
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveTitle(chat.id);
-                  } else if (e.key === 'Escape') {
-                    handleCancelEdit();
-                  }
-                }}
-                className="text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 w-full focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                autoFocus
-              />
-              <div className="flex space-x-1">
-                <Button
-                  size="sm"
-                  onClick={() => handleSaveTitle(chat.id)}
-                  className="h-6 px-2 text-xs bg-sky-600 hover:bg-sky-700"
-                >
-                  저장
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  className="h-6 px-2 text-xs"
-                >
-                  취소
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => handleToggleChatBookmark(chat.id, e)}
-                  className={cn(
-                    "h-4 w-4 p-0 transition-colors",
-                    chat.isBookmarked 
-                      ? "text-yellow-500 hover:text-yellow-600" 
-                      : "text-slate-300 hover:text-slate-500"
-                  )}
-                  title={chat.isBookmarked ? "고정 해제" : "고정"}
-                >
-                  <Star className={cn(
-                    "h-3 w-3",
-                    chat.isBookmarked && "fill-current"
-                  )} />
-                </Button>
-                <p className="text-sm font-medium text-slate-900 truncate flex-1">
-                  {chat.title}
-                </p>
-              </div>
-              <p className="text-xs text-slate-500">
-                {chat.timestamp.toLocaleDateString()}
-              </p>
-            </>
-          )}
-        </div>
-        
-        {editingChat !== chat.id && (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMenuToggle(chat.id);
-              }}
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
-            >
-              <MoreHorizontal className="h-3 w-3" />
-            </Button>
-            
-            {activeMenu === chat.id && (
-              <div className="absolute right-0 top-6 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
-                <div className="py-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditTitle(chat.id, chat.title);
-                    }}
-                    className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    이름변경
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChat(chat.id);
-                    }}
-                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    삭제
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const handleBookmarkToggle = async (chatId: string) => {
+    const chat = chatHistory.find(c => c.id === chatId);
+    if (!chat) return;
+
+    try {
+      await chatService.updateHistory(chatId, { is_bookmarked: !chat.is_bookmarked });
+      await loadChatHistories();
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+      setError('북마크 변경에 실패했습니다.');
+    }
+  };
+
+  const handleRenameChat = async (chatId: string) => {
+    if (!editingTitle.trim()) return;
+
+    try {
+      await chatService.updateHistory(chatId, { title: editingTitle });
+      await loadChatHistories();
+      setEditingChat(null);
+      setEditingTitle('');
+    } catch (error) {
+      console.error('Failed to rename chat:', error);
+      setError('대화 이름 변경에 실패했습니다.');
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return '오늘';
+    if (days === 1) return '어제';
+    if (days < 7) return `${days}일 전`;
+    if (days < 30) return `${Math.floor(days / 7)}주 전`;
+    return `${Math.floor(days / 30)}개월 전`;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case '설교 지원': return <BookOpen className="w-5 h-5" />;
+      case '목양 관리': return <Users className="w-5 h-5" />;
+      case '예배 지원': return <Calendar className="w-5 h-5" />;
+      case '행정 지원': return <FileText className="w-5 h-5" />;
+      default: return <Bot className="w-5 h-5" />;
+    }
+  };
+
+  const groupedAgents = agents.reduce((acc, agent) => {
+    if (!acc[agent.category]) {
+      acc[agent.category] = [];
+    }
+    acc[agent.category].push(agent);
+    return acc;
+  }, {} as Record<string, Agent[]>);
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex bg-white rounded-lg shadow-sm border border-slate-200">
-      {/* 채팅 히스토리 사이드바 */}
+    <div className="flex h-[calc(100vh-120px)] bg-gray-50 rounded-lg overflow-hidden">
+      {/* Sidebar */}
       <div className={cn(
-        "border-r border-slate-200 transition-all duration-300",
-        showHistory ? "w-80" : "w-0 overflow-hidden"
+        "bg-white border-r transition-all duration-300",
+        showHistory ? "w-80" : "w-0"
       )}>
-        {/* 탭바 */}
-        <div className="border-b border-slate-200">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('history')}
-              className={cn(
-                "flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2",
-                activeTab === 'history' 
-                  ? "text-sky-600 border-sky-600" 
-                  : "text-slate-500 border-transparent hover:text-slate-700"
-              )}
+        <div className="h-full flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b">
+            <Button 
+              onClick={handleNewChat}
+              className="w-full bg-sky-600 hover:bg-sky-700 text-white"
             >
-              히스토리
-            </button>
-            <button
-              onClick={() => setActiveTab('ministry')}
-              className={cn(
-                "flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2",
-                activeTab === 'ministry' 
-                  ? "text-sky-600 border-sky-600" 
-                  : "text-slate-500 border-transparent hover:text-slate-700"
-              )}
-            >
-              사역 도우미
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 overflow-y-auto h-[calc(100%-4rem)]">
-          <Button 
-            onClick={handleNewChat}
-            className="w-full mb-4 bg-sky-600 hover:bg-sky-700 text-white"
-          >
-            새 대화 시작
-          </Button>
-          
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              {/* 고정된 채팅 섹션 */}
-              {chatHistory.filter(chat => chat.isBookmarked).length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
-                    <Star className="w-4 h-4 mr-1 text-yellow-500 fill-current" />
-                    즐겨찾기
-                  </h3>
-                  {chatHistory
-                    .filter(chat => chat.isBookmarked)
-                    .map(renderChatItem)}
-                </div>
-              )}
-
-              {/* 모든 대화 섹션 */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-600 mb-3">모든 대화</h3>
-                {chatHistory
-                  .filter(chat => !chat.isBookmarked)
-                  .map(renderChatItem)}
-              </div>
+              <Bot className="w-4 h-4 mr-2" />
+              새 대화 시작
+            </Button>
+            
+            {/* Tab Switcher */}
+            <div className="flex mt-4 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('history')}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                  activeTab === 'history' 
+                    ? "bg-white text-sky-600 shadow-sm" 
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                <History className="w-4 h-4 inline mr-1" />
+                대화 기록
+              </button>
+              <button
+                onClick={() => setActiveTab('ministry')}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                  activeTab === 'ministry' 
+                    ? "bg-white text-sky-600 shadow-sm" 
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                <Bot className="w-4 h-4 inline mr-1" />
+                AI 사역자
+              </button>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'ministry' && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-600 mb-3">사역 도우미</h3>
-              <div className="space-y-2">
-                <div 
-                  onClick={() => handleCategorySelect('sermon', '이번 주 설교 준비를 위한 본문 분석을 도와주세요')}
-                  className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"
-                >
-                  <div className="flex items-center mb-2">
-                    <BookOpen className="w-4 h-4 text-slate-600 mr-2" />
-                    <p className="text-sm font-medium text-slate-900">설교 준비</p>
-                  </div>
-                  <p className="text-xs text-slate-500">본문 분석, 개요 작성</p>
+          {/* Tab Content */}
+          {activeTab === 'history' ? (
+            <div className="flex-1 overflow-y-auto p-4">
+              {chatHistory.length === 0 ? (
+                <div className="text-center text-gray-500 mt-8">
+                  <History className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>대화 기록이 없습니다</p>
                 </div>
-                <div 
-                  onClick={() => handleCategorySelect('bulletin', '이번 주 주보 내용을 작성해주세요')}
-                  className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"
-                >
-                  <div className="flex items-center mb-2">
-                    <FileText className="w-4 h-4 text-slate-600 mr-2" />
-                    <p className="text-sm font-medium text-slate-900">주보 작성</p>
-                  </div>
-                  <p className="text-xs text-slate-500">예배순서, 광고사항</p>
+              ) : (
+                <div className="space-y-2">
+                  {chatHistory.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={cn(
+                        "p-3 rounded-lg cursor-pointer transition-colors relative group",
+                        currentChatId === chat.id 
+                          ? "bg-sky-50 border border-sky-200" 
+                          : "hover:bg-gray-50"
+                      )}
+                      onClick={() => handleChatSelect(chat.id)}
+                    >
+                      {editingChat === chat.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameChat(chat.id);
+                              }
+                            }}
+                            onBlur={() => handleRenameChat(chat.id)}
+                            className="flex-1 px-2 py-1 border rounded"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">
+                                {chat.title}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-500">
+                                  {chat.agent_name}
+                                </span>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(chat.timestamp)}
+                                </span>
+                                {chat.message_count > 0 && (
+                                  <>
+                                    <span className="text-xs text-gray-400">•</span>
+                                    <span className="text-xs text-gray-500">
+                                      {chat.message_count}개 메시지
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            {chat.is_bookmarked && (
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            )}
+                          </div>
+                          
+                          {/* Action Menu */}
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenu(activeMenu === chat.id ? null : chat.id);
+                              }}
+                              className="p-1 hover:bg-gray-200 rounded"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                            
+                            {activeMenu === chat.id && (
+                              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border z-10">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingChat(chat.id);
+                                    setEditingTitle(chat.title);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                                >
+                                  <Edit3 className="w-4 h-4 inline mr-2" />
+                                  이름 변경
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleBookmarkToggle(chat.id);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                                >
+                                  <Star className="w-4 h-4 inline mr-2" />
+                                  {chat.is_bookmarked ? '북마크 해제' : '북마크'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteChat(chat.id);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 inline mr-2" />
+                                  삭제
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div 
-                  onClick={() => handleCategorySelect('visit', '우선 심방이 필요한 성도 목록을 알려주세요')}
-                  className="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"
-                >
-                  <div className="flex items-center mb-2">
-                    <Users className="w-4 h-4 text-slate-600 mr-2" />
-                    <p className="text-sm font-medium text-slate-900">심방 계획</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4">
+              {Object.entries(groupedAgents).map(([category, categoryAgents]) => (
+                <div key={category} className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    {getCategoryIcon(category)}
+                    <h3 className="font-semibold text-gray-900">{category}</h3>
                   </div>
-                  <p className="text-xs text-slate-500">우선순위 심방 대상</p>
+                  <div className="space-y-2">
+                    {categoryAgents.map((agent) => (
+                      <div
+                        key={agent.id}
+                        onClick={() => {
+                          setSelectedAgent(agent);
+                          handleNewChat();
+                        }}
+                        className={cn(
+                          "p-3 rounded-lg cursor-pointer transition-colors",
+                          selectedAgent?.id === agent.id
+                            ? "bg-sky-50 border border-sky-200"
+                            : "hover:bg-gray-50 border border-gray-200"
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              {agent.name}
+                            </h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {agent.description}
+                            </p>
+                          </div>
+                          {agent.is_active && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              활성
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* 메인 채팅 영역 */}
+      {/* Toggle Button */}
+      <button
+        onClick={() => setShowHistory(!showHistory)}
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border rounded-r-lg p-2 shadow-md hover:bg-gray-50"
+        style={{ left: showHistory ? '320px' : '0' }}
+      >
+        {showHistory ? <ChevronsLeft className="w-4 h-4" /> : <ChevronsRight className="w-4 h-4" />}
+      </button>
+
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* 채팅 헤더 */}
-        <div className="border-b border-slate-200 p-4">
+        {/* Chat Header */}
+        <div className="bg-white border-b px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowHistory(!showHistory)}
-              >
-                {showHistory ? (
-                  <ChevronsLeft className="h-5 w-5" />
-                ) : (
-                  <ChevronsRight className="h-5 w-5" />
-                )}
-              </Button>
-              <div className="flex items-center space-x-2">
-                {selectedAgent ? (
-                  <>
-                    <span className="text-xl">{selectedAgent.icon}</span>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">{selectedAgent.name}</h2>
-                      <p className="text-xs text-slate-500">{selectedAgent.category}</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Bot className="h-6 w-6 text-sky-600" />
-                    <h2 className="text-lg font-semibold text-slate-900">AI 교역자</h2>
-                  </>
-                )}
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {selectedAgent ? selectedAgent.name : 'AI 교역자'}
+              </h2>
+              {selectedAgent && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedAgent.description}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 메시지 영역 */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center max-w-2xl">
-                {selectedAgent ? (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">{selectedAgent.icon}</span>
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-2">{selectedAgent.name}와 대화를 시작하세요</h3>
-                    <p className="text-slate-600 mb-6">{selectedAgent.description}</p>
-                  </>
-                ) : (
-                  <>
-                    <Bot className="h-12 w-12 text-sky-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-900 mb-2">AI 교역자와 대화를 시작하세요</h3>
-                    <p className="text-slate-600 mb-6">교회 운영과 관련된 다양한 질문을 해보세요. AI가 도움을 드리겠습니다.</p>
-                  </>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { title: '생명당 조회', query: '최근 4주 연속 주일예배 결석자 명단과 심방 우선순위를 알려주세요' },
-                    { title: '심방 대상', query: '우선적으로 심방이 필요한 성도 명단을 보여주세요' },
-                    { title: '새가족', query: '최근 등록된 새가족 현황과 후속조치 계획을 알려주세요' },
-                    { title: '기도 체크', query: '기도제목이 있는 성도들의 현황을 확인해주세요' },
-                    { title: '설교 준비', query: '이번 주 설교 준비를 위한 본문 분석을 도와주세요' },
-                    { title: '주보 작성', query: '이번 주 주보 내용을 작성해주세요' }
-                  ].map((category) => (
-                    <button
-                      key={category.title}
-                      onClick={() => handleCategorySelect(category.title, category.query)}
-                      className="p-3 text-left border border-slate-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
-                    >
-                      <div className="text-sm font-medium text-slate-900">
-                        {category.title}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {category.query.length > 40 ? category.query.substring(0, 40) + '...' : category.query}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800">{error}</p>
               </div>
+            </div>
+          )}
+          
+          {messages.length === 0 ? (
+            <div className="text-center text-gray-500 mt-12">
+              <Bot className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">대화를 시작해보세요</h3>
+              <p className="text-sm">
+                {selectedAgent 
+                  ? `${selectedAgent.name}가 도와드릴 준비가 되었습니다.`
+                  : 'AI 사역자를 선택하고 질문을 입력해주세요.'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -596,31 +550,34 @@ const AIChat: React.FC = () => {
                 >
                   <div
                     className={cn(
-                      "max-w-2xl p-3 rounded-lg",
+                      "max-w-2xl px-4 py-3 rounded-lg",
                       message.role === 'user'
                         ? "bg-sky-600 text-white"
-                        : "bg-slate-100 text-slate-900"
+                        : "bg-white border border-gray-200"
                     )}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                    <p
-                      className={cn(
-                        "text-xs mt-1",
-                        message.role === 'user' ? "text-sky-100" : "text-slate-500"
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <div className={cn(
+                      "flex items-center gap-3 mt-2 text-xs",
+                      message.role === 'user' ? "text-sky-100" : "text-gray-500"
+                    )}>
+                      <span>{message.timestamp.toLocaleTimeString()}</span>
+                      {message.tokensUsed && (
+                        <span>토큰: {message.tokensUsed}</span>
                       )}
-                    >
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
+                      {message.dataSources && message.dataSources.length > 0 && (
+                        <span>참조: {message.dataSources.join(', ')}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="max-w-2xl p-3 rounded-lg bg-slate-100">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="bg-white border border-gray-200 px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm text-gray-600">AI가 응답을 생성중입니다...</span>
                     </div>
                   </div>
                 </div>
@@ -630,24 +587,28 @@ const AIChat: React.FC = () => {
           )}
         </div>
 
-        {/* 입력 영역 */}
-        <div className="border-t border-slate-200 p-4">
-          <div className="flex space-x-2">
-            <textarea
+        {/* Input Area */}
+        <div className="bg-white border-t px-6 py-4">
+          <div className="flex gap-3">
+            <input
+              type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="메시지를 입력하세요..."
-              className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
-              rows={1}
-              style={{ minHeight: '44px', maxHeight: '120px' }}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+              placeholder={selectedAgent ? "메시지를 입력하세요..." : "먼저 AI 사역자를 선택해주세요"}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              disabled={!selectedAgent || isLoading}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+              disabled={!selectedAgent || !inputValue.trim() || isLoading}
+              className="bg-sky-600 hover:bg-sky-700 text-white px-6"
             >
-              <Send className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
