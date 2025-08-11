@@ -148,15 +148,36 @@ const AIAgentManagement: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
+      console.log('Loading templates from API...');
       const templateList = await agentService.getAgentTemplates();
-      setTemplates(templateList || []); // null/undefined 방어
+      
+      // 강력한 타입 검사: 배열인지 확인
+      if (Array.isArray(templateList)) {
+        console.log('Successfully loaded templates:', templateList.length);
+        setTemplates(templateList);
+      } else {
+        console.warn('Template API returned non-array response:', templateList);
+        setTemplates([]); // 안전한 빈 배열로 설정
+      }
     } catch (error: any) {
       console.error('Failed to load templates:', error);
-      // 템플릿 로드 실패 시 빈 배열로 설정하여 화면이 정상 작동하도록 함
+      
+      // 에러 응답 내용 확인 (디버깅용)
+      if (error.response?.data) {
+        console.error('Error response data:', error.response.data);
+        
+        // validation 에러 객체가 들어오는 경우 방어
+        if (typeof error.response.data === 'object' && 
+            (error.response.data.type || error.response.data.msg)) {
+          console.warn('Detected validation error object, using empty array');
+        }
+      }
+      
+      // 어떤 경우든 안전한 빈 배열로 설정
       setTemplates([]);
       
       if (error.response?.status === 422) {
-        console.warn('템플릿 API가 422 에러를 반환했습니다. 기본 설정으로 진행합니다.');
+        console.warn('템플릿 API가 422 에러를 반환했습니다. 백엔드 수정 대기 중입니다.');
       }
     }
   };

@@ -71,16 +71,27 @@ api.interceptors.response.use(
 
 export const authService = {
   login: async (username: string, password: string) => {
-    const formData = new FormData();
+    // 백엔드 재배포 후 OAuth2PasswordRequestForm 스펙 변경으로 인한 수정
+    // application/x-www-form-urlencoded 형식으로 변경
+    console.log('🔐 Attempting login with OAuth2 form data format');
+    
+    const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
     
-    const response = await api.post(getApiUrl('/auth/login/access-token'), formData);
+    const response = await api.post(getApiUrl('/auth/login/access-token'), formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    
     const { access_token, user } = response.data;
     localStorage.setItem('token', access_token);
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     }
+    
+    console.log('✅ Login successful');
     return response.data;
   },
   
@@ -270,14 +281,28 @@ export const agentService = {
   getAgentTemplates: async () => {
     try {
       const response = await api.get(getApiUrl('/agents/templates'));
-      return response.data;
+      
+      // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, templates: [...] }
+      if (response.data.success && Array.isArray(response.data.templates)) {
+        return response.data.templates;
+      }
+      
+      // 이전 응답 형식도 지원 (호환성 유지)
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      console.warn('Unexpected agent templates response format, returning empty array');
+      return [];
     } catch (error: any) {
       console.error('Failed to get agent templates:', error);
-      // 422 에러 등으로 템플릿 로드 실패 시 빈 배열 반환
+      
+      // 422 에러 등으로 템플릿 로드 실패 시 빈 배열 반환 (백엔드 수정 전까지 유지)
       if (error.response?.status === 422) {
-        console.warn('Agent templates endpoint returned 422, returning empty templates');
+        console.warn('Agent templates endpoint still returns 422, using fallback');
         return [];
       }
+      
       // 다른 에러의 경우에도 빈 배열 반환하여 화면이 정상 작동하도록 함
       return [];
     }
@@ -502,30 +527,69 @@ export const churchDbService = {
 export const churchConfigService = {
   getGptConfig: async () => {
     try {
-      // /church/gpt-config가 405 에러를 계속 발생시키므로 
-      // church/profile에서 GPT 설정을 가져오도록 시도
-      const response = await api.get(getApiUrl('/church/profile'));
-      const profile = response.data;
+      // 백엔드 보고서에 따르면 수정되었다고 하지만, 실제로는 아직 405 에러 발생중
+      // 일단 시도해보고 405 에러면 즉시 fallback 사용
+      console.log('Attempting to load GPT config from /church/gpt-config');
+      const response = await api.get(getApiUrl('/church/gpt-config'));
       
-      // church profile에서 GPT 관련 정보 추출 (GptConfig 타입에 맞게 완전한 객체 반환)
+      // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, data: {...} }
+      if (response.data.success && response.data.data) {
+        const config = response.data.data;
+        console.log('Successfully loaded GPT config with new format');
+        return {
+          api_key: config.api_key || null,
+          database_connected: config.database_connected || false,
+          last_sync: config.last_sync || null,
+          model: config.model || 'gpt-4o-mini',
+          max_tokens: config.max_tokens || 2000,
+          temperature: config.temperature || 0.7,
+          is_active: config.is_active || false
+        };
+      }
+      
+      // 이전 응답 형식도 지원 (호환성 유지)
+      console.log('Using legacy GPT config format');
       return {
-        api_key: profile.gpt_api_key || profile.api_key || null,
-        database_connected: profile.database_connected || false,
-        last_sync: profile.last_sync || null,
-        model: profile.gpt_model || 'gpt-3.5-turbo',
-        max_tokens: profile.max_tokens || 1000,
-        temperature: profile.temperature || 0.7,
-        is_active: profile.gpt_is_active || false
+        api_key: response.data.api_key || null,
+        database_connected: response.data.database_connected || false,
+        last_sync: response.data.last_sync || null,
+        model: response.data.model || 'gpt-4o-mini',
+        max_tokens: response.data.max_tokens || 2000,
+        temperature: response.data.temperature || 0.7,
+        is_active: response.data.is_active || false
       };
     } catch (error: any) {
-      console.error('Failed to load GPT config from church profile:', error);
-      // API 호출 실패 시 기본값 반환하여 화면이 정상 작동하도록 함
+      console.error('GPT config endpoint failed:', error.response?.status, error.message);
+      
+      // 405 에러면 즉시 church/profile fallback 시도 (백엔드 배포 전까지)
+      if (error.response?.status === 405) {
+        try {
+          console.log('Using church/profile fallback for GPT config');
+          const fallbackResponse = await api.get(getApiUrl('/church/profile'));
+          const profile = fallbackResponse.data;
+          
+          return {
+            api_key: profile.gpt_api_key || profile.api_key || null,
+            database_connected: profile.database_connected || false,
+            last_sync: profile.last_sync || null,
+            model: profile.gpt_model || 'gpt-4o-mini',
+            max_tokens: profile.max_tokens || 2000,
+            temperature: profile.temperature || 0.7,
+            is_active: profile.gpt_is_active || false
+          };
+        } catch (fallbackError) {
+          console.error('Church profile fallback also failed:', fallbackError);
+        }
+      }
+      
+      // 최종 fallback - 기본값 반환하여 화면이 정상 작동하도록 함
+      console.log('Using default GPT config values');
       return {
         api_key: null,
         database_connected: false,
         last_sync: null,
-        model: 'gpt-3.5-turbo',
-        max_tokens: 1000,
+        model: 'gpt-4o-mini',
+        max_tokens: 2000,
         temperature: 0.7,
         is_active: false
       };
@@ -561,24 +625,44 @@ export const churchConfigService = {
 // Analytics Service
 export const analyticsService = {
   getUsageStats: async (params?: { period?: string; agent_id?: string }) => {
-    try {
-      const response = await api.get(getApiUrl('/analytics/usage'), { params });
-      return response.data;
-    } catch (error: any) {
-      console.error('Failed to get usage stats:', error);
-      // 422 에러 등으로 사용량 통계 로드 실패 시 기본값 반환
-      if (error.response?.status === 422) {
-        console.warn('Usage stats endpoint returned 422, returning default stats');
-      }
-      // 기본 사용량 통계 반환하여 화면이 정상 작동하도록 함
-      return {
-        total_requests: 0,
-        total_tokens: 0,
-        total_cost: 0,
-        daily_stats: [],
-        period: params?.period || 'current_month'
-      };
+  try {
+    const response = await api.get(getApiUrl('/analytics/usage'), { params });
+    
+    // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, data: {...} }
+    if (response.data.success && response.data.data) {
+      return response.data.data;
     }
+    
+    // 이전 응답 형식도 지원 (호환성 유지)
+    if (response.data.total_requests !== undefined) {
+      return response.data;
+    }
+    
+    console.warn('Unexpected usage stats response format, returning default stats');
+    return {
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      daily_stats: [],
+      period: params?.period || 'current_month'
+    };
+  } catch (error: any) {
+    console.error('Failed to get usage stats:', error);
+    
+    // 422 에러 등으로 사용량 통계 로드 실패 시 기본값 반환 (백엔드 수정 전까지 유지)
+    if (error.response?.status === 422) {
+      console.warn('Usage stats endpoint still returns 422, using fallback');
+    }
+    
+    // 기본 사용량 통계 반환하여 화면이 정상 작동하도록 함
+    return {
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      daily_stats: [],
+      period: params?.period || 'current_month'
+    };
+  }
   },
   
   getTokenUsage: async (params?: { start_date?: string; end_date?: string }) => {
