@@ -460,16 +460,32 @@ export const churchDbService = {
 export const churchConfigService = {
   getGptConfig: async () => {
     try {
-      // 백엔드가 정상이라고 하니 GET 방식으로 시도
-      const response = await api.get(getApiUrl('/church/gpt-config'));
-      return response.data;
+      // /church/gpt-config가 405 에러를 계속 발생시키므로 
+      // church/profile에서 GPT 설정을 가져오도록 시도
+      const response = await api.get(getApiUrl('/church/profile'));
+      const profile = response.data;
+      
+      // church profile에서 GPT 관련 정보 추출 (GptConfig 타입에 맞게 완전한 객체 반환)
+      return {
+        api_key: profile.gpt_api_key || profile.api_key || null,
+        database_connected: profile.database_connected || false,
+        last_sync: profile.last_sync || null,
+        model: profile.gpt_model || 'gpt-3.5-turbo',
+        max_tokens: profile.max_tokens || 1000,
+        temperature: profile.temperature || 0.7,
+        is_active: profile.gpt_is_active || false
+      };
     } catch (error: any) {
-      console.error('Failed to load GPT config:', error);
+      console.error('Failed to load GPT config from church profile:', error);
       // API 호출 실패 시 기본값 반환하여 화면이 정상 작동하도록 함
       return {
         api_key: null,
         database_connected: false,
-        last_sync: null
+        last_sync: null,
+        model: 'gpt-3.5-turbo',
+        max_tokens: 1000,
+        temperature: 0.7,
+        is_active: false
       };
     }
   },
