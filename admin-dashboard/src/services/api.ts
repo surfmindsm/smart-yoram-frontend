@@ -459,8 +459,19 @@ export const churchDbService = {
 // Church Profile & GPT Config Service
 export const churchConfigService = {
   getGptConfig: async () => {
-    const response = await api.get(getApiUrl('/church/gpt-config'));
-    return response.data;
+    try {
+      // 백엔드가 정상이라고 하니 GET 방식으로 시도
+      const response = await api.get(getApiUrl('/church/gpt-config'));
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to load GPT config:', error);
+      // API 호출 실패 시 기본값 반환하여 화면이 정상 작동하도록 함
+      return {
+        api_key: null,
+        database_connected: false,
+        last_sync: null
+      };
+    }
   },
   
   updateGptConfig: async (configData: any) => {

@@ -172,8 +172,19 @@ const AIAgentManagement: React.FC = () => {
         databaseConnected: config.database_connected || false,
         lastSync: config.last_sync ? new Date(config.last_sync) : null
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load system status:', error);
+      // API 호출 실패 시 기본 상태로 설정
+      setSystemStatus({
+        gptApiConfigured: false,
+        databaseConnected: false,
+        lastSync: null
+      });
+      
+      // 405 에러 등의 경우 사용자에게 알림 (선택사항)
+      if (error.response?.status === 405) {
+        console.warn('시스템 상태 API 호출 방식이 변경되었습니다. 기본 설정으로 진행합니다.');
+      }
     }
   };
 
