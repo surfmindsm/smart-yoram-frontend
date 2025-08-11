@@ -98,10 +98,12 @@ const response = await api.get('/church/gpt-config');
 =====================================================================
 
 【 우선순위 1 - 즉시 수정 필요 】
-1. CORS 정책 설정 (신규 - 최우선)
-   → Access-Control-Allow-Origin: http://localhost:3000 헤더 추가
-   → Access-Control-Allow-Methods: GET, POST, PUT, DELETE 허용
-   → Access-Control-Allow-Headers: Authorization, Content-Type 허용
+1. 🔴 CORS 정책 설정 (긴급 - 부분적으로만 해결됨)
+   ⚠️ 현재 상황: GET 요청은 정상, POST 요청에서만 CORS 차단
+   → POST /api/v1/agents/ 엔드포인트에서 CORS 에러 발생
+   → Access-Control-Allow-Methods에 POST가 누락되었거나 설정 미적용
+   → 동시에 500 Internal Server Error도 발생 중
+   → 즉시 확인 및 수정 필요
 
 2. GET /api/v1/church/gpt-config
    → 405 에러 해결: GET 메서드 지원 또는 올바른 엔드포인트 제공
