@@ -183,14 +183,16 @@ const AIChat: React.FC = () => {
     const userMessage = inputValue.trim();
     setInputValue('');
     setIsLoading(true);
+    
+    // 첫 번째 메시지인지 확인
+    const isFirstMessage = messages.length === 0;
 
     try {
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgent?.id);
       const responseData = response.data || response;
       
       if (responseData.user_message && responseData.ai_response) {
-        setMessages(prev => [
-          ...prev,
+        const newMessages = [
           {
             id: responseData.user_message.id,
             content: responseData.user_message.content,
@@ -205,7 +207,33 @@ const AIChat: React.FC = () => {
             tokensUsed: responseData.ai_response.tokensUsed,
             cost: responseData.ai_response.cost
           }
-        ]);
+        ];
+        
+        setMessages(prev => [...prev, ...newMessages]);
+        
+        // 첫 번째 메시지 후 자동 제목 생성
+        if (isFirstMessage) {
+          try {
+            const generatedTitle = await chatService.generateChatTitle([
+              ...messages,
+              ...newMessages
+            ]);
+            
+            // 채팅 제목 업데이트
+            await chatService.updateChatTitle(currentChatId, generatedTitle);
+            
+            // UI에서 채팅 히스토리 제목 업데이트
+            setChatHistory(prev => 
+              prev.map(chat => 
+                chat.id === currentChatId 
+                  ? { ...chat, title: generatedTitle }
+                  : chat
+              )
+            );
+          } catch (titleError) {
+            console.warn('제목 자동 생성 실패:', titleError);
+          }
+        }
       }
       setIsLoading(false);
     } catch (error) {
@@ -247,6 +275,29 @@ const AIChat: React.FC = () => {
               cost: data.ai_response.cost
             };
             setMessages(prev => [...prev, aiResponse]);
+            
+            // 첫 번째 메시지 후 자동 제목 생성 (Edge Function 사용시)
+            if (isFirstMessage) {
+              try {
+                const allMessages = [...messages, newUserMessage, aiResponse];
+                const generatedTitle = await chatService.generateChatTitle(allMessages);
+                
+                // 채팅 제목 업데이트
+                await chatService.updateChatTitle(currentChatId, generatedTitle);
+                
+                // UI에서 채팅 히스토리 제목 업데이트
+                setChatHistory(prev => 
+                  prev.map(chat => 
+                    chat.id === currentChatId 
+                      ? { ...chat, title: generatedTitle }
+                      : chat
+                  )
+                );
+              } catch (titleError) {
+                console.warn('제목 자동 생성 실패 (Edge Function):', titleError);
+              }
+            }
+            
             setIsLoading(false);
             return;
           }
@@ -257,9 +308,36 @@ const AIChat: React.FC = () => {
         console.warn('Edge Function도 실패, Mock 응답 사용:', edgeFunctionError);
         
         // 마지막 폴백: Mock 응답
-        setTimeout(() => {
+        setTimeout(async () => {
           const mockResponse = getMockAIResponse(userMessage);
           setMessages(prev => [...prev, mockResponse]);
+          
+          // 첫 번째 메시지 후 자동 제목 생성 (Mock 사용시)
+          if (isFirstMessage) {
+            try {
+              const allMessages = [...messages, newUserMessage, mockResponse];
+              const generatedTitle = await chatService.generateChatTitle(allMessages);
+              
+              // 채팅 제목 업데이트 시도 (실패해도 폴백으로 처리)
+              try {
+                await chatService.updateChatTitle(currentChatId, generatedTitle);
+              } catch (updateError) {
+                console.warn('백엔드 제목 업데이트 실패, UI만 업데이트:', updateError);
+              }
+              
+              // UI에서 채팅 히스토리 제목 업데이트
+              setChatHistory(prev => 
+                prev.map(chat => 
+                  chat.id === currentChatId 
+                    ? { ...chat, title: generatedTitle }
+                    : chat
+                )
+              );
+            } catch (titleError) {
+              console.warn('제목 자동 생성 실패 (Mock):', titleError);
+            }
+          }
+          
           setIsLoading(false);
         }, 1000);
       }

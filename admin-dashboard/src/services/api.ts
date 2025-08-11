@@ -360,6 +360,39 @@ export const chatService = {
   // 북마크 해제
   unbookmarkChat: async (historyId: string) => {
     return chatService.bookmarkChat(historyId, false);
+  },
+
+  // 채팅 내용을 기반으로 자동 제목 생성
+  generateChatTitle: async (messages: Array<{content: string, role: string}>) => {
+    try {
+      // 첫 번째 사용자 메시지 기반으로 간단한 제목 생성
+      const firstUserMessage = messages.find(msg => msg.role === 'user');
+      if (firstUserMessage) {
+        let title = firstUserMessage.content
+          .replace(/\n/g, ' ')  // 줄바꿈을 공백으로 대체
+          .replace(/\s+/g, ' ')  // 연속된 공백을 하나로 줄임
+          .trim();  // 앞뒤 공백 제거
+        
+        // 제목이 너무 길면 자름
+        if (title.length > 30) {
+          title = title.slice(0, 30) + '...';
+        }
+        
+        // 제목이 너무 짧으면 보완
+        if (title.length < 5) {
+          return `대화 ${new Date().toLocaleDateString()}`;
+        }
+        
+        return title;
+      }
+      
+      // 사용자 메시지가 없으면 기본 제목
+      return `대화 ${new Date().toLocaleDateString()}`;
+      
+    } catch (error) {
+      console.error('제목 자동 생성 실패:', error);
+      return `대화 ${new Date().toLocaleDateString()}`;
+    }
   }
 };
 
