@@ -193,5 +193,32 @@ export const announcementService = {
   }
 };
 
+export const gptService = {
+  getSystemStatus: async () => {
+    const response = await api.get(getApiUrl('/church/system-status'));
+    return response.data;
+  },
+  
+  getChurchProfile: async () => {
+    const response = await api.get(getApiUrl('/church/profile'));
+    return response.data;
+  },
+  
+  updateGPTConfig: async (config: {
+    api_key: string;
+    model: string;
+    max_tokens: number;
+    temperature: number;
+  }) => {
+    const response = await api.put(getApiUrl('/church/gpt-config'), config);
+    return response.data;
+  },
+  
+  testGPTConnection: async (apiKey: string) => {
+    const response = await api.post(getApiUrl('/church/test-gpt'), { api_key: apiKey });
+    return response.data;
+  }
+};
+
 export { api };
 export default api;

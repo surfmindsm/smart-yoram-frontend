@@ -18,7 +18,8 @@ import {
   X,
   Clock,
   Bell,
-  Bot
+  Bot,
+  Settings
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -39,6 +40,7 @@ const Layout: React.FC = () => {
     { path: '/member-management', name: '교인 관리', Icon: Users },
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
     { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
+    { path: '/gpt-settings', name: 'GPT 설정', Icon: Settings },
     { path: '/announcements', name: '공지사항', Icon: Megaphone },
     { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
     { path: '/worship-schedule', name: '예배 시간', Icon: Clock },

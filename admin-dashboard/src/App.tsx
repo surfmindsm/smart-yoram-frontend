@@ -18,6 +18,7 @@ import WorshipScheduleManagement from './components/worship/WorshipScheduleManag
 import PushNotifications from './components/PushNotifications';
 import AIChat from './components/AIChat';
 import AIAgentManagement from './components/AIAgentManagement';
+import GPTSettings from './pages/GPTSettings';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -50,6 +51,7 @@ function App() {
           <Route path="church" element={<ChurchInfo />} />
           <Route path="worship-schedule" element={<WorshipScheduleManagement />} />
           <Route path="push-notifications" element={<PushNotifications />} />
+          <Route path="gpt-settings" element={<GPTSettings />} />
         </Route>
       </Routes>
     </Router>
