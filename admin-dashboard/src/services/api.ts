@@ -744,5 +744,45 @@ export const analyticsService = {
   }
 };
 
+// 시스템 프롬프트 생성 서비스
+export const promptService = {
+  generateSystemPrompt: async (agentInfo: { 
+    name: string; 
+    category: string; 
+    description: string; 
+    detailedDescription: string; 
+  }) => {
+    try {
+      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-system-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`,
+        },
+        body: JSON.stringify(agentInfo),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '시스템 프롬프트 생성에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || '시스템 프롬프트 생성에 실패했습니다.');
+      }
+
+      return {
+        systemPrompt: data.systemPrompt,
+        tokensUsed: data.tokensUsed
+      };
+    } catch (error: any) {
+      console.error('Failed to generate system prompt:', error);
+      throw error;
+    }
+  }
+};
+
 export { api };
 export default api;

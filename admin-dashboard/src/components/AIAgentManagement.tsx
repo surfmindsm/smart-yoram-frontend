@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
-import { agentService, analyticsService, churchConfigService } from '../services/api';
+import { agentService, analyticsService, churchConfigService, promptService } from '../services/api';
 import {
   Bot, Plus, Eye, Settings, MoreHorizontal, Search,
   ChevronDown, X, BookOpen, Heart, Calendar, 
@@ -279,20 +279,39 @@ const AIAgentManagement: React.FC = () => {
       return;
     }
 
+    if (!newAgent.description.trim()) {
+      setError('간단한 설명을 입력해주세요.');
+      return;
+    }
+
     try {
       setCreating(true);
+      setError(null);
       
+      // 1단계: 시스템 프롬프트 자동 생성
+      console.log('🤖 시스템 프롬프트 생성 중...');
+      const promptResult = await promptService.generateSystemPrompt({
+        name: newAgent.name,
+        category: newAgent.category,
+        description: newAgent.description,
+        detailedDescription: newAgent.detailedDescription || newAgent.description
+      });
+
+      console.log('✅ 시스템 프롬프트 생성 완료:', promptResult.systemPrompt);
+      
+      // 2단계: 에이전트 생성
       const agentData = {
         name: newAgent.name,
         category: newAgent.category,
         description: newAgent.description,
-        detailed_description: newAgent.detailedDescription,
+        detailed_description: newAgent.detailedDescription || newAgent.description,
         icon: newAgent.icon,
         is_active: newAgent.immediateActivation,
-        system_prompt: newAgent.systemPrompt,
+        system_prompt: promptResult.systemPrompt,
         template_id: newAgent.isFromTemplate ? newAgent.templateId : undefined
       };
 
+      console.log('🔥 에이전트 생성 중...', agentData);
       const createdAgent = await agentService.createAgent(agentData);
       
       // 로컬 상태 업데이트
@@ -312,10 +331,16 @@ const AIAgentManagement: React.FC = () => {
         templateId: '',
         isFromTemplate: false
       });
+
+      console.log('🎉 에이전트 생성 완료!');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create agent:', error);
-      setError('에이전트 생성에 실패했습니다.');
+      if (error?.message?.includes('시스템 프롬프트')) {
+        setError('시스템 프롬프트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        setError('에이전트 생성에 실패했습니다.');
+      }
     } finally {
       setCreating(false);
     }
@@ -972,9 +997,17 @@ const AIAgentManagement: React.FC = () => {
               </Button>
               <Button
                 onClick={handleCreateAgent}
-                className="bg-slate-800 hover:bg-slate-900 text-white"
+                disabled={creating}
+                className="bg-slate-800 hover:bg-slate-900 text-white disabled:opacity-50"
               >
-                생성
+                {creating ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>AI 프롬프트 생성 중...</span>
+                  </div>
+                ) : (
+                  '생성'
+                )}
               </Button>
             </div>
           </div>
