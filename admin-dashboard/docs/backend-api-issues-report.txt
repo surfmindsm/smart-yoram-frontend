@@ -1,0 +1,194 @@
+=====================================================================
+                    백엔드 API 문제 수정 요청서
+=====================================================================
+
+작성일: 2025-08-11
+작성자: 프론트엔드 팀
+대상: 백엔드 개발팀
+프로젝트: Smart Yoram Admin Dashboard - 에이전트 관리 화면
+
+=====================================================================
+                          문제 요약
+=====================================================================
+
+에이전트 관리 화면(AIAgentManagement) 로드 시 다수의 API 에러가 발생하여
+사용자 경험에 영향을 미치고 있습니다. 현재 프론트엔드에서는 에러 핸들링을
+통해 화면이 정상 작동하도록 처리했지만, 근본적인 API 문제 해결이 필요합니다.
+
+=====================================================================
+                      발생 중인 에러 목록
+=====================================================================
+
+1. 405 METHOD NOT ALLOWED 에러
+   - 엔드포인트: GET /api/v1/church/gpt-config
+   - 에러 코드: 405 Method Not Allowed  
+   - 발생 위치: AIAgentManagement.tsx:169 -> loadSystemStatus()
+   - 현재 상태: church/profile로 우회 처리됨
+   - 요청사항: 해당 엔드포인트 GET 메서드 지원 또는 올바른 엔드포인트 안내
+
+2. CORS POLICY 에러 (신규 발견)
+   - 엔드포인트: POST /api/v1/agents/
+   - 에러: No 'Access-Control-Allow-Origin' header is present
+   - 발생 위치: AIAgentManagement.tsx:256 -> handleCreateAgent()
+   - 요청 방식: POST (에이전트 생성 시)
+   - 원인: 백엔드에서 CORS 헤더 설정 누락
+   - 영향: 에이전트 생성 기능 완전 차단
+
+3. 422 UNPROCESSABLE ENTITY 에러들
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ 2-1. Agent Templates API                                       │
+   │ - 엔드포인트: GET /api/v1/agents/templates                     │
+   │ - 에러 코드: 422 Unprocessable Entity                          │
+   │ - 발생 위치: AIAgentManagement.tsx:151 -> loadTemplates()      │
+   │ - 요청 방식: GET (매개변수 없음)                                │
+   │ - 현재 상태: 빈 배열로 fallback 처리                           │
+   └─────────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ 2-2. Usage Statistics API                                      │
+   │ - 엔드포인트: GET /api/v1/analytics/usage                      │
+   │ - 에러 코드: 422 Unprocessable Entity                          │
+   │ - 발생 위치: AIAgentManagement.tsx:166 -> loadUsageStats()     │
+   │ - 요청 매개변수: ?period=current_month                         │
+   │ - 현재 상태: 기본 통계값으로 fallback 처리                     │
+   └─────────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ 2-3. 기타 잠재적 422 에러 API들                                │
+   │ - GET /api/v1/analytics/tokens                                 │
+   │ - GET /api/v1/analytics/costs                                  │
+   │ - GET /api/v1/analytics/agents/performance                     │
+   │ - GET /api/v1/analytics/queries/top                            │
+   │ - GET /api/v1/analytics/trends                                 │
+   │ - GET /api/v1/agents/                                          │
+   │ - GET /api/v1/chat/histories                                   │
+   └─────────────────────────────────────────────────────────────────┘
+
+=====================================================================
+                        상세 에러 정보
+=====================================================================
+
+【 에러 발생 패턴 】
+- 모든 422 에러는 화면 초기 로드 시 발생
+- 인증 토큰은 정상적으로 전송됨 (Authorization: Bearer {token})
+- Content-Type: application/json 헤더 포함
+- 에러 발생 시 validation error details 메시지 확인됨
+
+【 현재 API 호출 코드 】
+```javascript
+// 1. Agent Templates
+const response = await api.get('/agents/templates');
+
+// 2. Usage Stats  
+const response = await api.get('/analytics/usage', { 
+  params: { period: 'current_month' } 
+});
+
+// 3. GPT Config (405 에러)
+const response = await api.get('/church/gpt-config');
+```
+
+【 현재 프론트엔드 처리 상황 】
+- 모든 API에 try-catch 에러 핸들링 구현
+- 422/405 에러 발생 시 기본값/빈 배열 반환
+- 화면은 정상 작동하지만 실제 데이터 로드 불가
+
+=====================================================================
+                          수정 요청사항
+=====================================================================
+
+【 우선순위 1 - 즉시 수정 필요 】
+1. CORS 정책 설정 (신규 - 최우선)
+   → Access-Control-Allow-Origin: http://localhost:3000 헤더 추가
+   → Access-Control-Allow-Methods: GET, POST, PUT, DELETE 허용
+   → Access-Control-Allow-Headers: Authorization, Content-Type 허용
+
+2. GET /api/v1/church/gpt-config
+   → 405 에러 해결: GET 메서드 지원 또는 올바른 엔드포인트 제공
+
+3. GET /api/v1/agents/templates  
+   → 422 에러 해결: 매개변수 없는 GET 요청 시 정상 응답
+
+4. GET /api/v1/analytics/usage?period=current_month
+   → 422 에러 해결: period 매개변수와 함께 정상 응답
+
+【 우선순위 2 - 확인 및 테스트 필요 】
+4. Analytics API들의 매개변수 검증 로직 확인
+5. Agents API 매개변수 요구사항 확인  
+6. Chat Histories API 매개변수 요구사항 확인
+
+【 요청하는 응답 형식 】
+```json
+// Agent Templates 예상 응답
+{
+  "templates": [
+    {
+      "id": "template_id",
+      "name": "템플릿 이름", 
+      "description": "설명",
+      "config": {...}
+    }
+  ]
+}
+
+// Usage Stats 예상 응답  
+{
+  "total_requests": 0,
+  "total_tokens": 0, 
+  "total_cost": 0,
+  "daily_stats": [],
+  "period": "current_month"
+}
+
+// GPT Config 예상 응답
+{
+  "api_key": "sk-...",
+  "database_connected": true,
+  "last_sync": "2025-08-11T10:00:00Z",
+  "model": "gpt-3.5-turbo",
+  "max_tokens": 1000,
+  "temperature": 0.7,
+  "is_active": true
+}
+```
+
+=====================================================================
+                        테스트 환경 정보
+=====================================================================
+
+【 API Base URL 】
+- 개발환경: https://api.surfmind-team.com/api/v1
+- 프론트엔드 포트: localhost:3000
+
+【 인증 정보 】
+- 헤더: Authorization: Bearer {localStorage.token}
+- Content-Type: application/json
+
+【 테스트 방법 】
+1. 에이전트 관리 화면(/agent-management) 접속
+2. 브라우저 개발자 도구 네트워크 탭에서 API 호출 확인
+3. 422/405 에러 발생 여부 확인
+
+=====================================================================
+                          추가 정보
+=====================================================================
+
+【 현재 정상 작동하는 API들 】
+- POST /api/v1/auth/login/access-token (로그인)
+- GET /api/v1/users/me (사용자 정보)
+- GET /api/v1/church/profile (교회 프로필)
+
+【 Supabase Edge Function 사용 중인 기능 】  
+- 제목 생성: https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-title
+- 기타 기능들은 api.surfmind-team.com 사용
+
+【 연락처 】
+- 프론트엔드 팀: [연락처]
+- 긴급 상황 시: [연락처]
+
+=====================================================================
+
+이 문서는 에이전트 관리 화면의 API 문제를 해결하기 위해 작성되었습니다.
+빠른 수정을 통해 사용자 경험 개선을 부탁드립니다.
+
+작성 완료: 2025-08-11 22:16
