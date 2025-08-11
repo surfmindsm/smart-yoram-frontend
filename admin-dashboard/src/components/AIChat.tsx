@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
+import { Bot, History, Send, Star } from 'lucide-react';
 import { chatService, agentService } from '../services/api';
-import { Send, Bot, History, Star } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -18,7 +18,7 @@ interface ChatHistory {
   title: string;
   timestamp: Date;
   messageCount: number;
-  isBookmarked?: boolean;
+  isBookmarked: boolean;
 }
 
 interface Agent {
@@ -33,18 +33,18 @@ const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showHistory, setShowHistory] = useState(true);
+  const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
-  const [agents, setAgents] = useState<Agent[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -85,10 +85,7 @@ const AIChat: React.FC = () => {
         // 채팅 히스토리 로드
         try {
           const response = await chatService.getChatHistories({ limit: 50 });
-          // 백엔드 API 응답 구조 처리: { success: true, data: [...] } 또는 { data: [...] } 또는 배열
           const histories = response.data || response;
-          
-          // 배열인지 확인하고 설정
           if (Array.isArray(histories)) {
             setChatHistory(histories);
             if (histories.length > 0) {
@@ -99,7 +96,7 @@ const AIChat: React.FC = () => {
             setChatHistory([]);
           }
         } catch (error) {
-          console.warn('API 실패, Mock 데이터 사용:', error);
+          console.warn('백엔드 API 실패, Mock 채팅 생성:', error);
           const mockHistory: ChatHistory[] = [
             {
               id: 'chat-1',
@@ -116,10 +113,8 @@ const AIChat: React.FC = () => {
         // 에이전트 로드
         try {
           const response = await agentService.getAgents();
-          // 백엔드 API 응답 구조 처리: { success: true, data: [...] } 또는 { data: [...] } 또는 배열
           const agentList = response.data || response;
           
-          // 배열인지 확인하고 설정
           if (Array.isArray(agentList)) {
             setAgents(agentList);
             if (agentList.length > 0) {
@@ -138,33 +133,11 @@ const AIChat: React.FC = () => {
               category: '일반',
               description: '교회 일반 업무를 도와드립니다',
               isActive: true
-            },
-            {
-              id: 'agent-2', 
-              name: '새가족 담당자',
-              category: '새가족',
-              description: '새가족 관리와 양육을 도와드립니다',
-              isActive: true
-            },
-            {
-              id: 'agent-3',
-              name: '심방 도우미',
-              category: '심방',
-              description: '교인 심방과 관리를 도와드립니다',
-              isActive: true
-            },
-            {
-              id: 'agent-4',
-              name: '예배 준비 도우미',
-              category: '예배',
-              description: '예배 준비와 진행을 도와드립니다',
-              isActive: true
             }
           ];
           setAgents(mockAgents);
           setSelectedAgent(mockAgents[0]);
         }
-
       } finally {
         setLoadingChats(false);
       }
@@ -183,7 +156,7 @@ const AIChat: React.FC = () => {
         const messageList = response.data || response;
         setMessages(messageList);
       } catch (error) {
-        console.warn('메시지 로딩 실패, 빈 채팅으로 시작:', error);
+        console.warn('메시지 로딩 실패, 빈 메시지 목록 반환:', error);
         setMessages([]);
       }
     };
@@ -199,14 +172,10 @@ const AIChat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // API 호출 (백엔드가 사용자 메시지와 AI 응답을 모두 처리)
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgent?.id);
-      
-      // API 명세서에 따른 응답 구조: { success: true, data: { user_message: {...}, ai_response: {...} } }
       const responseData = response.data || response;
       
       if (responseData.user_message && responseData.ai_response) {
-        // 사용자 메시지와 AI 응답을 모두 추가
         setMessages(prev => [
           ...prev,
           {
@@ -227,7 +196,7 @@ const AIChat: React.FC = () => {
       }
       setIsLoading(false);
     } catch (error) {
-      console.warn('API 실패, Mock 응답 사용:', error);
+      console.warn('백엔드 API 실패, Edge Function 사용:', error);
       
       // 사용자 메시지 먼저 추가
       const newUserMessage: ChatMessage = {
@@ -238,18 +207,54 @@ const AIChat: React.FC = () => {
       };
       setMessages(prev => [...prev, newUserMessage]);
       
-      // Mock 응답 생성
-      setTimeout(() => {
-        const mockResponse = getMockAIResponse(userMessage);
-        setMessages(prev => [...prev, mockResponse]);
-        setIsLoading(false);
-      }, 1000);
+      try {
+        // Edge Function으로 실제 GPT API 호출
+        const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/chat-manager/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
+          },
+          body: JSON.stringify({
+            chat_history_id: currentChatId,
+            agent_id: selectedAgent?.id,
+            content: userMessage
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ai_response) {
+            const aiResponse: ChatMessage = {
+              id: data.ai_response.id || `ai-${Date.now()}`,
+              content: data.ai_response.content,
+              role: 'assistant',
+              timestamp: new Date(data.ai_response.timestamp || Date.now()),
+              tokensUsed: data.ai_response.tokensUsed,
+              cost: data.ai_response.cost
+            };
+            setMessages(prev => [...prev, aiResponse]);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        throw new Error('Edge Function 응답 실패');
+      } catch (edgeFunctionError) {
+        console.warn('Edge Function도 실패, Mock 응답 사용:', edgeFunctionError);
+        
+        // 마지막 폴백: Mock 응답
+        setTimeout(() => {
+          const mockResponse = getMockAIResponse(userMessage);
+          setMessages(prev => [...prev, mockResponse]);
+          setIsLoading(false);
+        }, 1000);
+      }
     }
   };
 
   const handleNewChat = async () => {
     try {
-      // API로 새 채팅 생성
       const response = await chatService.createNewChat(selectedAgent?.id);
       const responseData = response.data || response;
       
@@ -267,7 +272,6 @@ const AIChat: React.FC = () => {
     } catch (error) {
       console.warn('새 채팅 생성 실패, Mock 데이터 사용:', error);
       
-      // Mock 새 채팅
       const newChat: ChatHistory = {
         id: `chat-${Date.now()}`,
         title: '새 대화',

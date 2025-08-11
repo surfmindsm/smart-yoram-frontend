@@ -239,108 +239,37 @@ export const agentService = {
 // Supabase Edge Function 설정
 const SUPABASE_PROJECT_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
 
-// Chat System Service (API 명세서에 맞게 수정)
+// Chat System Service (백엔드 API 완료)
 export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
-    try {
-      const response = await api.get(getApiUrl('/chat/histories'), { params });
-      return response.data;
-    } catch (error) {
-      console.warn('백엔드 API 실패, Mock 데이터 사용:', error);
-      // 백엔드 API 실패 시 빈 배열 반환
-      return { data: [] };
-    }
+    const response = await api.get(getApiUrl('/chat/histories'), { params });
+    return response.data;
   },
   
   // 특정 채팅의 메시지 목록 조회
   getChatMessages: async (historyId: string) => {
-    try {
-      const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
-      return response.data;
-    } catch (error) {
-      console.warn('백엔드 API 실패, 빈 메시지 목록 반환:', error);
-      // 백엔드 API 실패 시 빈 배열 반환
-      return { data: [] };
-    }
+    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
+    return response.data;
   },
   
-  // 메시지 전송 및 AI 응답 생성 (Edge Function + DB 저장)
+  // 메시지 전송 및 AI 응답 생성
   sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
-    try {
-      // 우선 백엔드 API 시도
-      const response = await api.post(getApiUrl('/chat/messages'), {
-        chat_history_id: chatHistoryId,
-        agent_id: agentId,
-        content: message
-      });
-      return response.data;
-    } catch (error) {
-      console.warn('백엔드 API 실패, Edge Function 사용:', error);
-      
-      // 폴백: Supabase Edge Function 사용
-      const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/chat-gpt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c'}`
-        },
-        body: JSON.stringify({
-          prompt: message,
-          chatHistoryId: chatHistoryId,
-          agentId: agentId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Edge Function 호출 실패: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      // API 명세서 형식으로 응답 구성
-      return {
-        data: {
-          user_message: {
-            id: `user-${Date.now()}`,
-            content: message,
-            role: 'user',
-            timestamp: new Date().toISOString()
-          },
-          ai_response: {
-            id: `ai-${Date.now()}`,
-            content: result.text || result.message,
-            role: 'assistant',
-            timestamp: new Date().toISOString(),
-            tokensUsed: result.tokensUsed || 0,
-            cost: result.cost || 0
-          }
-        }
-      };
-    }
+    const response = await api.post(getApiUrl('/chat/messages'), {
+      chat_history_id: chatHistoryId,
+      agent_id: agentId,
+      content: message
+    });
+    return response.data;
   },
   
   // 새 채팅 시작
   createNewChat: async (agentId?: string, title?: string) => {
-    try {
-      const response = await api.post(getApiUrl('/chat/histories'), {
-        agent_id: agentId,
-        title: title || '새 대화'
-      });
-      return response.data;
-    } catch (error) {
-      console.warn('백엔드 API 실패, Mock 채팅 생성:', error);
-      // 백엔드 API 실패 시 Mock 데이터 반환
-      return {
-        data: {
-          id: `chat-${Date.now()}`,
-          title: title || '새 대화',
-          timestamp: new Date().toISOString(),
-          messageCount: 0,
-          isBookmarked: false
-        }
-      };
-    }
+    const response = await api.post(getApiUrl('/chat/histories'), {
+      agent_id: agentId,
+      title: title || '새 대화'
+    });
+    return response.data;
   },
   
   // 채팅 제목 수정
@@ -357,7 +286,7 @@ export const chatService = {
     return response.data;
   },
   
-  // 북마크 토글 (제목 수정과 같은 엔드포인트 사용)
+  // 북마크 토글
   bookmarkChat: async (historyId: string, isBookmarked: boolean) => {
     const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), {
       isBookmarked
@@ -365,7 +294,7 @@ export const chatService = {
     return response.data;
   },
   
-  // 북마크 해제 (북마크 토글로 통합)
+  // 북마크 해제
   unbookmarkChat: async (historyId: string) => {
     return chatService.bookmarkChat(historyId, false);
   }
