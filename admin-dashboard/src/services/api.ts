@@ -14,6 +14,9 @@ const getApiUrl = (path: string) => {
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -21,12 +24,43 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Content-Type 헤더 확실히 설정
+  if (!config.headers['Content-Type']) {
+    config.headers['Content-Type'] = 'application/json';
+  }
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 422 에러 상세 정보 로깅
+    if (error.response?.status === 422) {
+      console.error('🚨 422 Validation Error Details:');
+      console.error('URL:', error.config?.url);
+      console.error('Method:', error.config?.method);
+      console.error('Request Data:', JSON.parse(error.config?.data || '{}'));
+      console.error('Response Error:', error.response?.data);
+      
+      // detail 배열 내용 상세 출력
+      if (error.response?.data?.detail && Array.isArray(error.response.data.detail)) {
+        console.error('🔍 Validation Error Details:');
+        error.response.data.detail.forEach((detailItem: any, index: number) => {
+          console.error(`${index + 1}.`, detailItem);
+          // 누락된 필드나 타입 에러 상세 정보
+          if (detailItem.loc) {
+            console.error(`   📍 Location: ${detailItem.loc.join('.')}`);
+          }
+          if (detailItem.type) {
+            console.error(`   🔍 Error Type: ${detailItem.type}`);
+          }
+          if (detailItem.msg) {
+            console.error(`   💬 Message: ${detailItem.msg}`);
+          }
+        });
+      }
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
@@ -255,20 +289,49 @@ export const chatService = {
   
   // 메시지 전송 및 AI 응답 생성
   sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
-    const response = await api.post(getApiUrl('/chat/messages'), {
-      chat_history_id: chatHistoryId,
-      agent_id: agentId,
-      content: message
-    });
+    const payload: any = {
+      chat_history_id: parseInt(chatHistoryId), // 백엔드가 정수 ID를 기대
+      content: message.trim(),
+      agent_id: agentId ? parseInt(agentId) : 1 // 백엔드가 정수를 기대 (기본값 1)
+    };
+    
+    console.log('📤 Sending message with payload:', payload);
+    const response = await api.post(getApiUrl('/chat/messages'), payload);
     return response.data;
   },
   
-  // 새 채팅 시작
-  createNewChat: async (agentId?: string, title?: string) => {
-    const response = await api.post(getApiUrl('/chat/histories'), {
-      agent_id: agentId,
+  // 새 채팅 생성
+  createChatHistory: async (agentId?: string, title?: string) => {
+    const payload: any = {
       title: title || '새 대화'
-    });
+    };
+    
+    // 로그인한 사용자 정보 추가
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.id) {
+          payload.user_id = user.id;
+        }
+        if (user.church_id) {
+          payload.church_id = user.church_id;
+        }
+      }
+    } catch (error) {
+      console.warn('사용자 정보 파싱 실패:', error);
+    }
+    
+    // agent_id 추가 (백엔드가 정수를 기대함)
+    if (agentId && agentId.trim() !== '') {
+      payload.agent_id = parseInt(agentId); // 문자열을 정수로 변환
+    } else {
+      // agent_id가 없으면 기본값 1 사용 (또는 필드 자체를 제외)
+      payload.agent_id = 1; // 기본 에이전트 ID
+    }
+    
+    console.log('📤 Creating chat with payload:', payload);
+    const response = await api.post(getApiUrl('/chat/histories'), payload);
     return response.data;
   },
   

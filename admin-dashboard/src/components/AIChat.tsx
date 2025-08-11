@@ -90,9 +90,14 @@ const AIChat: React.FC = () => {
           const response = await chatService.getChatHistories({ limit: 50 });
           const histories = response.data || response;
           if (Array.isArray(histories)) {
-            setChatHistory(histories);
-            if (histories.length > 0) {
-              setCurrentChatId(histories[0].id);
+            // timestamp를 Date 객체로 변환
+            const formattedHistories = histories.map(history => ({
+              ...history,
+              timestamp: new Date(history.timestamp || history.created_at)
+            }));
+            setChatHistory(formattedHistories);
+            if (formattedHistories.length > 0) {
+              setCurrentChatId(formattedHistories[0].id);
             }
           } else {
             console.warn('채팅 히스토리가 배열이 아닙니다:', histories);
@@ -102,7 +107,7 @@ const AIChat: React.FC = () => {
           console.warn('백엔드 API 실패, Mock 채팅 생성:', error);
           const mockHistory: ChatHistory[] = [
             {
-              id: 'chat-1',
+              id: '1', // 정수 형태 ID
               title: '새 대화',
               timestamp: new Date(),
               messageCount: 0,
@@ -157,7 +162,12 @@ const AIChat: React.FC = () => {
       try {
         const response = await chatService.getChatMessages(currentChatId);
         const messageList = response.data || response;
-        setMessages(messageList);
+        // timestamp를 Date 객체로 변환
+        const formattedMessages = Array.isArray(messageList) ? messageList.map(message => ({
+          ...message,
+          timestamp: new Date(message.timestamp || message.created_at)
+        })) : [];
+        setMessages(formattedMessages);
       } catch (error) {
         console.warn('메시지 로딩 실패, 빈 메시지 목록 반환:', error);
         setMessages([]);
@@ -258,7 +268,7 @@ const AIChat: React.FC = () => {
 
   const handleNewChat = async () => {
     try {
-      const response = await chatService.createNewChat(selectedAgent?.id);
+      const response = await chatService.createChatHistory(selectedAgent?.id);
       const responseData = response.data || response;
       
       const newChat: ChatHistory = {
@@ -276,7 +286,7 @@ const AIChat: React.FC = () => {
       console.warn('새 채팅 생성 실패, Mock 데이터 사용:', error);
       
       const newChat: ChatHistory = {
-        id: `chat-${Date.now()}`,
+        id: Date.now().toString(), // 백엔드가 정수 ID를 기대함
         title: '새 대화',
         timestamp: new Date(),
         messageCount: 0,
