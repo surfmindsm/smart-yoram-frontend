@@ -129,10 +129,20 @@ const AIAgentManagement: React.FC = () => {
 
   const loadAgents = async () => {
     try {
-      const agentList = await agentService.getAgents();
-      setAgents(agentList);
+      const response = await agentService.getAgents();
+      // 백엔드 응답 구조 확인: {agents: Array, stats: Object}
+      if (response && response.agents && Array.isArray(response.agents)) {
+        setAgents(response.agents);
+      } else if (Array.isArray(response)) {
+        // 직접 배열로 반환되는 경우
+        setAgents(response);
+      } else {
+        console.warn('에이전트 목록이 배열이 아닙니다:', response);
+        setAgents([]);
+      }
     } catch (error) {
       console.error('Failed to load agents:', error);
+      setAgents([]);
     }
   };
 
