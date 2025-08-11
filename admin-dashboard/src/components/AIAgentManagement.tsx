@@ -149,18 +149,47 @@ const AIAgentManagement: React.FC = () => {
   const loadTemplates = async () => {
     try {
       const templateList = await agentService.getAgentTemplates();
-      setTemplates(templateList);
-    } catch (error) {
+      setTemplates(templateList || []); // null/undefined 방어
+    } catch (error: any) {
       console.error('Failed to load templates:', error);
+      // 템플릿 로드 실패 시 빈 배열로 설정하여 화면이 정상 작동하도록 함
+      setTemplates([]);
+      
+      if (error.response?.status === 422) {
+        console.warn('템플릿 API가 422 에러를 반환했습니다. 기본 설정으로 진행합니다.');
+      }
     }
   };
 
   const loadUsageStats = async () => {
     try {
       const stats = await analyticsService.getUsageStats({ period: 'current_month' });
-      setUsageStats(stats);
-    } catch (error) {
+      // API 응답을 기존 상태 구조에 맞게 변환
+      if (stats) {
+        setUsageStats({
+          currentMonth: {
+            totalTokens: stats.total_tokens || 0,
+            totalRequests: stats.total_requests || 0,
+            totalCost: stats.total_cost || 0
+          },
+          topAgents: stats.topAgents || []
+        });
+      }
+    } catch (error: any) {
       console.error('Failed to load usage stats:', error);
+      // 사용량 통계 로드 실패 시 기본값으로 설정하여 화면이 정상 작동하도록 함
+      setUsageStats({
+        currentMonth: {
+          totalTokens: 0,
+          totalRequests: 0,
+          totalCost: 0
+        },
+        topAgents: []
+      });
+      
+      if (error.response?.status === 422) {
+        console.warn('사용량 통계 API가 422 에러를 반환했습니다. 기본 설정으로 진행합니다.');
+      }
     }
   };
 
