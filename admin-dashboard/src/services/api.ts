@@ -362,23 +362,53 @@ export const chatService = {
     return chatService.bookmarkChat(historyId, false);
   },
 
-  // 채팅 내용을 기반으로 자동 제목 생성
+  // 채팅 내용을 기반으로 GPT 활용 제목 자동 생성 (전용 Edge Function 사용)
   generateChatTitle: async (messages: Array<{content: string, role: string}>) => {
     try {
-      // 첫 번째 사용자 메시지 기반으로 간단한 제목 생성
+      // 첫 4개의 메시지만 사용하여 제목 생성
+      const relevantMessages = messages.slice(0, 4).map(msg => ({
+        content: msg.content.slice(0, 200), // 내용 길이 제한
+        role: msg.role
+      }));
+
+      // 새로 배포한 generate-title Edge Function 사용
+      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
+        },
+        body: JSON.stringify({
+          messages: relevantMessages
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.title && data.title.length > 2) {
+          return data.title;
+        }
+      }
+      
+      throw new Error('Edge Function 제목 생성 실패');
+      
+    } catch (error) {
+      console.warn('Edge Function 제목 생성 실패, 폴백 사용:', error);
+      
+      // 폴백: 첫 번째 사용자 메시지 기반으로 간단한 제목 생성
       const firstUserMessage = messages.find(msg => msg.role === 'user');
       if (firstUserMessage) {
         let title = firstUserMessage.content
-          .replace(/\n/g, ' ')  // 줄바꿈을 공백으로 대체
-          .replace(/\s+/g, ' ')  // 연속된 공백을 하나로 줄임
-          .trim();  // 앞뒤 공백 제거
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .replace(/작성해줘|작성해주세요|만들어줘|만들어주세요|해줘|해주세요/g, '')
+          .trim();
         
-        // 제목이 너무 길면 자름
         if (title.length > 30) {
           title = title.slice(0, 30) + '...';
         }
         
-        // 제목이 너무 짧으면 보완
         if (title.length < 5) {
           return `대화 ${new Date().toLocaleDateString()}`;
         }
@@ -386,11 +416,6 @@ export const chatService = {
         return title;
       }
       
-      // 사용자 메시지가 없으면 기본 제목
-      return `대화 ${new Date().toLocaleDateString()}`;
-      
-    } catch (error) {
-      console.error('제목 자동 생성 실패:', error);
       return `대화 ${new Date().toLocaleDateString()}`;
     }
   }
