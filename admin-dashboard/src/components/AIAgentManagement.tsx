@@ -129,15 +129,34 @@ const AIAgentManagement: React.FC = () => {
 
   const loadAgents = async () => {
     try {
+      console.log('Loading agents from API...');
       const response = await agentService.getAgents();
-      // 백엔드 응답 구조 확인: {agents: Array, stats: Object}
-      if (response && response.agents && Array.isArray(response.agents)) {
+      
+      // 백엔드 재배포 후 새로운 응답 형식: {success: true, data: {...}}
+      if (response.success && response.data) {
+        console.log('New API format detected, processing data...');
+        
+        // 새 형식에서 agents 배열 추출
+        if (Array.isArray(response.data.agents)) {
+          console.log('Successfully loaded agents:', response.data.agents.length);
+          setAgents(response.data.agents);
+        } else if (Array.isArray(response.data)) {
+          console.log('Data is direct array:', response.data.length);
+          setAgents(response.data);
+        } else {
+          console.warn('Data contains no agents array:', response.data);
+          setAgents([]);
+        }
+      } 
+      // 이전 응답 형식 지원 (호환성 유지)
+      else if (response && response.agents && Array.isArray(response.agents)) {
+        console.log('Legacy format detected, using agents array');
         setAgents(response.agents);
       } else if (Array.isArray(response)) {
-        // 직접 배열로 반환되는 경우
+        console.log('Direct array format detected');
         setAgents(response);
       } else {
-        console.warn('에이전트 목록이 배열이 아닙니다:', response);
+        console.warn('Unknown response format:', response);
         setAgents([]);
       }
     } catch (error) {
