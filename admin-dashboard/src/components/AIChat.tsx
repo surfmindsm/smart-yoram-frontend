@@ -500,6 +500,33 @@ const AIChat: React.FC = () => {
     setOpenMenuId(null);
   };
 
+  // 북마크 토글 핸들러
+  const handleToggleBookmark = async (chatId: string, currentBookmarkState: boolean) => {
+    try {
+      // 즉시 UI 업데이트 (낙관적 업데이트)
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, isBookmarked: !currentBookmarkState }
+            : chat
+        )
+      );
+
+      // 백엔드 API 호출
+      await chatService.bookmarkChat(chatId, !currentBookmarkState);
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+      // 실패 시 UI 상태 롤백
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, isBookmarked: currentBookmarkState }
+            : chat
+        )
+      );
+    }
+  };
+
   // 채팅 이름 변경 시작
   const handleStartEditTitle = (chatId: string, currentTitle: string) => {
     setEditingChatId(chatId);
@@ -642,10 +669,16 @@ const AIChat: React.FC = () => {
                       onClick={() => setCurrentChatId(chat.id)}
                     >
                       <div className="flex items-center space-x-2 pr-8">
-                        <Star className={cn(
-                          "h-3 w-3",
-                          chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
-                        )} />
+                        <Star 
+                          className={cn(
+                            "h-3 w-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                            chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleBookmark(chat.id, chat.isBookmarked);
+                          }}
+                        />
                         {editingChatId === chat.id ? (
                           <input
                             type="text"
