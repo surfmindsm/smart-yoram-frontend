@@ -437,66 +437,258 @@ const AIChat: React.FC = () => {
         // 나이 분석을 위한 현재 날짜
         const currentYear = new Date().getFullYear();
         
+        // 🔥 개별 교인 검색 및 상세 정보를 위한 데이터 구조화
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1;
+        const threeMonthsAgo = new Date(currentDate.getTime() - (90 * 24 * 60 * 60 * 1000));
+        
         contextData.members = {
+          // 기본 통계
           total_count: members.length,
-          // 다양한 활성 상태 필드 확인
           active_count: members.filter((m: any) => 
-            m.status === 'active' || m.is_active === true || m.active === true
+            m.member_status === 'active' || m.status === 'active'
           ).length,
-          // 다양한 성별 필드 확인  
           male_count: members.filter((m: any) => 
             m.gender === 'male' || m.gender === 'M' || m.sex === 'male' || m.sex === 'M'
           ).length,
           female_count: members.filter((m: any) => 
             m.gender === 'female' || m.gender === 'F' || m.sex === 'female' || m.sex === 'F'
           ).length,
-          // 연령 분석
+          
+          // 연령 분석 (실제 DB 필드명: birthdate)
           age_groups: {
             under_20: members.filter((m: any) => {
-              if (m.birth_date) {
-                const birthYear = new Date(m.birth_date).getFullYear();
+              if (m.birthdate) {
+                const birthYear = new Date(m.birthdate).getFullYear();
                 const age = currentYear - birthYear;
                 return age < 20;
               }
               return false;
             }).length,
             age_20_40: members.filter((m: any) => {
-              if (m.birth_date) {
-                const birthYear = new Date(m.birth_date).getFullYear();
+              if (m.birthdate) {
+                const birthYear = new Date(m.birthdate).getFullYear();
                 const age = currentYear - birthYear;
                 return age >= 20 && age < 40;
               }
               return false;
             }).length,
             age_40_60: members.filter((m: any) => {
-              if (m.birth_date) {
-                const birthYear = new Date(m.birth_date).getFullYear();
+              if (m.birthdate) {
+                const birthYear = new Date(m.birthdate).getFullYear();
                 const age = currentYear - birthYear;
                 return age >= 40 && age < 60;
               }
               return false;
             }).length,
             over_60: members.filter((m: any) => {
-              if (m.birth_date) {
-                const birthYear = new Date(m.birth_date).getFullYear();
+              if (m.birthdate) {
+                const birthYear = new Date(m.birthdate).getFullYear();
                 const age = currentYear - birthYear;
                 return age >= 60;
               }
               return false;
             }).length
           },
-          // 실제 필드명들 확인용 샘플
-          sample_fields: members[0] ? Object.keys(members[0]) : [],
-          // 가장 최근 등록된 교인 5명
-          recent_members: members
-            .filter(m => m.created_at)
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5)
+          
+          // 🔥 직책별 분류
+          positions: {
+            pastor: members.filter(m => m.position?.includes('목사') || m.position?.includes('pastor')).length,
+            elder: members.filter(m => m.position?.includes('장로') || m.position?.includes('elder')).length,
+            deacon: members.filter(m => m.position?.includes('집사') || m.position?.includes('deacon')).length,
+            kwonsa: members.filter(m => m.position?.includes('권사')).length,
+            others: members.filter(m => !m.position || (!m.position.includes('목사') && !m.position.includes('장로') && !m.position.includes('집사') && !m.position.includes('권사'))).length
+          },
+          
+          // 🔥 결혼 상태별 분류
+          marital_status: {
+            married: members.filter(m => m.marital_status === 'married' || m.marital_status === '기혼').length,
+            single: members.filter(m => m.marital_status === 'single' || m.marital_status === '미혼').length,
+            unknown: members.filter(m => !m.marital_status).length
+          },
+          
+          // 🔥 이번 달 생일인 교인들
+          this_month_birthdays: members
+            .filter(m => {
+              if (m.birthdate) {
+                const birthMonth = new Date(m.birthdate).getMonth() + 1;
+                return birthMonth === currentMonth;
+              }
+              return false;
+            })
             .map(m => ({
-              name: m.name || m.full_name || '이름없음',
-              joined: m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '알 수 없음',
-              status: m.status || m.is_active || '알 수 없음'
-            }))
+              name: m.name || '이름없음',
+              birthdate: m.birthdate,
+              phone: m.phone,
+              age: currentYear - new Date(m.birthdate).getFullYear()
+            })),
+          
+          // 🔥 최근 3개월 내 등록한 교인들 (실제 데이터는 created_at에 있음)
+          recent_registrations: members
+            .filter(m => {
+              if (m.created_at) {
+                const regDate = new Date(m.created_at);
+                return regDate >= threeMonthsAgo;
+              }
+              return false;
+            })
+            .map(m => ({
+              name: m.name || '이름없음',
+              registration_date: m.created_at, // 실제 등록일
+              phone: m.phone,
+              status: m.member_status || m.status // member_status 우선
+            })),
+          
+          // 🔥 세례받은 교인들 (올해)
+          baptized_this_year: members
+            .filter(m => {
+              if (m.baptism_date) {
+                const baptismYear = new Date(m.baptism_date).getFullYear();
+                return baptismYear === currentYear;
+              }
+              return false;
+            })
+            .map(m => ({
+              name: m.name || '이름없음',
+              baptism_date: m.baptism_date,
+              baptism_church: m.baptism_church
+            })),
+          
+          // 🔥 부서별 분류 (상위 5개 부서)
+          departments: Object.entries(
+            members.reduce((acc: any, m: any) => {
+              const dept = m.department || '부서 미지정';
+              acc[dept] = (acc[dept] || 0) + 1;
+              return acc;
+            }, {})
+          )
+          .sort(([,a], [,b]) => (b as number) - (a as number))
+          .slice(0, 5)
+          .map(([dept, count]) => ({ department: dept, count })),
+          
+          // 🔥 연락처 정보 확인
+          contact_info: {
+            has_phone: members.filter(m => m.phone).length,
+            has_email: members.filter(m => m.email).length,
+            no_contact: members.filter(m => !m.phone && !m.email).length
+          },
+          
+          // 🔥 개별 검색을 위한 전체 교인 목록 (개인정보 최소화)
+          member_list: members.map(m => ({
+            id: m.id,
+            name: m.name || '이름없음',
+            position: m.position || 'member', // 기본값 member
+            department: m.department,
+            district: m.district,
+            phone: m.phone ? `${m.phone.substring(0, 3)}-****-****` : null, // 개인정보 보호
+            status: m.member_status || m.status, // member_status 우선
+            gender: m.gender,
+            marital_status: m.marital_status,
+            // 🔥 생일 정보 추가 (개별 조회용)
+            birthdate: m.birthdate ? new Date(m.birthdate).toLocaleDateString('ko-KR') : null,
+            birth_month_day: m.birthdate ? `${new Date(m.birthdate).getMonth() + 1}월 ${new Date(m.birthdate).getDate()}일` : null,
+            age_group: (() => {
+              if (m.birthdate) {
+                const age = currentYear - new Date(m.birthdate).getFullYear();
+                if (age < 20) return '20세 미만';
+                if (age < 40) return '20-40세';
+                if (age < 60) return '40-60세';
+                return '60세 이상';
+              }
+              return '연령 미상';
+            })(),
+            // 실제 연령도 포함 (구체적 질문 대응용)
+            age: m.birthdate ? currentYear - new Date(m.birthdate).getFullYear() : null,
+            has_notes: !!(m.notes || m.memo), // 메모 존재 여부
+            baptism_status: m.baptism_date ? '세례받음' : '미세례',
+            baptism_date: m.baptism_date ? new Date(m.baptism_date).toLocaleDateString('ko-KR') : null,
+            invitation_sent: m.invitation_sent || false,
+            // 🔥 주소와 이메일 정보도 포함 (개별 조회용)
+            address: m.address || null,
+            email: m.email || null,
+            transfer_church: m.transfer_church || null,
+            baptism_church: m.baptism_church || null,
+            // 🔥 가족 관계 정보
+            family_id: m.family_id || null,
+            family_role: m.family_role || null,
+            has_photo: !!(m.photo_url || m.profile_photo_url),
+            photo_url: m.photo_url || m.profile_photo_url || null
+          })),
+          
+          // 🔥 초청장 발송 통계 (실제 스키마 기반)
+          invitation_stats: {
+            sent: members.filter(m => m.invitation_sent === true).length,
+            not_sent: members.filter(m => m.invitation_sent === false || !m.invitation_sent).length,
+            recent_invitations: members
+              .filter(m => m.invitation_sent_at)
+              .sort((a, b) => new Date(b.invitation_sent_at).getTime() - new Date(a.invitation_sent_at).getTime())
+              .slice(0, 5)
+              .map(m => ({
+                name: m.name,
+                sent_date: new Date(m.invitation_sent_at).toLocaleDateString('ko-KR')
+              }))
+          },
+          
+          // 🔥 메모가 있는 교인들 (특별 관리 대상)
+          members_with_notes: members
+            .filter(m => m.notes || m.memo)
+            .map(m => ({
+              name: m.name,
+              notes_preview: (m.notes || m.memo)?.substring(0, 50) + '...',
+              has_notes: true,
+              has_memo: true
+            })),
+          
+          // 🔥 가족 관계 정보 (family_id 기반)
+          family_stats: {
+            total_families: new Set(members.filter(m => m.family_id).map(m => m.family_id)).size,
+            members_with_family: members.filter(m => m.family_id).length,
+            single_members: members.filter(m => !m.family_id).length
+          },
+          
+          // 🔥 가족별 그룹 정보 (상위 10개 가족)
+          family_groups: Object.entries(
+            members
+              .filter(m => m.family_id)
+              .reduce((acc: any, m: any) => {
+                const familyId = m.family_id;
+                if (!acc[familyId]) {
+                  acc[familyId] = [];
+                }
+                acc[familyId].push({
+                  name: m.name,
+                  family_role: m.family_role || '가족',
+                  age: m.birthdate ? currentYear - new Date(m.birthdate).getFullYear() : null,
+                  gender: m.gender
+                });
+                return acc;
+              }, {})
+          )
+          .sort(([,a], [,b]) => (b as any[]).length - (a as any[]).length)
+          .slice(0, 10)
+          .map(([familyId, members]) => ({
+            family_id: familyId,
+            member_count: (members as any[]).length,
+            members: members
+          })),
+          
+          // 🔥 전입/전출 이력 분석
+          transfer_history: {
+            transferred_in: members.filter(m => m.transfer_church && m.transfer_date).length,
+            has_transfer_info: members.filter(m => m.transfer_church).length,
+            recent_transfers: members
+              .filter(m => m.transfer_date)
+              .sort((a, b) => new Date(b.transfer_date).getTime() - new Date(a.transfer_date).getTime())
+              .slice(0, 5)
+              .map(m => ({
+                name: m.name,
+                transfer_church: m.transfer_church,
+                transfer_date: new Date(m.transfer_date).toLocaleDateString('ko-KR')
+              }))
+          },
+          
+          // 디버깅용
+          sample_fields: members[0] ? Object.keys(members[0]) : []
         };
         console.log('✅ 상세 교인 데이터 수집 완료:', contextData.members);
       } catch (error) {
