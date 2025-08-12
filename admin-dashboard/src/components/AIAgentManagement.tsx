@@ -94,7 +94,13 @@ const AIAgentManagement: React.FC = () => {
     immediateActivation: true,
     systemPrompt: '',
     templateId: '',
-    isFromTemplate: false
+    isFromTemplate: false,
+    churchDataSources: {
+      announcements: false,
+      attendances: false,
+      members: false,
+      worship_services: false
+    }
   });
 
   const categories = [
@@ -325,7 +331,8 @@ const AIAgentManagement: React.FC = () => {
         icon: newAgent.icon,
         is_active: newAgent.immediateActivation,
         system_prompt: promptResult.systemPrompt,
-        template_id: newAgent.isFromTemplate ? newAgent.templateId : undefined
+        template_id: newAgent.isFromTemplate ? newAgent.templateId : undefined,
+        church_data_sources: newAgent.churchDataSources
       };
 
       console.log('🔥 에이전트 생성 중...', agentData);
@@ -346,7 +353,13 @@ const AIAgentManagement: React.FC = () => {
         immediateActivation: true,
         systemPrompt: '',
         templateId: '',
-        isFromTemplate: false
+        isFromTemplate: false,
+        churchDataSources: {
+          announcements: false,
+          attendances: false,
+          members: false,
+          worship_services: false
+        }
       });
 
       console.log('🎉 에이전트 생성 완료!');
@@ -1004,7 +1017,93 @@ const AIAgentManagement: React.FC = () => {
                 />
               </div>
 
+              {/* 교회 데이터 선택 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-3">
+                  교회 데이터 연동 (선택사항)
+                </label>
+                <p className="text-sm text-slate-600 mb-4">
+                  에이전트가 참조할 교회 데이터를 선택하세요. 선택한 데이터를 기반으로 더 정확한 답변을 제공합니다.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.announcements}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          announcements: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">공지사항</div>
+                      <div className="text-xs text-slate-600">교회 공지사항 및 알림</div>
+                    </div>
+                  </label>
 
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.attendances}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          attendances: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">출석현황</div>
+                      <div className="text-xs text-slate-600">교인 출석 통계</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.members}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          members: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">교인현황</div>
+                      <div className="text-xs text-slate-600">교인 정보 및 현황</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.worship_services}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          worship_services: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">예배정보</div>
+                      <div className="text-xs text-slate-600">예배 일정 및 정보</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
 
               <div className="flex items-center justify-between py-4">
                 <label className="text-sm font-medium text-slate-900">즉시 활성화</label>
