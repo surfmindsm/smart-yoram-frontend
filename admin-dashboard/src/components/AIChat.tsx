@@ -403,7 +403,7 @@ const AIChat: React.FC = () => {
     } catch (error) {
       console.error('새 채팅 생성 실패:', error);
       // 에러 발생 시 로컬에서 새 채팅 생성
-      const newChatId = `chat-${Date.now()}`;
+      const newChatId = Date.now().toString();
       setCurrentChatId(newChatId);
       setMessages([]);
       
@@ -423,8 +423,10 @@ const AIChat: React.FC = () => {
       setMessages([]);
       setSelectedAgentForChat(agent);
       
+      console.log('🚀 Creating chat with agent:', agent.id, agent.name);
       // API를 통해 에이전트와 새 채팅 생성
       const response = await chatService.createChatHistory(agent.id, `${agent.name}와의 대화`);
+      console.log('✅ Chat creation response:', response);
       
       if (response?.id) {
         setCurrentChatId(response.id);
@@ -446,7 +448,7 @@ const AIChat: React.FC = () => {
     } catch (error) {
       console.error('에이전트 채팅 생성 실패:', error);
       // 에러 발생 시 로컬에서 새 채팅 생성
-      const newChatId = `chat-${Date.now()}`;
+      const newChatId = Date.now().toString();
       setCurrentChatId(newChatId);
       setMessages([]);
       setSelectedAgentForChat(agent);
