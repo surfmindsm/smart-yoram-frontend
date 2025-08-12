@@ -402,6 +402,15 @@ const AIChat: React.FC = () => {
 
     const userMessage = inputValue.trim();
     setInputValue('');
+    
+    // 🚀 사용자 메시지 즉시 표시
+    const newUserMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      content: userMessage,
+      role: 'user',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, newUserMessage]);
     setIsLoading(true);
     
     // 첫 번째 메시지인지 확인
@@ -411,32 +420,26 @@ const AIChat: React.FC = () => {
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgentForChat?.id);
       const responseData = response.data || response;
       
-      if (responseData.user_message && responseData.ai_response) {
-        const newMessages = [
-          {
-            id: responseData.user_message.id,
-            content: responseData.user_message.content,
-            role: responseData.user_message.role,
-            timestamp: new Date(responseData.user_message.timestamp)
-          },
-          {
-            id: responseData.ai_response.id,
-            content: responseData.ai_response.content,
-            role: responseData.ai_response.role,
-            timestamp: new Date(responseData.ai_response.timestamp),
-            tokensUsed: responseData.ai_response.tokensUsed,
-            cost: responseData.ai_response.cost
-          }
-        ];
+      if (responseData.ai_response) {
+        // 🚀 AI 응답만 추가 (사용자 메시지는 이미 표시됨)
+        const aiResponse: ChatMessage = {
+          id: responseData.ai_response.id,
+          content: responseData.ai_response.content,
+          role: responseData.ai_response.role,
+          timestamp: new Date(responseData.ai_response.timestamp),
+          tokensUsed: responseData.ai_response.tokensUsed,
+          cost: responseData.ai_response.cost
+        };
         
-        setMessages(prev => [...prev, ...newMessages]);
+        setMessages(prev => [...prev, aiResponse]);
         
         // 첫 번째 메시지 후 자동 제목 생성
         if (isFirstMessage) {
           try {
             const generatedTitle = await chatService.generateChatTitle([
               ...messages,
-              ...newMessages
+              newUserMessage,
+              aiResponse
             ]);
             
             // 채팅 제목 업데이트
@@ -697,25 +700,33 @@ const AIChat: React.FC = () => {
 
   // 채팅 삭제 핸들러
   const handleDeleteChat = async (chatId: string) => {
+    console.log('🗑️ 채팅 삭제 시도:', chatId);
+    
+    // 먼저 UI에서 즉시 제거 (낙관적 업데이트)
+    const chatToDelete = chatHistory.find(chat => chat.id === chatId);
+    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+    
+    // 삭제된 채팅이 현재 채팅이면 새 채팅으로 전환
+    if (currentChatId === chatId) {
+      const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+      if (remainingChats.length > 0) {
+        setCurrentChatId(remainingChats[0].id);
+      } else {
+        handleNewChat();
+      }
+    }
+
     try {
       await chatService.deleteChat(chatId);
-      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-      
-      // 삭제된 채팅이 현재 채팅이면 새 채팅으로 전환
-      if (currentChatId === chatId) {
-        const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
-        if (remainingChats.length > 0) {
-          setCurrentChatId(remainingChats[0].id);
-        } else {
-          handleNewChat();
-        }
-      }
+      console.log('✅ 채팅 삭제 성공:', chatId);
     } catch (error) {
-      console.warn('채팅 삭제 실패:', error);
-      // Mock 환경에서는 로컬 상태만 업데이트
-      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-      if (currentChatId === chatId) {
-        handleNewChat();
+      console.error('❌ 채팅 삭제 실패:', error);
+      // API 실패 시 원래 상태로 복원
+      if (chatToDelete) {
+        setChatHistory(prev => [...prev, chatToDelete].sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        ));
+        alert('채팅 삭제에 실패했습니다. 다시 시도해주세요.');
       }
     }
     setOpenMenuId(null);
@@ -766,29 +777,40 @@ const AIChat: React.FC = () => {
       return;
     }
 
-    try {
-      await chatService.updateChatTitle(chatId, editingTitle.trim());
-      setChatHistory(prev => 
-        prev.map(chat => 
-          chat.id === chatId 
-            ? { ...chat, title: editingTitle.trim() }
-            : chat
-        )
-      );
-    } catch (error) {
-      console.warn('채팅 제목 변경 실패:', error);
-      // Mock 환경에서는 로컬 상태만 업데이트
-      setChatHistory(prev => 
-        prev.map(chat => 
-          chat.id === chatId 
-            ? { ...chat, title: editingTitle.trim() }
-            : chat
-        )
-      );
-    }
+    console.log('✏️ 채팅 제목 변경 시도:', chatId, editingTitle.trim());
+
+    // 원본 제목 백업
+    const originalChat = chatHistory.find(chat => chat.id === chatId);
+    const originalTitle = originalChat?.title || '';
     
+    // 먼저 UI에서 즉시 변경 (낙관적 업데이트)
+    setChatHistory(prev => 
+      prev.map(chat => 
+        chat.id === chatId 
+          ? { ...chat, title: editingTitle.trim() }
+          : chat
+      )
+    );
+    
+    // 편집 모드 종료
     setEditingChatId(null);
     setEditingTitle('');
+
+    try {
+      await chatService.updateChatTitle(chatId, editingTitle.trim());
+      console.log('✅ 채팅 제목 변경 성공:', chatId);
+    } catch (error) {
+      console.error('❌ 채팅 제목 변경 실패:', error);
+      // API 실패 시 원래 제목으로 복원
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, title: originalTitle }
+            : chat
+        )
+      );
+      alert('채팅 제목 변경에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   // 채팅 이름 변경 취소
@@ -1328,7 +1350,8 @@ const AIChat: React.FC = () => {
                     <div className="flex-1"></div>
                   </div>
                 ) : (
-                  <div className="space-y-4 py-2">
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="space-y-4 py-2">
                     {messages.map((message, index) => (
                       <div
                         key={message.id}
@@ -1413,15 +1436,20 @@ const AIChat: React.FC = () => {
                     {isLoading && (
                       <div className="max-w-5xl mx-auto px-1 flex justify-start">
                         <div className="max-w-4xl">
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="flex items-center">
+                            <div className="w-4 h-4 bg-slate-500 rounded-full animate-pulse" 
+                                 style={{ 
+                                   animation: 'pulse 1.5s ease-in-out infinite',
+                                   transformOrigin: 'center'
+                                 }}>
+                            </div>
+                            <span className="ml-3 text-sm text-slate-500">생각하는 중...</span>
                           </div>
                         </div>
                       </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                     )}
+                     <div ref={messagesEndRef} />
+                    </div>
                   </div>
                 )}
               </div>
