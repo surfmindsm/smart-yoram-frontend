@@ -50,9 +50,14 @@ const AIChat: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{isOpen: boolean, chatId: string | null, chatTitle: string}>({
+    isOpen: false,
+    chatId: null,
+    chatTitle: ''
+  });
   const [messageCache, setMessageCache] = useState<{[key: string]: ChatMessage[]}>({});
   const [creatingAgentChat, setCreatingAgentChat] = useState<string | null>(null); // 현재 생성 중인 에이전트 ID
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -976,14 +981,27 @@ const AIChat: React.FC = () => {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
-                                onClick={() => handleStartEditTitle(chat.id, chat.title)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleStartEditTitle(chat.id, chat.title);
+                                }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center"
                               >
                                 <Edit className="h-3 w-3 mr-2" />
                                 이름 변경
                               </button>
                               <button
-                                onClick={() => handleDeleteChat(chat.id)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setDeleteConfirmModal({
+                                    isOpen: true,
+                                    chatId: chat.id,
+                                    chatTitle: chat.title
+                                  });
+                                  setOpenMenuId(null); // 메뉴 닫기
+                                }}
                                 className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
                               >
                                 <Trash2 className="h-3 w-3 mr-2" />
@@ -1087,9 +1105,11 @@ const AIChat: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (window.confirm('정말로 이 대화를 삭제하시겠습니까?')) {
-                                handleDeleteChat(chat.id);
-                              }
+                              setDeleteConfirmModal({
+                                isOpen: true,
+                                chatId: chat.id,
+                                chatTitle: chat.title
+                              });
                             }}
                             className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
                           >
@@ -1524,6 +1544,43 @@ const AIChat: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 🗑️ 삭제 확인 모달 */}
+      {deleteConfirmModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              채팅을 삭제하시겠습니까?
+            </h3>
+            <p className="text-gray-600 mb-2">
+              "{deleteConfirmModal.chatTitle}" 채팅이 영구적으로 삭제됩니다.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              이 작업은 되돌릴 수 없습니다. 정말로 삭제하시겠습니까?
+            </p>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeleteConfirmModal({isOpen: false, chatId: null, chatTitle: ''})}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  if (deleteConfirmModal.chatId) {
+                    handleDeleteChat(deleteConfirmModal.chatId);
+                  }
+                  setDeleteConfirmModal({isOpen: false, chatId: null, chatTitle: ''});
+                }}
+                className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
