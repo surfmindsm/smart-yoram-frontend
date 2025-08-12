@@ -43,7 +43,7 @@ interface TrendData {
 }
 
 const AnalyticsDashboard: React.FC = () => {
-  const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'current_month'>('current_month');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -166,12 +166,12 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="flex items-center space-x-2">
             <select
               value={period}
-              onChange={(e) => setPeriod(e.target.value as '7d' | '30d' | '90d')}
+              onChange={(e) => setPeriod(e.target.value as 'day' | 'week' | 'month' | 'current_month')}
               className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             >
-              <option value="7d">최근 7일</option>
-              <option value="30d">최근 30일</option>
-              <option value="90d">최근 90일</option>
+              <option value="week">최근 7일</option>
+              <option value="current_month">이번 달</option>
+              <option value="month">최근 30일</option>
             </select>
           </div>
         </div>
@@ -420,7 +420,7 @@ const AnalyticsDashboard: React.FC = () => {
                   <span className="font-medium text-slate-900">일일 평균 비용</span>
                 </div>
                 <p className="text-sm text-slate-600">
-                  {formatCurrency(usageStats.total_cost / (period === '7d' ? 7 : period === '30d' ? 30 : 90))}
+                  {formatCurrency(usageStats.total_cost / (period === 'week' ? 7 : period === 'current_month' || period === 'month' ? 30 : 1))}
                 </p>
               </div>
             </div>
