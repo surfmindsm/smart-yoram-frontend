@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { Bot, History, Send, Star, MoreVertical, Edit, Trash2, Download, FileText, File } from 'lucide-react';
+import { Bot, Send, Plus, Search, Filter, Bookmark, Download, MessageSquare, History, Users, Copy, Star, MoreVertical, Edit, Trash2, FileText, File as FileIcon } from 'lucide-react';
 import { chatService, agentService } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1203,7 +1203,7 @@ const AIChat: React.FC = () => {
                         }}
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
-                        <File className="w-4 h-4 mr-3" />
+                        <FileIcon className="w-4 h-4 mr-3" />
                         마크다운 문서(.md)
                       </button>
                       
@@ -1225,7 +1225,7 @@ const AIChat: React.FC = () => {
                         }}
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
-                        <File className="w-4 h-4 mr-3" />
+                        <FileIcon className="w-4 h-4 mr-3" />
                         DOCX 문서(.docx)
                       </button>
                     </div>
@@ -1328,123 +1328,95 @@ const AIChat: React.FC = () => {
                     <div className="flex-1"></div>
                   </div>
                 ) : (
-                  <div className="space-y-6 py-4">
-                    {messages.map((message) => (
+                  <div className="space-y-4 py-2">
+                    {messages.map((message, index) => (
                       <div
                         key={message.id}
-                        className="w-full"
+                        className="max-w-5xl mx-auto px-1"
                       >
-                        <div className="max-w-4xl mx-auto">
-                          {/* ChatGPT 스타일 메시지 */}
+                        <div className={cn(
+                          "max-w-4xl group mx-auto",
+                          message.role === 'user' ? "text-right" : "text-left"
+                        )}>
+                          {/* 메시지 텍스트 */}
                           <div className={cn(
-                            "flex items-start space-x-4",
-                            message.role === 'user' ? "flex-row-reverse space-x-reverse" : ""
+                            "prose prose-sm max-w-none",
+                            message.role === 'user' ? "bg-slate-100 rounded-2xl px-4 py-3 inline-block" : ""
                           )}>
-                            {/* 아바타 */}
-                            <div className={cn(
-                              "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-                              message.role === 'user' 
-                                ? "bg-slate-800 text-white" 
-                                : "bg-green-600 text-white"
-                            )}>
-                              {message.role === 'user' ? (
-                                <span className="text-sm font-medium">You</span>
-                              ) : (
-                                <Bot className="w-4 h-4" />
-                              )}
-                            </div>
-                            
-                            {/* 메시지 내용 */}
-                            <div className="flex-1 min-w-0">
-                              {/* 메시지 텍스트 */}
-                              <div className="prose prose-sm max-w-none">
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  rehypePlugins={[rehypeHighlight]}
-                                  components={{
-                                    // ChatGPT 스타일 컴포넌트
-                                    h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-slate-900">{children}</h1>,
-                                    h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-slate-800">{children}</h2>,
-                                    h3: ({children}) => <h3 className="text-base font-medium mb-2 text-slate-700">{children}</h3>,
-                                    
-                                    code: ({children, ...props}) => {
-                                      const isInline = !String(children).includes('\n');
-                                      return isInline ? (
-                                        <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
-                                          {children}
-                                        </code>
-                                      ) : (
-                                        <code className="block bg-slate-900 text-slate-100 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...props}>
-                                          {children}
-                                        </code>
-                                      );
-                                    },
-                                    
-                                    ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
-                                    ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
-                                    li: ({children}) => <li className="text-slate-700">{children}</li>,
-                                    
-                                    blockquote: ({children}) => (
-                                      <blockquote className="border-l-4 border-slate-300 pl-4 py-2 mb-3 italic text-slate-600">
-                                        {children}
-                                      </blockquote>
-                                    ),
-                                    
-                                    a: ({children, href}) => (
-                                      <a href={href} className="text-blue-600 hover:text-blue-700 underline" target="_blank" rel="noopener noreferrer">
-                                        {children}
-                                      </a>
-                                    ),
-                                    
-                                    p: ({children}) => <p className="mb-3 last:mb-0 text-slate-800 leading-relaxed">{children}</p>,
-                                    strong: ({children}) => <strong className="font-semibold text-slate-900">{children}</strong>,
-                                    em: ({children}) => <em className="italic text-slate-600">{children}</em>,
-                                  }}
-                                >
-                                  {message.content}
-                                </ReactMarkdown>
-                              </div>
-                              
-                              {/* 메타 정보 */}
-                              <div className={cn(
-                                "flex items-center mt-2 text-xs text-slate-400",
-                                message.role === 'user' ? "justify-end" : "justify-start"
-                              )}>
-                                <span>{message.timestamp.toLocaleTimeString()}</span>
-                                {message.role === 'assistant' && (
-                                  <>
-                                    {message.tokensUsed && (
-                                      <span className="ml-2">{message.tokensUsed} 토큰</span>
-                                    )}
-                                    {message.cost && (
-                                      <span className="ml-2">₩{message.cost.toFixed(2)}</span>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            </div>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeHighlight]}
+                              components={{
+                                h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-slate-900">{children}</h1>,
+                                h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-slate-800">{children}</h2>,
+                                h3: ({children}) => <h3 className="text-base font-medium mb-2 text-slate-700">{children}</h3>,
+                                
+                                code: ({children, ...props}) => {
+                                  const isInline = !String(children).includes('\n');
+                                  return isInline ? (
+                                    <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <code className="block bg-slate-900 text-slate-100 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                
+                                ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
+                                ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+                                li: ({children}) => <li className="text-slate-700">{children}</li>,
+                                
+                                blockquote: ({children}) => (
+                                  <blockquote className="border-l-4 border-slate-300 pl-4 py-2 mb-3 italic text-slate-600">
+                                    {children}
+                                  </blockquote>
+                                ),
+                                
+                                a: ({children, href}) => (
+                                  <a href={href} className="text-blue-600 hover:text-blue-700 underline" target="_blank" rel="noopener noreferrer">
+                                    {children}
+                                  </a>
+                                ),
+                                
+                                p: ({children}) => <p className="mb-3 last:mb-0 text-slate-800 leading-relaxed">{children}</p>,
+                                strong: ({children}) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                                em: ({children}) => <em className="italic text-slate-600">{children}</em>,
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                          
+                          {/* 복사 버튼 */}
+                          <div className={cn(
+                            "mt-2 opacity-0 group-hover:opacity-100 transition-opacity",
+                            message.role === 'user' ? "text-right" : "text-left"
+                          )}>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(message.content);
+                                // 간단한 알림 표시를 위해 콘솔에 출력
+                                console.log('메시지가 복사되었습니다');
+                              }}
+                              className="inline-flex items-center px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                            >
+                              <Copy className="w-3 h-3 mr-1" />
+                              복사
+                            </button>
                           </div>
                         </div>
                       </div>
                     ))}
                     
                     {isLoading && (
-                      <div className="w-full">
-                        <div className="max-w-4xl mx-auto">
-                          <div className="flex items-start space-x-4">
-                            {/* AI 아바타 */}
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-600 text-white">
-                              <Bot className="w-4 h-4" />
-                            </div>
-                            
-                            {/* 로딩 인디케이터 */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                              </div>
-                            </div>
+                      <div className="max-w-5xl mx-auto px-1 flex justify-start">
+                        <div className="max-w-4xl">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                           </div>
                         </div>
                       </div>
@@ -1457,7 +1429,8 @@ const AIChat: React.FC = () => {
               {/* 입력 영역 - 메시지가 있을 때만 표시 */}
               {(messages.length > 0 || isLoading) && (
                 <div className="border-t border-slate-200 p-4">
-                <div className="flex space-x-2">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex space-x-2">
                   <textarea
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -1467,14 +1440,15 @@ const AIChat: React.FC = () => {
                     rows={1}
                     style={{ minHeight: '44px', maxHeight: '120px' }}
                   />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || isLoading}
-                    className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={!inputValue.trim() || isLoading}
+                        className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
