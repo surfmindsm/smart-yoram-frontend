@@ -937,12 +937,16 @@ const AIChat: React.FC = () => {
                 {showHistory ? '←' : '→'}
               </Button>
               
-              {selectedAgent && (
+              {currentChatId && (
                 <div className="flex items-center space-x-2">
                   <Bot className="w-5 h-5 text-sky-600" />
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{selectedAgent.name}</p>
-                    <p className="text-xs text-slate-500">{selectedAgent.description}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {chatHistory.find(chat => chat.id === currentChatId)?.title || '새 대화'}
+                    </p>
+                    {selectedAgentForChat && (
+                      <p className="text-xs text-slate-500">{selectedAgentForChat.description}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -960,22 +964,7 @@ const AIChat: React.FC = () => {
         <div className="flex-1 flex flex-col">
           {activeTab === 'history' && (
             <>
-              {/* 현재 채팅방 제목 표시 */}
-              {currentChatId && (
-                <div className="border-b border-slate-200 p-4">
-                  <div className="flex items-center space-x-3">
-                    <Bot className="w-6 h-6 text-sky-600" />
-                    <div>
-                      <h3 className="font-semibold text-slate-900">
-                        {chatHistory.find(chat => chat.id === currentChatId)?.title || '새 대화'}
-                      </h3>
-                      {selectedAgentForChat && (
-                        <p className="text-sm text-slate-500">{selectedAgentForChat.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               {/* 메시지 영역 */}
               <div className="flex-1 overflow-y-auto p-4">
