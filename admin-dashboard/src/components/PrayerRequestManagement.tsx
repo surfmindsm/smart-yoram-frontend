@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { prayerRequestService } from '../services/api';
 import {
   Heart, Calendar, Clock, Phone, User, Filter, Search, 
   MoreHorizontal, Eye, Edit, CheckCircle, XCircle, 
@@ -40,77 +41,52 @@ const PrayerRequestManagement: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
 
-  // 샘플 데이터 (실제로는 API에서 가져올 데이터)
+  // API에서 중보 기도 요청 데이터 로드
   useEffect(() => {
-    // TODO: Replace with actual API call
-    const sampleData: PrayerRequest[] = [
-      {
-        id: '1',
-        requesterName: '김성도',
-        requesterPhone: '010-1234-5678',
-        memberId: 'member1',
-        prayerType: 'healing',
-        prayerContent: '아버지의 건강 회복을 위해 기도 부탁드립니다. 최근 검사에서 좋지 않은 결과가 나와서 많이 걱정됩니다.',
-        isAnonymous: false,
-        isUrgent: true,
-        status: 'active',
-        isPublic: true,
-        prayerCount: 23,
-        createdAt: '2024-01-10T10:00:00Z',
-        updatedAt: '2024-01-10T10:00:00Z',
-        expiresAt: '2024-02-09T10:00:00Z'
-      },
-      {
-        id: '2',
-        requesterName: '익명',
-        prayerType: 'family',
-        prayerContent: '가정의 평화를 위해 기도해주세요.',
-        isAnonymous: true,
-        isUrgent: false,
-        status: 'active',
-        isPublic: true,
-        prayerCount: 15,
-        createdAt: '2024-01-08T14:30:00Z',
-        updatedAt: '2024-01-08T14:30:00Z',
-        expiresAt: '2024-02-07T14:30:00Z'
-      },
-      {
-        id: '3',
-        requesterName: '이집사',
-        requesterPhone: '010-2345-6789',
-        prayerType: 'thanksgiving',
-        prayerContent: '취업이 되어서 감사기도 드립니다. 하나님의 은혜에 감사드립니다.',
-        isAnonymous: false,
-        isUrgent: false,
-        status: 'answered',
-        isPublic: true,
-        answeredTestimony: '좋은 회사에 취업되어 하나님께 영광 돌립니다.',
-        prayerCount: 31,
-        createdAt: '2024-01-05T11:20:00Z',
-        updatedAt: '2024-01-12T16:45:00Z',
-        closedAt: '2024-01-12T16:45:00Z',
-        expiresAt: '2024-02-04T11:20:00Z'
-      },
-      {
-        id: '4',
-        requesterName: '박권사',
-        prayerType: 'work',
-        prayerContent: '새로운 사업을 시작하는데 하나님의 인도하심을 구합니다.',
-        isAnonymous: false,
-        isUrgent: false,
-        status: 'active',
-        isPublic: false,
-        adminNotes: '개인적인 사업 관련 내용으로 비공개 처리',
-        prayerCount: 8,
-        createdAt: '2024-01-07T09:15:00Z',
-        updatedAt: '2024-01-07T09:15:00Z',
-        expiresAt: '2024-02-06T09:15:00Z'
-      }
-    ];
-    
-    setRequests(sampleData);
-    setLoading(false);
-  }, []);
+    loadPrayerRequests();
+  }, [statusFilter, typeFilter, visibilityFilter]);
+
+  const loadPrayerRequests = async () => {
+    try {
+      setLoading(true);
+      const params: any = {};
+      
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (typeFilter !== 'all') params.prayer_type = typeFilter;
+      if (visibilityFilter !== 'all') params.is_public = visibilityFilter === 'public';
+      
+      const response = await prayerRequestService.getRequests(params);
+      
+      // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
+      const transformedRequests: PrayerRequest[] = response.map((item: any) => ({
+        id: item.id,
+        requesterName: item.is_anonymous ? '익명' : item.requester_name,
+        requesterPhone: item.requester_phone,
+        memberId: item.member_id,
+        prayerType: item.prayer_type,
+        prayerContent: item.prayer_content,
+        isAnonymous: item.is_anonymous,
+        isUrgent: item.is_urgent,
+        status: item.status,
+        isPublic: item.is_public,
+        adminNotes: item.admin_notes,
+        answeredTestimony: item.answered_testimony,
+        prayerCount: item.prayer_count,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        closedAt: item.closed_at,
+        expiresAt: item.expires_at
+      }));
+      
+      setRequests(transformedRequests);
+    } catch (error) {
+      console.error('Failed to load prayer requests:', error);
+      // 에러 발생 시 빈 배열로 설정
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {

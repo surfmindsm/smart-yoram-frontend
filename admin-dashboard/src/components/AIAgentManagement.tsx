@@ -99,7 +99,9 @@ const AIAgentManagement: React.FC = () => {
       announcements: false,
       attendances: false,
       members: false,
-      worship_services: false
+      worship_services: false,
+      pastoral_care_requests: false,
+      prayer_requests: false
     }
   });
 
@@ -311,7 +313,7 @@ const AIAgentManagement: React.FC = () => {
       setCreating(true);
       setError(null);
       
-      // 1단계: 시스템 프롬프트 자동 생성
+      // 1단계: 시스템 프롬프트 자동 생성 (Edge Function 사용)
       console.log('🤖 시스템 프롬프트 생성 중...');
       const promptResult = await promptService.generateSystemPrompt({
         name: newAgent.name,
@@ -358,7 +360,9 @@ const AIAgentManagement: React.FC = () => {
           announcements: false,
           attendances: false,
           members: false,
-          worship_services: false
+          worship_services: false,
+          pastoral_care_requests: false,
+          prayer_requests: false
         }
       });
 
@@ -1100,6 +1104,44 @@ const AIAgentManagement: React.FC = () => {
                     <div>
                       <div className="text-sm font-medium text-slate-900">예배정보</div>
                       <div className="text-xs text-slate-600">예배 일정 및 정보</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.pastoral_care_requests}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          pastoral_care_requests: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">심방 신청</div>
+                      <div className="text-xs text-slate-600">교인들의 심방 요청 데이터</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAgent.churchDataSources.prayer_requests}
+                      onChange={(e) => setNewAgent({
+                        ...newAgent,
+                        churchDataSources: {
+                          ...newAgent.churchDataSources,
+                          prayer_requests: e.target.checked
+                        }
+                      })}
+                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">중보 기도 요청</div>
+                      <div className="text-xs text-slate-600">교인들의 기도 요청 데이터</div>
                     </div>
                   </label>
                 </div>

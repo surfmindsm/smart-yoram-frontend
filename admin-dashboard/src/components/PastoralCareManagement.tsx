@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { pastoralCareService } from '../services/api';
 import {
   UserCheck, Calendar, Clock, Phone, MapPin, User,
   Filter, Search, MoreHorizontal, Eye, Edit, CheckCircle,
@@ -46,67 +47,58 @@ const PastoralCareManagement: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  // 샘플 데이터 (실제로는 API에서 가져올 데이터)
+  // API에서 심방 신청 데이터 로드
   useEffect(() => {
-    // TODO: Replace with actual API call
-    const sampleData: PastoralCareRequest[] = [
-      {
-        id: '1',
-        requesterName: '김성도',
-        requesterPhone: '010-1234-5678',
-        memberId: 'member1',
-        requestType: 'general',
-        requestContent: '최근 아버지께서 편찮으셔서 심방을 요청드립니다. 많이 걱정되고 힘든 상황입니다.',
-        preferredDate: '2024-01-15',
-        preferredTimeStart: '14:00',
-        preferredTimeEnd: '16:00',
-        status: 'pending',
-        priority: 'high',
-        createdAt: '2024-01-10T10:00:00Z',
-        updatedAt: '2024-01-10T10:00:00Z'
-      },
-      {
-        id: '2',
-        requesterName: '이집사',
-        requesterPhone: '010-2345-6789',
-        requestType: 'counseling',
-        requestContent: '자녀 교육 문제로 상담을 요청드립니다.',
-        preferredDate: '2024-01-12',
-        status: 'scheduled',
-        priority: 'normal',
-        assignedPastor: {
-          id: 'pastor1',
-          name: '김목사',
-          phone: '010-5678-1234'
-        },
-        scheduledDate: '2024-01-12',
-        scheduledTime: '15:00',
-        createdAt: '2024-01-08T14:30:00Z',
-        updatedAt: '2024-01-09T09:15:00Z'
-      },
-      {
-        id: '3',
-        requesterName: '박권사',
-        requesterPhone: '010-3456-7890',
-        requestType: 'hospital',
-        requestContent: '수술 후 회복 중이라 병원 심방을 부탁드립니다.',
-        status: 'completed',
-        priority: 'urgent',
-        assignedPastor: {
-          id: 'pastor1',
-          name: '김목사',
-          phone: '010-5678-1234'
-        },
-        completionNotes: '회복 상태 양호하며, 계속해서 기도로 지원하기로 함',
-        createdAt: '2024-01-05T11:20:00Z',
-        updatedAt: '2024-01-07T16:45:00Z',
-        completedAt: '2024-01-07T16:45:00Z'
-      }
-    ];
-    
-    setRequests(sampleData);
-    setLoading(false);
-  }, []);
+    loadPastoralCareRequests();
+  }, [statusFilter, priorityFilter, typeFilter]);
+
+  const loadPastoralCareRequests = async () => {
+    try {
+      setLoading(true);
+      const params: any = {};
+      
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (priorityFilter !== 'all') params.priority = priorityFilter;
+      if (typeFilter !== 'all') params.request_type = typeFilter;
+      
+      const response = await pastoralCareService.getRequests(params);
+      
+      // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
+      const transformedRequests: PastoralCareRequest[] = response.map((item: any) => ({
+        id: item.id,
+        requesterName: item.requester_name,
+        requesterPhone: item.requester_phone,
+        memberId: item.member_id,
+        requestType: item.request_type,
+        requestContent: item.request_content,
+        preferredDate: item.preferred_date,
+        preferredTimeStart: item.preferred_time_start,
+        preferredTimeEnd: item.preferred_time_end,
+        status: item.status,
+        priority: item.priority,
+        assignedPastor: item.assigned_pastor_id ? {
+          id: item.assigned_pastor_id,
+          name: item.assigned_pastor?.name || '담당자 미지정',
+          phone: item.assigned_pastor?.phone || ''
+        } : undefined,
+        scheduledDate: item.scheduled_date,
+        scheduledTime: item.scheduled_time,
+        completionNotes: item.completion_notes,
+        adminNotes: item.admin_notes,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        completedAt: item.completed_at
+      }));
+      
+      setRequests(transformedRequests);
+    } catch (error) {
+      console.error('Failed to load pastoral care requests:', error);
+      // 에러 발생 시 빈 배열로 설정
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {

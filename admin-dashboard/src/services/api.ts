@@ -808,5 +808,129 @@ export const promptService = {
   }
 };
 
+// 심방 신청 관리 서비스
+export const pastoralCareService = {
+  // 관리자용 API
+  getRequests: async (params?: { 
+    status?: string; 
+    priority?: string; 
+    request_type?: string; 
+    skip?: number; 
+    limit?: number; 
+  }) => {
+    const response = await api.get(getApiUrl('/admin/pastoral-care/requests'), { params });
+    return response.data;
+  },
+
+  getRequest: async (requestId: string) => {
+    const response = await api.get(getApiUrl(`/admin/pastoral-care/requests/${requestId}`));
+    return response.data;
+  },
+
+  updateRequest: async (requestId: string, updateData: any) => {
+    const response = await api.put(getApiUrl(`/admin/pastoral-care/requests/${requestId}`), updateData);
+    return response.data;
+  },
+
+  assignPastor: async (requestId: string, pastorId: string) => {
+    const response = await api.put(getApiUrl(`/admin/pastoral-care/requests/${requestId}/assign`), {
+      assigned_pastor_id: pastorId
+    });
+    return response.data;
+  },
+
+  completeRequest: async (requestId: string, completionData: any) => {
+    const response = await api.post(getApiUrl(`/admin/pastoral-care/requests/${requestId}/complete`), completionData);
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get(getApiUrl('/admin/pastoral-care/stats'));
+    return response.data;
+  },
+
+  // 모바일용 API (필요시)
+  createRequest: async (requestData: any) => {
+    const response = await api.post(getApiUrl('/pastoral-care/requests'), requestData);
+    return response.data;
+  },
+
+  getMyRequests: async () => {
+    const response = await api.get(getApiUrl('/pastoral-care/requests/my'));
+    return response.data;
+  }
+};
+
+// 중보 기도 요청 관리 서비스
+export const prayerRequestService = {
+  // 관리자용 API
+  getRequests: async (params?: { 
+    status?: string; 
+    prayer_type?: string; 
+    is_public?: boolean; 
+    skip?: number; 
+    limit?: number; 
+  }) => {
+    const response = await api.get(getApiUrl('/admin/prayer-requests'), { params });
+    return response.data;
+  },
+
+  getRequest: async (requestId: string) => {
+    const response = await api.get(getApiUrl(`/admin/prayer-requests/${requestId}`));
+    return response.data;
+  },
+
+  updateRequest: async (requestId: string, updateData: any) => {
+    const response = await api.put(getApiUrl(`/admin/prayer-requests/${requestId}`), updateData);
+    return response.data;
+  },
+
+  moderateRequest: async (requestId: string, moderationData: any) => {
+    const response = await api.put(getApiUrl(`/admin/prayer-requests/${requestId}/moderate`), moderationData);
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get(getApiUrl('/admin/prayer-requests/stats'));
+    return response.data;
+  },
+
+  getBulletinRequests: async () => {
+    const response = await api.get(getApiUrl('/admin/prayer-requests/bulletin'));
+    return response.data;
+  },
+
+  // 모바일용 API (필요시)
+  createRequest: async (requestData: any) => {
+    const response = await api.post(getApiUrl('/prayer-requests'), requestData);
+    return response.data;
+  },
+
+  getPublicRequests: async (params?: { skip?: number; limit?: number }) => {
+    const response = await api.get(getApiUrl('/prayer-requests'), { params });
+    return response.data;
+  },
+
+  getMyRequests: async () => {
+    const response = await api.get(getApiUrl('/prayer-requests/my'));
+    return response.data;
+  },
+
+  participateInPrayer: async (requestId: string) => {
+    const response = await api.post(getApiUrl(`/prayer-requests/${requestId}/pray`));
+    return response.data;
+  },
+
+  addTestimony: async (requestId: string, testimonyData: any) => {
+    const response = await api.put(getApiUrl(`/prayer-requests/${requestId}/testimony`), testimonyData);
+    return response.data;
+  },
+
+  deleteRequest: async (requestId: string) => {
+    const response = await api.delete(getApiUrl(`/prayer-requests/${requestId}`));
+    return response.data;
+  }
+};
+
 export { api };
 export default api;

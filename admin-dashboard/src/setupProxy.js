@@ -1,9 +1,10 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
-  console.log('🚀 Setting up proxy middleware...');
+  console.log('🚀 Proxy middleware disabled - using direct API calls');
   
-  // API 프록시 설정
+  // 프록시 비활성화 - 운영 서버 직접 호출
+  /*
   app.use(
     '/api',
     createProxyMiddleware({
@@ -18,11 +19,12 @@ module.exports = function(app) {
         console.log(`✅ Proxying: ${req.method} ${req.url} -> https://api.surfmind-team.com${proxyReq.path}`);
       },
       onProxyRes: (proxyRes, req, res) => {
-        console.log(`✅ Proxy response: ${proxyRes.statusCode} from ${req.url}`);
+        console.log(`📨 Response: ${proxyRes.statusCode} for ${req.url}`);
       },
       onError: (err, req, res) => {
-        console.error('❌ Proxy error:', err.message);
+        console.error(`❌ Proxy Error for ${req.url}:`, err.message);
       }
     })
   );
+  */
 };
