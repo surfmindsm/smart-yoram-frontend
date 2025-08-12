@@ -783,13 +783,13 @@ const AIChat: React.FC = () => {
     const originalChat = chatHistory.find(chat => chat.id === chatId);
     const originalTitle = originalChat?.title || '';
     
-    // 먼저 UI에서 즉시 변경 (낙관적 업데이트)
+    // 먼저 UI에서 즉시 변경 (낙관적 업데이트, 정렬 순서 유지)
     setChatHistory(prev => 
       prev.map(chat => 
         chat.id === chatId 
           ? { ...chat, title: editingTitle.trim() }
           : chat
-      )
+      ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     );
     
     // 편집 모드 종료
@@ -801,13 +801,13 @@ const AIChat: React.FC = () => {
       console.log('✅ 채팅 제목 변경 성공:', chatId);
     } catch (error) {
       console.error('❌ 채팅 제목 변경 실패:', error);
-      // API 실패 시 원래 제목으로 복원
+      // API 실패 시 원래 제목으로 복원 (정렬 순서 유지)
       setChatHistory(prev => 
         prev.map(chat => 
           chat.id === chatId 
             ? { ...chat, title: originalTitle }
             : chat
-        )
+        ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       );
       alert('채팅 제목 변경에 실패했습니다. 다시 시도해주세요.');
     }
@@ -1265,13 +1265,13 @@ const AIChat: React.FC = () => {
         </div>
 
         {/* 채팅 내용 또는 에이전트 선택 */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {activeTab === 'history' && (
             <>
 
 
               {/* 메시지 영역 */}
-              <div className="flex-1 overflow-y-auto px-4">
+              <div className="flex-1 overflow-y-auto px-4 min-h-0 max-h-[calc(100vh-200px)]">
                 {messages.length === 0 && !isLoading ? (
                   // ChatGPT 스타일 시작 화면
                   <div className="h-full flex flex-col">
