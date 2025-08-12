@@ -121,15 +121,48 @@ const AIChat: React.FC = () => {
         // 에이전트 로드
         try {
           const response = await agentService.getAgents();
-          const agentList = response.data || response;
+          console.log('🔍 AIChat - 에이전트 API 응답:', response);
           
-          if (Array.isArray(agentList)) {
-            setAgents(agentList);
-            if (agentList.length > 0) {
-              setSelectedAgent(agentList[0]);
+          let agentList = [];
+          
+          // 새로운 API 형식 처리
+          if (response.success && response.data && Array.isArray(response.data.agents)) {
+            agentList = response.data.agents;
+          } else if (Array.isArray(response.data)) {
+            agentList = response.data;
+          } else if (Array.isArray(response)) {
+            agentList = response;
+          }
+          
+          if (agentList.length > 0) {
+            console.log('🔍 AIChat - 첫 번째 에이전트 원본 데이터:', agentList[0]);
+            
+            // 백엔드 snake_case를 프론트엔드 camelCase로 변환
+            const transformedAgents = agentList.map((agent: any) => ({
+              id: agent.id,
+              name: agent.name,
+              category: agent.category,
+              description: agent.description,
+              isActive: agent.is_active || agent.isActive, // snake_case -> camelCase 변환
+              icon: agent.icon,
+              systemPrompt: agent.system_prompt,
+              detailedDescription: agent.detailed_description
+            }));
+            
+            console.log('✅ AIChat - 변환된 첫 번째 에이전트:', transformedAgents[0]);
+            console.log('🎯 AIChat - 활성화된 에이전트 수:', transformedAgents.filter((a: Agent) => a.isActive).length);
+            
+            setAgents(transformedAgents);
+            
+            // 활성화된 에이전트 중 첫 번째를 기본 선택
+            const activeAgents = transformedAgents.filter((agent: Agent) => agent.isActive);
+            if (activeAgents.length > 0) {
+              setSelectedAgent(activeAgents[0]);
+            } else if (transformedAgents.length > 0) {
+              setSelectedAgent(transformedAgents[0]);
             }
           } else {
-            console.warn('에이전트 목록이 배열이 아닙니다:', agentList);
+            console.warn('에이전트 목록이 배열이 아닙니다:', response);
             setAgents([]);
           }
         } catch (error) {
