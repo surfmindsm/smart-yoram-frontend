@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Bot, Send, Plus, Search, Filter, Bookmark, Download, MessageSquare, History, Users, Copy, Star, MoreVertical, Edit, Trash2, FileText, File as FileIcon } from 'lucide-react';
-import { chatService, agentService } from '../services/api';
+import { chatService, agentService, memberService, announcementService, attendanceService } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -32,6 +32,7 @@ interface Agent {
   category: string;
   description: string;
   isActive: boolean;
+  church_data_sources?: string[];
 }
 
 const AIChat: React.FC = () => {
@@ -417,6 +418,66 @@ const AIChat: React.FC = () => {
     };
     setMessages(prev => [...prev, newUserMessage]);
     setIsLoading(true);
+
+    // 🔥 NEW: 에이전트 데이터 소스에 따라 실제 교회 데이터 수집
+    let contextData: any = {};
+    if (selectedAgentForChat?.church_data_sources) {
+      try {
+        console.log('🔍 에이전트 데이터 소스 수집 시작:', selectedAgentForChat.church_data_sources);
+        
+        // 교인 현황 데이터
+        if (selectedAgentForChat.church_data_sources.includes('member_status')) {
+          try {
+            const members: any[] = await memberService.getMembers();
+            contextData.members = {
+              total_count: members.length,
+              active_count: members.filter((m: any) => m.status === 'active').length,
+              male_count: members.filter((m: any) => m.gender === 'male').length,
+              female_count: members.filter((m: any) => m.gender === 'female').length
+            };
+            console.log('✅ 교인 데이터 수집 완료:', contextData.members);
+          } catch (error) {
+            console.warn('⚠️ 교인 데이터 수집 실패:', error);
+          }
+        }
+        
+        // 공지사항 데이터
+        if (selectedAgentForChat.church_data_sources.includes('announcements')) {
+          try {
+            const announcements: any[] = await announcementService.getAnnouncements({ limit: 5 });
+            contextData.announcements = announcements.slice(0, 5).map((ann: any) => ({
+              title: ann.title,
+              content: ann.content?.substring(0, 200) + (ann.content?.length > 200 ? '...' : ''),
+              category: ann.category
+            }));
+            console.log('✅ 공지사항 데이터 수집 완료:', contextData.announcements?.length, '건');
+          } catch (error) {
+            console.warn('⚠️ 공지사항 데이터 수집 실패:', error);
+          }
+        }
+        
+        // 출석 현황 데이터
+        if (selectedAgentForChat.church_data_sources.includes('attendance')) {
+          try {
+            const attendances: any[] = await attendanceService.getAttendances();
+            if (attendances?.length > 0) {
+              const totalAttendance = attendances.reduce((sum: number, att: any) => sum + (att.attendance_count || 0), 0);
+              contextData.attendance = {
+                average: Math.round(totalAttendance / attendances.length),
+                recent_services: attendances.length,
+                latest_service: attendances[0]
+              };
+              console.log('✅ 출석 데이터 수집 완료:', contextData.attendance);
+            }
+          } catch (error) {
+            console.warn('⚠️ 출석 데이터 수집 실패:', error);
+          }
+        }
+        
+      } catch (error) {
+        console.warn('⚠️ 전체 데이터 수집 중 오류:', error);
+      }
+    }
     
     // 첫 번째 메시지인지 확인
     const isFirstMessage = messages.length === 0;
@@ -487,7 +548,8 @@ const AIChat: React.FC = () => {
           body: JSON.stringify({
             chat_history_id: currentChatId,
             agent_id: selectedAgentForChat?.id,
-            content: userMessage
+            content: userMessage,
+            context_data: contextData // 🔥 실제 교회 데이터 포함
           })
         });
         

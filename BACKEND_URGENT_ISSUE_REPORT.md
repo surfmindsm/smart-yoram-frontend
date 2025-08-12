@@ -215,9 +215,11 @@ git reset --hard [이전_정상_커밋_해시]
 ## 🎯 우선순위 작업
 
 ### **1순위 (즉시 해결)**
+- [ ] **GPT API 키 업데이트** (새로운 키로 교체)
 - [ ] CORS 설정 확인 및 복구
 - [ ] 서버 실행 상태 점검
 - [ ] 기본 API 엔드포인트 접근 가능 확인
+- [ ] **AI 에이전트 실제 데이터 연동 구현** (신규 추가)
 
 ### **2순위 (기능 확인)**
 - [ ] 새로운 테이블 생성 확인
@@ -241,6 +243,200 @@ git reset --hard [이전_정상_커밋_해시]
 **긴급 상황 시:**
 - 임시 롤백 후 단계별 커밋 재적용 고려
 - 개발 환경 전용 CORS 설정 임시 적용
+
+---
+
+---
+
+## 🤖 **새로 발견된 문제: AI 에이전트 실제 데이터 연동 실패**
+
+### **문제 상황**
+- **에이전트**: "교인 명부를 조회합니다" (ID: 10)
+- **질문**: "우리 교회 총 몇 명이지?"
+- **실제 데이터**: 교인 100명 등록됨
+- **AI 답변**: 0명이라고 잘못 응답
+
+### **원인 분석**
+**AI 에이전트가 `church_data_sources` 설정을 무시하고 실제 데이터베이스를 조회하지 않음**
+
+### **💡 간단한 해결 방법 (기존 API 활용)**
+
+**기존에 이미 구현된 API들을 재사용하면 됩니다!**
+- `/members/` → 교인 데이터 조회
+- `/announcements/` → 공지사항 조회
+- `/attendances/` → 출석 현황 조회
+- `/pastoral-care/requests` → 심방 신청 조회
+- `/prayer-requests` → 중보 기도 요청 조회
+
+#### **1. 채팅 메시지 처리 시 기존 API 호출**
+```python
+# /api/v1/chat/messages 엔드포인트에서 기존 API 로직 재사용
+async def get_agent_context_data(agent_id: int, church_id: int) -> dict:
+    """에이전트의 데이터 소스 설정에 따라 실제 교회 데이터 조회"""
+    
+    agent = await get_agent_by_id(agent_id)
+    context_data = {}
+    
+    if not agent.church_data_sources:
+        return context_data
+    
+    # 🔥 기존 API 로직 재사용 (DB 직접 쿼리 대신)
+    
+    # 교인 현황 데이터
+    if "member_status" in agent.church_data_sources:
+        # 기존 /members/ API 로직 재사용
+        members = await get_members_for_church(church_id)  # 기존 함수 활용
+        context_data["members"] = {
+            "total_count": len(members),
+            "active_count": len([m for m in members if m.status == 'active']),
+            "male_count": len([m for m in members if m.gender == 'male']),
+            "female_count": len([m for m in members if m.gender == 'female'])
+        }
+    
+    # 출석 현황 데이터  
+    if "attendance" in agent.church_data_sources:
+        # 기존 /attendances/ API 로직 재사용
+        attendances = await get_attendances_for_church(church_id, limit=10)  # 기존 함수 활용
+        if attendances:
+            total_attendance = sum([a.attendance_count for a in attendances])
+            context_data["attendance"] = {
+                "average": total_attendance // len(attendances),
+                "recent_services": len(attendances)
+            }
+    
+    # 공지사항 데이터
+    if "announcements" in agent.church_data_sources:
+        # 기존 /announcements/ API 로직 재사용
+        announcements = await get_announcements_for_church(church_id, limit=5)  # 기존 함수 활용
+        context_data["announcements"] = [
+            {
+                "title": ann.title,
+                "content": ann.content[:200] + "..." if len(ann.content) > 200 else ann.content,
+                "category": ann.category
+            }
+            for ann in announcements
+        ]
+    
+    # 심방 신청 데이터 
+    if "pastoral_care_requests" in agent.church_data_sources:
+        # 기존 /pastoral-care/requests API 로직 재사용
+        pastoral_requests = await get_pastoral_care_requests_for_church(church_id, limit=5)
+        context_data["pastoral_care"] = {
+            "pending_count": len([r for r in pastoral_requests if r.status == 'pending']),
+            "recent_requests": pastoral_requests[:3]
+        }
+    
+    # 중보 기도 요청 데이터
+    if "prayer_requests" in agent.church_data_sources:
+        # 기존 /prayer-requests API 로직 재사용  
+        prayer_requests = await get_prayer_requests_for_church(church_id, limit=5)
+        context_data["prayer_requests"] = {
+            "active_count": len([r for r in prayer_requests if r.status == 'active']),
+            "recent_requests": prayer_requests[:3]
+        }
+    
+    return context_data
+```
+
+#### **2. 채팅 메시지 처리 API 수정**
+```python
+# /api/v1/chat/messages 엔드포인트 수정
+@router.post("/messages")
+async def send_chat_message(
+    message_data: MessageCreate,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        # 기존 로직...
+        
+        # 🔥 새로 추가: 에이전트 실제 데이터 조회
+        context_data = await get_agent_context_data(
+            message_data.agent_id, 
+            current_user.church_id
+        )
+        
+        # 🔥 기존 API 데이터를 GPT 프롬프트에 포함
+        system_prompt = f"""
+당신은 {agent.name}입니다.
+{agent.detailed_description}
+
+다음은 현재 우리 교회의 실제 데이터입니다:
+"""
+        
+        if context_data.get("members"):
+            members = context_data["members"]
+            system_prompt += f"- 총 교인 수: {members['total_count']}명\n"
+            system_prompt += f"- 활동 교인: {members['active_count']}명\n"
+            system_prompt += f"- 남성: {members['male_count']}명, 여성: {members['female_count']}명\n"
+            
+        if context_data.get("attendance"):
+            att = context_data["attendance"]
+            system_prompt += f"- 최근 평균 출석: {att['average']}명\n"
+            
+        if context_data.get("announcements"):
+            system_prompt += "- 최근 공지사항:\n"
+            for ann in context_data["announcements"]:
+                system_prompt += f"  * [{ann['category']}] {ann['title']}\n"
+                
+        if context_data.get("pastoral_care"):
+            pc = context_data["pastoral_care"]
+            system_prompt += f"- 대기 중인 심방 신청: {pc['pending_count']}건\n"
+            
+        if context_data.get("prayer_requests"):
+            pr = context_data["prayer_requests"]
+            system_prompt += f"- 활성 기도 요청: {pr['active_count']}건\n"
+        
+        system_prompt += """
+위의 실제 데이터를 기반으로 정확하고 구체적인 답변을 제공하세요.
+데이터가 없는 경우에만 일반적인 답변을 하세요.
+"""
+        
+        # OpenAI API 호출
+        response = await openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message_data.content}
+            ]
+        )
+        
+        # 나머지 로직...
+        
+    except Exception as e:
+        logger.error(f"Chat message error: {e}")
+        raise HTTPException(status_code=500, detail="메시지 처리 실패")
+```
+
+#### **3. 데이터베이스 스키마 확인**
+다음 테이블들이 존재하는지 확인하고 없으면 생성:
+```sql
+-- 교인 테이블
+CREATE TABLE IF NOT EXISTS church_members (
+    id INTEGER PRIMARY KEY,
+    church_id INTEGER NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    gender VARCHAR(10),
+    status VARCHAR(20) DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 예배 서비스 테이블  
+CREATE TABLE IF NOT EXISTS worship_services (
+    id INTEGER PRIMARY KEY,
+    church_id INTEGER NOT NULL,
+    date DATE NOT NULL,
+    time TIME,
+    title VARCHAR(200),
+    preacher VARCHAR(100),
+    attendance_count INTEGER DEFAULT 0
+);
+```
+
+### **테스트 방법**
+1. 위 코드 구현 후 서버 재시작
+2. 프론트엔드에서 "교인 명부를 조회합니다" 에이전트로 채팅
+3. "우리 교회 총 몇 명이지?" 질문
+4. **기대 결과**: "현재 우리 교회에는 총 100명의 교인이 등록되어 있습니다."
 
 ---
 
