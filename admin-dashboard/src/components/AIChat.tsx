@@ -429,13 +429,76 @@ const AIChat: React.FC = () => {
       // 교인 데이터 수집
       try {
         const members: any[] = await memberService.getMembers();
+        
+        // 🔍 실제 데이터 구조 확인
+        console.log('🔍 원본 교인 데이터 샘플 (첫 3개):', members.slice(0, 3));
+        console.log('🔍 첫 번째 교인 전체 필드:', members[0] ? Object.keys(members[0]) : 'No data');
+        
+        // 나이 분석을 위한 현재 날짜
+        const currentYear = new Date().getFullYear();
+        
         contextData.members = {
           total_count: members.length,
-          active_count: members.filter((m: any) => m.status === 'active').length,
-          male_count: members.filter((m: any) => m.gender === 'male').length,
-          female_count: members.filter((m: any) => m.gender === 'female').length
+          // 다양한 활성 상태 필드 확인
+          active_count: members.filter((m: any) => 
+            m.status === 'active' || m.is_active === true || m.active === true
+          ).length,
+          // 다양한 성별 필드 확인  
+          male_count: members.filter((m: any) => 
+            m.gender === 'male' || m.gender === 'M' || m.sex === 'male' || m.sex === 'M'
+          ).length,
+          female_count: members.filter((m: any) => 
+            m.gender === 'female' || m.gender === 'F' || m.sex === 'female' || m.sex === 'F'
+          ).length,
+          // 연령 분석
+          age_groups: {
+            under_20: members.filter((m: any) => {
+              if (m.birth_date) {
+                const birthYear = new Date(m.birth_date).getFullYear();
+                const age = currentYear - birthYear;
+                return age < 20;
+              }
+              return false;
+            }).length,
+            age_20_40: members.filter((m: any) => {
+              if (m.birth_date) {
+                const birthYear = new Date(m.birth_date).getFullYear();
+                const age = currentYear - birthYear;
+                return age >= 20 && age < 40;
+              }
+              return false;
+            }).length,
+            age_40_60: members.filter((m: any) => {
+              if (m.birth_date) {
+                const birthYear = new Date(m.birth_date).getFullYear();
+                const age = currentYear - birthYear;
+                return age >= 40 && age < 60;
+              }
+              return false;
+            }).length,
+            over_60: members.filter((m: any) => {
+              if (m.birth_date) {
+                const birthYear = new Date(m.birth_date).getFullYear();
+                const age = currentYear - birthYear;
+                return age >= 60;
+              }
+              return false;
+            }).length
+          },
+          // 실제 필드명들 확인용 샘플
+          sample_fields: members[0] ? Object.keys(members[0]) : [],
+          // 가장 최근 등록된 교인 5명
+          recent_members: members
+            .filter(m => m.created_at)
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 5)
+            .map(m => ({
+              name: m.name || m.full_name || '이름없음',
+              joined: m.created_at ? new Date(m.created_at).toLocaleDateString('ko-KR') : '알 수 없음',
+              status: m.status || m.is_active || '알 수 없음'
+            }))
         };
-        console.log('✅ 교인 데이터 수집 완료:', contextData.members);
+        console.log('✅ 상세 교인 데이터 수집 완료:', contextData.members);
       } catch (error) {
         console.warn('⚠️ 교인 데이터 수집 실패:', error);
       }
