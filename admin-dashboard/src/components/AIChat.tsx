@@ -502,6 +502,8 @@ const AIChat: React.FC = () => {
 
   // 북마크 토글 핸들러
   const handleToggleBookmark = async (chatId: string, currentBookmarkState: boolean) => {
+    console.log('🔖 북마크 토글 시작:', chatId, '현재 상태:', currentBookmarkState, '→', !currentBookmarkState);
+    
     try {
       // 즉시 UI 업데이트 (낙관적 업데이트)
       setChatHistory(prev => 
@@ -513,9 +515,11 @@ const AIChat: React.FC = () => {
       );
 
       // 백엔드 API 호출
-      await chatService.bookmarkChat(chatId, !currentBookmarkState);
+      console.log('📤 북마크 API 호출:', chatId, !currentBookmarkState);
+      const response = await chatService.bookmarkChat(chatId, !currentBookmarkState);
+      console.log('✅ 북마크 API 성공:', response);
     } catch (error) {
-      console.error('북마크 토글 실패:', error);
+      console.error('❌ 북마크 토글 실패:', error);
       // 실패 시 UI 상태 롤백
       setChatHistory(prev => 
         prev.map(chat => 
@@ -649,12 +653,117 @@ const AIChat: React.FC = () => {
           <div className="p-4 overflow-y-auto h-[calc(100%-120px)]">
             {activeTab === 'history' ? (
               <>
+                {/* 고정된 채팅 섹션 */}
+                {chatHistory.filter(chat => chat.isBookmarked).length > 0 && (
+                  <>
+                    <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
+                      <Star className="w-4 h-4 mr-1 text-yellow-500" />
+                      고정된 대화
+                    </h3>
+                    
+                    {chatHistory.filter(chat => chat.isBookmarked).map((chat) => (
+                      <div
+                        key={chat.id}
+                        className={cn(
+                          "p-3 rounded-lg transition-colors mb-2 relative group",
+                          currentChatId === chat.id 
+                            ? "bg-sky-50 border-l-2 border-sky-500" 
+                            : "hover:bg-slate-50"
+                        )}
+                      >
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => setCurrentChatId(chat.id)}
+                        >
+                          <div className="flex items-center space-x-2 pr-8">
+                            <Star 
+                              className={cn(
+                                "h-3 w-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                                chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleBookmark(chat.id, chat.isBookmarked);
+                              }}
+                            />
+                            {editingChatId === chat.id ? (
+                              <input
+                                type="text"
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onBlur={() => handleSaveTitle(chat.id)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveTitle(chat.id);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEdit();
+                                  }
+                                }}
+                                className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <p className="text-sm font-medium text-slate-900 truncate">
+                                {chat.title}
+                              </p>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {chat.timestamp.toLocaleDateString()}
+                          </p>
+                        </div>
+                        
+                        {/* 더보기 메뉴 버튼 */}
+                        <div className="absolute right-2 top-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleMenu(chat.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+                          >
+                            <MoreVertical className="h-3 w-3 text-slate-400" />
+                          </button>
+                          
+                          {/* 드롭다운 메뉴 */}
+                          {openMenuId === chat.id && (
+                            <div 
+                              className="absolute right-0 top-6 bg-white border border-slate-200 rounded-md shadow-lg z-10 min-w-32"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => handleStartEditTitle(chat.id, chat.title)}
+                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center"
+                              >
+                                <Edit className="h-3 w-3 mr-2" />
+                                이름 변경
+                              </button>
+                              <button
+                                onClick={() => handleDeleteChat(chat.id)}
+                                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                삭제
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* 구분선 */}
+                    <div className="border-t border-slate-200 my-4"></div>
+                  </>
+                )}
+
+                {/* 일반 채팅 섹션 */}
                 <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
                   <History className="w-4 h-4 mr-1" />
                   최근 대화
                 </h3>
                 
-                {chatHistory.map((chat) => (
+                {chatHistory.filter(chat => !chat.isBookmarked).map((chat) => (
                   <div
                     key={chat.id}
                     className={cn(
