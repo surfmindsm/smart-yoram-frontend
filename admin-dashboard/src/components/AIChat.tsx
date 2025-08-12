@@ -960,14 +960,18 @@ const AIChat: React.FC = () => {
         <div className="flex-1 flex flex-col">
           {activeTab === 'history' && (
             <>
-              {/* 현재 에이전트 표시 */}
-              {selectedAgentForChat && (
+              {/* 현재 채팅방 제목 표시 */}
+              {currentChatId && (
                 <div className="border-b border-slate-200 p-4">
                   <div className="flex items-center space-x-3">
                     <Bot className="w-6 h-6 text-sky-600" />
                     <div>
-                      <h3 className="font-semibold text-slate-900">{selectedAgentForChat.name}</h3>
-                      <p className="text-sm text-slate-500">{selectedAgentForChat.description}</p>
+                      <h3 className="font-semibold text-slate-900">
+                        {chatHistory.find(chat => chat.id === currentChatId)?.title || '새 대화'}
+                      </h3>
+                      {selectedAgentForChat && (
+                        <p className="text-sm text-slate-500">{selectedAgentForChat.description}</p>
+                      )}
                     </div>
                   </div>
                 </div>
