@@ -1200,16 +1200,83 @@ const AIChat: React.FC = () => {
 
 
               {/* 메시지 영역 */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto">
                 {messages.length === 0 && !isLoading ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <Bot className="w-16 h-16 text-slate-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-slate-600 mb-2">
-                      {selectedAgentForChat ? `${selectedAgentForChat.name}와 대화를 시작하세요` : 'AI 교역자와 대화를 시작하세요'}
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-6">
-                      {selectedAgentForChat ? selectedAgentForChat.description : '교회 업무와 관련된 질문을 자유롭게 해보세요.'}
-                    </p>
+                  // ChatGPT 스타일 시작 화면
+                  <div className="h-full flex flex-col">
+                    {/* 상단 여백 */}
+                    <div className="flex-1"></div>
+                    
+                    {/* 중앙 컨텐츠 */}
+                    <div className="px-4 pb-8">
+                      {/* 제목 */}
+                      <div className="text-center mb-8">
+                        <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                          AI 교역자
+                        </h1>
+                        <p className="text-lg text-slate-600">
+                          교회 업무와 관련된 질문을 자유롭게 해보세요
+                        </p>
+                      </div>
+
+                      {/* 중앙 입력창 */}
+                      <div className="max-w-2xl mx-auto mb-8">
+                        <div className="flex space-x-2">
+                          <textarea
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="메시지를 입력하세요..."
+                            className="flex-1 p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none shadow-sm"
+                            rows={1}
+                            style={{ minHeight: '56px', maxHeight: '120px' }}
+                          />
+                          <Button
+                            onClick={handleSendMessage}
+                            disabled={!inputValue.trim() || isLoading}
+                            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl disabled:opacity-50 h-14"
+                          >
+                            <Send className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* 에이전트 추천 목록 */}
+                      <div className="max-w-4xl mx-auto">
+                        <h3 className="text-center text-sm font-medium text-slate-700 mb-4">
+                          또는 AI 에이전트를 선택하세요
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {agents.slice(0, 4).map((agent) => (
+                            <button
+                              key={agent.id}
+                              onClick={() => handleStartAgentChat(agent)}
+                              className="p-4 border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-sm transition-all text-left group"
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center group-hover:bg-sky-200 transition-colors">
+                                  <Bot className="w-4 h-4 text-sky-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-slate-900 text-sm mb-1 group-hover:text-sky-700 transition-colors">
+                                    {agent.name}
+                                  </h4>
+                                  <p className="text-xs text-slate-500 line-clamp-2">
+                                    {agent.description}
+                                  </p>
+                                  <span className="inline-block mt-2 px-2 py-1 text-xs bg-slate-100 text-slate-600 rounded-md">
+                                    {agent.category}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 하단 여백 */}
+                    <div className="flex-1"></div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1333,8 +1400,9 @@ const AIChat: React.FC = () => {
                 )}
               </div>
 
-              {/* 입력 영역 */}
-              <div className="border-t border-slate-200 p-4">
+              {/* 입력 영역 - 메시지가 있을 때만 표시 */}
+              {(messages.length > 0 || isLoading) && (
+                <div className="border-t border-slate-200 p-4">
                 <div className="flex space-x-2">
                   <textarea
                     value={inputValue}
@@ -1353,7 +1421,8 @@ const AIChat: React.FC = () => {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
+                </div>
+              )}
             </>
           )}
 
