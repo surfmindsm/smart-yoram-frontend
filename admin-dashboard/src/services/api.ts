@@ -667,6 +667,12 @@ export const analyticsService = {
       total_requests: 0,
       total_tokens: 0,
       total_cost: 0,
+      active_agents: 0,
+      period_growth: {
+        requests: 0,
+        tokens: 0,
+        cost: 0
+      },
       daily_stats: [],
       period: params?.period || 'current_month'
     };
@@ -683,6 +689,12 @@ export const analyticsService = {
       total_requests: 0,
       total_tokens: 0,
       total_cost: 0,
+      active_agents: 0,
+      period_growth: {
+        requests: 0,
+        tokens: 0,
+        cost: 0
+      },
       daily_stats: [],
       period: params?.period || 'current_month'
     };
@@ -728,10 +740,8 @@ export const analyticsService = {
       if (error.response?.status === 422) {
         console.warn('Agent performance endpoint returned 422, returning default data');
       }
-      return {
-        agents: [],
-        performance_metrics: {}
-      };
+      // Return empty array to match component expectation
+      return [];
     }
   },
   
@@ -744,10 +754,8 @@ export const analyticsService = {
       if (error.response?.status === 422) {
         console.warn('Top queries endpoint returned 422, returning default data');
       }
-      return {
-        queries: [],
-        total_count: 0
-      };
+      // Return empty array to match component expectation
+      return [];
     }
   },
   
@@ -760,10 +768,8 @@ export const analyticsService = {
       if (error.response?.status === 422) {
         console.warn('Trend analysis endpoint returned 422, returning default data');
       }
-      return {
-        trends: [],
-        metrics: {}
-      };
+      // Return empty array to match component expectation
+      return [];
     }
   }
 };
