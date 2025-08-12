@@ -2,7 +2,12 @@
 
 ## 📋 상황 요약
 
-**커밋 이후 프론트엔드 연결 실패**
+**GPT API 키 만료로 인한 채팅 기능 중단**
+- 발생 시간: 2025-08-12 20:30
+- 상태: **AI 채팅 기능 완전 중단 (500 Internal Server Error)**
+- 원인: **기존 GPT API 키 삭제됨**
+
+**추가 문제: 커밋 이후 프론트엔드 연결 실패**
 - 커밋: `e4eb31bf33813856dd68f7bb908e40c0904d7812`, `2965af83f6bb3059ba105043ed1bc744c6b641d3`
 - 현재 시간: 2025-01-12 18:54
 - 상태: **원래 정상 작동하던 API가 접근 불가 상태**
@@ -11,7 +16,19 @@
 
 ## 🔥 발생 중인 오류들
 
-### 1. **CORS 정책 오류**
+### 1. **🚨 GPT API 키 만료 (최우선 해결)**
+```
+POST https://api.surfmind-team.com/api/v1/chat/messages 500 (Internal Server Error)
+```
+**원인:** 기존 GPT API 키가 삭제되어 OpenAI API 호출 실패
+
+**즉시 조치 필요:**
+```
+새로운 GPT API 키로 환경변수 업데이트:
+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
+```
+
+### 2. **CORS 정책 오류**
 ```
 Access to XMLHttpRequest at 'https://api.surfmind-team.com/api/v1/auth/login/access-token' 
 from origin 'http://localhost:3000' has been blocked by CORS policy: 
