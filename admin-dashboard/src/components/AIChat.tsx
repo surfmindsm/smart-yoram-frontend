@@ -1093,7 +1093,7 @@ const AIChat: React.FC = () => {
                 onClick={() => setShowHistory(!showHistory)}
                 className="text-slate-600 hover:text-slate-900"
               >
-                {showHistory ? '←' : '→'}
+                {showHistory ? '«' : '»'}
               </Button>
               
               {currentChatId && (
