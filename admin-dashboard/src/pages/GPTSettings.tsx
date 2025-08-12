@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Slider } from '../components/ui/slider';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle2, Settings, Key, Brain, DollarSign } from 'lucide-react';
-import { gptService } from '../services/api';
+import { churchConfigService } from '../services/api';
 
 interface GPTConfig {
   api_key: string;
@@ -59,25 +59,47 @@ const GPTSettings: React.FC = () => {
     setLoading(true);
     try {
       // Load system status
-      const statusResponse = await gptService.getSystemStatus();
-      if (statusResponse.success) {
-        setSystemStatus(statusResponse.data);
-        
-        // Set current model if configured
-        if (statusResponse.data.gpt_api.configured) {
-          setConfig(prev => ({
-            ...prev,
-            model: statusResponse.data.gpt_api.model || 'gpt-4o-mini',
-            api_key: '********' // Don't show actual key
-          }));
+      const gptConfig = await churchConfigService.getGptConfig();
+      
+      // Convert response to expected format
+      const statusResponse = {
+        success: true,
+        data: {
+          gpt_api: {
+            configured: !!gptConfig.api_key,
+            model: gptConfig.model || 'gpt-4o-mini',
+            last_test: null, // Not available in current API
+            status: gptConfig.is_active ? 'active' : 'inactive'
+          }
         }
+      };
+      
+      setSystemStatus(statusResponse.data);
+      
+      // Set current model if configured
+      if (statusResponse.data.gpt_api.configured) {
+        setConfig(prev => ({
+          ...prev,
+          model: statusResponse.data.gpt_api.model || 'gpt-4o-mini',
+          api_key: '********' // Don't show actual key
+        }));
       }
 
       // Load church profile for usage stats
-      const profileResponse = await gptService.getChurchProfile();
-      if (profileResponse.success) {
-        setChurchProfile(profileResponse.data);
-      }
+      const churchProfile = await churchConfigService.getChurchProfile();
+      
+      // Convert to expected format (add default values if needed)
+      const profileData = {
+        gpt_api_configured: !!gptConfig.api_key,
+        monthly_usage: {
+          total_tokens: churchProfile.current_month_tokens || 0,
+          total_requests: 0, // Not available in current API
+          total_cost: 0, // Not available in current API
+          remaining_quota: (churchProfile.monthly_token_limit || 100000) - (churchProfile.current_month_tokens || 0)
+        }
+      };
+      
+      setChurchProfile(profileData);
     } catch (error) {
       console.error('Failed to load configuration:', error);
       setMessage({ type: 'error', text: '설정을 불러오는데 실패했습니다.' });
@@ -99,13 +121,12 @@ const GPTSettings: React.FC = () => {
     setMessage(null);
 
     try {
-      const response = await gptService.updateGPTConfig(config);
+      const response = await churchConfigService.updateGptConfig(config);
       
-      if (response.success) {
-        setMessage({ type: 'success', text: 'GPT API 설정이 성공적으로 저장되었습니다!' });
-        setConfig(prev => ({ ...prev, api_key: '********' })); // Mask the key after saving
-        await loadCurrentConfig(); // Reload to get updated status
-      }
+      // If we reach here without error, the save was successful
+      setMessage({ type: 'success', text: 'GPT API 설정이 성공적으로 저장되었습니다!' });
+      setConfig(prev => ({ ...prev, api_key: '********' })); // Mask the key after saving
+      await loadCurrentConfig(); // Reload to get updated status
     } catch (error: any) {
       console.error('Failed to save configuration:', error);
       const errorMessage = error.response?.data?.detail || '설정 저장에 실패했습니다.';
