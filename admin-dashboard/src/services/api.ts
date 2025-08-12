@@ -394,8 +394,9 @@ export const chatService = {
     }
     
     // agent_id 추가 (백엔드가 정수를 기대함)
-    if (agentId && agentId.trim() !== '') {
-      payload.agent_id = parseInt(agentId); // 문자열을 정수로 변환
+    if (agentId) {
+      // 숫자 또는 문자열 모두 처리
+      payload.agent_id = typeof agentId === 'string' ? parseInt(agentId) : agentId;
     } else {
       // agent_id가 없으면 기본값 1 사용 (또는 필드 자체를 제외)
       payload.agent_id = 1; // 기본 에이전트 ID
