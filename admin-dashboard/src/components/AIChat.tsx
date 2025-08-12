@@ -52,6 +52,7 @@ const AIChat: React.FC = () => {
   const [editingTitle, setEditingTitle] = useState('');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [messageCache, setMessageCache] = useState<{[key: string]: ChatMessage[]}>({});
+  const [creatingAgentChat, setCreatingAgentChat] = useState<string | null>(null); // 현재 생성 중인 에이전트 ID
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -366,6 +367,17 @@ const AIChat: React.FC = () => {
           timestamp: new Date(message.timestamp || message.created_at)
         })) : [];
         
+        // 🛡️ 서버 응답이 비어있고 이미 로컬 메시지가 있다면 기존 메시지 유지
+        if (formattedMessages.length === 0 && messages.length > 0) {
+          console.log('🔄 서버 응답이 비어있지만 로컬 메시지 유지:', messages.length, '개');
+          // 현재 메시지를 캐시에 저장
+          setMessageCache(prev => ({
+            ...prev,
+            [currentChatId]: messages
+          }));
+          return;
+        }
+        
         setMessages(formattedMessages);
         
         // 💾 캐시에 저장 (다음에 즉시 로딩)
@@ -374,7 +386,11 @@ const AIChat: React.FC = () => {
           [currentChatId]: formattedMessages
         }));
       } catch (error) {
-        setMessages([]);
+        console.error('메시지 로딩 실패:', error);
+        // 🛡️ 에러 발생 시에도 기존 메시지가 있다면 유지
+        if (messages.length === 0) {
+          setMessages([]);
+        }
       }
     };
 
@@ -590,7 +606,19 @@ const AIChat: React.FC = () => {
   };
 
   const handleStartAgentChat = async (agent: Agent) => {
+    // 🛡️ 강화된 중복 호출 방지
+    if (isLoading || creatingAgentChat === agent.id || (selectedAgentForChat?.id === agent.id && messages.length > 0)) {
+      console.log('🚫 중복 호출 방지:', agent.name, {
+        isLoading,
+        creatingAgentChat: creatingAgentChat === agent.id,
+        alreadySelected: selectedAgentForChat?.id === agent.id && messages.length > 0
+      });
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      setCreatingAgentChat(agent.id); // 생성 중 상태 설정
       setSelectedAgentForChat(agent);
       
       console.log('🚀 Creating chat with agent:', agent.id, agent.name);
@@ -653,6 +681,10 @@ const AIChat: React.FC = () => {
       
       // 히스토리 탭으로 전환
       setActiveTab('history');
+    } finally {
+      // 🧹 상태 정리 (성공/실패 관계없이)
+      setIsLoading(false);
+      setCreatingAgentChat(null);
     }
   };
 
@@ -1217,7 +1249,7 @@ const AIChat: React.FC = () => {
 
 
               {/* 메시지 영역 */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto px-4">
                 {messages.length === 0 && !isLoading ? (
                   // ChatGPT 스타일 시작 화면
                   <div className="h-full flex flex-col">
@@ -1296,118 +1328,123 @@ const AIChat: React.FC = () => {
                     <div className="flex-1"></div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6 py-4">
                     {messages.map((message) => (
                       <div
                         key={message.id}
-                        className={cn(
-                          "flex",
-                          message.role === 'user' ? "justify-end" : "justify-start"
-                        )}
+                        className="w-full"
                       >
-                        <div
-                          className={cn(
-                            "max-w-2xl p-3 rounded-lg",
-                            message.role === 'user'
-                              ? "bg-sky-600 text-white"
-                              : "bg-slate-100 text-slate-900"
-                          )}
-                        >
-                          <div className="prose prose-sm max-w-none markdown-content">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              rehypePlugins={[rehypeHighlight]}
-                              components={{
-                                // 제목 스타일링
-                                h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-slate-900">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-slate-800">{children}</h2>,
-                                h3: ({children}) => <h3 className="text-base font-medium mb-2 text-slate-700">{children}</h3>,
-                                
-                                // 코드 블록 스타일링
-                                code: ({children, ...props}) => {
-                                  const isInline = !String(children).includes('\n');
-                                  return isInline ? (
-                                    <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
-                                      {children}
-                                    </code>
-                                  ) : (
-                                    <code className="block bg-slate-900 text-slate-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props}>
-                                      {children}
-                                    </code>
-                                  );
-                                },
-                                
-                                // 리스트 스타일링
-                                ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
-                                ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
-                                li: ({children}) => <li className="text-slate-700">{children}</li>,
-                                
-                                // 인용문 스타일링
-                                blockquote: ({children}) => (
-                                  <blockquote className="border-l-4 border-sky-200 pl-4 py-2 bg-sky-50 rounded-r mb-3 italic text-slate-600">
-                                    {children}
-                                  </blockquote>
-                                ),
-                                
-                                // 링크 스타일링
-                                a: ({children, href}) => (
-                                  <a href={href} className="text-sky-600 hover:text-sky-700 underline" target="_blank" rel="noopener noreferrer">
-                                    {children}
-                                  </a>
-                                ),
-                                
-                                // 테이블 스타일링
-                                table: ({children}) => (
-                                  <div className="overflow-x-auto mb-3">
-                                    <table className="min-w-full border border-slate-200 rounded">{children}</table>
-                                  </div>
-                                ),
-                                thead: ({children}) => <thead className="bg-slate-50">{children}</thead>,
-                                th: ({children}) => <th className="border border-slate-200 px-3 py-2 text-left font-medium text-slate-700">{children}</th>,
-                                td: ({children}) => <td className="border border-slate-200 px-3 py-2 text-slate-600">{children}</td>,
-                                
-                                // 단락 스타일링
-                                p: ({children}) => <p className="mb-2 last:mb-0 text-slate-700 leading-relaxed">{children}</p>,
-                                
-                                // 강조 텍스트
-                                strong: ({children}) => <strong className="font-semibold text-slate-900">{children}</strong>,
-                                em: ({children}) => <em className="italic text-slate-600">{children}</em>,
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <p
-                              className={cn(
-                                "text-xs",
-                                message.role === 'user' ? "text-sky-100" : "text-slate-500"
+                        <div className="max-w-4xl mx-auto">
+                          {/* ChatGPT 스타일 메시지 */}
+                          <div className={cn(
+                            "flex items-start space-x-4",
+                            message.role === 'user' ? "flex-row-reverse space-x-reverse" : ""
+                          )}>
+                            {/* 아바타 */}
+                            <div className={cn(
+                              "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+                              message.role === 'user' 
+                                ? "bg-slate-800 text-white" 
+                                : "bg-green-600 text-white"
+                            )}>
+                              {message.role === 'user' ? (
+                                <span className="text-sm font-medium">You</span>
+                              ) : (
+                                <Bot className="w-4 h-4" />
                               )}
-                            >
-                              {message.timestamp.toLocaleTimeString()}
-                            </p>
-                            {message.role === 'assistant' && (
-                              <div className="text-xs flex items-center space-x-2 text-slate-400">
-                                {message.tokensUsed && (
-                                  <span>{message.tokensUsed} 토큰</span>
-                                )}
-                                {message.cost && (
-                                  <span>₩{message.cost.toFixed(2)}</span>
+                            </div>
+                            
+                            {/* 메시지 내용 */}
+                            <div className="flex-1 min-w-0">
+                              {/* 메시지 텍스트 */}
+                              <div className="prose prose-sm max-w-none">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeHighlight]}
+                                  components={{
+                                    // ChatGPT 스타일 컴포넌트
+                                    h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-slate-900">{children}</h1>,
+                                    h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-slate-800">{children}</h2>,
+                                    h3: ({children}) => <h3 className="text-base font-medium mb-2 text-slate-700">{children}</h3>,
+                                    
+                                    code: ({children, ...props}) => {
+                                      const isInline = !String(children).includes('\n');
+                                      return isInline ? (
+                                        <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                                          {children}
+                                        </code>
+                                      ) : (
+                                        <code className="block bg-slate-900 text-slate-100 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...props}>
+                                          {children}
+                                        </code>
+                                      );
+                                    },
+                                    
+                                    ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
+                                    ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+                                    li: ({children}) => <li className="text-slate-700">{children}</li>,
+                                    
+                                    blockquote: ({children}) => (
+                                      <blockquote className="border-l-4 border-slate-300 pl-4 py-2 mb-3 italic text-slate-600">
+                                        {children}
+                                      </blockquote>
+                                    ),
+                                    
+                                    a: ({children, href}) => (
+                                      <a href={href} className="text-blue-600 hover:text-blue-700 underline" target="_blank" rel="noopener noreferrer">
+                                        {children}
+                                      </a>
+                                    ),
+                                    
+                                    p: ({children}) => <p className="mb-3 last:mb-0 text-slate-800 leading-relaxed">{children}</p>,
+                                    strong: ({children}) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                                    em: ({children}) => <em className="italic text-slate-600">{children}</em>,
+                                  }}
+                                >
+                                  {message.content}
+                                </ReactMarkdown>
+                              </div>
+                              
+                              {/* 메타 정보 */}
+                              <div className={cn(
+                                "flex items-center mt-2 text-xs text-slate-400",
+                                message.role === 'user' ? "justify-end" : "justify-start"
+                              )}>
+                                <span>{message.timestamp.toLocaleTimeString()}</span>
+                                {message.role === 'assistant' && (
+                                  <>
+                                    {message.tokensUsed && (
+                                      <span className="ml-2">{message.tokensUsed} 토큰</span>
+                                    )}
+                                    {message.cost && (
+                                      <span className="ml-2">₩{message.cost.toFixed(2)}</span>
+                                    )}
+                                  </>
                                 )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))}
                     
                     {isLoading && (
-                      <div className="flex justify-start">
-                        <div className="max-w-2xl p-3 rounded-lg bg-slate-100">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-full">
+                        <div className="max-w-4xl mx-auto">
+                          <div className="flex items-start space-x-4">
+                            {/* AI 아바타 */}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-600 text-white">
+                              <Bot className="w-4 h-4" />
+                            </div>
+                            
+                            {/* 로딩 인디케이터 */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
