@@ -310,7 +310,9 @@ export const agentService = {
   
   activateAgent: async (agentId: string) => {
     try {
-      const response = await api.put(getApiUrl(`/agents/${agentId}/activate`));
+      const response = await api.put(getApiUrl(`/agents/${agentId}`), {
+        is_active: true
+      });
       return response.data;
     } catch (error: any) {
       console.error('Failed to activate agent:', error);
@@ -320,7 +322,9 @@ export const agentService = {
   
   deactivateAgent: async (agentId: string) => {
     try {
-      const response = await api.put(getApiUrl(`/agents/${agentId}/deactivate`));
+      const response = await api.put(getApiUrl(`/agents/${agentId}`), {
+        is_active: false
+      });
       return response.data;
     } catch (error: any) {
       console.error('Failed to deactivate agent:', error);
