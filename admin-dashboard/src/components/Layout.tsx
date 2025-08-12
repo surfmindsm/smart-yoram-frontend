@@ -20,7 +20,9 @@ import {
   Bell,
   Bot,
   Settings,
-  TrendingUp
+  TrendingUp,
+  Heart,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -40,6 +42,8 @@ const Layout: React.FC = () => {
     { path: '/statistics', name: '통계 분석', Icon: ChartLine },
     { path: '/member-management', name: '교인 관리', Icon: Users },
     { path: '/announcements', name: '공지사항', Icon: Megaphone },
+    { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
+    { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
     { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
     { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
     { path: '/push-notifications', name: '푸시 알림', Icon: Bell },

@@ -20,6 +20,8 @@ import AIChat from './components/AIChat';
 import AIAgentManagement from './components/AIAgentManagement';
 import ChurchSettings from './components/ChurchSettings';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import PastoralCareManagement from './components/PastoralCareManagement';
+import PrayerRequestManagement from './components/PrayerRequestManagement';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -44,6 +46,8 @@ function App() {
           <Route path="church-settings" element={<ChurchSettings />} />
           <Route path="analytics" element={<AnalyticsDashboard />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="pastoral-care" element={<PastoralCareManagement />} />
+          <Route path="prayer-requests" element={<PrayerRequestManagement />} />
           <Route path="sms" element={<SMSManagement />} />
           <Route path="qr-codes" element={<QRCodeManagement />} />
           <Route path="statistics" element={<StatisticsDashboard />} />
