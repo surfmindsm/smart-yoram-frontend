@@ -91,10 +91,11 @@ const AIChat: React.FC = () => {
           const response = await chatService.getChatHistories({ limit: 50 });
           const histories = response.data || response;
           if (Array.isArray(histories)) {
-            // timestamp를 Date 객체로 변환
+            // 필드명 변환 및 timestamp를 Date 객체로 변환
             const formattedHistories = histories.map(history => ({
               ...history,
-              timestamp: new Date(history.timestamp || history.created_at)
+              timestamp: new Date(history.timestamp || history.created_at),
+              isBookmarked: history.is_bookmarked || false // 백엔드 필드명 매핑
             }));
             setChatHistory(formattedHistories);
             if (formattedHistories.length > 0) {
@@ -395,7 +396,8 @@ const AIChat: React.FC = () => {
         if (Array.isArray(histories)) {
           const formattedHistories = histories.map(history => ({
             ...history,
-            timestamp: new Date(history.timestamp || history.created_at)
+            timestamp: new Date(history.timestamp || history.created_at),
+            isBookmarked: history.is_bookmarked || false // 백엔드 필드명 매핑
           }));
           setChatHistory(formattedHistories);
         }
@@ -436,7 +438,8 @@ const AIChat: React.FC = () => {
         if (Array.isArray(histories)) {
           const formattedHistories = histories.map(history => ({
             ...history,
-            timestamp: new Date(history.timestamp || history.created_at)
+            timestamp: new Date(history.timestamp || history.created_at),
+            isBookmarked: history.is_bookmarked || false // 백엔드 필드명 매핑
           }));
           setChatHistory(formattedHistories);
         }

@@ -423,10 +423,29 @@ export const chatService = {
   
   // 북마크 토글
   bookmarkChat: async (historyId: string, isBookmarked: boolean) => {
-    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), {
-      isBookmarked
+    const url = getApiUrl(`/chat/histories/${historyId}`);
+    const payload = { is_bookmarked: isBookmarked }; // 백엔드 필드명에 맞춤
+    
+    console.log('🔖 BookmarkChat API 요청:', {
+      url,
+      historyId,
+      payload,
+      method: 'PUT'
     });
-    return response.data;
+    
+    try {
+      const response = await api.put(url, payload);
+      console.log('✅ BookmarkChat API 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ BookmarkChat API 실패:', {
+        historyId,
+        payload,
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      });
+      throw error;
+    }
   },
   
   // 북마크 해제
