@@ -634,7 +634,14 @@ const AIChat: React.FC = () => {
                   에이전트 선택
                 </h3>
                 
-                {agents.map((agent) => (
+                {agents.filter(agent => agent.isActive).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Bot className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500 mb-2">활성화된 에이전트가 없습니다</p>
+                    <p className="text-xs text-slate-400">에이전트 관리에서 먼저 에이전트를 생성하고 활성화하세요</p>
+                  </div>
+                ) : (
+                  agents.filter(agent => agent.isActive).map((agent) => (
                   <div
                     key={agent.id}
                     className={cn(
@@ -672,7 +679,8 @@ const AIChat: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </>
             )}
           </div>

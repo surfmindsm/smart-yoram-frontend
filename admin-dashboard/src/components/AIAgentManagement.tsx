@@ -139,7 +139,24 @@ const AIAgentManagement: React.FC = () => {
         // 새 형식에서 agents 배열 추출
         if (Array.isArray(response.data.agents)) {
           console.log('Successfully loaded agents:', response.data.agents.length);
-          setAgents(response.data.agents);
+          console.log('🔍 첫 번째 에이전트 데이터 구조:', response.data.agents[0]);
+          
+          // 백엔드 snake_case를 프론트엔드 camelCase로 변환
+          const transformedAgents = response.data.agents.map((agent: any) => ({
+            ...agent,
+            isActive: agent.is_active, // snake_case -> camelCase 변환
+            detailedDescription: agent.detailed_description,
+            systemPrompt: agent.system_prompt,
+            templateId: agent.template_id,
+            totalTokensUsed: agent.total_tokens_used || 0,
+            totalCost: agent.total_cost || 0,
+            usage: agent.usage_count || 0,
+            createdAt: new Date(agent.created_at),
+            updatedAt: agent.updated_at ? new Date(agent.updated_at) : new Date()
+          }));
+          
+          console.log('✅ 변환된 첫 번째 에이전트:', transformedAgents[0]);
+          setAgents(transformedAgents);
         } else if (Array.isArray(response.data)) {
           console.log('Data is direct array:', response.data.length);
           setAgents(response.data);
@@ -347,24 +364,44 @@ const AIAgentManagement: React.FC = () => {
   };
 
   const toggleAgentStatus = async (id: string) => {
+    console.log('🚨 toggleAgentStatus 함수 호출됨! ID:', id);
+    
     try {
       const agent = agents.find(a => a.id === id);
-      if (!agent) return;
-      
-      if (agent.isActive) {
-        await agentService.deactivateAgent(id);
-      } else {
-        await agentService.activateAgent(id);
+      if (!agent) {
+        console.log('❌ 에이전트를 찾을 수 없음:', id);
+        return;
       }
       
-      // 로컬 상태 업데이트
-      setAgents(prev => prev.map(a => 
-        a.id === id ? { ...a, isActive: !a.isActive } : a
-      ));
+      console.log(`🔄 에이전트 ${agent.name} 상태 변경 시도: ${agent.isActive ? '비활성' : '활성'}화`);
       
-    } catch (error) {
+      let response;
+      if (agent.isActive) {
+        response = await agentService.deactivateAgent(id);
+      } else {
+        response = await agentService.activateAgent(id);
+      }
+      
+      console.log('✅ API 응답:', response);
+      
+      // 백엔드에서 업데이트된 상태를 다시 불러오기
+      console.log('🔄 백엔드에서 최신 에이전트 목록 다시 로드 중...');
+      await loadAgents();
+      
+      console.log(`🎉 에이전트 ${agent.name} 상태 변경 완료`);
+      
+    } catch (error: any) {
       console.error('Failed to toggle agent status:', error);
-      setError('에이전트 상태 변경에 실패했습니다.');
+      console.error('에러 상세:', error.response?.data || error.message);
+      
+      // API 호출 실패 시 로컬 상태는 변경하지 않음
+      if (error.response?.status === 405) {
+        setError('백엔드에서 해당 API를 지원하지 않습니다. 개발팀에 문의하세요.');
+      } else if (error.response?.status === 422) {
+        setError('요청 데이터에 문제가 있습니다.');
+      } else {
+        setError('에이전트 상태 변경에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
     }
   };
 
