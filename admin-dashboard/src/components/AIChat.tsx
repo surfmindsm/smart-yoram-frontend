@@ -591,7 +591,6 @@ const AIChat: React.FC = () => {
 
   const handleStartAgentChat = async (agent: Agent) => {
     try {
-      setMessages([]);
       setSelectedAgentForChat(agent);
       
       console.log('🚀 Creating chat with agent:', agent.id, agent.name);
@@ -601,6 +600,16 @@ const AIChat: React.FC = () => {
       
       if (response?.id) {
         setCurrentChatId(response.id);
+        
+        // 에이전트 환영 메시지 추가 (기존 UI로 전환)
+        const welcomeMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: `안녕하세요! 저는 **${agent.name}**입니다. ${agent.description}\n\n무엇을 도와드릴까요?`,
+          role: 'assistant',
+          timestamp: new Date()
+        };
+        setMessages([welcomeMessage]);
+        
         // 채팅 히스토리 새로고침
         const historyResponse = await chatService.getChatHistories({ limit: 50 });
         const histories = historyResponse.data || historyResponse;
@@ -608,7 +617,7 @@ const AIChat: React.FC = () => {
           const formattedHistories = histories.map(history => ({
             ...history,
             timestamp: new Date(history.timestamp || history.created_at),
-            isBookmarked: history.is_bookmarked || false // 백엔드 필드명 매핑
+            isBookmarked: history.is_bookmarked || false
           }));
           setChatHistory(formattedHistories);
         }
@@ -622,14 +631,22 @@ const AIChat: React.FC = () => {
       // 에러 발생 시 로컬에서 새 채팅 생성
       const newChatId = Date.now().toString();
       setCurrentChatId(newChatId);
-      setMessages([]);
       setSelectedAgentForChat(agent);
+      
+      // 에이전트 환영 메시지 추가 (기존 UI로 전환)
+      const welcomeMessage: ChatMessage = {
+        id: Date.now().toString(),
+        content: `안녕하세요! 저는 **${agent.name}**입니다. ${agent.description}\n\n무엇을 도와드릴까요?`,
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
       
       const newChat: ChatHistory = {
         id: newChatId,
         title: `${agent.name}와의 대화`,
         timestamp: new Date(),
-        messageCount: 0,
+        messageCount: 1,
         isBookmarked: false
       };
       setChatHistory(prev => [newChat, ...prev]);
@@ -1144,7 +1161,7 @@ const AIChat: React.FC = () => {
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <FileText className="w-4 h-4 mr-3" />
-                        TXT 파일로 다운로드
+                        TXT 문서(.txt)
                       </button>
                       
                       <button
@@ -1155,7 +1172,7 @@ const AIChat: React.FC = () => {
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <File className="w-4 h-4 mr-3" />
-                        Markdown으로 다운로드
+                        마크다운 문서(.md)
                       </button>
                       
                       <button
@@ -1166,7 +1183,7 @@ const AIChat: React.FC = () => {
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <FileText className="w-4 h-4 mr-3" />
-                        PDF로 다운로드
+                        PDF 문서(.pdf)
                       </button>
                       
                       <button
@@ -1177,7 +1194,7 @@ const AIChat: React.FC = () => {
                         className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <File className="w-4 h-4 mr-3" />
-                        DOCX로 다운로드
+                        DOCX 문서(.docx)
                       </button>
                     </div>
                   </div>
