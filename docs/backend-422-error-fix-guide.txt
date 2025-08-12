@@ -88,7 +88,7 @@ POST /api/v1/chat/histories:
 =====================================================
 
 OpenAI API 키:
-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
+sk-proj-[YOUR_OPENAI_API_KEY_HERE]
 
 설정 방법:
 1. 환경변수로 설정: OPENAI_API_KEY
