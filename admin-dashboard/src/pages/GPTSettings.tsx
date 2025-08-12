@@ -68,7 +68,7 @@ const GPTSettings: React.FC = () => {
           gpt_api: {
             configured: !!gptConfig.api_key,
             model: gptConfig.model || 'gpt-4o-mini',
-            last_test: null, // Not available in current API
+            last_test: '', // Not available in current API, using empty string
             status: gptConfig.is_active ? 'active' : 'inactive'
           }
         }
