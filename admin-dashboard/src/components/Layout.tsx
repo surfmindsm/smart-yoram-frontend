@@ -60,6 +60,7 @@ const Layout: React.FC = () => {
     { path: '/analytics', name: 'AI 사용량 분석', Icon: TrendingUp },
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
     { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
+    { path: '/gpt-settings', name: 'GPT 설정', Icon: Settings },
   ];
 
   return (

@@ -25,6 +25,7 @@ const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
 const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
+const GPTSettings = lazy(() => import('./pages/GPTSettings'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -145,6 +146,21 @@ function App() {
           <Route path="push-notifications" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PushNotifications />
+            </Suspense>
+          } />
+          <Route path="gpt-settings" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <GPTSettings />
+            </Suspense>
+          } />
+          <Route path="pastoral-care" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PastoralCareManagement />
+            </Suspense>
+          } />
+          <Route path="prayer-requests" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PrayerRequestManagement />
             </Suspense>
           } />
         </Route>
