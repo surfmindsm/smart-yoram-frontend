@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { Bot, History, Send, Star, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Bot, History, Send, Star, MoreVertical, Edit, Trash2, Download, FileText, File } from 'lucide-react';
 import { chatService, agentService } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import jsPDF from 'jspdf';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 interface ChatMessage {
   id: string;
@@ -48,15 +50,169 @@ const AIChat: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 브라우저 내장 다운로드 함수
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // 다운로드 핸들러 함수들
+  const getCurrentChatTitle = () => {
+    return chatHistory.find(chat => chat.id === currentChatId)?.title || '새 대화';
+  };
+
+  const formatMessagesForExport = () => {
+    const title = getCurrentChatTitle();
+    const timestamp = new Date().toLocaleString('ko-KR');
+    
+    return {
+      title,
+      timestamp,
+      messages: messages.map(msg => ({
+        role: msg.role === 'user' ? '사용자' : 'AI 어시스턴트',
+        content: msg.content,
+        time: msg.timestamp.toLocaleString('ko-KR')
+      }))
+    };
+  };
+
+  const downloadAsTXT = () => {
+    const data = formatMessagesForExport();
+    let content = `대화 제목: ${data.title}\n생성 시간: ${data.timestamp}\n\n`;
+    
+    data.messages.forEach((msg, index) => {
+      content += `[${msg.time}] ${msg.role}:\n${msg.content}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    downloadFile(blob, `${data.title}.txt`);
+  };
+
+  const downloadAsMD = () => {
+    const data = formatMessagesForExport();
+    let content = `# ${data.title}\n\n**생성 시간:** ${data.timestamp}\n\n---\n\n`;
+    
+    data.messages.forEach((msg, index) => {
+      content += `## ${msg.role} (${msg.time})\n\n${msg.content}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    downloadFile(blob, `${data.title}.md`);
+  };
+
+  const downloadAsPDF = () => {
+    const data = formatMessagesForExport();
+    const pdf = new jsPDF();
+    
+    pdf.setFont('helvetica');
+    pdf.setFontSize(16);
+    pdf.text(data.title, 20, 20);
+    
+    pdf.setFontSize(10);
+    pdf.text(`생성 시간: ${data.timestamp}`, 20, 30);
+    
+    let yPosition = 50;
+    
+    data.messages.forEach((msg) => {
+      if (yPosition > 270) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+      
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${msg.role} (${msg.time})`, 20, yPosition);
+      yPosition += 10;
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      
+      const lines = pdf.splitTextToSize(msg.content, 170);
+      lines.forEach((line: string) => {
+        if (yPosition > 270) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        pdf.text(line, 20, yPosition);
+        yPosition += 6;
+      });
+      
+      yPosition += 10;
+    });
+
+    const pdfBlob = pdf.output('blob');
+    downloadFile(pdfBlob, `${data.title}.pdf`);
+  };
+
+  const downloadAsDOCX = async () => {
+    const data = formatMessagesForExport();
+    
+    const paragraphs = [
+      new Paragraph({
+        children: [new TextRun({ text: data.title, bold: true, size: 28 })],
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: `생성 시간: ${data.timestamp}`, size: 20 })],
+      }),
+      new Paragraph({ text: "" }),
+    ];
+
+    data.messages.forEach((msg) => {
+      paragraphs.push(
+        new Paragraph({
+          children: [new TextRun({ text: `${msg.role} (${msg.time})`, bold: true, size: 24 })],
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: msg.content, size: 22 })],
+        }),
+        new Paragraph({ text: "" })
+      );
+    });
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: paragraphs,
+      }],
+    });
+
+    const buffer = await Packer.toBlob(doc);
+    downloadFile(buffer, `${data.title}.docx`);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDownloadMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.download-menu-container')) {
+          setShowDownloadMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDownloadMenu]);
 
   // Mock 데이터 생성
   const getMockAIResponse = (userInput: string): ChatMessage => {
@@ -954,6 +1110,70 @@ const AIChat: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* 다운로드 버튼 */}
+            {currentChatId && messages.length > 0 && (
+              <div className="relative download-menu-container">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                  className="text-slate-600 hover:text-slate-900"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+
+                {showDownloadMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          downloadAsTXT();
+                          setShowDownloadMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <FileText className="w-4 h-4 mr-3" />
+                        TXT 파일로 다운로드
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          downloadAsMD();
+                          setShowDownloadMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <File className="w-4 h-4 mr-3" />
+                        Markdown으로 다운로드
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          downloadAsPDF();
+                          setShowDownloadMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <FileText className="w-4 h-4 mr-3" />
+                        PDF로 다운로드
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          downloadAsDOCX();
+                          setShowDownloadMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <File className="w-4 h-4 mr-3" />
+                        DOCX로 다운로드
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2">
