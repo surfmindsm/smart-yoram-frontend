@@ -1,28 +1,37 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import Members from './components/Members';
-import MemberManagement from './components/MemberManagement';
-import Announcements from './components/Announcements';
-import SMSManagement from './components/SMSManagement';
-import QRCodeManagement from './components/QRCodeManagement';
-import StatisticsDashboard from './components/StatisticsDashboard';
-import ExcelManagement from './components/ExcelManagement';
-import Attendance from './components/Attendance';
-import Bulletins from './components/Bulletins';
-import ChurchInfo from './components/ChurchInfo';
-import DailyVerses from './components/DailyVerses';
-import WorshipScheduleManagement from './components/worship/WorshipScheduleManagement';
-import PushNotifications from './components/PushNotifications';
-import AIChat from './components/AIChat';
-import AIAgentManagement from './components/AIAgentManagement';
-import ChurchSettings from './components/ChurchSettings';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
-import PastoralCareManagement from './components/PastoralCareManagement';
-import PrayerRequestManagement from './components/PrayerRequestManagement';
 import PrivateRoute from './components/PrivateRoute';
+
+// Lazy load components for code splitting
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Members = lazy(() => import('./components/Members'));
+const MemberManagement = lazy(() => import('./components/MemberManagement'));
+const Announcements = lazy(() => import('./components/Announcements'));
+const SMSManagement = lazy(() => import('./components/SMSManagement'));
+const QRCodeManagement = lazy(() => import('./components/QRCodeManagement'));
+const StatisticsDashboard = lazy(() => import('./components/StatisticsDashboard'));
+const ExcelManagement = lazy(() => import('./components/ExcelManagement'));
+const Attendance = lazy(() => import('./components/Attendance'));
+const Bulletins = lazy(() => import('./components/Bulletins'));
+const ChurchInfo = lazy(() => import('./components/ChurchInfo'));
+const DailyVerses = lazy(() => import('./components/DailyVerses'));
+const WorshipScheduleManagement = lazy(() => import('./components/worship/WorshipScheduleManagement'));
+const PushNotifications = lazy(() => import('./components/PushNotifications'));
+const AIChat = lazy(() => import('./components/AIChat'));
+const AIAgentManagement = lazy(() => import('./components/AIAgentManagement'));
+const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
+const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
+const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
   return (
@@ -38,26 +47,106 @@ function App() {
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="members" element={<Members />} />
-          <Route path="member-management" element={<MemberManagement />} />
-          <Route path="ai-chat" element={<AIChat />} />
-          <Route path="ai-agent-management" element={<AIAgentManagement />} />
-          <Route path="church-settings" element={<ChurchSettings />} />
-          <Route path="analytics" element={<AnalyticsDashboard />} />
-          <Route path="announcements" element={<Announcements />} />
-          <Route path="pastoral-care" element={<PastoralCareManagement />} />
-          <Route path="prayer-requests" element={<PrayerRequestManagement />} />
-          <Route path="sms" element={<SMSManagement />} />
-          <Route path="qr-codes" element={<QRCodeManagement />} />
-          <Route path="statistics" element={<StatisticsDashboard />} />
-          <Route path="excel" element={<ExcelManagement />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="bulletins" element={<Bulletins />} />
-          <Route path="daily-verses" element={<DailyVerses />} />
-          <Route path="church" element={<ChurchInfo />} />
-          <Route path="worship-schedule" element={<WorshipScheduleManagement />} />
-          <Route path="push-notifications" element={<PushNotifications />} />
+          <Route path="dashboard" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Dashboard />
+            </Suspense>
+          } />
+          <Route path="members" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Members />
+            </Suspense>
+          } />
+          <Route path="member-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MemberManagement />
+            </Suspense>
+          } />
+          <Route path="ai-chat" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AIChat />
+            </Suspense>
+          } />
+          <Route path="ai-agent-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AIAgentManagement />
+            </Suspense>
+          } />
+          <Route path="church-settings" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchSettings />
+            </Suspense>
+          } />
+          <Route path="analytics" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AnalyticsDashboard />
+            </Suspense>
+          } />
+          <Route path="announcements" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Announcements />
+            </Suspense>
+          } />
+          <Route path="pastoral-care" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PastoralCareManagement />
+            </Suspense>
+          } />
+          <Route path="prayer-requests" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PrayerRequestManagement />
+            </Suspense>
+          } />
+          <Route path="sms" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SMSManagement />
+            </Suspense>
+          } />
+          <Route path="qr-codes" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <QRCodeManagement />
+            </Suspense>
+          } />
+          <Route path="statistics" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <StatisticsDashboard />
+            </Suspense>
+          } />
+          <Route path="excel" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ExcelManagement />
+            </Suspense>
+          } />
+          <Route path="attendance" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Attendance />
+            </Suspense>
+          } />
+          <Route path="bulletins" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Bulletins />
+            </Suspense>
+          } />
+          <Route path="daily-verses" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <DailyVerses />
+            </Suspense>
+          } />
+          <Route path="church" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchInfo />
+            </Suspense>
+          } />
+          <Route path="worship-schedule" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WorshipScheduleManagement />
+            </Suspense>
+          } />
+          <Route path="push-notifications" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PushNotifications />
+            </Suspense>
+          } />
         </Route>
       </Routes>
     </Router>
