@@ -419,70 +419,69 @@ const AIChat: React.FC = () => {
     setMessages(prev => [...prev, newUserMessage]);
     setIsLoading(true);
 
-    // 🔥 NEW: 에이전트 데이터 소스에 따라 실제 교회 데이터 수집
+    // 🔥 교인 관련 에이전트는 무조건 실제 데이터 수집
     let contextData: any = {};
-    if (selectedAgentForChat?.church_data_sources) {
+    console.log('🔍 선택된 에이전트:', selectedAgentForChat?.name, 'ID:', selectedAgentForChat?.id);
+    
+    if (selectedAgentForChat && (selectedAgentForChat.id === '10' || selectedAgentForChat.name?.includes('교인'))) {
+      console.log('🚀 교회 데이터 수집 시작...');
+      
+      // 교인 데이터 수집
       try {
-        console.log('🔍 에이전트 데이터 소스 수집 시작:', selectedAgentForChat.church_data_sources);
-        
-        // 교인 현황 데이터
-        if (selectedAgentForChat.church_data_sources.includes('member_status')) {
-          try {
-            const members: any[] = await memberService.getMembers();
-            contextData.members = {
-              total_count: members.length,
-              active_count: members.filter((m: any) => m.status === 'active').length,
-              male_count: members.filter((m: any) => m.gender === 'male').length,
-              female_count: members.filter((m: any) => m.gender === 'female').length
-            };
-            console.log('✅ 교인 데이터 수집 완료:', contextData.members);
-          } catch (error) {
-            console.warn('⚠️ 교인 데이터 수집 실패:', error);
-          }
-        }
-        
-        // 공지사항 데이터
-        if (selectedAgentForChat.church_data_sources.includes('announcements')) {
-          try {
-            const announcements: any[] = await announcementService.getAnnouncements({ limit: 5 });
-            contextData.announcements = announcements.slice(0, 5).map((ann: any) => ({
-              title: ann.title,
-              content: ann.content?.substring(0, 200) + (ann.content?.length > 200 ? '...' : ''),
-              category: ann.category
-            }));
-            console.log('✅ 공지사항 데이터 수집 완료:', contextData.announcements?.length, '건');
-          } catch (error) {
-            console.warn('⚠️ 공지사항 데이터 수집 실패:', error);
-          }
-        }
-        
-        // 출석 현황 데이터
-        if (selectedAgentForChat.church_data_sources.includes('attendance')) {
-          try {
-            const attendances: any[] = await attendanceService.getAttendances();
-            if (attendances?.length > 0) {
-              const totalAttendance = attendances.reduce((sum: number, att: any) => sum + (att.attendance_count || 0), 0);
-              contextData.attendance = {
-                average: Math.round(totalAttendance / attendances.length),
-                recent_services: attendances.length,
-                latest_service: attendances[0]
-              };
-              console.log('✅ 출석 데이터 수집 완료:', contextData.attendance);
-            }
-          } catch (error) {
-            console.warn('⚠️ 출석 데이터 수집 실패:', error);
-          }
-        }
-        
+        const members: any[] = await memberService.getMembers();
+        contextData.members = {
+          total_count: members.length,
+          active_count: members.filter((m: any) => m.status === 'active').length,
+          male_count: members.filter((m: any) => m.gender === 'male').length,
+          female_count: members.filter((m: any) => m.gender === 'female').length
+        };
+        console.log('✅ 교인 데이터 수집 완료:', contextData.members);
       } catch (error) {
-        console.warn('⚠️ 전체 데이터 수집 중 오류:', error);
+        console.warn('⚠️ 교인 데이터 수집 실패:', error);
       }
+      
+      // 공지사항 데이터 수집
+      try {
+        const announcements: any[] = await announcementService.getAnnouncements({ limit: 5 });
+        contextData.announcements = announcements.slice(0, 5).map((ann: any) => ({
+          title: ann.title,
+          content: ann.content?.substring(0, 200) + (ann.content?.length > 200 ? '...' : ''),
+          category: ann.category
+        }));
+        console.log('✅ 공지사항 데이터 수집 완료:', contextData.announcements?.length, '건');
+      } catch (error) {
+        console.warn('⚠️ 공지사항 데이터 수집 실패:', error);
+      }
+      
+      // 출석 데이터 수집  
+      try {
+        const attendances: any[] = await attendanceService.getAttendances();
+        if (attendances?.length > 0) {
+          const totalAttendance = attendances.reduce((sum: number, att: any) => sum + (att.attendance_count || 0), 0);
+          contextData.attendance = {
+            average: Math.round(totalAttendance / attendances.length),
+            recent_services: attendances.length,
+            latest_service: attendances[0]
+          };
+          console.log('✅ 출석 데이터 수집 완료:', contextData.attendance);
+        }
+      } catch (error) {
+        console.warn('⚠️ 출석 데이터 수집 실패:', error);
+      }
+      
+      console.log('🎯 최종 수집된 contextData:', contextData);
     }
     
     // 첫 번째 메시지인지 확인
     const isFirstMessage = messages.length === 0;
 
     try {
+      // 🔥 교인 관련 에이전트는 contextData가 있으면 강제로 Edge Function 사용
+      if (Object.keys(contextData).length > 0) {
+        console.log('🚀 contextData가 있으므로 Edge Function 직접 호출');
+        throw new Error('강제로 Edge Function 사용');
+      }
+      
       const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgentForChat?.id);
       const responseData = response.data || response;
       
