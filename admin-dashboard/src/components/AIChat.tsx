@@ -222,7 +222,7 @@ const AIChat: React.FC = () => {
     const isFirstMessage = messages.length === 0;
 
     try {
-      const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgent?.id);
+      const response = await chatService.sendMessage(currentChatId, userMessage, selectedAgentForChat?.id);
       const responseData = response.data || response;
       
       if (responseData.user_message && responseData.ai_response) {
@@ -292,7 +292,7 @@ const AIChat: React.FC = () => {
           },
           body: JSON.stringify({
             chat_history_id: currentChatId,
-            agent_id: selectedAgent?.id,
+            agent_id: selectedAgentForChat?.id,
             content: userMessage
           })
         });
