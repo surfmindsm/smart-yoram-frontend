@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Pin, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, Pin } from 'lucide-react';
 import { announcementService } from '../services/api';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { CategorySelect, CategoryBadge } from './AnnouncementCategories';
+import { CategorySelect, CategoryBadge, CATEGORIES } from './AnnouncementCategories';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 interface Announcement {
   id: number;
@@ -41,12 +42,13 @@ interface Announcement {
 
 const Announcements: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'pinned'>('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  // 목록 필터용 상태 (카테고리/세부 카테고리)
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -59,16 +61,23 @@ const Announcements: React.FC = () => {
 
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
-
-  useEffect(() => {
-    filterAnnouncements();
-  }, [announcements, filter]);
+  }, [categoryFilter, subcategoryFilter]);
 
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
-      const data = await announcementService.getAnnouncements();
+      const params: {
+        category?: string;
+        subcategory?: string;
+        skip?: number;
+        limit?: number;
+      } = {};
+      if (categoryFilter) params.category = categoryFilter;
+      if (subcategoryFilter) params.subcategory = subcategoryFilter;
+      params.skip = 0;
+      params.limit = 100;
+
+      const data = await announcementService.getAnnouncements(params);
       setAnnouncements(data);
     } catch (err) {
       setError('공지사항을 불러오는데 실패했습니다.');
@@ -76,21 +85,6 @@ const Announcements: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterAnnouncements = () => {
-    let filtered = [...announcements];
-    
-    switch (filter) {
-      case 'active':
-        filtered = announcements.filter(a => a.is_active);
-        break;
-      case 'pinned':
-        filtered = announcements.filter(a => a.is_pinned);
-        break;
-    }
-    
-    setFilteredAnnouncements(filtered);
   };
 
   const handleCreate = () => {
@@ -193,34 +187,43 @@ const Announcements: React.FC = () => {
         </Button>
       </div>
 
-      {/* Filter Buttons */}
-      <div className="mb-6 flex gap-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          onClick={() => setFilter('all')}
-          size="sm"
+      {/* Filter Bar: 카테고리 탭 */}
+      <div className="mb-6">
+        <Tabs
+          value={categoryFilter || 'all'}
+          onValueChange={(value) => {
+            if (value === 'all') {
+              setCategoryFilter('');
+              setSubcategoryFilter('');
+            } else {
+              setCategoryFilter(value);
+              setSubcategoryFilter('');
+            }
+          }}
         >
-          전체
-        </Button>
-        <Button
-          variant={filter === 'active' ? 'default' : 'outline'}
-          onClick={() => setFilter('active')}
-          size="sm"
-        >
-          활성
-        </Button>
-        <Button
-          variant={filter === 'pinned' ? 'default' : 'outline'}
-          onClick={() => setFilter('pinned')}
-          size="sm"
-        >
-          고정
-        </Button>
+          <TabsList className="bg-transparent p-0 gap-2 h-auto">
+            <TabsTrigger
+              value="all"
+              className="rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              전체
+            </TabsTrigger>
+            {Object.entries(CATEGORIES).map(([key, cat]) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-none"
+              >
+                {cat.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Announcements List */}
       <div className="space-y-4">
-        {filteredAnnouncements.map((announcement) => (
+        {announcements.map((announcement) => (
           <Card 
             key={announcement.id} 
             className={`${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
@@ -277,7 +280,7 @@ const Announcements: React.FC = () => {
         ))}
       </div>
 
-      {filteredAnnouncements.length === 0 && (
+      {announcements.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
             <p className="text-slate-500">공지사항이 없습니다.</p>

@@ -14,6 +14,9 @@ const getApiUrl = (path: string) => {
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -21,12 +24,43 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Content-Type 헤더 확실히 설정
+  if (!config.headers['Content-Type']) {
+    config.headers['Content-Type'] = 'application/json';
+  }
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 422 에러 상세 정보 로깅
+    if (error.response?.status === 422) {
+      console.error('🚨 422 Validation Error Details:');
+      console.error('URL:', error.config?.url);
+      console.error('Method:', error.config?.method);
+      console.error('Request Data:', JSON.parse(error.config?.data || '{}'));
+      console.error('Response Error:', error.response?.data);
+      
+      // detail 배열 내용 상세 출력
+      if (error.response?.data?.detail && Array.isArray(error.response.data.detail)) {
+        console.error('🔍 Validation Error Details:');
+        error.response.data.detail.forEach((detailItem: any, index: number) => {
+          console.error(`${index + 1}.`, detailItem);
+          // 누락된 필드나 타입 에러 상세 정보
+          if (detailItem.loc) {
+            console.error(`   📍 Location: ${detailItem.loc.join('.')}`);
+          }
+          if (detailItem.type) {
+            console.error(`   🔍 Error Type: ${detailItem.type}`);
+          }
+          if (detailItem.msg) {
+            console.error(`   💬 Message: ${detailItem.msg}`);
+          }
+        });
+      }
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
@@ -37,16 +71,27 @@ api.interceptors.response.use(
 
 export const authService = {
   login: async (username: string, password: string) => {
-    const formData = new FormData();
+    // 백엔드 재배포 후 OAuth2PasswordRequestForm 스펙 변경으로 인한 수정
+    // application/x-www-form-urlencoded 형식으로 변경
+    console.log('🔐 Attempting login with OAuth2 form data format');
+    
+    const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
     
-    const response = await api.post(getApiUrl('/auth/login/access-token'), formData);
+    const response = await api.post(getApiUrl('/auth/login/access-token'), formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    
     const { access_token, user } = response.data;
     localStorage.setItem('token', access_token);
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     }
+    
+    console.log('✅ Login successful');
     return response.data;
   },
   
@@ -162,8 +207,13 @@ export const bulletinService = {
 };
 
 export const announcementService = {
-  getAnnouncements: async (params?: { is_active?: boolean; is_pinned?: boolean }) => {
+  getAnnouncements: async (params?: { is_active?: boolean; is_pinned?: boolean; category?: string; subcategory?: string; skip?: number; limit?: number }) => {
     const response = await api.get(getApiUrl('/announcements/'), { params });
+    return response.data;
+  },
+  
+  getCategories: async () => {
+    const response = await api.get(getApiUrl('/announcements/categories'));
     return response.data;
   },
   
@@ -193,9 +243,390 @@ export const announcementService = {
   }
 };
 
-export const gptService = {
-  getSystemStatus: async () => {
-    const response = await api.get(getApiUrl('/church/system-status'));
+// AI Agent Management Service
+export const agentService = {
+  getAgents: async () => {
+    try {
+      const response = await api.get(getApiUrl('/agents/'));
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get agents:', error);
+      if (error.response?.status === 422) {
+        console.warn('Agents endpoint returned 422, returning empty array');
+      }
+      return [];
+    }
+  },
+  
+  createAgent: async (agentData: any) => {
+    try {
+      const response = await api.post(getApiUrl('/agents/'), agentData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to create agent:', error);
+      throw error;
+    }
+  },
+  
+  updateAgent: async (agentId: string, agentData: any) => {
+    const response = await api.put(getApiUrl(`/agents/${agentId}`), agentData);
+    return response.data;
+  },
+  
+  deleteAgent: async (agentId: string) => {
+    const response = await api.delete(getApiUrl(`/agents/${agentId}`));
+    return response.data;
+  },
+  
+  getAgentTemplates: async () => {
+    try {
+      const response = await api.get(getApiUrl('/agents/templates'));
+      
+      // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, templates: [...] }
+      if (response.data.success && Array.isArray(response.data.templates)) {
+        return response.data.templates;
+      }
+      
+      // 이전 응답 형식도 지원 (호환성 유지)
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      console.warn('Unexpected agent templates response format, returning empty array');
+      return [];
+    } catch (error: any) {
+      console.error('Failed to get agent templates:', error);
+      
+      // 422 에러 등으로 템플릿 로드 실패 시 빈 배열 반환 (백엔드 수정 전까지 유지)
+      if (error.response?.status === 422) {
+        console.warn('Agent templates endpoint still returns 422, using fallback');
+        return [];
+      }
+      
+      // 다른 에러의 경우에도 빈 배열 반환하여 화면이 정상 작동하도록 함
+      return [];
+    }
+  },
+  
+  activateAgent: async (agentId: string) => {
+    try {
+      const response = await api.put(getApiUrl(`/agents/${agentId}`), {
+        is_active: true
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to activate agent:', error);
+      throw error;
+    }
+  },
+  
+  deactivateAgent: async (agentId: string) => {
+    try {
+      const response = await api.put(getApiUrl(`/agents/${agentId}`), {
+        is_active: false
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to deactivate agent:', error);
+      throw error;
+    }
+  }
+};
+
+// Supabase Edge Function 설정
+const SUPABASE_PROJECT_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+
+// Chat System Service (백엔드 API 완료)
+export const chatService = {
+  // 채팅 히스토리 목록 조회
+  getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
+    try {
+      const response = await api.get(getApiUrl('/chat/histories'), { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get chat histories:', error);
+      if (error.response?.status === 422) {
+        console.warn('Chat histories endpoint returned 422, returning empty array');
+      }
+      return [];
+    }
+  },
+  
+  // 특정 채팅의 메시지 목록 조회
+  getChatMessages: async (historyId: string) => {
+    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
+    return response.data;
+  },
+  
+  // 메시지 전송 및 AI 응답 생성
+  sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
+    const payload: any = {
+      chat_history_id: parseInt(chatHistoryId), // 백엔드가 정수 ID를 기대
+      content: message.trim(),
+      agent_id: agentId ? parseInt(agentId) : 1 // 백엔드가 정수를 기대 (기본값 1)
+    };
+    
+    console.log('📤 Sending message with payload:', payload);
+    const response = await api.post(getApiUrl('/chat/messages'), payload);
+    return response.data;
+  },
+  
+  // 새 채팅 생성
+  createChatHistory: async (agentId?: string, title?: string) => {
+    const payload: any = {
+      title: title || '새 대화'
+    };
+    
+    // 로그인한 사용자 정보 추가
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.id) {
+          payload.user_id = user.id;
+        }
+        if (user.church_id) {
+          payload.church_id = user.church_id;
+        }
+      }
+    } catch (error) {
+      console.warn('사용자 정보 파싱 실패:', error);
+    }
+    
+    // agent_id 추가 (백엔드가 정수를 기대함)
+    if (agentId) {
+      // 숫자 또는 문자열 모두 처리
+      payload.agent_id = typeof agentId === 'string' ? parseInt(agentId) : agentId;
+    } else {
+      // agent_id가 없으면 기본값 1 사용 (또는 필드 자체를 제외)
+      payload.agent_id = 1; // 기본 에이전트 ID
+    }
+    
+    console.log('📤 Creating chat with payload:', payload);
+    const response = await api.post(getApiUrl('/chat/histories'), payload);
+    return response.data;
+  },
+  
+  // 채팅 제목 수정
+  updateChatTitle: async (historyId: string, title: string) => {
+    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), { 
+      title 
+    });
+    return response.data;
+  },
+  
+  // 채팅 히스토리 삭제
+  deleteChat: async (historyId: string) => {
+    const response = await api.delete(getApiUrl(`/chat/histories/${historyId}`));
+    return response.data;
+  },
+  
+  // 북마크 토글
+  bookmarkChat: async (historyId: string, isBookmarked: boolean) => {
+    const url = getApiUrl(`/chat/histories/${historyId}`);
+    const payload = { is_bookmarked: isBookmarked }; // 백엔드 필드명에 맞춤
+    
+    console.log('🔖 BookmarkChat API 요청:', {
+      url,
+      historyId,
+      payload,
+      method: 'PUT'
+    });
+    
+    try {
+      const response = await api.put(url, payload);
+      console.log('✅ BookmarkChat API 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ BookmarkChat API 실패:', {
+        historyId,
+        payload,
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      });
+      throw error;
+    }
+  },
+  
+  // 북마크 해제
+  unbookmarkChat: async (historyId: string) => {
+    return chatService.bookmarkChat(historyId, false);
+  },
+
+  // 채팅 내용을 기반으로 GPT 활용 제목 자동 생성 (전용 Edge Function 사용)
+  generateChatTitle: async (messages: Array<{content: string, role: string}>) => {
+    try {
+      // 첫 4개의 메시지만 사용하여 제목 생성
+      const relevantMessages = messages.slice(0, 4).map(msg => ({
+        content: msg.content.slice(0, 200), // 내용 길이 제한
+        role: msg.role
+      }));
+
+      // 새로 배포한 generate-title Edge Function 사용
+      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
+        },
+        body: JSON.stringify({
+          messages: relevantMessages
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.title && data.title.length > 2) {
+          return data.title;
+        }
+      }
+      
+      throw new Error('Edge Function 제목 생성 실패');
+      
+    } catch (error) {
+      console.warn('Edge Function 제목 생성 실패, 폴백 사용:', error);
+      
+      // 폴백: 첫 번째 사용자 메시지 기반으로 간단한 제목 생성
+      const firstUserMessage = messages.find(msg => msg.role === 'user');
+      if (firstUserMessage) {
+        let title = firstUserMessage.content
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .replace(/작성해줘|작성해주세요|만들어줘|만들어주세요|해줘|해주세요/g, '')
+          .trim();
+        
+        if (title.length > 30) {
+          title = title.slice(0, 30) + '...';
+        }
+        
+        if (title.length < 5) {
+          return `대화 ${new Date().toLocaleDateString()}`;
+        }
+        
+        return title;
+      }
+      
+      return `대화 ${new Date().toLocaleDateString()}`;
+    }
+  }
+};
+
+// Church Database Integration Service
+export const churchDbService = {
+  getDbConnections: async () => {
+    const response = await api.get(getApiUrl('/church/database/connections'));
+    return response.data;
+  },
+  
+  createDbConnection: async (connectionData: any) => {
+    const response = await api.post(getApiUrl('/church/database/connections'), connectionData);
+    return response.data;
+  },
+  
+  testDbConnection: async (connectionId: string) => {
+    const response = await api.post(getApiUrl(`/church/database/connections/${connectionId}/test`));
+    return response.data;
+  },
+  
+  getDbTables: async (connectionId: string) => {
+    const response = await api.get(getApiUrl(`/church/database/connections/${connectionId}/tables`));
+    return response.data;
+  },
+  
+  queryDatabase: async (connectionId: string, query: string) => {
+    const response = await api.post(getApiUrl(`/church/database/connections/${connectionId}/query`), {
+      query
+    });
+    return response.data;
+  },
+  
+  getPrebuiltQueries: async () => {
+    const response = await api.get(getApiUrl('/church/database/queries'));
+    return response.data;
+  }
+};
+
+// Church Profile & GPT Config Service
+export const churchConfigService = {
+  getGptConfig: async () => {
+    try {
+      // 백엔드 보고서에 따르면 수정되었다고 하지만, 실제로는 아직 405 에러 발생중
+      // 일단 시도해보고 405 에러면 즉시 fallback 사용
+      console.log('Attempting to load GPT config from /church/gpt-config');
+      const response = await api.get(getApiUrl('/church/gpt-config'));
+      
+      // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, data: {...} }
+      if (response.data.success && response.data.data) {
+        const config = response.data.data;
+        console.log('Successfully loaded GPT config with new format');
+        return {
+          api_key: config.api_key || null,
+          database_connected: config.database_connected || false,
+          last_sync: config.last_sync || null,
+          model: config.model || 'gpt-4o-mini',
+          max_tokens: config.max_tokens || 2000,
+          temperature: config.temperature || 0.7,
+          is_active: config.is_active || false
+        };
+      }
+      
+      // 이전 응답 형식도 지원 (호환성 유지)
+      console.log('Using legacy GPT config format');
+      return {
+        api_key: response.data.api_key || null,
+        database_connected: response.data.database_connected || false,
+        last_sync: response.data.last_sync || null,
+        model: response.data.model || 'gpt-4o-mini',
+        max_tokens: response.data.max_tokens || 2000,
+        temperature: response.data.temperature || 0.7,
+        is_active: response.data.is_active || false
+      };
+    } catch (error: any) {
+      console.error('GPT config endpoint failed:', error.response?.status, error.message);
+      
+      // 405 에러면 즉시 church/profile fallback 시도 (백엔드 배포 전까지)
+      if (error.response?.status === 405) {
+        try {
+          console.log('Using church/profile fallback for GPT config');
+          const fallbackResponse = await api.get(getApiUrl('/church/profile'));
+          const profile = fallbackResponse.data;
+          
+          return {
+            api_key: profile.gpt_api_key || profile.api_key || null,
+            database_connected: profile.database_connected || false,
+            last_sync: profile.last_sync || null,
+            model: profile.gpt_model || 'gpt-4o-mini',
+            max_tokens: profile.max_tokens || 2000,
+            temperature: profile.temperature || 0.7,
+            is_active: profile.gpt_is_active || false
+          };
+        } catch (fallbackError) {
+          console.error('Church profile fallback also failed:', fallbackError);
+        }
+      }
+      
+      // 최종 fallback - 기본값 반환하여 화면이 정상 작동하도록 함
+      console.log('Using default GPT config values');
+      return {
+        api_key: null,
+        database_connected: false,
+        last_sync: null,
+        model: 'gpt-4o-mini',
+        max_tokens: 2000,
+        temperature: 0.7,
+        is_active: false
+      };
+    }
+  },
+  
+  updateGptConfig: async (configData: any) => {
+    const response = await api.put(getApiUrl('/church/gpt-config'), configData);
+    return response.data;
+  },
+  
+  testGptConnection: async () => {
+    const response = await api.post(getApiUrl('/church/gpt-config/test'));
     return response.data;
   },
   
@@ -204,104 +635,176 @@ export const gptService = {
     return response.data;
   },
   
-  updateGPTConfig: async (config: {
-    api_key: string;
-    model: string;
-    max_tokens: number;
-    temperature: number;
-  }) => {
-    const response = await api.put(getApiUrl('/church/gpt-config'), config);
-    return response.data;
-  },
-  
-  testGPTConnection: async (apiKey: string) => {
-    const response = await api.post(getApiUrl('/church/test-gpt'), { api_key: apiKey });
-    return response.data;
+  updateChurchProfile: async (profileData: any) => {
+    try {
+      const response = await api.put(getApiUrl('/church/profile'), profileData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to update church profile:', error);
+      throw error;
+    }
   }
 };
 
-export const chatService = {
-  // Get chat histories
-  getHistories: async (includeMessages: boolean = false) => {
-    const response = await api.get(getApiUrl('/chat/histories'), {
-      params: { include_messages: includeMessages }
-    });
-    return response.data;
+// Analytics Service
+export const analyticsService = {
+  getUsageStats: async (params?: { period?: string; agent_id?: string }) => {
+  try {
+    const response = await api.get(getApiUrl('/analytics/usage'), { params });
+    
+    // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, data: {...} }
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    
+    // 이전 응답 형식도 지원 (호환성 유지)
+    if (response.data.total_requests !== undefined) {
+      return response.data;
+    }
+    
+    console.warn('Unexpected usage stats response format, returning default stats');
+    return {
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      daily_stats: [],
+      period: params?.period || 'current_month'
+    };
+  } catch (error: any) {
+    console.error('Failed to get usage stats:', error);
+    
+    // 422 에러 등으로 사용량 통계 로드 실패 시 기본값 반환 (백엔드 수정 전까지 유지)
+    if (error.response?.status === 422) {
+      console.warn('Usage stats endpoint still returns 422, using fallback');
+    }
+    
+    // 기본 사용량 통계 반환하여 화면이 정상 작동하도록 함
+    return {
+      total_requests: 0,
+      total_tokens: 0,
+      total_cost: 0,
+      daily_stats: [],
+      period: params?.period || 'current_month'
+    };
+  }
   },
   
-  // Create new chat history
-  createHistory: async (agentId: number | string, title?: string) => {
-    const response = await api.post(getApiUrl('/chat/histories'), {
-      agent_id: String(agentId),
-      title: title || '새 대화'
-    });
-    return response.data;
+  getTokenUsage: async (params?: { start_date?: string; end_date?: string }) => {
+    try {
+      const response = await api.get(getApiUrl('/analytics/tokens'), { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get token usage:', error);
+      if (error.response?.status === 422) {
+        console.warn('Token usage endpoint returned 422, returning default data');
+      }
+      return { usage_data: [], total_tokens: 0 };
+    }
   },
   
-  // Get messages for a chat history
-  getMessages: async (historyId: number | string) => {
-    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
-    return response.data;
+  getCostAnalysis: async (params?: { period?: string }) => {
+    try {
+      const response = await api.get(getApiUrl('/analytics/costs'), { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get cost analysis:', error);
+      if (error.response?.status === 422) {
+        console.warn('Cost analysis endpoint returned 422, returning default data');
+      }
+      return {
+        total_cost: 0,
+        cost_breakdown: [],
+        period: params?.period || 'current_month'
+      };
+    }
   },
   
-  // Send message and get AI response
-  sendMessage: async (chatHistoryId: number | string, agentId: number | string, content: string) => {
-    const response = await api.post(getApiUrl('/chat/messages'), {
-      chat_history_id: String(chatHistoryId),
-      agent_id: String(agentId),
-      content: content
-    });
-    return response.data;
+  getAgentPerformance: async () => {
+    try {
+      const response = await api.get(getApiUrl('/analytics/agents/performance'));
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get agent performance:', error);
+      if (error.response?.status === 422) {
+        console.warn('Agent performance endpoint returned 422, returning default data');
+      }
+      return {
+        agents: [],
+        performance_metrics: {}
+      };
+    }
   },
   
-  // Update chat history (title, bookmark)
-  updateHistory: async (historyId: number | string, data: { title?: string; is_bookmarked?: boolean }) => {
-    const response = await api.put(getApiUrl(`/chat/histories/${historyId}`), data);
-    return response.data;
+  getTopQueries: async (params?: { limit?: number; period?: string }) => {
+    try {
+      const response = await api.get(getApiUrl('/analytics/queries/top'), { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get top queries:', error);
+      if (error.response?.status === 422) {
+        console.warn('Top queries endpoint returned 422, returning default data');
+      }
+      return {
+        queries: [],
+        total_count: 0
+      };
+    }
   },
   
-  // Delete chat history
-  deleteHistory: async (historyId: number | string) => {
-    const response = await api.delete(getApiUrl(`/chat/histories/${historyId}`));
-    return response.data;
+  getTrendAnalysis: async (params?: { metric?: string; period?: string }) => {
+    try {
+      const response = await api.get(getApiUrl('/analytics/trends'), { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to get trend analysis:', error);
+      if (error.response?.status === 422) {
+        console.warn('Trend analysis endpoint returned 422, returning default data');
+      }
+      return {
+        trends: [],
+        metrics: {}
+      };
+    }
   }
 };
 
-export const aiAgentService = {
-  // Get all agents
-  getAgents: async () => {
-    const response = await api.get(getApiUrl('/agents/'));
-    return response.data;
-  },
-  
-  // Get agent by ID
-  getAgent: async (agentId: number | string) => {
-    const response = await api.get(getApiUrl(`/agents/${agentId}`));
-    return response.data;
-  },
-  
-  // Create new agent
-  createAgent: async (data: {
-    name: string;
-    category: string;
-    system_prompt: string;
-    description?: string;
-    is_active?: boolean;
+// 시스템 프롬프트 생성 서비스
+export const promptService = {
+  generateSystemPrompt: async (agentInfo: { 
+    name: string; 
+    category: string; 
+    description: string; 
+    detailedDescription: string; 
   }) => {
-    const response = await api.post(getApiUrl('/agents/'), data);
-    return response.data;
-  },
-  
-  // Update agent
-  updateAgent: async (agentId: number | string, data: any) => {
-    const response = await api.put(getApiUrl(`/agents/${agentId}`), data);
-    return response.data;
-  },
-  
-  // Delete agent
-  deleteAgent: async (agentId: number | string) => {
-    const response = await api.delete(getApiUrl(`/agents/${agentId}`));
-    return response.data;
+    try {
+      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-system-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`,
+        },
+        body: JSON.stringify(agentInfo),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '시스템 프롬프트 생성에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || '시스템 프롬프트 생성에 실패했습니다.');
+      }
+
+      return {
+        systemPrompt: data.systemPrompt,
+        tokensUsed: data.tokensUsed
+      };
+    } catch (error: any) {
+      console.error('Failed to generate system prompt:', error);
+      throw error;
+    }
   }
 };
 

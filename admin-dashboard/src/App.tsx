@@ -19,6 +19,8 @@ import PushNotifications from './components/PushNotifications';
 import AIChat from './components/AIChat';
 import AIAgentManagement from './components/AIAgentManagement';
 import GPTSettings from './pages/GPTSettings';
+import ChurchSettings from './components/ChurchSettings';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -40,6 +42,8 @@ function App() {
           <Route path="member-management" element={<MemberManagement />} />
           <Route path="ai-chat" element={<AIChat />} />
           <Route path="ai-agent-management" element={<AIAgentManagement />} />
+          <Route path="church-settings" element={<ChurchSettings />} />
+          <Route path="analytics" element={<AnalyticsDashboard />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="sms" element={<SMSManagement />} />
           <Route path="qr-codes" element={<QRCodeManagement />} />
