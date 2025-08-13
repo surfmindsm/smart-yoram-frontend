@@ -646,46 +646,77 @@ const AIChat: React.FC = () => {
             single_members: members.filter(m => !m.family_id).length
           },
           
-          // 🔥 가족별 그룹 정보 (상위 10개 가족)
-          family_groups: Object.entries(
-            members
-              .filter(m => m.family_id)
-              .reduce((acc: any, m: any) => {
-                const familyId = m.family_id;
-                if (!acc[familyId]) {
-                  acc[familyId] = [];
-                }
-                acc[familyId].push({
-                  name: m.name,
-                  family_role: m.family_role || '가족',
-                  age: m.birthdate ? currentYear - new Date(m.birthdate).getFullYear() : null,
-                  gender: m.gender
-                });
-                return acc;
-              }, {})
-          )
-          .sort(([,a], [,b]) => (b as any[]).length - (a as any[]).length)
-          .slice(0, 10)
-          .map(([familyId, members]) => ({
-            family_id: familyId,
-            member_count: (members as any[]).length,
-            members: members
-          })),
+          // 🔥 가족별 그룹 정보 (상위 10개 가족) - 안전한 처리
+          family_groups: (() => {
+            try {
+              const familyGroups = members
+                .filter(m => m && m.family_id)
+                .reduce((acc: any, m: any) => {
+                  const familyId = String(m.family_id);
+                  if (!acc[familyId]) {
+                    acc[familyId] = [];
+                  }
+                  acc[familyId].push({
+                    name: m.name || '이름없음',
+                    family_role: m.family_role || '가족',
+                    age: m.birthdate ? currentYear - new Date(m.birthdate).getFullYear() : null,
+                    gender: m.gender || '미상'
+                  });
+                  return acc;
+                }, {});
+              
+              return Object.entries(familyGroups)
+                .sort(([,a], [,b]) => (b as any[]).length - (a as any[]).length)
+                .slice(0, 10)
+                .map(([familyId, familyMembers]) => ({
+                  family_id: familyId,
+                  member_count: (familyMembers as any[]).length,
+                  members: familyMembers
+                }));
+            } catch (error) {
+              console.error('가족 그룹 처리 오류:', error);
+              return [];
+            }
+          })(),
           
-          // 🔥 전입/전출 이력 분석
-          transfer_history: {
-            transferred_in: members.filter(m => m.transfer_church && m.transfer_date).length,
-            has_transfer_info: members.filter(m => m.transfer_church).length,
-            recent_transfers: members
-              .filter(m => m.transfer_date)
-              .sort((a, b) => new Date(b.transfer_date).getTime() - new Date(a.transfer_date).getTime())
-              .slice(0, 5)
-              .map(m => ({
-                name: m.name,
-                transfer_church: m.transfer_church,
-                transfer_date: new Date(m.transfer_date).toLocaleDateString('ko-KR')
-              }))
-          },
+          // 🔥 전입/전출 이력 분석 - 안전한 처리
+          transfer_history: (() => {
+            try {
+              const safeMembers = members.filter(m => m && m.name);
+              return {
+                transferred_in: safeMembers.filter(m => m.transfer_church && m.transfer_date).length,
+                has_transfer_info: safeMembers.filter(m => m.transfer_church).length,
+                recent_transfers: safeMembers
+                  .filter(m => m.transfer_date)
+                  .sort((a, b) => {
+                    try {
+                      return new Date(b.transfer_date).getTime() - new Date(a.transfer_date).getTime();
+                    } catch {
+                      return 0;
+                    }
+                  })
+                  .slice(0, 5)
+                  .map(m => ({
+                    name: m.name || '이름없음',
+                    transfer_church: m.transfer_church || '미상',
+                    transfer_date: (() => {
+                      try {
+                        return new Date(m.transfer_date).toLocaleDateString('ko-KR');
+                      } catch {
+                        return '날짜 오류';
+                      }
+                    })()
+                  }))
+              };
+            } catch (error) {
+              console.error('전입/전출 이력 처리 오류:', error);
+              return {
+                transferred_in: 0,
+                has_transfer_info: 0,
+                recent_transfers: []
+              };
+            }
+          })(),
           
           // 디버깅용
           sample_fields: members[0] ? Object.keys(members[0]) : []
@@ -809,14 +840,21 @@ const AIChat: React.FC = () => {
         
         if (response.ok) {
           const data = await response.json();
-          if (data.ai_response) {
+          console.log('🔍 Edge Function 응답 데이터:', data);
+          
+          // Edge Function의 실제 응답 형식에 맞게 수정
+          if (data.text || data.error) {
+            if (data.error) {
+              throw new Error(`Edge Function 오류: ${data.error}`);
+            }
+            
             const aiResponse: ChatMessage = {
-              id: data.ai_response.id || `ai-${Date.now()}`,
-              content: data.ai_response.content,
+              id: `ai-${Date.now()}`,
+              content: data.text,
               role: 'assistant',
-              timestamp: new Date(data.ai_response.timestamp || Date.now()),
-              tokensUsed: data.ai_response.tokensUsed,
-              cost: data.ai_response.cost
+              timestamp: new Date(data.timestamp || Date.now()),
+              tokensUsed: data.tokensUsed || 0,
+              cost: data.cost || 0
             };
             setMessages(prev => [...prev, aiResponse]);
             
