@@ -63,10 +63,10 @@ const AIChat: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-slate-50 overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden">
       <div className="flex h-full w-full">
         {/* 사이드바 */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-72 flex-shrink-0">
           <ChatSidebar
             activeTab={chatState.activeTab}
             setActiveTab={chatState.setActiveTab}

@@ -74,7 +74,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
 
   return (
-    <div className="w-80 border-r border-slate-200 flex flex-col h-full">
+    <div className="w-72 border-r border-slate-200 flex flex-col h-full">
       {/* 탭 헤더 */}
       <div className="border-b border-slate-200">
         <div className="flex">
