@@ -98,7 +98,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
-            목회도우미
+            에이전트
           </button>
         </div>
       </div>

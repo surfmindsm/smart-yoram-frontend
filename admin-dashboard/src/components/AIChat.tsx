@@ -108,6 +108,8 @@ const AIChat: React.FC = () => {
             onKeyPress={chatHandlers.handleKeyPress}
             onDownload={handleDownload}
             messagesEndRef={chatState.messagesEndRef}
+            currentChatId={chatState.currentChatId}
+            chatHistory={chatState.chatHistory}
           />
         </div>
       </div>

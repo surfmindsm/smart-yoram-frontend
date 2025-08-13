@@ -1,7 +1,7 @@
 import React from 'react';
-import { ChatMessage, Agent } from '../../types/chat';
+import { ChatMessage, Agent, ChatHistory } from '../../types/chat';
 import { Button } from '../ui/button';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Send, Download, FileText, FileCode, FileImage, File } from 'lucide-react';
 import MessageList from './MessageList';
 
 interface ChatMainAreaProps {
@@ -17,6 +17,8 @@ interface ChatMainAreaProps {
   onKeyPress: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onDownload: (format: 'txt' | 'md' | 'pdf' | 'docx') => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  currentChatId: string | null;
+  chatHistory: ChatHistory[];
 }
 
 const ChatMainArea: React.FC<ChatMainAreaProps> = ({
@@ -31,8 +33,26 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   onStartAgentChat,
   onKeyPress,
   onDownload,
-  messagesEndRef
+  messagesEndRef,
+  currentChatId,
+  chatHistory
 }) => {
+  // 현재 채팅의 제목을 가져오는 함수
+  const getCurrentChatTitle = () => {
+    if (!currentChatId) return '새로운 채팅';
+    
+    const currentChat = chatHistory.find(chat => chat.id === currentChatId);
+    if (currentChat && currentChat.title) {
+      return currentChat.title;
+    }
+    
+    // 제목이 없으면 에이전트 이름이나 기본값 사용
+    if (selectedAgentForChat) {
+      return selectedAgentForChat.name;
+    }
+    
+    return '새로운 채팅';
+  };
   // 히스토리 탭에서 메시지가 없는 경우 - 첫 화면
   if (activeTab === 'history' && messages.length === 0) {
     const recommendedAgents = [
@@ -153,8 +173,66 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   if (activeTab === 'history') {
     return (
       <div className="flex-1 relative h-full">
-        {/* 메시지 영역 - 입력창 높이 제외하고 스크롤 */}
-        <div className="absolute top-0 left-0 right-0 bottom-20 overflow-y-auto">
+        {/* 상단 헤더 - 제목과 다운로드 버튼 */}
+        {messages.length > 0 && (
+          <div className="absolute top-0 left-0 right-0 h-16 border-b border-slate-200 bg-white z-20 flex items-center justify-between px-6">
+            <div className="flex items-center">
+              <h2 className="text-lg font-semibold text-slate-800 truncate">
+                {getCurrentChatTitle()}
+              </h2>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <div className="relative group">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-slate-600 hover:text-slate-800 border-slate-300"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  다운로드
+                </Button>
+                
+                {/* 드롭다운 메뉴 */}
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-30">
+                  <div className="py-1">
+                    <button
+                      onClick={() => onDownload('txt')}
+                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <FileText className="h-4 w-4 mr-3 text-slate-500" />
+                      텍스트 파일 (.txt)
+                    </button>
+                    <button
+                      onClick={() => onDownload('md')}
+                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <FileCode className="h-4 w-4 mr-3 text-slate-500" />
+                      마크다운 (.md)
+                    </button>
+                    <button
+                      onClick={() => onDownload('pdf')}
+                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <FileImage className="h-4 w-4 mr-3 text-slate-500" />
+                      PDF 파일 (.pdf)
+                    </button>
+                    <button
+                      onClick={() => onDownload('docx')}
+                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <File className="h-4 w-4 mr-3 text-slate-500" />
+                      워드 문서 (.docx)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 메시지 영역 - 헤더와 입력창 높이 제외하고 스크롤 */}
+        <div className={`absolute left-0 right-0 bottom-20 overflow-y-auto ${messages.length > 0 ? 'top-16' : 'top-0'}`}>
           <MessageList 
             messages={messages}
             isLoading={isLoading}
