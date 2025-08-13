@@ -1,9 +1,8 @@
 import React from 'react';
 import { ChatMessage, Agent } from '../../types/chat';
 import { Button } from '../ui/button';
-import { Bot, Send, Download } from 'lucide-react';
+import { Bot, Send } from 'lucide-react';
 import MessageList from './MessageList';
-import { cn } from '../../lib/utils';
 
 interface ChatMainAreaProps {
   activeTab: 'history' | 'agents';
@@ -150,90 +149,39 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
     );
   }
 
-  // 히스토리 탭에서 메시지가 있는 경우 - 채팅 화면
+  // 히스토리 탭에서 메시지가 있는 경우  
   if (activeTab === 'history' && messages.length > 0) {
     return (
-      <div className="flex-1 flex flex-col h-full bg-white">
-        {/* 채팅 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
-          <div className="flex items-center space-x-3">
-            {selectedAgentForChat && (
-              <>
-                <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-sky-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-slate-900">{selectedAgentForChat.name}</h3>
-                  <p className="text-xs text-slate-500">{selectedAgentForChat.category}</p>
-                </div>
-              </>
-            )}
-          </div>
-          
-          {/* 다운로드 메뉴 */}
-          <div className="relative group">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover:bg-slate-100"
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-            <div className="absolute right-0 top-8 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-              <button
-                onClick={() => onDownload('txt')}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center"
-              >
-                텍스트 파일 (.txt)
-              </button>
-              <button
-                onClick={() => onDownload('md')}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center"
-              >
-                마크다운 (.md)
-              </button>
-              <button
-                onClick={() => onDownload('pdf')}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center"
-              >
-                PDF 파일 (.pdf)
-              </button>
-              <button
-                onClick={() => onDownload('docx')}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center"
-              >
-                워드 문서 (.docx)
-              </button>
-            </div>
-          </div>
+      <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 overflow-y-auto">
+          <MessageList 
+            messages={messages}
+            isLoading={isLoading}
+            messagesEndRef={messagesEndRef}
+          />
         </div>
 
-        {/* 메시지 리스트 */}
-        <MessageList 
-          messages={messages}
-          isLoading={isLoading}
-          messagesEndRef={messagesEndRef}
-        />
-
-        {/* 입력창 */}
-        <div className="p-4 border-t border-slate-200 bg-white">
-          <div className="relative">
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={onKeyPress}
-              placeholder="메시지를 입력하세요..."
-              className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg resize-none focus:outline-none focus:border-sky-500 bg-slate-50"
-              rows={2}
-              disabled={isLoading}
-            />
-            <Button
-              onClick={onSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              className="absolute bottom-2 right-2 w-8 h-8 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+        {/* 입력 영역 - 메시지가 있을 때만 표시 */}
+        <div className="border-t border-slate-200 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex space-x-2">
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={onKeyPress}
+                placeholder="메시지를 입력하세요..."
+                className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                rows={1}
+                style={{ minHeight: '44px', maxHeight: '120px' }}
+              />
+              <Button
+                onClick={onSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

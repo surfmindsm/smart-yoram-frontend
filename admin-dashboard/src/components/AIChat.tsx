@@ -64,49 +64,51 @@ const AIChat: React.FC = () => {
 
   return (
     <div className="flex h-full bg-white">
-      {/* 사이드바 */}
-      <ChatSidebar
-        showHistory={true}
-        setShowHistory={() => {}}
-        activeTab={chatState.activeTab}
-        setActiveTab={chatState.setActiveTab}
-        chatHistory={chatState.chatHistory}
-        agents={chatState.agents}
-        currentChatId={chatState.currentChatId}
-        setCurrentChatId={chatState.setCurrentChatId}
-        selectedAgent={chatState.selectedAgent}
-        setSelectedAgent={chatState.setSelectedAgent}
-        loadingChats={chatState.isLoading}
-        error={null}
-        openMenuId={chatState.openMenuId}
-        editingChatId={chatState.editingChatId}
-        editingTitle={chatState.editingTitle}
-        setEditingTitle={chatState.setEditingTitle}
-        onNewChat={chatHandlers.handleNewChat}
-        onToggleBookmark={chatHandlers.handleToggleBookmark}
-        onStartEditTitle={chatHandlers.handleStartEditTitle}
-        onSaveTitle={chatHandlers.handleSaveTitle}
-        onCancelEdit={chatHandlers.handleCancelEdit}
-        onToggleMenu={chatHandlers.handleToggleMenu}
-        onDeleteChat={(chatId: string, title: string) => chatHandlers.handleDeleteChat(chatId)}
-        dropdownRef={chatState.messagesEndRef}
-      />
+      {/* 사이드바 - showHistory 조건 추가 */}
+      {true && (
+        <ChatSidebar
+          activeTab={chatState.activeTab}
+          setActiveTab={chatState.setActiveTab}
+          chatHistory={chatState.chatHistory}
+          agents={chatState.agents}
+          currentChatId={chatState.currentChatId}
+          setCurrentChatId={chatState.setCurrentChatId}
+          selectedAgent={chatState.selectedAgent}
+          setSelectedAgent={chatState.setSelectedAgent}
+          loadingChats={chatState.isLoading}
+          error={null}
+          openMenuId={chatState.openMenuId}
+          editingChatId={chatState.editingChatId}
+          editingTitle={chatState.editingTitle}
+          setEditingTitle={chatState.setEditingTitle}
+          onNewChat={chatHandlers.handleNewChat}
+          onToggleBookmark={chatHandlers.handleToggleBookmark}
+          onStartEditTitle={chatHandlers.handleStartEditTitle}
+          onSaveTitle={chatHandlers.handleSaveTitle}
+          onCancelEdit={chatHandlers.handleCancelEdit}
+          onToggleMenu={chatHandlers.handleToggleMenu}
+          onDeleteChat={(chatId: string, title: string) => chatHandlers.handleDeleteChat(chatId)}
+          dropdownRef={chatState.messagesEndRef}
+        />
+      )}
 
-      {/* 메인 채팅 영역 */}
-      <ChatMainArea
-        activeTab={chatState.activeTab}
-        messages={chatState.messages}
-        inputValue={chatState.inputValue}
-        setInputValue={chatState.setInputValue}
-        isLoading={chatState.isLoading}
-        onSendMessage={chatHandlers.handleSendMessage}
-        selectedAgent={chatState.selectedAgent}
-        selectedAgentForChat={chatState.selectedAgentForChat}
-        onStartAgentChat={chatHandlers.handleStartAgentChat}
-        onKeyPress={chatHandlers.handleKeyPress}
-        onDownload={handleDownload}
-        messagesEndRef={chatState.messagesEndRef}
-      />
+      {/* 메인 영역 */}
+      <div className="flex-1 flex flex-col">
+        <ChatMainArea
+          activeTab={chatState.activeTab}
+          messages={chatState.messages}
+          inputValue={chatState.inputValue}
+          setInputValue={chatState.setInputValue}
+          isLoading={chatState.isLoading}
+          onSendMessage={chatHandlers.handleSendMessage}
+          selectedAgent={chatState.selectedAgent}
+          selectedAgentForChat={chatState.selectedAgentForChat}
+          onStartAgentChat={chatHandlers.handleStartAgentChat}
+          onKeyPress={chatHandlers.handleKeyPress}
+          onDownload={handleDownload}
+          messagesEndRef={chatState.messagesEndRef}
+        />
+      </div>
 
       {/* 삭제 확인 모달 */}
       <DeleteConfirmModal
