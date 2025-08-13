@@ -243,31 +243,29 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           />
         </div>
 
-        {/* 입력 영역 - 절대 위치로 하단 고정 */}
-        {messages.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-18 border-t border-slate-200 p-4 bg-white z-10">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex space-x-2">
-                <textarea
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={onKeyPress}
-                  placeholder="메시지를 입력하세요..."
-                  className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
-                  rows={1}
-                  style={{ minHeight: '44px', maxHeight: '120px' }}
-                />
-                <Button
-                  onClick={onSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+        {/* 입력창 - 하단 고정 */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200">
+          <div className="p-4">
+            <div className="flex space-x-2">
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={onKeyPress}
+                placeholder="메시지를 입력하세요..."
+                className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                rows={1}
+                style={{ minHeight: '44px', maxHeight: '120px' }}
+              />
+              <Button
+                onClick={onSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }

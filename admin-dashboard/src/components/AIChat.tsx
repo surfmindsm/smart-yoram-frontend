@@ -63,7 +63,7 @@ const AIChat: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-[calc(100vh-10rem)] bg-slate-50 overflow-hidden">
+    <div className="h-[calc(100vh-3.75rem)] bg-slate-50 overflow-hidden">
       <div className="flex h-full w-full">
         {/* 사이드바 */}
         <div className="w-72 flex-shrink-0">
