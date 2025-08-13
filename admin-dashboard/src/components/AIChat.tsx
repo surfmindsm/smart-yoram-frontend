@@ -60,6 +60,8 @@ const AIChat: React.FC = () => {
   const [creatingAgentChat, setCreatingAgentChat] = useState<string | null>(null); // 현재 생성 중인 에이전트 ID
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isProcessingRef = useRef(false); // 중복 실행 방지용
+  const isCreatingAgentChatRef = useRef(false); // 에이전트 채팅 생성 중복 방지용
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -404,7 +406,10 @@ const AIChat: React.FC = () => {
   }, [currentChatId]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !currentChatId) return;
+    if (!inputValue.trim() || !currentChatId || isLoading || isProcessingRef.current) return;
+
+    // 중복 실행 방지
+    isProcessingRef.current = true;
 
     const userMessage = inputValue.trim();
     setInputValue('');
@@ -921,8 +926,12 @@ const AIChat: React.FC = () => {
           }
           
           setIsLoading(false);
+          isProcessingRef.current = false; // 처리 완료
         }, 1000);
       }
+    } finally {
+      // 어떤 경우든 처리 완료 플래그 리셋
+      isProcessingRef.current = false;
     }
   };
 
@@ -968,25 +977,27 @@ const AIChat: React.FC = () => {
   };
 
   const handleStartAgentChat = async (agent: Agent) => {
-    // 🛡️ 강화된 중복 호출 방지
-    if (isLoading || creatingAgentChat === agent.id || (selectedAgentForChat?.id === agent.id && messages.length > 0)) {
-      console.log('🚫 중복 호출 방지:', agent.name, {
-        isLoading,
-        creatingAgentChat: creatingAgentChat === agent.id,
-        alreadySelected: selectedAgentForChat?.id === agent.id && messages.length > 0
-      });
-      return;
-    }
+  // 
+  if (isLoading || creatingAgentChat === agent.id || (selectedAgentForChat?.id === agent.id && messages.length > 0) || isCreatingAgentChatRef.current) {
+    console.log(' 중복 호출 방지:', agent.name, {
+      isLoading,
+      creatingAgentChat: creatingAgentChat === agent.id,
+      alreadySelected: selectedAgentForChat?.id === agent.id && messages.length > 0,
+      isCreatingAgentChatRef: isCreatingAgentChatRef.current
+    });
+    return;
+  }
 
-    try {
-      setIsLoading(true);
-      setCreatingAgentChat(agent.id); // 생성 중 상태 설정
-      setSelectedAgentForChat(agent);
-      
-      console.log('🚀 Creating chat with agent:', agent.id, agent.name);
-      // API를 통해 에이전트와 새 채팅 생성
-      const response = await chatService.createChatHistory(agent.id, `${agent.name}와의 대화`);
-      console.log('✅ Chat creation response:', response);
+  try {
+    isCreatingAgentChatRef.current = true; // 중복 방지 플래그 설정
+    setIsLoading(true);
+    setCreatingAgentChat(agent.id); // 생성 중 상태 설정
+    setSelectedAgentForChat(agent);
+    
+    console.log('🚀 Creating chat with agent:', agent.id, agent.name);
+    // API를 통해 에이전트와 새 채팅 생성
+    const response = await chatService.createChatHistory(agent.id, `${agent.name}와의 대화`);
+    console.log('✅ Chat creation response:', response);
       
       if (response?.id) {
         setCurrentChatId(response.id);
@@ -1047,6 +1058,7 @@ const AIChat: React.FC = () => {
       // 🧹 상태 정리 (성공/실패 관계없이)
       setIsLoading(false);
       setCreatingAgentChat(null);
+      isCreatingAgentChatRef.current = false; // 중복 방지 플래그 리셋
     }
   };
 
