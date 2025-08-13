@@ -118,6 +118,37 @@ export const useChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 전체 채팅 삭제
+  const deleteAllChats = async () => {
+    try {
+      // 일반 채팅만 삭제 (북마크된 채팅은 제외)
+      const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
+      
+      // 각 채팅 삭제 API 호출
+      for (const chat of nonBookmarkedChats) {
+        await chatService.deleteChat(chat.id);
+      }
+      
+      // 상태에서 일반 채팅 제거 (북마크된 채팅만 남김)
+      const updatedHistory = chatHistory.filter(chat => chat.isBookmarked);
+      setChatHistory(updatedHistory);
+      
+      // 캐시 업데이트
+      saveChatHistoryToCache(updatedHistory);
+      
+      // 현재 선택된 채팅이 삭제된 경우 초기화
+      const currentChat = chatHistory.find(chat => chat.id === currentChatId);
+      if (currentChat && !currentChat.isBookmarked) {
+        setCurrentChatId(null);
+        setMessages([]);
+      }
+      
+      console.log('✅ 전체 채팅 삭제 완료');
+    } catch (error) {
+      console.error('❌ 전체 채팅 삭제 실패:', error);
+    }
+  };
+
   // Mock AI 응답 생성 (기존 커밋과 동일)
   const getMockAIResponse = (userInput: string): ChatMessage => {
     const responses: {[key: string]: string} = {
@@ -408,6 +439,7 @@ export const useChat = () => {
     scrollToBottom,
     getMockAIResponse,
     loadData,
-    loadMessages
+    loadMessages,
+    deleteAllChats
   };
 };

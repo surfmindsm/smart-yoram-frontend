@@ -89,6 +89,7 @@ const AIChat: React.FC = () => {
             onCancelEdit={chatHandlers.handleCancelEdit}
             onToggleMenu={chatHandlers.handleToggleMenu}
             onDeleteChat={(chatId: string, title: string) => chatHandlers.handleDeleteChat(chatId)}
+            onDeleteAllChats={chatState.deleteAllChats}
             dropdownRef={chatState.messagesEndRef}
           />
         </div>

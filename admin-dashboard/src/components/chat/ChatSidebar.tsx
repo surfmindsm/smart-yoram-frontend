@@ -26,6 +26,7 @@ interface ChatSidebarProps {
   onCancelEdit: () => void;
   onToggleMenu: (chatId: string) => void;
   onDeleteChat: (chatId: string, title: string) => void;
+  onDeleteAllChats: () => void;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -51,6 +52,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onCancelEdit,
   onToggleMenu,
   onDeleteChat,
+  onDeleteAllChats,
   dropdownRef
 }) => {
   const toggleMenu = (chatId: string) => {
@@ -231,9 +233,21 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             )}
 
             {/* 일반 채팅 섹션 */}
-            <h3 className="text-sm font-semibold text-slate-600 mb-3">
-              최근 대화
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-600">
+                최근 대화
+              </h3>
+              {chatHistory.filter(chat => !chat.isBookmarked).length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDeleteAllChats}
+                  className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 h-auto"
+                >
+                  전체 삭제
+                </Button>
+              )}
+            </div>
             
             {chatHistory.filter(chat => !chat.isBookmarked).length === 0 ? (
               <div className="text-sm text-slate-500 text-center py-8">
