@@ -1829,7 +1829,7 @@ const AIChat: React.FC = () => {
               </div>
 
               {/* 입력 영역 - 메시지가 있을 때만 표시 */}
-              {(messages.length > 0 || isLoading) && (
+              {messages.length > 0 && (
                 <div className="border-t border-slate-200 p-4">
                   <div className="max-w-4xl mx-auto">
                     <div className="flex space-x-2">
