@@ -24,7 +24,7 @@ interface UseChatHandlersProps {
   setEditingTitle: Dispatch<SetStateAction<string>>;
   setOpenMenuId: Dispatch<SetStateAction<string | null>>;
   setDeleteConfirmModal: Dispatch<SetStateAction<{ isOpen: boolean; chatTitle: string; chatId: string | null }>>;
-  getMockAIResponse: (input: string) => Promise<string>;
+  getMockAIResponse: (input: string) => ChatMessage;
   scrollToBottom: () => void;
   loadData: () => Promise<void>;
 }
@@ -106,14 +106,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user');
       }
 
-      // AI 응답 생성
-      const aiResponse = await getMockAIResponse(userMessage.content);
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: new Date()
-      };
+      // AI 응답 생성 (기존 커밋과 동일)
+      const mockResponse = getMockAIResponse(userMessage.content);
+      const aiMessage: ChatMessage = mockResponse;
 
       // 메시지 목록 업데이트
       const finalMessages = [...updatedMessages, aiMessage];
