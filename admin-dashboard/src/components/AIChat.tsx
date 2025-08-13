@@ -39,6 +39,44 @@ const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // 🔥 MCP를 통한 메시지 저장/조회 함수들
+  const saveMessageViaMCP = async (chatHistoryId: string, content: string, role: 'user' | 'assistant', tokensUsed?: number) => {
+    try {
+      console.log('💾 MCP로 메시지 저장:', { chatHistoryId, role, content: content.substring(0, 50) + '...' });
+      
+      // 실제 MCP execute_sql 도구 사용 (임시로 로깅만)
+      // 실제 구현에서는 서버사이드에서 MCP 호출해야 함
+      console.log('MCP SQL 실행 예정:', {
+        query: 'INSERT INTO chat_messages (chat_history_id, content, role, tokens_used) VALUES ($1, $2, $3, $4)',
+        params: [chatHistoryId, content, role, tokensUsed || null]
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.warn('MCP 메시지 저장 실패:', error);
+      return { success: false };
+    }
+  };
+
+  const loadMessagesViaMCP = async (chatHistoryId: string): Promise<ChatMessage[]> => {
+    try {
+      console.log('📚 MCP로 메시지 조회:', chatHistoryId);
+      
+      // 실제 MCP execute_sql 도구 사용 (임시로 현재 메시지 반환)
+      // 실제 구현에서는 서버사이드에서 MCP 호출해야 함
+      console.log('MCP SQL 실행 예정:', {
+        query: 'SELECT id, content, role, tokens_used, created_at FROM chat_messages WHERE chat_history_id = $1 ORDER BY created_at ASC',
+        params: [chatHistoryId]
+      });
+      
+      // 현재는 로컬 상태의 메시지 반환 (MCP 구현 완료 시 실제 DB 조회로 변경)
+      return messages;
+    } catch (error) {
+      console.warn('MCP 메시지 조회 실패:', error);
+      return [];
+    }
+  };
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -836,7 +874,61 @@ const AIChat: React.FC = () => {
       // 🚫 사용자 메시지는 이미 위에서 추가했으므로 여기서는 추가하지 않음
       
       try {
-        // Edge Function으로 실제 GPT API 호출
+        // 🔥 교인정보 에이전트의 경우 MCP를 통해 직접 메시지 저장
+        if (selectedAgentForChat?.id === '10' || selectedAgentForChat?.name?.includes('교인')) {
+          console.log('🔥 교인정보 에이전트: MCP를 통한 직접 처리');
+          
+          // 1. 사용자 메시지를 MCP로 저장
+          await saveMessageViaMCP(currentChatId, userMessage, 'user');
+          
+          // 2. 기존 히스토리 조회
+          const existingMessages = await loadMessagesViaMCP(currentChatId);
+          console.log('📚 기존 히스토리 조회 완료:', existingMessages.length, '개 메시지');
+          
+          // 3. GPT API 호출 (히스토리 + 컨텍스트 포함)
+          const gptMessages = [
+            { role: 'system', content: `교회 데이터: ${JSON.stringify(contextData)}` },
+            ...existingMessages.map(msg => ({ role: msg.role, content: msg.content })),
+            { role: 'user', content: userMessage }
+          ];
+          
+          // 직접 OpenAI API 호출
+          const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY || 'sk-proj-...'}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: gptMessages,
+              max_tokens: 1000,
+              temperature: 0.7
+            })
+          });
+          
+          if (gptResponse.ok) {
+            const gptData = await gptResponse.json();
+            const aiContent = gptData.choices[0].message.content;
+            
+            // 4. AI 응답을 MCP로 저장
+            await saveMessageViaMCP(currentChatId, aiContent, 'assistant', gptData.usage?.total_tokens);
+            
+            // 5. UI에 AI 응답 표시
+            const aiResponse: ChatMessage = {
+              id: `ai-${Date.now()}`,
+              content: aiContent,
+              role: 'assistant',
+              timestamp: new Date(),
+              tokensUsed: gptData.usage?.total_tokens
+            };
+            setMessages(prev => [...prev, aiResponse]);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // 일반 에이전트의 경우 기존 Edge Function 사용
         const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/chat-manager/messages', {
           method: 'POST',
           headers: {
@@ -847,6 +939,7 @@ const AIChat: React.FC = () => {
             chat_history_id: currentChatId,
             agent_id: selectedAgentForChat?.id,
             content: userMessage,
+            messages: messages, // 🔥 이전 대화 히스토리 포함
             context_data: contextData // 🔥 실제 교회 데이터 포함
           })
         });
