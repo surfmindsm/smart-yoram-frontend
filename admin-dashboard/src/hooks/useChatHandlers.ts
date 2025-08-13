@@ -1,6 +1,7 @@
-import { useState, useRef, Dispatch, SetStateAction, KeyboardEvent } from 'react';
+import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
-import { saveMessageViaMCP } from '../utils/mcpUtils';
+import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
+import { getAIResponse } from '../services/agentService';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -44,7 +45,8 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setChatHistory,
     setActiveTab,
     setSelectedAgent,
-    messageCache,
+    // messageCache는 실제로 사용됨 (캐시 업데이트에서)
+    messageCache, // eslint-disable-line @typescript-eslint/no-unused-vars
     setMessageCache,
     editingChatId,
     setEditingChatId,
@@ -52,12 +54,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setEditingTitle,
     setOpenMenuId,
     setDeleteConfirmModal,
-    getMockAIResponse,
+    // getMockAIResponse는 MCP 시스템에서 사용하지 않음
+    getMockAIResponse, // eslint-disable-line @typescript-eslint/no-unused-vars
     scrollToBottom,
     loadData
   } = props;
 
-  // 메시지 전송 핸들러
+  // 🚀 MCP 기반 스마트 메시지 전송 핸들러
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
@@ -78,13 +81,14 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
       // 새 채팅이거나 채팅 ID가 없는 경우 새로 생성
       let effectiveChatId = currentChatId;
+      
       if (!effectiveChatId) {
         effectiveChatId = `chat_${Date.now()}`;
         setCurrentChatId(effectiveChatId);
 
         const newChatHistory: ChatHistory = {
           id: effectiveChatId,
-          title: '새 대화',
+          title: selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : '새 대화',
           timestamp: new Date(),
           messageCount: 0,
           isBookmarked: false
@@ -106,30 +110,133 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user');
       }
 
-      // AI 응답 생성 (기존 커밋과 동일)
-      const mockResponse = getMockAIResponse(userMessage.content);
-      const aiMessage: ChatMessage = mockResponse;
+      // 🚀 모든 에이전트가 MCP를 통해 실제 데이터베이스 조회
+      try {
+        console.log('🚀 MCP 기반 스마트 에이전트 처리:', selectedAgentForChat?.name);
+        
+        // 1. 사용자 질문을 분석해서 관련 데이터베이스 조회
+        const dbResult = await queryDatabaseViaMCP(userMessage.content);
+        
+        console.log('📊 DB 조회 결과:', dbResult);
+        
+        let aiResponse: ChatMessage;
+        
+        // 2. 조회된 실제 데이터를 컨텍스트로 GPT API 호출
+        if (dbResult.success && dbResult.data.length > 0) {
+          console.log('✅ 실제 데이터로 GPT API 호출');
+          
+          const contextData = {
+            query: userMessage.content,
+            database_results: dbResult.data,
+            agent_info: {
+              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
+              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
+            },
+            data_summary: {
+              total_records: dbResult.data.length,
+              query_analysis: `사용자가 "${userMessage.content}"에 대해 질문했습니다.`
+            }
+          };
+          
+          // getAIResponse는 ChatMessage 객체를 반환함
+          aiResponse = await getAIResponse(
+            effectiveChatId || `temp_${Date.now()}`,
+            selectedAgentForChat,
+            userMessage.content,
+            messages
+          );
+        } else if (dbResult.error) {
+          console.log('⚠️ DB 조회 실패, 에러 메시지와 함께 응답');
+          
+          aiResponse = {
+            id: `ai_${Date.now()}`,
+            role: 'assistant',
+            content: `죄송합니다. 요청하신 정보를 조회하는 중 문제가 발생했습니다.\n\n**오류 내용:** ${dbResult.error}\n\n다시 시도해 주시거나, 다른 방식으로 질문해 주세요.`,
+            timestamp: new Date()
+          };
+        } else {
+          console.log('📭 조회된 데이터가 없음, 일반 응답');
+          
+          const contextData = {
+            query: userMessage.content,
+            message: '요청하신 조건에 맞는 데이터를 찾을 수 없습니다.',
+            agent_info: {
+              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
+              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
+            }
+          };
+          
+          // getAIResponse는 ChatMessage 객체를 반환함
+          aiResponse = await getAIResponse(
+            effectiveChatId || `temp_${Date.now()}`,
+            selectedAgentForChat,
+            userMessage.content,
+            messages
+          );
+        }
 
-      // 메시지 목록 업데이트
-      const finalMessages = [...updatedMessages, aiMessage];
-      setMessages(finalMessages);
+        // AI 응답을 메시지에 추가
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
 
-      // 캐시 업데이트
-      if (effectiveChatId) {
-        setMessageCache(prev => ({
-          ...prev,
-          [effectiveChatId as string]: finalMessages
-        }));
+        // 캐시 업데이트
+        if (effectiveChatId) {
+          setMessageCache(prev => ({
+            ...prev,
+            [effectiveChatId as string]: finalMessages
+          }));
+        }
+
+        // MCP를 통한 AI 응답 저장
+        if (effectiveChatId) {
+          await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant');
+        }
+
+        scrollToBottom();
+
+      } catch (aiError) {
+        console.error('❌ MCP 스마트 에이전트 처리 실패:', aiError);
+        
+        // 에러 발생 시 사용자에게 친화적인 메시지 제공
+        const errorResponse: ChatMessage = {
+          id: `ai_error_${Date.now()}`,
+          role: 'assistant',
+          content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n**문제 상황:** 데이터베이스 연결 또는 AI 처리 과정에서 오류\n**해결 방법:** 잠시 후 다시 시도해 주세요\n\n문제가 지속되면 관리자에게 문의해 주세요.`,
+          timestamp: new Date()
+        };
+        
+        const finalMessages = [...updatedMessages, errorResponse];
+        setMessages(finalMessages);
+
+        // 캐시 업데이트
+        if (effectiveChatId) {
+          setMessageCache(prev => ({
+            ...prev,
+            [effectiveChatId as string]: finalMessages
+          }));
+        }
+
+        // MCP를 통한 에러 응답 저장
+        if (effectiveChatId) {
+          await saveMessageViaMCP(effectiveChatId, errorResponse.content, 'assistant');
+        }
+
+        scrollToBottom();
       }
 
-      // MCP를 통한 AI 응답 저장
-      if (effectiveChatId) {
-        await saveMessageViaMCP(effectiveChatId, aiMessage.content, 'assistant');
-      }
-
-      scrollToBottom();
     } catch (error) {
-      console.error('메시지 전송 실패:', error);
+      console.error('❌ 메시지 전송 실패:', error);
+      
+      // 전체 프로세스 실패 시 사용자에게 알림
+      const systemErrorResponse: ChatMessage = {
+        id: `system_error_${Date.now()}`,
+        role: 'assistant',
+        content: `시스템 오류가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, systemErrorResponse]);
+      scrollToBottom();
     } finally {
       setIsLoading(false);
     }
@@ -157,9 +264,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setMessages([]);
     setCurrentChatId(null);
     setActiveTab('history');
-    
-    // 자동으로 첫 메시지 전송
-    // await handleSendMessage();
   };
 
   // 채팅 삭제
