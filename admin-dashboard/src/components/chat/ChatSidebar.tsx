@@ -74,7 +74,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
 
   return (
-    <div className="w-80 border-r border-slate-200">
+    <div className="w-80 border-r border-slate-200 flex flex-col h-full">
       {/* 탭 헤더 */}
       <div className="border-b border-slate-200">
         <div className="flex">
@@ -116,7 +116,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       )}
       
       {/* 탭 내용 */}
-      <div className="p-4 overflow-y-auto h-[calc(100%-120px)]">
+      <div className="flex-1 p-4 overflow-y-auto">
         {activeTab === 'history' ? (
           <>
             {/* 고정된 채팅 섹션 */}

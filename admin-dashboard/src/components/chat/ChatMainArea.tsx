@@ -149,11 +149,12 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
     );
   }
 
-  // 히스토리 탭에서 메시지가 있는 경우  
-  if (activeTab === 'history' && messages.length > 0) {
+  // 히스토리 탭 - 메시지 영역과 입력창 완전 분리
+  if (activeTab === 'history') {
     return (
-      <div className="flex-1 flex flex-col bg-white">
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 relative h-full">
+        {/* 메시지 영역 - 입력창 높이 제외하고 스크롤 */}
+        <div className="absolute top-0 left-0 right-0 bottom-20 overflow-y-auto">
           <MessageList 
             messages={messages}
             isLoading={isLoading}
@@ -161,29 +162,31 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           />
         </div>
 
-        {/* 입력 영역 - 메시지가 있을 때만 표시 */}
-        <div className="border-t border-slate-200 p-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex space-x-2">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={onKeyPress}
-                placeholder="메시지를 입력하세요..."
-                className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
-                rows={1}
-                style={{ minHeight: '44px', maxHeight: '120px' }}
-              />
-              <Button
-                onClick={onSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+        {/* 입력 영역 - 절대 위치로 하단 고정 */}
+        {messages.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-20 border-t border-slate-200 p-4 bg-white z-10">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex space-x-2">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={onKeyPress}
+                  placeholder="메시지를 입력하세요..."
+                  className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                  rows={1}
+                  style={{ minHeight: '44px', maxHeight: '120px' }}
+                />
+                <Button
+                  onClick={onSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }

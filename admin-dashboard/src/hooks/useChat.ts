@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/chat';
-import { chatService, agentService, memberService, announcementService, attendanceService } from '../services/api';
+import { chatService, agentService } from '../services/api';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
 
 export const useChat = () => {
@@ -68,15 +68,15 @@ export const useChat = () => {
     try {
       setLoadingChats(true);
       
-      // 🚀 병렬 API 호출로 속도 2배 개선
-      const [chatHistoryResult, agentsResult] = await Promise.allSettled([
-        chatService.getChatHistories({ limit: 50 }),
-        agentService.getAgents()
+      // 병렬 API 호출 (에이전트, 채팅 히스토리)
+      const [agentsResult, chatsResult] = await Promise.allSettled([
+        agentService.getAgents(),
+        chatService.getChatHistories({ limit: 50 })
       ]);
 
       // 채팅 히스토리 처리
-      if (chatHistoryResult.status === 'fulfilled') {
-        const response = chatHistoryResult.value;
+      if (chatsResult.status === 'fulfilled') {
+        const response = chatsResult.value;
         const histories = response.data || response;
         if (Array.isArray(histories)) {
           const formattedHistories = histories.map((history: any) => ({
@@ -106,27 +106,43 @@ export const useChat = () => {
         setCurrentChatId(mockHistory[0].id);
       }
 
-      // 에이전트 처리
+      // 에이전트 처리 (기존 커밋과 동일한 로직)
       if (agentsResult.status === 'fulfilled') {
         const response = agentsResult.value;
         console.log('🔍 AIChat - 에이전트 API 응답:', response);
         
         let agentList = [];
         
-        // 새로운 API 형식 처리
-        if (response?.agents && Array.isArray(response.agents)) {
-          agentList = response.agents;
-        } else if (response?.data && Array.isArray(response.data)) {
+        // 새로운 API 형식 처리 (기존 커밋과 동일)
+        if (response.success && response.data && Array.isArray(response.data.agents)) {
+          agentList = response.data.agents;
+        } else if (Array.isArray(response.data)) {
           agentList = response.data;
         } else if (Array.isArray(response)) {
           agentList = response;
         }
         
-        const activeAgents = agentList.filter((agent: Agent) => agent.isActive);
-        setAgents(activeAgents);
-        console.log('✅ AIChat - 활성 에이전트:', activeAgents.length, '개');
+        if (agentList.length > 0) {
+          // 백엔드 snake_case를 프론트엔드 camelCase로 변환
+          const transformedAgents = agentList.map((agent: any) => ({
+            id: agent.id,
+            name: agent.name,
+            category: agent.category,
+            description: agent.description,
+            isActive: agent.is_active || agent.isActive,
+            icon: agent.icon,
+            systemPrompt: agent.system_prompt,
+            detailedDescription: agent.detailed_description
+          }));
+          
+          setAgents(transformedAgents);
+          console.log('✅ AIChat - 에이전트 로드 성공:', transformedAgents.length, '개');
+        } else {
+          console.log('⚠️ AIChat - 에이전트 목록이 비어있음');
+          setAgents([]);
+        }
       } else {
-        // Mock 에이전트 폴백
+        console.log('❌ AIChat - 에이전트 로딩 실패, Mock 데이터 사용');
         const mockAgents: Agent[] = [
           { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
           { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true },
@@ -134,7 +150,7 @@ export const useChat = () => {
           { id: '4', name: '상담 에이전트', category: '목회 상담', description: '신앙 상담과 개인적인 고민을 함께 나눌 수 있습니다.', isActive: true }
         ];
         setAgents(mockAgents);
-        console.log('🔄 AIChat - Mock 에이전트 사용');
+        console.log('🔄 AIChat - Mock 에이전트 사용:', mockAgents.length, '개');
       }
     } catch (error) {
       console.error('❌ AIChat - 전체 데이터 로딩 실패:', error);
