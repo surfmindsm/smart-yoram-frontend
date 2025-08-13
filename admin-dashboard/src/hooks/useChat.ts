@@ -3,14 +3,71 @@ import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/ch
 import { chatService, agentService } from '../services/api';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
 
+// 🚀 localStorage 캐시 키
+const CACHE_KEYS = {
+  CHAT_HISTORY: 'chat_history_cache',
+  AGENTS: 'agents_cache',
+  CACHE_TIMESTAMP: 'cache_timestamp'
+};
+
+// 🚀 캐시 유효 시간 (5분)
+const CACHE_DURATION = 5 * 60 * 1000;
+
 export const useChat = () => {
+  // 🚀 localStorage에서 즉시 캐시된 데이터 로드
+  const getInitialChatHistory = (): ChatHistory[] => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEYS.CHAT_HISTORY);
+      const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        if (age < CACHE_DURATION) {
+          const parsedHistory = JSON.parse(cached).map((history: any) => ({
+            ...history,
+            timestamp: new Date(history.timestamp)
+          }));
+          console.log('🚀 캐시된 채팅 히스토리 즉시 로드:', parsedHistory.length, '개');
+          return parsedHistory;
+        }
+      }
+    } catch (error) {
+      console.error('캐시 로드 실패:', error);
+    }
+    return [];
+  };
+  
+  const getInitialAgents = (): Agent[] => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEYS.AGENTS);
+      const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        if (age < CACHE_DURATION) {
+          console.log('🚀 캐시된 에이전트 즉시 로드:', JSON.parse(cached).length, '개');
+          return JSON.parse(cached);
+        }
+      }
+    } catch (error) {
+      console.error('캐시 로드 실패:', error);
+    }
+    return [];
+  };
+  
+  // 🚀 초기 캐시 데이터 로드
+  const initialHistory = getInitialChatHistory();
+  const initialAgents = getInitialAgents();
+
   // 상태 정의
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialHistory);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(
+    initialHistory.length > 0 ? initialHistory[0].id : null
+  );
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
   const [showHistory, setShowHistory] = useState(true);
@@ -26,6 +83,31 @@ export const useChat = () => {
     chatTitle: ''
   });
   const [messageCache, setMessageCache] = useState<{[key: string]: ChatMessage[]}>({});
+  
+  // 🚀 중복 로딩 방지를 위한 상태
+  const [isDataLoaded, setIsDataLoaded] = useState(initialHistory.length > 0 && initialAgents.length > 0);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  
+  // 🚀 캐시 저장 함수
+  const saveChatHistoryToCache = (histories: ChatHistory[]) => {
+    try {
+      localStorage.setItem(CACHE_KEYS.CHAT_HISTORY, JSON.stringify(histories));
+      localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
+      console.log('💾 채팅 히스토리 캐시 저장:', histories.length, '개');
+    } catch (error) {
+      console.error('캐시 저장 실패:', error);
+    }
+  };
+  
+  const saveAgentsToCache = (agentList: Agent[]) => {
+    try {
+      localStorage.setItem(CACHE_KEYS.AGENTS, JSON.stringify(agentList));
+      localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
+      console.log('💾 에이전트 캐시 저장:', agentList.length, '개');
+    } catch (error) {
+      console.error('캐시 저장 실패:', error);
+    }
+  };
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,9 +145,32 @@ export const useChat = () => {
     };
   };
 
-  // 데이터 로딩 최적화 (병렬 API 호출) - 기존 커밋과 동일
+  // 🚀 데이터 로딩 최적화 - 중복 호출 방지 + 캐시 활용
   const loadData = async () => {
+    // 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
+    if (isLoadingData || isDataLoaded) {
+      console.log('⚡ 중복 로딩 방지:', { isLoadingData, isDataLoaded });
+      return;
+    }
+    
+    // 🚀 캐시가 있으면 API 호출 생략
+    const hasCachedHistory = chatHistory.length > 0;
+    const hasCachedAgents = agents.length > 0;
+    
+    if (hasCachedHistory && hasCachedAgents) {
+      console.log('🚀 캐시된 데이터 사용 - API 호출 생략');
+      setIsDataLoaded(true);
+      setLoadingChats(false);
+      
+      // currentChatId가 없으면 첫 번째 채팅으로 설정
+      if (!currentChatId && chatHistory.length > 0) {
+        setCurrentChatId(chatHistory[0].id);
+      }
+      return;
+    }
+    
     try {
+      setIsLoadingData(true);
       setLoadingChats(true);
       
       // 병렬 API 호출 (에이전트, 채팅 히스토리)
@@ -85,7 +190,8 @@ export const useChat = () => {
             isBookmarked: history.is_bookmarked || false
           }));
           setChatHistory(formattedHistories);
-          if (formattedHistories.length > 0) {
+          saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
+          if (formattedHistories.length > 0 && !currentChatId) {
             setCurrentChatId(formattedHistories[0].id);
           }
         } else {
@@ -103,7 +209,10 @@ export const useChat = () => {
           }
         ];
         setChatHistory(mockHistory);
-        setCurrentChatId(mockHistory[0].id);
+        saveChatHistoryToCache(mockHistory); // 🚀 캐시 저장
+        if (!currentChatId) {
+          setCurrentChatId(mockHistory[0].id);
+        }
       }
 
       // 에이전트 처리 (기존 커밋과 동일한 로직)
@@ -136,6 +245,7 @@ export const useChat = () => {
           }));
           
           setAgents(transformedAgents);
+          saveAgentsToCache(transformedAgents); // 🚀 캐시 저장
           console.log('✅ AIChat - 에이전트 로드 성공:', transformedAgents.length, '개');
         } else {
           console.log('⚠️ AIChat - 에이전트 목록이 비어있음');
@@ -152,6 +262,11 @@ export const useChat = () => {
         setAgents(mockAgents);
         console.log('🔄 AIChat - Mock 에이전트 사용:', mockAgents.length, '개');
       }
+      
+      // ✅ 데이터 로딩 완료 표시
+      setIsDataLoaded(true);
+      console.log('✅ 데이터 로딩 완료!');
+      
     } catch (error) {
       console.error('❌ AIChat - 전체 데이터 로딩 실패:', error);
       
@@ -173,8 +288,12 @@ export const useChat = () => {
         { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true }
       ];
       setAgents(mockAgents);
+      
+      // ⚠️ 오류 시에도 로딩 완료로 표시 (재시도 방지)
+      setIsDataLoaded(true);
     } finally {
       setLoadingChats(false);
+      setIsLoadingData(false);
     }
   };
 
@@ -225,7 +344,9 @@ export const useChat = () => {
 
   // useEffect: currentChatId 변경 시 메시지 로드
   useEffect(() => {
-    loadMessages();
+    if (currentChatId) {
+      loadMessages();
+    }
   }, [currentChatId]);
 
   // useEffect: 외부 클릭으로 메뉴 닫기
@@ -276,6 +397,8 @@ export const useChat = () => {
     setDeleteConfirmModal,
     messageCache,
     setMessageCache,
+    isDataLoaded,
+    isLoadingData,
     
     // Refs
     messagesEndRef,
