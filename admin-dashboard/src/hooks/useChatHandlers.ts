@@ -276,7 +276,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     });
   };
 
-  // 삭제 확인
+  // 삭제 확인 (개별 채팅만 처리)
   const handleDeleteConfirmModal = async () => {
     const chatId = chatHistory[0]?.id; // 임시로 첫 번째 채팅 ID 사용
     if (chatId) {

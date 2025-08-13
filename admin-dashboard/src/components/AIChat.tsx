@@ -119,7 +119,23 @@ const AIChat: React.FC = () => {
       <DeleteConfirmModal
         modal={chatState.deleteConfirmModal}
         onClose={() => chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null })}
-        onConfirm={chatHandlers.handleDeleteConfirmModal}
+        onConfirm={async () => {
+          const modalChatId = chatState.deleteConfirmModal.chatId;
+          
+          // 전체 삭제인 경우
+          if (modalChatId === 'ALL_CHATS') {
+            console.log('🗑️ 전체 삭제 확인됨');
+            await chatState.executeDeleteAllChats();
+          } 
+          // 개별 채팅 삭제인 경우
+          else {
+            console.log('🗑️ 개별 채팅 삭제 확인됨');
+            chatHandlers.handleDeleteConfirmModal();
+          }
+          
+          // 모달 닫기
+          chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null });
+        }}
       />
     </div>
   );

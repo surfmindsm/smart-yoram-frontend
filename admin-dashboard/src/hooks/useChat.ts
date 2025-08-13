@@ -118,19 +118,50 @@ export const useChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 전체 채팅 삭제
-  const deleteAllChats = async () => {
+  // 전체 채팅 삭제 시작 (다이얼로그 표시)
+  const deleteAllChats = () => {
+    console.log('🗑️ 전체 채팅 삭제 함수 호출됨');
+    console.log('현재 채팅 히스토리:', chatHistory);
+    
+    // 일반 채팅만 삭제 (북마크된 채팅은 제외)
+    const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
+    console.log('삭제할 일반 채팅 목록:', nonBookmarkedChats);
+    
+    if (nonBookmarkedChats.length === 0) {
+      console.log('삭제할 채팅이 없습니다.');
+      return;
+    }
+    
+    // 전체 삭제용 다이얼로그 표시
+    setDeleteConfirmModal({
+      isOpen: true,
+      chatId: 'ALL_CHATS', // 전체 삭제를 나타내는 특별한 ID
+      chatTitle: `${nonBookmarkedChats.length}개의 모든 채팅`
+    });
+  };
+
+  // 실제 전체 채팅 삭제 실행
+  const executeDeleteAllChats = async () => {
+    console.log('🗑️ 전체 채팅 삭제 실행');
+    
     try {
       // 일반 채팅만 삭제 (북마크된 채팅은 제외)
       const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
       
+      console.log('API 호출 시작...');
       // 각 채팅 삭제 API 호출
       for (const chat of nonBookmarkedChats) {
-        await chatService.deleteChat(chat.id);
+        console.log('채팅 삭제 중:', chat.id, chat.title);
+        try {
+          await chatService.deleteChat(chat.id);
+        } catch (apiError) {
+          console.warn('API 삭제 실패 (계속 진행):', chat.id, apiError);
+        }
       }
       
       // 상태에서 일반 채팅 제거 (북마크된 채팅만 남김)
       const updatedHistory = chatHistory.filter(chat => chat.isBookmarked);
+      console.log('업데이트된 히스토리:', updatedHistory);
       setChatHistory(updatedHistory);
       
       // 캐시 업데이트
@@ -141,6 +172,7 @@ export const useChat = () => {
       if (currentChat && !currentChat.isBookmarked) {
         setCurrentChatId(null);
         setMessages([]);
+        console.log('현재 선택된 채팅도 삭제되어 초기화');
       }
       
       console.log('✅ 전체 채팅 삭제 완료');
@@ -440,6 +472,7 @@ export const useChat = () => {
     getMockAIResponse,
     loadData,
     loadMessages,
-    deleteAllChats
+    deleteAllChats,
+    executeDeleteAllChats
   };
 };
