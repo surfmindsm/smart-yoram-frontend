@@ -414,14 +414,29 @@ const AIChat: React.FC = () => {
     const userMessage = inputValue.trim();
     setInputValue('');
     
-    // 🚀 사용자 메시지 즉시 표시
+    // 🚀 사용자 메시지 즉시 표시 (중복 방지)
     const newUserMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       content: userMessage,
       role: 'user',
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, newUserMessage]);
+    
+    // 중복 메시지 방지: 같은 내용의 최근 메시지가 있으면 추가하지 않음
+    setMessages(prev => {
+      const recentMessages = prev.slice(-2); // 최근 2개 메시지 확인
+      const isDuplicate = recentMessages.some(msg => 
+        msg.content === userMessage && msg.role === 'user' &&
+        Date.now() - msg.timestamp.getTime() < 2000 // 2초 내 중복
+      );
+      
+      if (isDuplicate) {
+        console.log('🚫 중복 메시지 방지:', userMessage);
+        return prev; // 중복이면 추가하지 않음
+      }
+      
+      return [...prev, newUserMessage];
+    });
     setIsLoading(true);
 
     // 🔥 교인 관련 에이전트는 무조건 실제 데이터 수집
@@ -818,14 +833,7 @@ const AIChat: React.FC = () => {
     } catch (error) {
       console.warn('백엔드 API 실패, Edge Function 사용:', error);
       
-      // 사용자 메시지 먼저 추가
-      const newUserMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
-        content: userMessage,
-        role: 'user',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, newUserMessage]);
+      // 🚫 사용자 메시지는 이미 위에서 추가했으므로 여기서는 추가하지 않음
       
       try {
         // Edge Function으로 실제 GPT API 호출
