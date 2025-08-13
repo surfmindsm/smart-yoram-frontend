@@ -235,7 +235,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         )}
 
         {/* 메시지 영역 - 헤더와 입력창 높이 제외하고 스크롤 */}
-        <div className={`absolute left-0 right-0 bottom-18 overflow-y-auto ${messages.length > 0 ? 'top-16' : 'top-0'}`}>
+        <div className={`absolute left-0 right-0 bottom-[5rem] overflow-y-auto ${messages.length > 0 ? 'top-16' : 'top-0'}`}>
           <MessageList 
             messages={messages}
             isLoading={isLoading}
