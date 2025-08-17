@@ -22,6 +22,72 @@ interface PrayerInputFormProps {
   inputs: PrayerInputs;
 }
 
+interface BasicPrayerInputProps {
+  onInputChange: (key: string, value: any) => void;
+  inputs: PrayerInputs;
+}
+
+const BasicPrayerInput: React.FC<BasicPrayerInputProps> = ({ onInputChange, inputs }) => {
+  return (
+    <>
+      <div>
+        <Label htmlFor="prayerType">기도 유형</Label>
+        <Select onValueChange={(value) => onInputChange('prayerType', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="기도 유형을 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="개인기도">개인기도</SelectItem>
+            <SelectItem value="공동기도">공동기도</SelectItem>
+            <SelectItem value="대표기도">대표기도</SelectItem>
+            <SelectItem value="중보기도">중보기도</SelectItem>
+            <SelectItem value="치유기도">치유기도</SelectItem>
+            <SelectItem value="축복기도">축복기도</SelectItem>
+            <SelectItem value="회개기도">회개기도</SelectItem>
+            <SelectItem value="감사기도">감사기도</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="occasion">기도 상황/목적</Label>
+        <Select onValueChange={(value) => onInputChange('occasion', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="기도할 상황이나 목적을 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="주일예배">주일예배</SelectItem>
+            <SelectItem value="새벽기도">새벽기도</SelectItem>
+            <SelectItem value="수요예배">수요예배</SelectItem>
+            <SelectItem value="특별집회">특별집회</SelectItem>
+            <SelectItem value="심방기도">심방기도</SelectItem>
+            <SelectItem value="병원심방">병원심방</SelectItem>
+            <SelectItem value="결혼식">결혼식</SelectItem>
+            <SelectItem value="장례식">장례식</SelectItem>
+            <SelectItem value="새해">새해</SelectItem>
+            <SelectItem value="부활절">부활절</SelectItem>
+            <SelectItem value="성탄절">성탄절</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="duration">기도 길이</Label>
+        <Select onValueChange={(value) => onInputChange('duration', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="기도 길이를 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="짧은기도">짧은 기도 (1-2분)</SelectItem>
+            <SelectItem value="보통기도">보통 기도 (3-5분)</SelectItem>
+            <SelectItem value="긴기도">긴 기도 (5-10분)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+};
+
 const PrayerInputForm: React.FC<PrayerInputFormProps> = ({ onInputChange, inputs }) => {
   const prayerElements = [
     { id: 'praise', label: '찬양과 경배' },
@@ -152,6 +218,50 @@ const PrayerInputForm: React.FC<PrayerInputFormProps> = ({ onInputChange, inputs
 };
 
 const PrayerGenerator: React.FC = () => {
+  const handleAutoFill = async (basicInfo: PrayerInputs): Promise<Partial<PrayerInputs>> => {
+    // TODO: 실제 API 호출로 대체
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const suggestions: Partial<PrayerInputs> = {};
+    
+    if (basicInfo.prayerType && basicInfo.occasion) {
+      // 기도 유형과 상황에 따른 제목 추천
+      if (basicInfo.occasion === '결혼식') {
+        suggestions.title = '새로운 가정을 위한 축복기도';
+        suggestions.includeElements = ['praise', 'blessing'];
+      } else if (basicInfo.occasion === '장례식') {
+        suggestions.title = '위로와 소망의 기도';
+        suggestions.includeElements = ['confession', 'thanksgiving'];
+      } else if (basicInfo.occasion === '병원심방') {
+        suggestions.title = '치유와 회복을 위한 기도';
+        suggestions.includeElements = ['petition', 'blessing'];
+      } else if (basicInfo.occasion === '새해') {
+        suggestions.title = '새해를 맞아 드리는 감사와 다짐의 기도';
+        suggestions.includeElements = ['thanksgiving', 'petition'];
+      } else if (basicInfo.occasion === '부활절') {
+        suggestions.title = '부활의 기쁨과 소망을 나누는 기도';
+        suggestions.includeElements = ['praise', 'thanksgiving'];
+      } else if (basicInfo.occasion === '성탄절') {
+        suggestions.title = '임마누엘 하나님께 드리는 감사기도';
+        suggestions.includeElements = ['praise', 'thanksgiving'];
+      } else {
+        suggestions.title = `${basicInfo.occasion}을 위한 기도`;
+        suggestions.includeElements = ['praise', 'thanksgiving', 'petition'];
+      }
+      
+      // 성경 구절 추천
+      if (basicInfo.occasion === '부활절') {
+        suggestions.scriptureReference = '고린도전서 15:20';
+      } else if (basicInfo.occasion === '성탄절') {
+        suggestions.scriptureReference = '요한복음 1:14';
+      } else if (basicInfo.occasion === '새해') {
+        suggestions.scriptureReference = '예레미야 29:11';
+      }
+    }
+    
+    return suggestions;
+  };
+
   const handleGenerate = async (inputs: PrayerInputs): Promise<string> => {
     // TODO: 실제 API 호출로 대체
     await new Promise(resolve => setTimeout(resolve, 2500));
@@ -254,6 +364,8 @@ ${inputs.occasion === '결혼식' ? '새로운 가정을 이루는 두 사람을
       description="상황과 목적에 맞는 기도문을 자동으로 생성합니다."
       icon={Heart}
       onGenerate={handleGenerate}
+      onAutoFill={handleAutoFill}
+      basicFields={<BasicPrayerInput onInputChange={() => {}} inputs={{} as PrayerInputs} />}
     >
       <PrayerInputForm onInputChange={() => {}} inputs={{} as PrayerInputs} />
     </BaseAITool>

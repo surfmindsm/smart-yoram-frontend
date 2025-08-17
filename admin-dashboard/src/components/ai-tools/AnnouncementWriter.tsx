@@ -26,6 +26,69 @@ interface AnnouncementInputFormProps {
   inputs: AnnouncementInputs;
 }
 
+interface BasicAnnouncementInputProps {
+  onInputChange: (key: string, value: any) => void;
+  inputs: AnnouncementInputs;
+}
+
+const BasicAnnouncementInput: React.FC<BasicAnnouncementInputProps> = ({ onInputChange, inputs }) => {
+  return (
+    <>
+      <div>
+        <Label htmlFor="category">카테고리</Label>
+        <Select onValueChange={(value) => onInputChange('category', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="공지사항 카테고리를 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="예배안내">예배안내</SelectItem>
+            <SelectItem value="교육프로그램">교육프로그램</SelectItem>
+            <SelectItem value="행사안내">행사안내</SelectItem>
+            <SelectItem value="봉사활동">봉사활동</SelectItem>
+            <SelectItem value="선교소식">선교소식</SelectItem>
+            <SelectItem value="교회소식">교회소식</SelectItem>
+            <SelectItem value="시설관련">시설관련</SelectItem>
+            <SelectItem value="특별모임">특별모임</SelectItem>
+            <SelectItem value="사랑의실천">사랑의실천</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="eventDate">행사 날짜</Label>
+          <Input
+            id="eventDate"
+            type="date"
+            value={inputs.eventDate || ''}
+            onChange={(e) => onInputChange('eventDate', e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="eventTime">행사 시간</Label>
+          <Input
+            id="eventTime"
+            type="time"
+            value={inputs.eventTime || ''}
+            onChange={(e) => onInputChange('eventTime', e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="description">행사 설명</Label>
+        <Textarea
+          id="description"
+          value={inputs.description || ''}
+          onChange={(e) => onInputChange('description', e.target.value)}
+          placeholder="행사나 공지에 대한 간단한 설명을 입력하세요"
+          rows={2}
+        />
+      </div>
+    </>
+  );
+};
+
 const AnnouncementInputForm: React.FC<AnnouncementInputFormProps> = ({ onInputChange, inputs }) => {
   return (
     <>
@@ -173,6 +236,50 @@ const AnnouncementInputForm: React.FC<AnnouncementInputFormProps> = ({ onInputCh
 };
 
 const AnnouncementWriter: React.FC = () => {
+  const handleAutoFill = async (basicInfo: AnnouncementInputs): Promise<Partial<AnnouncementInputs>> => {
+    // TODO: 실제 API 호출로 대체
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const suggestions: Partial<AnnouncementInputs> = {};
+    
+    if (basicInfo.category && basicInfo.description) {
+      // 카테고리에 따른 제목과 설정 추천
+      if (basicInfo.category === '행사안내') {
+        suggestions.title = `${basicInfo.description} 안내`;
+        suggestions.targetAudience = '전체교인';
+        suggestions.registrationRequired = true;
+        suggestions.tone = '안내하는';
+      } else if (basicInfo.category === '예배안내') {
+        suggestions.title = `${basicInfo.description} 예배 안내`;
+        suggestions.targetAudience = '전체교인';
+        suggestions.tone = '공식적';
+      } else if (basicInfo.category === '교육프로그램') {
+        suggestions.title = `${basicInfo.description} 교육 프로그램`;
+        suggestions.registrationRequired = true;
+        suggestions.tone = '친근한';
+      } else if (basicInfo.category === '봉사활동') {
+        suggestions.title = `${basicInfo.description} 봉사자 모집`;
+        suggestions.targetAudience = '봉사자';
+        suggestions.tone = '친근한';
+      } else {
+        suggestions.title = basicInfo.description;
+        suggestions.targetAudience = '전체교인';
+        suggestions.tone = '안내하는';
+      }
+      
+      // 장소 추천
+      if (basicInfo.category === '예배안내') {
+        suggestions.location = '본당';
+      } else if (basicInfo.category === '교육프로그램') {
+        suggestions.location = '교육관';
+      } else {
+        suggestions.location = '교회 내';
+      }
+    }
+    
+    return suggestions;
+  };
+
   const handleGenerate = async (inputs: AnnouncementInputs): Promise<string> => {
     // TODO: 실제 API 호출로 대체
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -246,6 +353,8 @@ inputs.tone === '친근한' ? `
       description="교회 행사나 소식을 위한 공지사항을 작성해드립니다."
       icon={Megaphone}
       onGenerate={handleGenerate}
+      onAutoFill={handleAutoFill}
+      basicFields={<BasicAnnouncementInput onInputChange={() => {}} inputs={{} as AnnouncementInputs} />}
     >
       <AnnouncementInputForm onInputChange={() => {}} inputs={{} as AnnouncementInputs} />
     </BaseAITool>

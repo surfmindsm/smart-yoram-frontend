@@ -21,6 +21,55 @@ interface SermonInputFormProps {
   inputs: SermonInputs;
 }
 
+interface BasicSermonInputProps {
+  onInputChange: (key: string, value: any) => void;
+  inputs: SermonInputs;
+}
+
+const BasicSermonInput: React.FC<BasicSermonInputProps> = ({ onInputChange, inputs }) => {
+  return (
+    <>
+      <div>
+        <Label htmlFor="scripture">본문 말씀</Label>
+        <Input
+          id="scripture"
+          value={inputs.scripture || ''}
+          onChange={(e) => onInputChange('scripture', e.target.value)}
+          placeholder="예: 요한복음 3:16, 로마서 8:28"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="theme">설교 주제</Label>
+        <Input
+          id="theme"
+          value={inputs.theme || ''}
+          onChange={(e) => onInputChange('theme', e.target.value)}
+          placeholder="설교의 핵심 주제를 입력하세요"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="targetAudience">대상 회중</Label>
+        <Select onValueChange={(value) => onInputChange('targetAudience', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="대상 회중을 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="전체교인">전체교인</SelectItem>
+            <SelectItem value="청년부">청년부</SelectItem>
+            <SelectItem value="장년부">장년부</SelectItem>
+            <SelectItem value="학생부">학생부</SelectItem>
+            <SelectItem value="어린이">어린이</SelectItem>
+            <SelectItem value="새신자">새신자</SelectItem>
+            <SelectItem value="전도대상">전도대상</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+};
+
 const SermonInputForm: React.FC<SermonInputFormProps> = ({ onInputChange, inputs }) => {
   return (
     <>
@@ -124,6 +173,37 @@ const SermonInputForm: React.FC<SermonInputFormProps> = ({ onInputChange, inputs
 };
 
 const SermonWriter: React.FC = () => {
+  const handleAutoFill = async (basicInfo: SermonInputs): Promise<Partial<SermonInputs>> => {
+    // TODO: 실제 API 호출로 대체
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 기본 정보를 바탕으로 AI가 나머지 필드를 추천
+    const suggestions: Partial<SermonInputs> = {};
+    
+    if (basicInfo.scripture && basicInfo.theme) {
+      // 성경 본문과 주제를 기반으로 제목 추천
+      const scriptureRef = basicInfo.scripture.split(' ')[0]; // 예: "요한복음"
+      suggestions.title = `${basicInfo.theme} - ${scriptureRef}의 교훈`;
+      
+      // 대상 회중에 따른 설교 유형 추천
+      if (basicInfo.targetAudience === '새신자') {
+        suggestions.sermonType = '전도집회';
+        suggestions.duration = '20분';
+      } else if (basicInfo.targetAudience === '어린이') {
+        suggestions.sermonType = '주일예배';
+        suggestions.duration = '15분';
+      } else {
+        suggestions.sermonType = '주일예배';
+        suggestions.duration = '30분';
+      }
+      
+      // 핵심 메시지 추천
+      suggestions.keyPoints = `1. ${basicInfo.theme}의 성경적 의미\n2. 현재 우리 삶에서의 적용\n3. 실천적인 결단과 도전`;
+    }
+    
+    return suggestions;
+  };
+
   const handleGenerate = async (inputs: SermonInputs): Promise<string> => {
     // TODO: 실제 API 호출로 대체
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -173,6 +253,8 @@ ${inputs.keyPoints ? `#### 3. 핵심 적용점\n${inputs.keyPoints.split('\n').m
       description="주제와 성경 구절을 입력하면 설교문 초안을 생성해드립니다."
       icon={BookOpen}
       onGenerate={handleGenerate}
+      onAutoFill={handleAutoFill}
+      basicFields={<BasicSermonInput onInputChange={() => {}} inputs={{} as SermonInputs} />}
     >
       <SermonInputForm onInputChange={() => {}} inputs={{} as SermonInputs} />
     </BaseAITool>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Download, Loader } from 'lucide-react';
+import { ArrowLeft, Copy, Download, Loader, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface BaseAIToolProps {
@@ -9,6 +9,8 @@ interface BaseAIToolProps {
   icon: React.ElementType;
   children: React.ReactNode;
   onGenerate: (inputs: any) => Promise<string>;
+  onAutoFill?: (basicInfo: any) => Promise<any>;
+  basicFields?: React.ReactNode;
 }
 
 const BaseAITool: React.FC<BaseAIToolProps> = ({
@@ -16,12 +18,16 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
   description,
   icon: IconComponent,
   children,
-  onGenerate
+  onGenerate,
+  onAutoFill,
+  basicFields
 }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [result, setResult] = useState<string>('');
   const [inputs, setInputs] = useState<any>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -57,6 +63,21 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleAutoFill = async () => {
+    if (!onAutoFill) return;
+    
+    setIsAutoFilling(true);
+    try {
+      const autoFilledData = await onAutoFill(inputs);
+      setInputs({ ...inputs, ...autoFilledData });
+      setShowAdvanced(true);
+    } catch (error) {
+      console.error('자동 입력 중 오류 발생:', error);
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   const handleInputChange = (key: string, value: any) => {
     setInputs((prev: any) => ({ ...prev, [key]: value }));
   };
@@ -90,20 +111,78 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">입력 정보</h2>
           
-          <div className="space-y-4">
-            {React.isValidElement(children) 
-              ? React.cloneElement(children, {
-                  onInputChange: handleInputChange,
-                  inputs
-                } as any)
-              : children
-            }
-          </div>
+          {/* 기본 입력 필드 */}
+          {basicFields && !showAdvanced && (
+            <div className="space-y-4 mb-6">
+              {React.isValidElement(basicFields) 
+                ? React.cloneElement(basicFields, {
+                    onInputChange: handleInputChange,
+                    inputs
+                  } as any)
+                : basicFields
+              }
+              
+              <div className="pt-4 border-t border-slate-100">
+                {onAutoFill && (
+                  <Button
+                    onClick={handleAutoFill}
+                    disabled={isAutoFilling}
+                    variant="outline"
+                    className="w-full mb-3"
+                  >
+                    {isAutoFilling ? (
+                      <>
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        AI가 자동 입력 중...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        AI 자동 입력
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={() => setShowAdvanced(true)}
+                  variant="ghost"
+                  className="w-full text-sm"
+                >
+                  직접 입력하기
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 전체 입력 필드 (기본 필드가 없거나 고급 모드일 때) */}
+          {(!basicFields || showAdvanced) && (
+            <div className="space-y-4">
+              {showAdvanced && basicFields && (
+                <Button
+                  onClick={() => setShowAdvanced(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="mb-4"
+                >
+                  ← 간단 입력으로 돌아가기
+                </Button>
+              )}
+              
+              {React.isValidElement(children) 
+                ? React.cloneElement(children, {
+                    onInputChange: handleInputChange,
+                    inputs
+                  } as any)
+                : children
+              }
+            </div>
+          )}
 
           <div className="mt-6 pt-4 border-t border-slate-100">
             <Button
               onClick={handleGenerate}
-              disabled={isLoading}
+              disabled={isLoading || isAutoFilling}
               className="w-full"
             >
               {isLoading ? (
