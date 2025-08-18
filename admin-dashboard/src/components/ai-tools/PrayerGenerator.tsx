@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
+import { generateAIToolContent, generateAutoFillSuggestions } from '../../services/aiToolsService';
 
 interface PrayerInputs {
   title: string;
@@ -219,54 +220,44 @@ const PrayerInputForm: React.FC<PrayerInputFormProps> = ({ onInputChange, inputs
 
 const PrayerGenerator: React.FC = () => {
   const handleAutoFill = async (basicInfo: PrayerInputs): Promise<Partial<PrayerInputs>> => {
-    // TODO: 실제 API 호출로 대체
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const suggestions: Partial<PrayerInputs> = {};
-    
-    if (basicInfo.prayerType && basicInfo.occasion) {
-      // 기도 유형과 상황에 따른 제목 추천
-      if (basicInfo.occasion === '결혼식') {
-        suggestions.title = '새로운 가정을 위한 축복기도';
-        suggestions.includeElements = ['praise', 'blessing'];
-      } else if (basicInfo.occasion === '장례식') {
-        suggestions.title = '위로와 소망의 기도';
-        suggestions.includeElements = ['confession', 'thanksgiving'];
-      } else if (basicInfo.occasion === '병원심방') {
-        suggestions.title = '치유와 회복을 위한 기도';
-        suggestions.includeElements = ['petition', 'blessing'];
-      } else if (basicInfo.occasion === '새해') {
-        suggestions.title = '새해를 맞아 드리는 감사와 다짐의 기도';
-        suggestions.includeElements = ['thanksgiving', 'petition'];
-      } else if (basicInfo.occasion === '부활절') {
-        suggestions.title = '부활의 기쁨과 소망을 나누는 기도';
-        suggestions.includeElements = ['praise', 'thanksgiving'];
-      } else if (basicInfo.occasion === '성탄절') {
-        suggestions.title = '임마누엘 하나님께 드리는 감사기도';
-        suggestions.includeElements = ['praise', 'thanksgiving'];
-      } else {
-        suggestions.title = `${basicInfo.occasion}을 위한 기도`;
-        suggestions.includeElements = ['praise', 'thanksgiving', 'petition'];
+    try {
+      // 실제 AI API 호출
+      const suggestions = await generateAutoFillSuggestions('prayer-generator', basicInfo);
+      return suggestions;
+    } catch (error) {
+      console.error('기도문 자동 입력 실패:', error);
+      
+      // 폴백: 기본 로직
+      const suggestions: Partial<PrayerInputs> = {};
+      
+      if (basicInfo.prayerType && basicInfo.occasion) {
+        if (basicInfo.occasion === '결혼식') {
+          suggestions.title = '새로운 가정을 위한 축복기도';
+          suggestions.includeElements = ['praise', 'blessing'];
+        } else if (basicInfo.occasion === '부활절') {
+          suggestions.title = '부활의 기쁨과 소망을 나누는 기도';
+          suggestions.includeElements = ['praise', 'thanksgiving'];
+          suggestions.scriptureReference = '고린도전서 15:20';
+        } else {
+          suggestions.title = `${basicInfo.occasion}을 위한 기도`;
+          suggestions.includeElements = ['praise', 'thanksgiving'];
+        }
       }
       
-      // 성경 구절 추천
-      if (basicInfo.occasion === '부활절') {
-        suggestions.scriptureReference = '고린도전서 15:20';
-      } else if (basicInfo.occasion === '성탄절') {
-        suggestions.scriptureReference = '요한복음 1:14';
-      } else if (basicInfo.occasion === '새해') {
-        suggestions.scriptureReference = '예레미야 29:11';
-      }
+      return suggestions;
     }
-    
-    return suggestions;
   };
 
   const handleGenerate = async (inputs: PrayerInputs): Promise<string> => {
-    // TODO: 실제 API 호출로 대체
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    const elementLabels = {
+    try {
+      // 실제 AI API 호출
+      const generatedContent = await generateAIToolContent('prayer-generator', inputs);
+      return generatedContent;
+    } catch (error) {
+      console.error('기도문 생성 실패:', error);
+      
+      // 폴백: 기본 템플릿
+      const elementLabels = {
       praise: '찬양과 경배',
       confession: '회개',
       thanksgiving: '감사',
@@ -355,7 +346,10 @@ ${inputs.occasion === '결혼식' ? '새로운 가정을 이루는 두 사람을
 
 *기도 유형: ${inputs.prayerType || '개인기도'}*
 *상황/목적: ${inputs.occasion || '일반'}*
-*포함 요소: ${includeElementsText || '없음'}*`;
+*포함 요소: ${includeElementsText || '없음'}*
+
+⚠️ AI 서비스 연결 오류로 인해 기본 템플릿을 표시했습니다.`;
+    }
   };
 
   return (

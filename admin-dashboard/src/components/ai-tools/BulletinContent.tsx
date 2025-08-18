@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
+import { generateAIToolContent, generateAutoFillSuggestions } from '../../services/aiToolsService';
 
 interface BulletinInputs {
   date: string;
@@ -248,9 +249,44 @@ const BulletinInputForm: React.FC<BulletinInputFormProps> = ({ onInputChange, in
 };
 
 const BulletinContent: React.FC = () => {
+  const handleAutoFill = async (basicInfo: BulletinInputs): Promise<Partial<BulletinInputs>> => {
+    try {
+      // 실제 AI API 호출
+      const suggestions = await generateAutoFillSuggestions('bulletin-content', basicInfo);
+      return suggestions;
+    } catch (error) {
+      console.error('주보 콘텐츠 자동 입력 실패:', error);
+      
+      // 폴백: 기본 로직
+      const suggestions: Partial<BulletinInputs> = {};
+      
+      if (basicInfo.sermonTitle && basicInfo.date) {
+        suggestions.sermonScripture = '요한복음 3:16';
+        suggestions.worship = {
+          ...basicInfo.worship,
+          hymns: '찬송가 27장, 찬송가 342장'
+        };
+        
+        if (basicInfo.sermonTitle.includes('사랑')) {
+          suggestions.sermonScripture = '고린도전서 13:4-7';
+        } else if (basicInfo.sermonTitle.includes('희망')) {
+          suggestions.sermonScripture = '로마서 15:13';
+        }
+      }
+      
+      return suggestions;
+    }
+  };
+
   const handleGenerate = async (inputs: BulletinInputs): Promise<string> => {
-    // TODO: 실제 API 호출로 대체
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    try {
+      // 실제 AI API 호출
+      const generatedContent = await generateAIToolContent('bulletin-content', inputs);
+      return generatedContent;
+    } catch (error) {
+      console.error('주보 콘텐츠 생성 실패:', error);
+      
+      // 폴백: 기본 템플릿
     
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '';
@@ -369,7 +405,10 @@ ${inputs.season === '성탄절' ? '임마누엘의 하나님께서 여러분과 
 
 ---
 
-*${formatDate(inputs.date)} 주보 | ${inputs.preacher} 목사*`;
+*${formatDate(inputs.date)} 주보 | ${inputs.preacher} 목사*
+
+⚠️ AI 서비스 연결 오류로 인해 기본 템플릿을 표시했습니다.`;
+    }
   };
 
   return (
@@ -378,6 +417,7 @@ ${inputs.season === '성탄절' ? '임마누엘의 하나님께서 여러분과 
       description="주보에 들어갈 다양한 콘텐츠를 생성합니다."
       icon={FileText}
       onGenerate={handleGenerate}
+      onAutoFill={handleAutoFill}
     >
       <BulletinInputForm onInputChange={() => {}} inputs={{} as BulletinInputs} />
     </BaseAITool>

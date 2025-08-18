@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
+import { generateAIToolContent, generateAutoFillSuggestions } from '../../services/aiToolsService';
 
 interface AnnouncementInputs {
   title: string;
@@ -237,54 +238,42 @@ const AnnouncementInputForm: React.FC<AnnouncementInputFormProps> = ({ onInputCh
 
 const AnnouncementWriter: React.FC = () => {
   const handleAutoFill = async (basicInfo: AnnouncementInputs): Promise<Partial<AnnouncementInputs>> => {
-    // TODO: 실제 API 호출로 대체
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const suggestions: Partial<AnnouncementInputs> = {};
-    
-    if (basicInfo.category && basicInfo.description) {
-      // 카테고리에 따른 제목과 설정 추천
-      if (basicInfo.category === '행사안내') {
-        suggestions.title = `${basicInfo.description} 안내`;
-        suggestions.targetAudience = '전체교인';
-        suggestions.registrationRequired = true;
-        suggestions.tone = '안내하는';
-      } else if (basicInfo.category === '예배안내') {
-        suggestions.title = `${basicInfo.description} 예배 안내`;
-        suggestions.targetAudience = '전체교인';
-        suggestions.tone = '공식적';
-      } else if (basicInfo.category === '교육프로그램') {
-        suggestions.title = `${basicInfo.description} 교육 프로그램`;
-        suggestions.registrationRequired = true;
-        suggestions.tone = '친근한';
-      } else if (basicInfo.category === '봉사활동') {
-        suggestions.title = `${basicInfo.description} 봉사자 모집`;
-        suggestions.targetAudience = '봉사자';
-        suggestions.tone = '친근한';
-      } else {
-        suggestions.title = basicInfo.description;
-        suggestions.targetAudience = '전체교인';
-        suggestions.tone = '안내하는';
+    try {
+      // 실제 AI API 호출
+      const suggestions = await generateAutoFillSuggestions('announcement-writer', basicInfo);
+      return suggestions;
+    } catch (error) {
+      console.error('공지사항 자동 입력 실패:', error);
+      
+      // 폴백: 기본 로직
+      const suggestions: Partial<AnnouncementInputs> = {};
+      
+      if (basicInfo.category && basicInfo.description) {
+        if (basicInfo.category === '행사안내') {
+          suggestions.title = `${basicInfo.description} 안내`;
+          suggestions.targetAudience = '전체교인';
+          suggestions.tone = '안내하는';
+        } else {
+          suggestions.title = basicInfo.description;
+          suggestions.targetAudience = '전체교인';
+          suggestions.tone = '안내하는';
+        }
       }
       
-      // 장소 추천
-      if (basicInfo.category === '예배안내') {
-        suggestions.location = '본당';
-      } else if (basicInfo.category === '교육프로그램') {
-        suggestions.location = '교육관';
-      } else {
-        suggestions.location = '교회 내';
-      }
+      return suggestions;
     }
-    
-    return suggestions;
   };
 
   const handleGenerate = async (inputs: AnnouncementInputs): Promise<string> => {
-    // TODO: 실제 API 호출로 대체
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const formatDate = (dateStr: string) => {
+    try {
+      // 실제 AI API 호출
+      const generatedContent = await generateAIToolContent('announcement-writer', inputs);
+      return generatedContent;
+    } catch (error) {
+      console.error('공지사항 생성 실패:', error);
+      
+      // 폴백: 기본 템플릿
+      const formatDate = (dateStr: string) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
       return `${date.getMonth() + 1}월 ${date.getDate()}일`;
@@ -344,7 +333,10 @@ inputs.tone === '친근한' ? `
 ---
 
 *카테고리: ${inputs.category}*
-*작성일: ${new Date().toLocaleDateString('ko-KR')}*`;
+*작성일: ${new Date().toLocaleDateString('ko-KR')}*
+
+⚠️ AI 서비스 연결 오류로 인해 기본 템플릿을 표시했습니다.`;
+    }
   };
 
   return (
