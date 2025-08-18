@@ -25,7 +25,15 @@ const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
 const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
+const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
+
+// AI Tools
+const AITools = lazy(() => import('./components/AITools'));
+const SermonWriter = lazy(() => import('./components/ai-tools/SermonWriter'));
+const PrayerGenerator = lazy(() => import('./components/ai-tools/PrayerGenerator'));
+const AnnouncementWriter = lazy(() => import('./components/ai-tools/AnnouncementWriter'));
+const BulletinContent = lazy(() => import('./components/ai-tools/BulletinContent'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -61,6 +69,11 @@ function App() {
           <Route path="member-management" element={
             <Suspense fallback={<LoadingSpinner />}>
               <MemberManagement />
+            </Suspense>
+          } />
+          <Route path="donations" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <DonationManagement />
             </Suspense>
           } />
           <Route path="ai-chat" element={
@@ -151,6 +164,31 @@ function App() {
           <Route path="gpt-settings" element={
             <Suspense fallback={<LoadingSpinner />}>
               <GPTSettings />
+            </Suspense>
+          } />
+          <Route path="ai-tools" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AITools />
+            </Suspense>
+          } />
+          <Route path="ai-tools/sermon-writer" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SermonWriter />
+            </Suspense>
+          } />
+          <Route path="ai-tools/prayer-generator" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PrayerGenerator />
+            </Suspense>
+          } />
+          <Route path="ai-tools/announcement-writer" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AnnouncementWriter />
+            </Suspense>
+          } />
+          <Route path="ai-tools/bulletin-content" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BulletinContent />
             </Suspense>
           } />
           <Route path="pastoral-care" element={
