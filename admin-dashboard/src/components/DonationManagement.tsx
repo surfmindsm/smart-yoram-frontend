@@ -600,7 +600,7 @@ const DonationManagement: React.FC = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">
+                      <th className="text-left py-2 px-2">
                         <button
                           onClick={() => handleSort('offeredOn')}
                           className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
@@ -609,7 +609,7 @@ const DonationManagement: React.FC = () => {
                           {getSortIcon('offeredOn')}
                         </button>
                       </th>
-                      <th className="text-left py-2">
+                      <th className="text-left py-2 px-2">
                         <button
                           onClick={() => handleSort('donorName')}
                           className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
@@ -618,7 +618,7 @@ const DonationManagement: React.FC = () => {
                           {getSortIcon('donorName')}
                         </button>
                       </th>
-                      <th className="text-left py-2">
+                      <th className="text-left py-2 px-2">
                         <button
                           onClick={() => handleSort('fundType')}
                           className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
@@ -627,7 +627,7 @@ const DonationManagement: React.FC = () => {
                           {getSortIcon('fundType')}
                         </button>
                       </th>
-                      <th className="text-right py-2">
+                      <th className="text-right py-2 px-4">
                         <button
                           onClick={() => handleSort('amount')}
                           className="flex items-center space-x-1 hover:text-blue-600 transition-colors ml-auto"
@@ -636,19 +636,19 @@ const DonationManagement: React.FC = () => {
                           {getSortIcon('amount')}
                         </button>
                       </th>
-                      <th className="text-left py-2">적요</th>
-                      <th className="text-center py-2">작업</th>
+                      <th className="text-left py-2 px-4">적요</th>
+                      <th className="text-center py-2 px-4">작업</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredDonations.map((donation) => (
                       <tr key={donation.id} className="border-b">
-                        <td className="py-3">{donation.offeredOn}</td>
-                        <td className="py-3">{donation.donorName}</td>
-                        <td className="py-3">{donation.fundType}</td>
-                        <td className="py-3 text-right font-medium">{formatCurrency(donation.amount)}</td>
-                        <td className="py-3 text-gray-600">{donation.note}</td>
-                        <td className="py-3 text-center">
+                        <td className="py-3 px-2">{donation.offeredOn}</td>
+                        <td className="py-3 px-2">{donation.donorName}</td>
+                        <td className="py-3 px-2">{donation.fundType}</td>
+                        <td className="py-3 px-4 text-right font-medium">{formatCurrency(donation.amount)}</td>
+                        <td className="py-3 px-4 text-gray-600">{donation.note}</td>
+                        <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Button variant="ghost" size="sm">
                               <Edit className="w-4 h-4" />
