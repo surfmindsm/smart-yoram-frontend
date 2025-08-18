@@ -13,7 +13,10 @@ import {
   Receipt,
   Users,
   CalendarDays,
-  X
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -80,6 +83,12 @@ const DonationManagement: React.FC = () => {
     endDate: '',
     isActive: false
   });
+  
+  // 정렬 상태
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Donation | null;
+    direction: 'asc' | 'desc';
+  }>({ key: null, direction: 'asc' });
 
   // 새 헌금 입력 폼 상태
   const [newDonation, setNewDonation] = useState({
@@ -311,6 +320,24 @@ const DonationManagement: React.FC = () => {
     // 실제 필터링은 filteredDonations에서 적용
   };
 
+  // 정렬 함수
+  const handleSort = (key: keyof Donation) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (columnKey: keyof Donation) => {
+    if (sortConfig.key !== columnKey) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-4 h-4 text-blue-600" />
+      : <ArrowDown className="w-4 h-4 text-blue-600" />;
+  };
+
   const generateReceipt = () => {
     if (!selectedDonor) {
       alert('기부자를 선택해주세요.');
@@ -370,6 +397,27 @@ const DonationManagement: React.FC = () => {
     }
     
     return matchesSearch && matchesDate;
+  }).sort((a, b) => {
+    // 정렬 로직
+    if (!sortConfig.key) return 0;
+    
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+    
+    if (aValue === null && bValue === null) return 0;
+    if (aValue === null) return sortConfig.direction === 'asc' ? 1 : -1;
+    if (bValue === null) return sortConfig.direction === 'asc' ? -1 : 1;
+    
+    let comparison = 0;
+    if (sortConfig.key === 'amount') {
+      comparison = (aValue as number) - (bValue as number);
+    } else if (sortConfig.key === 'offeredOn') {
+      comparison = new Date(aValue as string).getTime() - new Date(bValue as string).getTime();
+    } else {
+      comparison = String(aValue).localeCompare(String(bValue), 'ko');
+    }
+    
+    return sortConfig.direction === 'asc' ? comparison : -comparison;
   });
 
   const filteredReceipts = receipts.filter(receipt =>
@@ -552,10 +600,42 @@ const DonationManagement: React.FC = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">날짜</th>
-                      <th className="text-left py-2">기부자</th>
-                      <th className="text-left py-2">헌금 유형</th>
-                      <th className="text-right py-2">금액</th>
+                      <th className="text-left py-2">
+                        <button
+                          onClick={() => handleSort('offeredOn')}
+                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                        >
+                          <span>날짜</span>
+                          {getSortIcon('offeredOn')}
+                        </button>
+                      </th>
+                      <th className="text-left py-2">
+                        <button
+                          onClick={() => handleSort('donorName')}
+                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                        >
+                          <span>기부자</span>
+                          {getSortIcon('donorName')}
+                        </button>
+                      </th>
+                      <th className="text-left py-2">
+                        <button
+                          onClick={() => handleSort('fundType')}
+                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                        >
+                          <span>헌금 유형</span>
+                          {getSortIcon('fundType')}
+                        </button>
+                      </th>
+                      <th className="text-right py-2">
+                        <button
+                          onClick={() => handleSort('amount')}
+                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors ml-auto"
+                        >
+                          <span>금액</span>
+                          {getSortIcon('amount')}
+                        </button>
+                      </th>
                       <th className="text-left py-2">적요</th>
                       <th className="text-center py-2">작업</th>
                     </tr>
