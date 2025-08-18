@@ -10,7 +10,10 @@ import {
   DollarSign,
   Calendar,
   User,
-  Receipt
+  Receipt,
+  Users,
+  CalendarDays,
+  X
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -66,8 +69,16 @@ const DonationManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState<string>('');
+  
+  // 날짜 필터 상태
+  const [dateFilter, setDateFilter] = useState({
+    startDate: '',
+    endDate: '',
+    isActive: false
+  });
 
   // 새 헌금 입력 폼 상태
   const [newDonation, setNewDonation] = useState({
@@ -76,6 +87,17 @@ const DonationManagement: React.FC = () => {
     fundType: '십일조',
     amount: 0,
     note: ''
+  });
+
+  // 일괄 입력 상태
+  const [bulkDonations, setBulkDonations] = useState<Array<{
+    donorId: string;
+    amount: number;
+    fundType: string;
+    note: string;
+  }>>([]);
+  const [bulkSettings, setBulkSettings] = useState({
+    offeredOn: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -175,6 +197,67 @@ const DonationManagement: React.FC = () => {
     });
   };
 
+  // 일괄 입력 관련 함수들
+  const addBulkRow = () => {
+    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '십일조', note: '' }]);
+  };
+
+  const removeBulkRow = (index: number) => {
+    setBulkDonations(bulkDonations.filter((_, i) => i !== index));
+  };
+
+  const updateBulkRow = (index: number, field: string, value: any) => {
+    const updated = bulkDonations.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    );
+    setBulkDonations(updated);
+  };
+
+  const handleBulkSubmit = () => {
+    const validDonations = bulkDonations.filter(d => d.donorId && d.amount > 0);
+    
+    if (validDonations.length === 0) {
+      alert('입력할 헌금 내역이 없습니다.');
+      return;
+    }
+
+    const newDonations: Donation[] = validDonations.map((bulk, index) => {
+      const donor = members.find(m => m.id === bulk.donorId);
+      return {
+        id: (Date.now() + index).toString(),
+        donorId: bulk.donorId,
+        donorName: donor?.name || '',
+        offeredOn: bulkSettings.offeredOn,
+        fundType: bulk.fundType,
+        amount: bulk.amount,
+        note: bulk.note,
+        inputUserId: 'admin'
+      };
+    });
+
+    setDonations([...newDonations, ...donations]);
+    setIsBulkModalOpen(false);
+    setBulkDonations([]);
+    alert(`${validDonations.length}건의 헌금이 등록되었습니다.`);
+  };
+
+  // 날짜 필터링 함수
+  const toggleDateFilter = () => {
+    setDateFilter({ ...dateFilter, isActive: !dateFilter.isActive });
+    if (dateFilter.isActive) {
+      // 필터 해제 시 날짜 초기화
+      setDateFilter({ startDate: '', endDate: '', isActive: false });
+    }
+  };
+
+  const applyDateFilter = () => {
+    if (!dateFilter.startDate && !dateFilter.endDate) {
+      alert('시작일 또는 종료일을 입력해주세요.');
+      return;
+    }
+    // 실제 필터링은 filteredDonations에서 적용
+  };
+
   const generateReceipt = () => {
     if (!selectedDonor) {
       alert('기부자를 선택해주세요.');
@@ -212,10 +295,29 @@ const DonationManagement: React.FC = () => {
     alert('기부금 영수증이 발행되었습니다.');
   };
 
-  const filteredDonations = donations.filter(donation =>
-    donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    donation.fundType.includes(searchTerm)
-  );
+  const filteredDonations = donations.filter(donation => {
+    // 검색 필터
+    const matchesSearch = donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         donation.fundType.includes(searchTerm);
+    
+    // 날짜 필터
+    let matchesDate = true;
+    if (dateFilter.isActive && (dateFilter.startDate || dateFilter.endDate)) {
+      const donationDate = new Date(donation.offeredOn);
+      
+      if (dateFilter.startDate) {
+        const startDate = new Date(dateFilter.startDate);
+        matchesDate = matchesDate && donationDate >= startDate;
+      }
+      
+      if (dateFilter.endDate) {
+        const endDate = new Date(dateFilter.endDate);
+        matchesDate = matchesDate && donationDate <= endDate;
+      }
+    }
+    
+    return matchesSearch && matchesDate;
+  });
 
   const filteredReceipts = receipts.filter(receipt =>
     receipt.donorName.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -259,27 +361,89 @@ const DonationManagement: React.FC = () => {
       {activeTab === 'donations' && (
         <div className="space-y-6">
           {/* 컨트롤 바 */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="기부자명 또는 헌금 유형 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-80"
-                />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="기부자명 또는 헌금 유형 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-80"
+                  />
+                </div>
+                <Button
+                  variant={dateFilter.isActive ? 'default' : 'outline'}
+                  onClick={toggleDateFilter}
+                  className="flex items-center space-x-2"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  <span>날짜 필터</span>
+                </Button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsBulkModalOpen(true);
+                    setBulkDonations([{ donorId: '', amount: 0, fundType: '십일조', note: '' }]);
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>일괄 입력</span>
+                </Button>
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>헌금 입력</span>
+                </Button>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>헌금 입력</span>
-              </Button>
-            </div>
+            
+            {/* 날짜 필터 */}
+            {dateFilter.isActive && (
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">시작일:</label>
+                  <Input
+                    type="date"
+                    value={dateFilter.startDate}
+                    onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
+                    className="w-40"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">종료일:</label>
+                  <Input
+                    type="date"
+                    value={dateFilter.endDate}
+                    onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
+                    className="w-40"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateFilter({ startDate: '', endDate: '', isActive: true })}
+                >
+                  초기화
+                </Button>
+                <div className="text-sm text-gray-600">
+                  {dateFilter.startDate && dateFilter.endDate 
+                    ? `${dateFilter.startDate} ~ ${dateFilter.endDate}` 
+                    : dateFilter.startDate 
+                    ? `${dateFilter.startDate} 이후` 
+                    : dateFilter.endDate 
+                    ? `${dateFilter.endDate} 이전`
+                    : '날짜를 선택하세요'
+                  }
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 헌금 통계 카드 */}
@@ -461,6 +625,142 @@ const DonationManagement: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* 일괄 입력 모달 */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">헌금 일괄 입력</h2>
+            
+            {/* 공통 설정 */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="w-1/2">
+                <label className="block text-sm font-medium mb-1">헌금일</label>
+                <Input
+                  type="date"
+                  value={bulkSettings.offeredOn}
+                  onChange={(e) => setBulkSettings({ ...bulkSettings, offeredOn: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* 헌금 목록 */}
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">헌금 목록</h3>
+                <Button
+                  onClick={addBulkRow}
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>행 추가</span>
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left py-2 px-3 border-b">기부자</th>
+                      <th className="text-left py-2 px-3 border-b">헌금 유형</th>
+                      <th className="text-right py-2 px-3 border-b">금액</th>
+                      <th className="text-left py-2 px-3 border-b">적요</th>
+                      <th className="text-center py-2 px-3 border-b w-20">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkDonations.map((bulk, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2 px-3">
+                          <select
+                            value={bulk.donorId}
+                            onChange={(e) => updateBulkRow(index, 'donorId', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          >
+                            <option value="">기부자 선택</option>
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-3">
+                          <select
+                            value={bulk.fundType}
+                            onChange={(e) => updateBulkRow(index, 'fundType', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          >
+                            {FUND_TYPES.map((type) => (
+                              <option key={type} value={type}>{type}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-3">
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={bulk.amount || ''}
+                            onChange={(e) => updateBulkRow(index, 'amount', Number(e.target.value))}
+                            className="text-right text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <Input
+                            placeholder="비고"
+                            value={bulk.note}
+                            onChange={(e) => updateBulkRow(index, 'note', e.target.value)}
+                            className="text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          {bulkDonations.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeBulkRow(index)}
+                              className="text-red-600 p-1"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* 합계 정보 */}
+              <div className="flex justify-end">
+                <div className="bg-gray-50 px-4 py-2 rounded-lg">
+                  <span className="text-sm text-gray-600">총 {bulkDonations.filter(b => b.donorId && b.amount > 0).length}건, </span>
+                  <span className="font-medium">
+                    {formatCurrency(bulkDonations.reduce((sum, b) => sum + (b.amount || 0), 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button onClick={handleBulkSubmit} className="flex-1">
+                {bulkDonations.filter(b => b.donorId && b.amount > 0).length}건 등록
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBulkDonations([]);
+                }}
+                className="flex-1"
+              >
+                취소
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
