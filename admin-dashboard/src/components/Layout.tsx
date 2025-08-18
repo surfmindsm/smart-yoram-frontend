@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Heart,
   UserCheck,
-  Wrench
+  Wrench,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -42,6 +43,7 @@ const Layout: React.FC = () => {
     { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
     { path: '/statistics', name: '통계 분석', Icon: ChartLine },
     { path: '/member-management', name: '교인 관리', Icon: Users },
+    { path: '/donations', name: '헌금 관리', Icon: DollarSign },
     { path: '/announcements', name: '공지사항', Icon: Megaphone },
     { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
     { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
