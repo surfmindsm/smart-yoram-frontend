@@ -57,10 +57,29 @@ const PrayerRequestManagement: React.FC = () => {
       
       const response = await prayerRequestService.getRequests(params);
       
+      // 백엔드 응답 구조 확인 및 데이터 추출
+      console.log('Prayer requests API response:', response);
+      
+      let prayerRequestsData = [];
+      
+      // 다양한 응답 구조에 대응
+      if (Array.isArray(response)) {
+        prayerRequestsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        prayerRequestsData = response.data;
+      } else if (response && Array.isArray(response.items)) {
+        prayerRequestsData = response.items;
+      } else if (response && Array.isArray(response.results)) {
+        prayerRequestsData = response.results;
+      } else {
+        console.warn('Unexpected response structure:', response);
+        prayerRequestsData = [];
+      }
+      
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
-      const transformedRequests: PrayerRequest[] = response.map((item: any) => ({
+      const transformedRequests: PrayerRequest[] = prayerRequestsData.map((item: any) => ({
         id: item.id,
-        requesterName: item.is_anonymous ? '익명' : item.requester_name,
+        requesterName: !item.is_public ? '익명' : item.requester_name,
         requesterPhone: item.requester_phone,
         memberId: item.member_id,
         prayerType: item.prayer_type,
@@ -130,7 +149,7 @@ const PrayerRequestManagement: React.FC = () => {
   };
 
   const filteredRequests = requests.filter(request => {
-    const searchContent = request.isAnonymous ? 
+    const searchContent = !request.isPublic ? 
       request.prayerContent.toLowerCase() : 
       `${request.requesterName} ${request.prayerContent}`.toLowerCase();
     
@@ -323,13 +342,13 @@ const PrayerRequestManagement: React.FC = () => {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="flex items-center space-x-2">
-                    {request.isAnonymous ? (
+                    {!request.isPublic ? (
                       <Lock className="h-4 w-4 text-slate-400" />
                     ) : (
                       <User className="h-4 w-4 text-slate-600" />
                     )}
                     <span className="font-medium text-slate-900">
-                      {request.isAnonymous ? '익명' : request.requesterName}
+                      {!request.isPublic ? '익명' : request.requesterName}
                     </span>
                   </div>
                   
@@ -449,8 +468,8 @@ const PrayerRequestManagement: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-2">요청자 정보</h3>
                   <div className="space-y-2">
-                    <p><span className="font-medium">이름:</span> {selectedRequest.isAnonymous ? '익명' : selectedRequest.requesterName}</p>
-                    {!selectedRequest.isAnonymous && selectedRequest.requesterPhone && (
+                    <p><span className="font-medium">이름:</span> {!selectedRequest.isPublic ? '익명' : selectedRequest.requesterName}</p>
+                    {selectedRequest.isPublic && selectedRequest.requesterPhone && (
                       <p><span className="font-medium">전화번호:</span> {selectedRequest.requesterPhone}</p>
                     )}
                   </div>

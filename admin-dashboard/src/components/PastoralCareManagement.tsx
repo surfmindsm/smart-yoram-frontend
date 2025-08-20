@@ -1,13 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Combobox } from './ui/combobox';
+import { 
+  Search, 
+  Filter, 
+  Calendar, 
+  Eye, 
+  FileText, 
+  Clock, 
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  User,
+  Users,
+  Phone
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { pastoralCareService } from '../services/api';
-import {
-  UserCheck, Calendar, Clock, Phone, MapPin, User,
-  Filter, Search, MoreHorizontal, Eye, Edit, CheckCircle,
-  XCircle, AlertTriangle, Calendar as CalendarIcon,
-  MessageSquare, FileText, Clock3
-} from 'lucide-react';
 
 interface PastoralCareRequest {
   id: string;
@@ -19,8 +37,8 @@ interface PastoralCareRequest {
   preferredDate?: string;
   preferredTimeStart?: string;
   preferredTimeEnd?: string;
-  status: 'pending' | 'approved' | 'scheduled' | 'completed' | 'cancelled';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'approved' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   assignedPastor?: {
     id: string;
     name: string;
@@ -28,8 +46,9 @@ interface PastoralCareRequest {
   };
   scheduledDate?: string;
   scheduledTime?: string;
-  completionNotes?: string;
   adminNotes?: string;
+  completionNotes?: string;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -46,6 +65,12 @@ const PastoralCareManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [assignedPastorId, setAssignedPastorId] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // API에서 심방 신청 데이터 로드
   useEffect(() => {
@@ -63,8 +88,27 @@ const PastoralCareManagement: React.FC = () => {
       
       const response = await pastoralCareService.getRequests(params);
       
+      // 백엔드 응답 구조 확인 및 데이터 추출
+      console.log('Pastoral care requests API response:', response);
+      
+      let pastoralCareData = [];
+      
+      // 다양한 응답 구조에 대응
+      if (Array.isArray(response)) {
+        pastoralCareData = response;
+      } else if (response && Array.isArray(response.data)) {
+        pastoralCareData = response.data;
+      } else if (response && Array.isArray(response.items)) {
+        pastoralCareData = response.items;
+      } else if (response && Array.isArray(response.results)) {
+        pastoralCareData = response.results;
+      } else {
+        console.warn('Unexpected response structure:', response);
+        pastoralCareData = [];
+      }
+      
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
-      const transformedRequests: PastoralCareRequest[] = response.map((item: any) => ({
+      const transformedRequests: PastoralCareRequest[] = pastoralCareData.map((item: any) => ({
         id: item.id,
         requesterName: item.requester_name,
         requesterPhone: item.requester_phone,
@@ -169,7 +213,129 @@ const PastoralCareManagement: React.FC = () => {
 
   const handleSchedule = (request: PastoralCareRequest) => {
     setSelectedRequest(request);
+    setScheduledDate(request.preferredDate || '');
+    setScheduledTime('');
     setShowScheduleModal(true);
+  };
+
+  const handleApprove = async (request: PastoralCareRequest) => {
+    try {
+      await pastoralCareService.updateRequest(request.id, {
+        status: 'approved',
+        admin_notes: '승인됨'
+      });
+      
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === request.id 
+            ? { ...req, status: 'approved' as const, adminNotes: '승인됨' }
+            : req
+        )
+      );
+    } catch (error) {
+      console.error('Failed to approve request:', error);
+    }
+  };
+
+  const handleReject = (request: PastoralCareRequest) => {
+    setSelectedRequest(request);
+    setRejectionReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleSaveRejection = async () => {
+    if (!selectedRequest || !rejectionReason) return;
+
+    try {
+      await pastoralCareService.updateRequest(selectedRequest.id, {
+        status: 'cancelled',
+        admin_notes: `거부됨: ${rejectionReason}`,
+        rejection_reason: rejectionReason
+      });
+      
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === selectedRequest.id 
+            ? { 
+                ...req, 
+                status: 'cancelled' as const, 
+                adminNotes: `거부됨: ${rejectionReason}`,
+                rejectionReason: rejectionReason
+              }
+            : req
+        )
+      );
+      
+      setShowRejectModal(false);
+      setRejectionReason('');
+    } catch (error) {
+      console.error('Failed to reject request:', error);
+    }
+  };
+
+  const handleAssignPastor = (request: PastoralCareRequest) => {
+    setSelectedRequest(request);
+    setAssignedPastorId('');
+    setShowAssignModal(true);
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!selectedRequest || !scheduledDate || !scheduledTime) return;
+
+    try {
+      await pastoralCareService.updateRequest(selectedRequest.id, {
+        status: 'scheduled',
+        scheduled_date: scheduledDate,
+        scheduled_time: scheduledTime
+      });
+      
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === selectedRequest.id 
+            ? { 
+                ...req, 
+                status: 'scheduled' as const, 
+                scheduledDate: scheduledDate,
+                scheduledTime: scheduledTime 
+              }
+            : req
+        )
+      );
+      
+      setShowScheduleModal(false);
+      setScheduledDate('');
+      setScheduledTime('');
+    } catch (error) {
+      console.error('Failed to schedule request:', error);
+    }
+  };
+
+  const handleSaveAssignment = async () => {
+    if (!selectedRequest || !assignedPastorId) return;
+
+    try {
+      await pastoralCareService.assignPastor(selectedRequest.id, assignedPastorId);
+      
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === selectedRequest.id 
+            ? { 
+                ...req, 
+                assignedPastor: {
+                  id: assignedPastorId,
+                  name: '배정된 목사',
+                  phone: ''
+                }
+              }
+            : req
+        )
+      );
+      
+      setShowAssignModal(false);
+      setAssignedPastorId('');
+    } catch (error) {
+      console.error('Failed to assign pastor:', error);
+    }
   };
 
   const handleStatusChange = (requestId: string, newStatus: string) => {
@@ -220,7 +386,7 @@ const PastoralCareManagement: React.FC = () => {
                 {requests.filter(r => r.status === 'pending').length}
               </p>
             </div>
-            <Clock3 className="h-8 w-8 text-yellow-600" />
+            <Clock className="h-8 w-8 text-yellow-600" />
           </div>
         </div>
         
@@ -232,7 +398,7 @@ const PastoralCareManagement: React.FC = () => {
                 {requests.filter(r => r.status === 'scheduled').length}
               </p>
             </div>
-            <CalendarIcon className="h-8 w-8 text-purple-600" />
+            <Calendar className="h-8 w-8 text-purple-600" />
           </div>
         </div>
         
@@ -254,7 +420,7 @@ const PastoralCareManagement: React.FC = () => {
               <p className="text-sm text-slate-600">전체</p>
               <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
             </div>
-            <UserCheck className="h-8 w-8 text-slate-600" />
+            <Users className="h-8 w-8 text-slate-600" />
           </div>
         </div>
       </div>
@@ -411,12 +577,40 @@ const PastoralCareManagement: React.FC = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                       {request.status === 'pending' && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleApprove(request)}
+                            className="text-green-600 hover:text-green-800"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReject(request)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSchedule(request)}
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {request.status === 'approved' && !request.assignedPastor && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleSchedule(request)}
+                          onClick={() => handleAssignPastor(request)}
+                          className="text-blue-600 hover:text-blue-800"
                         >
-                          <Calendar className="h-4 w-4" />
+                          <User className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -430,7 +624,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {filteredRequests.length === 0 && (
         <div className="text-center py-12">
-          <UserCheck className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <p className="text-slate-500">조건에 맞는 심방 신청이 없습니다.</p>
         </div>
       )}
@@ -494,6 +688,15 @@ const PastoralCareManagement: React.FC = () => {
                 </div>
               )}
 
+              {selectedRequest.rejectionReason && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 mb-2">거부 사유</h3>
+                  <p className="text-slate-900 bg-red-50 p-3 rounded-md border border-red-200">
+                    {selectedRequest.rejectionReason}
+                  </p>
+                </div>
+              )}
+
               {selectedRequest.completionNotes && (
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-2">완료 노트</h3>
@@ -513,6 +716,181 @@ const PastoralCareManagement: React.FC = () => {
                   일정 조율
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 일정 조율 모달 */}
+      {showScheduleModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">일정 조율</h2>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  신청자: {selectedRequest.requesterName}
+                </label>
+                <p className="text-sm text-slate-500">
+                  희망 일정: {selectedRequest.preferredDate} 
+                  {selectedRequest.preferredTimeStart && ` ${selectedRequest.preferredTimeStart}`}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  확정 날짜
+                </label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  확정 시간
+                </label>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setShowScheduleModal(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSaveSchedule} disabled={!scheduledDate || !scheduledTime}>
+                일정 확정
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 담당자 배정 모달 */}
+      {showAssignModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">담당자 배정</h2>
+              <button
+                onClick={() => setShowAssignModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  신청자: {selectedRequest.requesterName}
+                </label>
+                <p className="text-sm text-slate-500">
+                  심방 유형: {selectedRequest.requestType === 'general' ? '일반' : 
+                           selectedRequest.requestType === 'urgent' ? '긴급' :
+                           selectedRequest.requestType === 'hospital' ? '병원' : '상담'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  담당 목사 선택
+                </label>
+                <select
+                  value={assignedPastorId}
+                  onChange={(e) => setAssignedPastorId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                >
+                  <option value="">담당자 선택</option>
+                  <option value="pastor1">김목사</option>
+                  <option value="pastor2">이목사</option>
+                  <option value="pastor3">박목사</option>
+                  <option value="pastor4">최목사</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setShowAssignModal(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSaveAssignment} disabled={!assignedPastorId}>
+                배정 완료
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 거부 사유 입력 모달 */}
+      {showRejectModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">신청 거부</h2>
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  신청자: {selectedRequest.requesterName}
+                </label>
+                <p className="text-sm text-slate-500">
+                  신청 내용: {selectedRequest.requestContent.substring(0, 50)}...
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  거부 사유 <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-slate-500 mb-2">
+                  신청자가 확인할 수 있는 내용입니다. 정중하고 명확하게 작성해주세요.
+                </p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="예: 해당 날짜에 이미 다른 일정이 있어 심방이 어렵습니다. 다른 날짜로 다시 신청해주시기 바랍니다."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+                취소
+              </Button>
+              <Button 
+                onClick={handleSaveRejection} 
+                disabled={!rejectionReason.trim()}
+                variant="destructive"
+              >
+                거부 확정
+              </Button>
             </div>
           </div>
         </div>

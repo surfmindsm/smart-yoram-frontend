@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// API 기본 URL (환경변수 사용)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
 
 // Vercel 프록시를 사용하는 경우 처리
@@ -824,34 +825,34 @@ export const pastoralCareService = {
     skip?: number; 
     limit?: number; 
   }) => {
-    const response = await api.get(getApiUrl('/admin/pastoral-care/requests'), { params });
+    const response = await api.get(getApiUrl('/pastoral-care/admin/requests'), { params });
     return response.data;
   },
 
   getRequest: async (requestId: string) => {
-    const response = await api.get(getApiUrl(`/admin/pastoral-care/requests/${requestId}`));
+    const response = await api.get(getApiUrl(`/pastoral-care/admin/requests/${requestId}`));
     return response.data;
   },
 
   updateRequest: async (requestId: string, updateData: any) => {
-    const response = await api.put(getApiUrl(`/admin/pastoral-care/requests/${requestId}`), updateData);
+    const response = await api.put(getApiUrl(`/pastoral-care/admin/requests/${requestId}`), updateData);
     return response.data;
   },
 
   assignPastor: async (requestId: string, pastorId: string) => {
-    const response = await api.put(getApiUrl(`/admin/pastoral-care/requests/${requestId}/assign`), {
+    const response = await api.put(getApiUrl(`/pastoral-care/admin/requests/${requestId}/assign`), {
       assigned_pastor_id: pastorId
     });
     return response.data;
   },
 
   completeRequest: async (requestId: string, completionData: any) => {
-    const response = await api.post(getApiUrl(`/admin/pastoral-care/requests/${requestId}/complete`), completionData);
+    const response = await api.post(getApiUrl(`/pastoral-care/admin/requests/${requestId}/complete`), completionData);
     return response.data;
   },
 
   getStats: async () => {
-    const response = await api.get(getApiUrl('/admin/pastoral-care/stats'));
+    const response = await api.get(getApiUrl('/pastoral-care/admin/stats'));
     return response.data;
   },
 
@@ -877,32 +878,32 @@ export const prayerRequestService = {
     skip?: number; 
     limit?: number; 
   }) => {
-    const response = await api.get(getApiUrl('/admin/prayer-requests'), { params });
+    const response = await api.get(getApiUrl('/prayer-requests/admin/all'), { params });
     return response.data;
   },
 
   getRequest: async (requestId: string) => {
-    const response = await api.get(getApiUrl(`/admin/prayer-requests/${requestId}`));
+    const response = await api.get(getApiUrl(`/prayer-requests/admin/${requestId}`));
     return response.data;
   },
 
   updateRequest: async (requestId: string, updateData: any) => {
-    const response = await api.put(getApiUrl(`/admin/prayer-requests/${requestId}`), updateData);
+    const response = await api.put(getApiUrl(`/prayer-requests/admin/${requestId}`), updateData);
     return response.data;
   },
 
   moderateRequest: async (requestId: string, moderationData: any) => {
-    const response = await api.put(getApiUrl(`/admin/prayer-requests/${requestId}/moderate`), moderationData);
+    const response = await api.put(getApiUrl(`/prayer-requests/admin/${requestId}/moderate`), moderationData);
     return response.data;
   },
 
   getStats: async () => {
-    const response = await api.get(getApiUrl('/admin/prayer-requests/stats'));
+    const response = await api.get(getApiUrl('/prayer-requests/admin/stats'));
     return response.data;
   },
 
   getBulletinRequests: async () => {
-    const response = await api.get(getApiUrl('/admin/prayer-requests/bulletin'));
+    const response = await api.get(getApiUrl('/prayer-requests/admin/bulletin'));
     return response.data;
   },
 
@@ -934,6 +935,159 @@ export const prayerRequestService = {
 
   deleteRequest: async (requestId: string) => {
     const response = await api.delete(getApiUrl(`/prayer-requests/${requestId}`));
+    return response.data;
+  }
+};
+
+// 재정관리 API 서비스
+export const financialService = {
+  // 기부자 관리
+  getDonors: async (params?: { skip?: number; limit?: number; search?: string }) => {
+    const response = await api.get(getApiUrl('/financial/donors'), { params });
+    return response.data;
+  },
+
+  createDonor: async (donorData: any) => {
+    const response = await api.post(getApiUrl('/financial/donors'), donorData);
+    return response.data;
+  },
+
+  updateDonor: async (donorId: number, donorData: any) => {
+    const response = await api.put(getApiUrl(`/financial/donors/${donorId}`), donorData);
+    return response.data;
+  },
+
+  deleteDonor: async (donorId: number) => {
+    const response = await api.delete(getApiUrl(`/financial/donors/${donorId}`));
+    return response.data;
+  },
+
+  // member_id로 donor_id를 찾거나 생성
+  getOrCreateDonorByMemberId: async (memberId: number, memberData: any) => {
+    try {
+      // 1. 기존 donor 찾기
+      const donors = await financialService.getDonors();
+      const existingDonor = donors.find((donor: any) => donor.member_id === memberId);
+      
+      if (existingDonor) {
+        return existingDonor.id;
+      }
+      
+      // 2. 없으면 자동 생성
+      const donorData = {
+        member_id: memberId,
+        legal_name: memberData.name,
+        address: memberData.address || '',
+        rrn_encrypted: '' // 기본값
+      };
+      
+      const newDonor = await financialService.createDonor(donorData);
+      return newDonor.id;
+    } catch (error) {
+      console.error('Donor 생성/조회 실패:', error);
+      throw error;
+    }
+  },
+
+  // 헌금 관리
+  getOfferings: async (params?: { 
+    skip?: number; 
+    limit?: number; 
+    donor_id?: number;
+    fund_type?: string;
+    start_date?: string;
+    end_date?: string;
+  }) => {
+    const response = await api.get(getApiUrl('/financial/offerings'), { params });
+    return response.data;
+  },
+
+  createOffering: async (offeringData: any) => {
+    const response = await api.post(getApiUrl('/financial/offerings'), offeringData);
+    return response.data;
+  },
+
+  createBulkOfferings: async (offeringsData: any[]) => {
+    const response = await api.post(getApiUrl('/financial/offerings/bulk'), { offerings: offeringsData });
+    return response.data;
+  },
+
+  updateOffering: async (offeringId: number, offeringData: any) => {
+    const response = await api.put(getApiUrl(`/financial/offerings/${offeringId}`), offeringData);
+    return response.data;
+  },
+
+  deleteOffering: async (offeringId: number) => {
+    const response = await api.delete(getApiUrl(`/financial/offerings/${offeringId}`));
+    return response.data;
+  },
+
+  // 영수증 관리
+  getReceipts: async (params?: { 
+    skip?: number; 
+    limit?: number; 
+    donor_id?: number;
+    tax_year?: number;
+  }) => {
+    const response = await api.get(getApiUrl('/financial/receipts'), { params });
+    return response.data;
+  },
+
+  createReceipt: async (receiptData: any) => {
+    const response = await api.post(getApiUrl('/financial/receipts'), receiptData);
+    return response.data;
+  },
+
+  updateReceipt: async (receiptId: number, receiptData: any) => {
+    const response = await api.put(getApiUrl(`/financial/receipts/${receiptId}`), receiptData);
+    return response.data;
+  },
+
+  deleteReceipt: async (receiptId: number) => {
+    const response = await api.delete(getApiUrl(`/financial/receipts/${receiptId}`));
+    return response.data;
+  },
+
+  // 헌금 유형 관리
+  getFundTypes: async () => {
+    const response = await api.get(getApiUrl('/financial/fund-types'));
+    return response.data;
+  },
+
+  createFundType: async (fundTypeData: any) => {
+    const response = await api.post(getApiUrl('/financial/fund-types'), fundTypeData);
+    return response.data;
+  },
+
+  updateFundType: async (fundTypeId: number, fundTypeData: any) => {
+    const response = await api.put(getApiUrl(`/financial/fund-types/${fundTypeId}`), fundTypeData);
+    return response.data;
+  },
+
+  deleteFundType: async (fundTypeId: number) => {
+    const response = await api.delete(getApiUrl(`/financial/fund-types/${fundTypeId}`));
+    return response.data;
+  },
+
+  // 통계
+  getStatistics: async (params?: { 
+    start_date?: string; 
+    end_date?: string; 
+    fund_type?: string;
+  }) => {
+    const response = await api.get(getApiUrl('/financial/statistics'), { params });
+    return response.data;
+  },
+
+  getMonthlyStatistics: async (year: number) => {
+    const response = await api.get(getApiUrl(`/financial/statistics/monthly/${year}`));
+    return response.data;
+  },
+
+  getYearlyStatistics: async (startYear: number, endYear: number) => {
+    const response = await api.get(getApiUrl('/financial/statistics/yearly'), { 
+      params: { start_year: startYear, end_year: endYear }
+    });
     return response.data;
   }
 };

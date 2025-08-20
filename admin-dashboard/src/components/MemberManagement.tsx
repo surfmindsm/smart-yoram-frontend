@@ -269,8 +269,8 @@ const MemberManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
-        <Button
-          onClick={() => setShowAddModal(true)}
+        <Button 
+          onClick={() => navigate('/add-member')}
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
