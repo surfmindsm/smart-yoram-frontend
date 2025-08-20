@@ -6,7 +6,7 @@ import {
   Heart, Calendar, Clock, Phone, User, Filter, Search, 
   MoreHorizontal, Eye, Edit, CheckCircle, XCircle, 
   MessageSquare, Users, Globe, Lock, AlertTriangle,
-  BookOpen, Star, Timer
+  BookOpen, Star, Timer, FileText
 } from 'lucide-react';
 
 interface PrayerRequest {
@@ -18,7 +18,7 @@ interface PrayerRequest {
   prayerContent: string;
   isAnonymous: boolean;
   isUrgent: boolean;
-  status: 'active' | 'answered' | 'closed';
+  status: 'pending' | 'approved' | 'active' | 'answered' | 'closed';
   isPublic: boolean;
   adminNotes?: string;
   answeredTestimony?: string;
@@ -40,6 +40,10 @@ const PrayerRequestManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<PrayerRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [prayerRecord, setPrayerRecord] = useState('');
 
   // API에서 중보 기도 요청 데이터 로드
   useEffect(() => {
@@ -166,6 +170,61 @@ const PrayerRequestManagement: React.FC = () => {
   const handleViewDetails = (request: PrayerRequest) => {
     setSelectedRequest(request);
     setShowDetailModal(true);
+  };
+
+  const handleApprove = (request: PrayerRequest) => {
+    setSelectedRequest(request);
+    setApprovalNotes('');
+    setShowApprovalModal(true);
+  };
+
+  const handleApprovalSubmit = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      // 기존 updateRequest API를 사용하여 승인 처리
+      await prayerRequestService.updateRequest(selectedRequest.id, {
+        status: 'approved',
+        admin_notes: approvalNotes
+      });
+      
+      // 요청 목록 새로고침
+      await loadPrayerRequests();
+      
+      // 승인 모달 닫고 기록 모달 열기
+      setShowApprovalModal(false);
+      setPrayerRecord('');
+      setShowRecordModal(true);
+    } catch (error) {
+      console.error('승인 처리 실패:', error);
+      alert('승인 처리에 실패했습니다.');
+    }
+  };
+
+  const handleRecordSubmit = async () => {
+    if (!selectedRequest || !prayerRecord.trim()) {
+      alert('기록 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 기존 updateRequest API를 사용하여 기도 기록 저장
+      await prayerRequestService.updateRequest(selectedRequest.id, {
+        admin_notes: (selectedRequest.adminNotes || '') + '\n\n[기도 기록] ' + new Date().toLocaleString('ko-KR') + '\n' + prayerRecord
+      });
+      
+      // 기록 모달 닫기
+      setShowRecordModal(false);
+      setSelectedRequest(null);
+      
+      // 요청 목록 새로고침
+      await loadPrayerRequests();
+      
+      alert('기도 기록이 성공적으로 저장되었습니다.');
+    } catch (error) {
+      console.error('기록 저장 실패:', error);
+      alert('기록 저장에 실패했습니다.');
+    }
   };
 
   const handleMarkAnswered = (request: PrayerRequest) => {
@@ -501,6 +560,55 @@ const PrayerRequestManagement: React.FC = () => {
                       <span>만료: {new Date(request.expiresAt).toLocaleDateString('ko-KR')}</span>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* 상태 표시 */}
+                    <span className={cn(
+                      "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
+                      request.status === 'pending' ? "bg-yellow-100 text-yellow-800" :
+                      request.status === 'approved' ? "bg-green-100 text-green-800" :
+                      request.status === 'active' ? "bg-blue-100 text-blue-800" :
+                      request.status === 'answered' ? "bg-purple-100 text-purple-800" :
+                      "bg-gray-100 text-gray-800"
+                    )}>
+                      {request.status === 'pending' ? '대기' :
+                       request.status === 'approved' ? '승인' :
+                       request.status === 'active' ? '진행' :
+                       request.status === 'answered' ? '응답' : '종료'}
+                    </span>
+                    
+                    {/* 액션 버튼들 */}
+                    {request.status === 'pending' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApprove(request);
+                        }}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        승인
+                      </Button>
+                    )}
+                    
+                    {(request.status === 'approved' || request.status === 'active') && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRequest(request);
+                          setPrayerRecord('');
+                          setShowRecordModal(true);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        기록
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -590,16 +698,130 @@ const PrayerRequestManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* <div className="flex justify-end space-x-3 mt-6">
+            <div className="flex justify-end space-x-3 mt-6">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                 닫기
               </Button>
-              {selectedRequest.status === 'active' && (
-                <Button onClick={() => handleMarkAnswered(selectedRequest)}>
-                  응답 표시
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 승인 모달 */}
+      {showApprovalModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">기도 요청 승인</h2>
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-slate-600 mb-4">
+                  <span className="font-medium">{selectedRequest.requesterName}</span>님의 기도 요청을 승인하시겠습니까?
+                </p>
+                <div className="bg-slate-50 p-3 rounded-md mb-4">
+                  <p className="text-sm text-slate-700">{selectedRequest.prayerContent}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  승인 메모 (선택사항)
+                </label>
+                <textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="승인과 관련된 메모를 입력하세요..."
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  onClick={() => setShowApprovalModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  취소
                 </Button>
-              )}
-            </div> */}
+                <Button
+                  onClick={handleApprovalSubmit}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  승인
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 기도 기록 작성 모달 */}
+      {showRecordModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">기도 기록 작성</h2>
+              <button
+                onClick={() => setShowRecordModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">기도 요청 내용</h3>
+                <p className="text-blue-700 text-sm">
+                  <span className="font-medium">요청자:</span> {selectedRequest.requesterName}
+                </p>
+                <p className="text-blue-700 text-sm mt-1">{selectedRequest.prayerContent}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  기도 기록 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={prayerRecord}
+                  onChange={(e) => setPrayerRecord(e.target.value)}
+                  placeholder="이 기도 요청에 대한 기도 내용, 느낀 점, 하나님의 응답 등을 기록해주세요..."
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={6}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  💡 기도한 날짜, 시간, 느낀 점, 하나님의 음성이나 인도하심 등을 구체적으로 기록해보세요.
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  onClick={() => setShowRecordModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleRecordSubmit}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={!prayerRecord.trim()}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  기록 저장
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

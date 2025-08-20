@@ -22,7 +22,9 @@ import {
   XCircle,
   User,
   Users,
-  Phone
+  Phone,
+  Edit,
+  Plus
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { pastoralCareService } from '../services/api';
@@ -57,7 +59,9 @@ interface PastoralCareRequest {
 }
 
 const PastoralCareManagement: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'requests' | 'records'>('requests');
   const [requests, setRequests] = useState<PastoralCareRequest[]>([]);
+  const [completedRecords, setCompletedRecords] = useState<PastoralCareRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -78,8 +82,12 @@ const PastoralCareManagement: React.FC = () => {
 
   // API에서 심방 신청 데이터 로드
   useEffect(() => {
-    loadPastoralCareRequests();
-  }, [statusFilter, priorityFilter, typeFilter]);
+    if (activeTab === 'requests') {
+      loadPastoralCareRequests();
+    } else {
+      loadCompletedRecords();
+    }
+  }, [activeTab, statusFilter, priorityFilter, typeFilter]);
 
   const loadPastoralCareRequests = async () => {
     try {
@@ -150,6 +158,72 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
+  const loadCompletedRecords = async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        status: 'completed' // 완료된 심방 기록만 조회
+      };
+      
+      if (priorityFilter !== 'all') params.priority = priorityFilter;
+      if (typeFilter !== 'all') params.request_type = typeFilter;
+      
+      const response = await pastoralCareService.getRequests(params);
+      
+      console.log('Completed pastoral care records API response:', response);
+      
+      let recordsData = [];
+      
+      if (Array.isArray(response)) {
+        recordsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        recordsData = response.data;
+      } else if (response && Array.isArray(response.items)) {
+        recordsData = response.items;
+      } else if (response && Array.isArray(response.results)) {
+        recordsData = response.results;
+      } else {
+        console.warn('Unexpected response structure:', response);
+        recordsData = [];
+      }
+      
+      const transformedRecords: PastoralCareRequest[] = recordsData.map((item: any) => ({
+        id: item.id,
+        churchId: item.church_id,
+        memberId: item.member_id,
+        requesterName: item.requester_name,
+        requesterPhone: item.requester_phone,
+        requestType: item.request_type,
+        requestContent: item.request_content,
+        preferredDate: item.preferred_date,
+        preferredTimeStart: item.preferred_time_start,
+        preferredTimeEnd: item.preferred_time_end,
+        status: item.status,
+        priority: item.priority || 'normal',
+        assignedPastorId: item.assigned_pastor_id,
+        assignedPastor: item.assigned_pastor_id ? {
+          id: item.assigned_pastor_id,
+          name: item.assigned_pastor?.name || '담당자 미지정',
+          phone: item.assigned_pastor?.phone || ''
+        } : undefined,
+        scheduledDate: item.scheduled_date,
+        scheduledTime: item.scheduled_time,
+        completionNotes: item.completion_notes,
+        adminNotes: item.admin_notes,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        completedAt: item.completed_at
+      }));
+      
+      setCompletedRecords(transformedRecords);
+    } catch (error) {
+      console.error('Failed to load completed pastoral care records:', error);
+      setCompletedRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -210,6 +284,16 @@ const PastoralCareManagement: React.FC = () => {
     const matchesType = typeFilter === 'all' || request.requestType === typeFilter;
     
     return matchesSearch && matchesStatus && matchesPriority && matchesType;
+  });
+
+  const filteredRecords = completedRecords.filter(record => {
+    const matchesSearch = record.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (record.completionNotes && record.completionNotes.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesPriority = priorityFilter === 'all' || record.priority === priorityFilter;
+    const matchesType = typeFilter === 'all' || record.requestType === typeFilter;
+    
+    return matchesSearch && matchesPriority && matchesType;
   });
 
   const handleViewDetails = (request: PastoralCareRequest) => {
@@ -404,8 +488,8 @@ const PastoralCareManagement: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">심방 신청 관리</h1>
-          <p className="text-slate-600 mt-1">교인들의 심방 신청을 관리하고 일정을 조율하세요</p>
+          <h1 className="text-2xl font-bold text-slate-900">심방 관리</h1>
+          <p className="text-slate-600 mt-1">심방 신청 관리와 완료된 심방 기록을 확인하세요</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button
@@ -419,54 +503,158 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">대기중</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {requests.filter(r => r.status === 'pending').length}
-              </p>
-            </div>
-            <Clock className="h-8 w-8 text-yellow-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">예정됨</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {requests.filter(r => r.status === 'scheduled').length}
-              </p>
-            </div>
-            <Calendar className="h-8 w-8 text-purple-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">완료</p>
-              <p className="text-2xl font-bold text-green-600">
-                {requests.filter(r => r.status === 'completed').length}
-              </p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">전체</p>
-              <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
-            </div>
-            <Users className="h-8 w-8 text-slate-600" />
-          </div>
-        </div>
+      {/* 탭 네비게이션 */}
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={cn(
+              "whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm",
+              activeTab === 'requests'
+                ? "border-sky-500 text-sky-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            신청 관리
+            {requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length > 0 && (
+              <span className="ml-2 bg-sky-100 text-sky-600 py-0.5 px-2 rounded-full text-xs">
+                {requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('records')}
+            className={cn(
+              "whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm",
+              activeTab === 'records'
+                ? "border-sky-500 text-sky-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            심방 기록
+            {completedRecords.length > 0 && (
+              <span className="ml-2 bg-green-100 text-green-600 py-0.5 px-2 rounded-full text-xs">
+                {completedRecords.length}
+              </span>
+            )}
+          </button>
+        </nav>
       </div>
+
+      {/* 신청 관리 탭 */}
+      {activeTab === 'requests' && (
+        <>
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">대기중</p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {requests.filter(r => r.status === 'pending').length}
+                  </p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">예정됨</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {requests.filter(r => r.status === 'scheduled').length}
+                  </p>
+                </div>
+                <Calendar className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">완료</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {requests.filter(r => r.status === 'completed').length}
+                  </p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">전체</p>
+                  <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
+                </div>
+                <Users className="h-8 w-8 text-slate-600" />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 심방 기록 탭 */}
+      {activeTab === 'records' && (
+        <>
+          {/* 심방 기록 통계 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">총 심방 완료</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {completedRecords.length}
+                  </p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">이번 달</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {completedRecords.filter(r => {
+                      const completedAt = new Date(r.completedAt || r.updatedAt || r.createdAt);
+                      const thisMonth = new Date();
+                      return completedAt.getMonth() === thisMonth.getMonth() && 
+                             completedAt.getFullYear() === thisMonth.getFullYear();
+                    }).length}
+                  </p>
+                </div>
+                <Calendar className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">병원 심방</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {completedRecords.filter(r => r.requestType === 'hospital').length}
+                  </p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">일지 작성</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {completedRecords.filter(r => r.completionNotes && r.completionNotes.trim()).length}
+                  </p>
+                </div>
+                <FileText className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 검색 및 필터 */}
       <div className="bg-white p-4 rounded-lg border border-slate-200">
@@ -534,9 +722,10 @@ const PastoralCareManagement: React.FC = () => {
         )}
       </div>
 
-      {/* 심방 신청 목록 */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* 신청 관리 목록 */}
+      {activeTab === 'requests' && (
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -656,13 +845,13 @@ const PastoralCareManagement: React.FC = () => {
                           <User className="h-4 w-4" />
                         </Button>
                       )}
-                      {(request.status === 'scheduled' || request.status === 'in_progress') && (
+                      {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleCompleteVisit(request)}
                           className="text-green-600 hover:text-green-800"
-                          title="심방 완료"
+                          title={request.status === 'approved' ? "심방 기록 작성" : "심방 완료"}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -674,13 +863,92 @@ const PastoralCareManagement: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {filteredRequests.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-500">조건에 맞는 심방 신청이 없습니다.</p>
+        {filteredRequests.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+            <p className="text-slate-500">조건에 맞는 심방 신청이 없습니다.</p>
+          </div>
+        )}
         </div>
+      )}
+
+      {/* 심방 기록 목록 */}
+      {activeTab === 'records' && (
+        <>
+          <div className="space-y-4">
+            {filteredRecords.map((record) => (
+              <div key={record.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                   onClick={() => handleViewDetails(record)}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-slate-600" />
+                        <span className="font-medium text-slate-900">{record.requesterName}</span>
+                      </div>
+                      <span className={cn("text-sm font-medium", getPriorityColor(record.priority))}>
+                        {getPriorityText(record.priority)}
+                      </span>
+                      <span className="text-sm text-slate-600">
+                        {getRequestTypeText(record.requestType)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 text-sm text-slate-500 mb-3">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>심방일: {record.scheduledDate} {record.scheduledTime}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <User className="h-3 w-3" />
+                        <span>담당: {record.assignedPastor?.name || '미지정'}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>완료: {record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '날짜 미기록'}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-slate-600 text-sm mb-3 line-clamp-2">
+                      <span className="font-medium">신청 내용:</span> {record.requestContent}
+                    </p>
+
+                    {record.completionNotes && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-start">
+                          <FileText className="h-4 w-4 text-green-600 mt-0.5 mr-2" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 mb-1">심방 일지</p>
+                            <p className="text-green-700 text-sm line-clamp-3">
+                              {record.completionNotes}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!record.completionNotes && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                        <div className="flex items-center">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 mr-2" />
+                          <p className="text-yellow-800 text-sm">심방 일지가 작성되지 않았습니다.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredRecords.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-500">조건에 맞는 심방 기록이 없습니다.</p>
+            </div>
+          )}
+        </>
       )}
 
       {/* 상세 보기 모달 */}
@@ -955,7 +1223,9 @@ const PastoralCareManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">심방 완료 일지 작성</h2>
+              <h2 className="text-xl font-semibold text-slate-900">
+                {selectedRequest.status === 'approved' ? '심방 기록 작성' : '심방 완료 일지 작성'}
+              </h2>
               <button
                 onClick={() => setShowCompletionModal(false)}
                 className="text-slate-400 hover:text-slate-600"
@@ -974,12 +1244,20 @@ const PastoralCareManagement: React.FC = () => {
                   <p className="text-sm text-slate-600">심방 유형</p>
                   <p className="font-medium">{getRequestTypeText(selectedRequest.requestType)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-600">예정 일시</p>
-                  <p className="font-medium">
-                    {selectedRequest.scheduledDate} {selectedRequest.scheduledTime}
-                  </p>
-                </div>
+                {selectedRequest.scheduledDate && selectedRequest.scheduledTime && (
+                  <div>
+                    <p className="text-sm text-slate-600">예정 일시</p>
+                    <p className="font-medium">
+                      {selectedRequest.scheduledDate} {selectedRequest.scheduledTime}
+                    </p>
+                  </div>
+                )}
+                {selectedRequest.status === 'approved' && (
+                  <div>
+                    <p className="text-sm text-slate-600">상태</p>
+                    <p className="font-medium text-green-600">승인됨 - 기록 작성 가능</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-slate-600">담당자</p>
                   <p className="font-medium">
