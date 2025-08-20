@@ -337,8 +337,8 @@ const DonationManagement: React.FC = () => {
       const createdOfferings = await financialApi.bulkCreateOfferings(offeringsData);
 
       // Convert to component format
-      const newDonations: Donation[] = createdOfferings.map((offering: any, index: number) => {
-        const member = members.find(m => m.id === bulk.memberId);
+      const newDonations: Donation[] = createdOfferings.map((offering: any) => {
+        const member = members.find(m => m.id === offering.member_id.toString());
         return {
           id: offering.id.toString(),
           memberId: offering.member_id.toString(),
