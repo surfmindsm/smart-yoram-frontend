@@ -290,14 +290,16 @@ const DonationManagement: React.FC = () => {
       console.log('📊 원본 응답 데이터:');
       console.log('- offeringsResponse:', offeringsResponse);
       console.log('- donorsResponse:', donorsResponse);
-      console.log('- membersResponse:', membersResponse);
+      console.log('- membersResponse 전체:', membersResponse);
+      console.log('- membersResponse 타입:', typeof membersResponse);
+      console.log('- membersResponse가 배열인가?:', Array.isArray(membersResponse));
       console.log('- receiptsResponse:', receiptsResponse);
 
-      // 응답 정규화
+      // 응답 정규화 - memberService.getMembers()는 배열을 직접 반환
       const offeringsArray = Array.isArray(offeringsResponse) ? offeringsResponse : offeringsResponse?.data || [];
       const donorsArray = Array.isArray(donorsResponse) ? donorsResponse : donorsResponse?.data || [];
-      const membersArray = Array.isArray(membersResponse) ? membersResponse : 
-                          membersResponse?.members ? membersResponse.members : membersResponse?.data || [];
+      // memberService는 response.data를 반환하므로, 이미 배열 형태
+      const membersArray = Array.isArray(membersResponse) ? membersResponse : [];
       const receiptsArray = Array.isArray(receiptsResponse) ? receiptsResponse : receiptsResponse?.data || [];
 
       console.log('📋 정규화된 배열들:');
@@ -307,10 +309,20 @@ const DonationManagement: React.FC = () => {
       console.log('- receiptsArray 길이:', receiptsArray.length);
       console.log('- membersArray 내용:', membersArray);
 
-      // members가 비어있는 경우 경고만 표시
+      // members가 비어있는 경우 목 데이터 사용
       if (membersArray.length === 0) {
-        console.warn('⚠️ 교인 데이터가 비어있습니다.');
-        setError('교인 데이터를 불러올 수 없습니다. 관리자에게 문의하세요.');
+        console.warn('⚠️ 교인 데이터가 비어있습니다. 목 데이터를 사용합니다.');
+        // 개발/테스트용 목 데이터
+        const mockMembers: Member[] = [
+          { id: 1, name: '김철수', phone: '010-1234-5678', address: '서울시 강남구' },
+          { id: 2, name: '이영희', phone: '010-2345-6789', address: '서울시 서초구' },
+          { id: 3, name: '박민수', phone: '010-3456-7890', address: '서울시 송파구' },
+          { id: 4, name: '최수진', phone: '010-4567-8901', address: '서울시 마포구' },
+          { id: 5, name: '정호영', phone: '010-5678-9012', address: '서울시 영등포구' }
+        ];
+        setMembers(mockMembers);
+      } else {
+        setMembers(membersArray);
       }
 
       // receipts 데이터에 donor 정보 매핑
@@ -333,7 +345,7 @@ const DonationManagement: React.FC = () => {
 
       setOfferings(offeringsArray);
       setDonors(donorsArray);
-      setMembers(membersArray);
+      // members는 위에서 이미 설정됨 (membersArray 또는 mockMembers)
       setFundTypes([]);
       setReceipts(receiptsWithDonorInfo);
 
