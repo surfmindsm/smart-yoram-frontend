@@ -21,6 +21,7 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { financialApi } from '../services/financialApi';
 
 // 타입 정의
 interface Member {
@@ -32,8 +33,8 @@ interface Member {
 
 interface Donation {
   id: string;
-  donorId: string | null; // null인 경우 무명 헌금
-  donorName: string;
+  memberId: string;
+  memberName: string;
   offeredOn: string;
   fundType: string;
   amount: number;
@@ -43,8 +44,8 @@ interface Donation {
 
 interface Receipt {
   id: string;
-  donorId: string;
-  donorName: string;
+  memberId: string;
+  memberName: string;
   taxYear: number;
   issueNo: string;
   totalAmount: number;
@@ -75,7 +76,7 @@ const DonationManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [selectedDonor, setSelectedDonor] = useState<string>('');
+  const [selectedMember, setSelectedMember] = useState<string>('');
   
   // 날짜 필터 상태
   const [dateFilter, setDateFilter] = useState({
@@ -92,30 +93,71 @@ const DonationManagement: React.FC = () => {
 
   // 새 헌금 입력 폼 상태
   const [newDonation, setNewDonation] = useState({
-    donorId: '',
+    memberId: '',
     offeredOn: new Date().toISOString().split('T')[0],
     fundType: '십일조',
     amount: 0,
-    note: '',
-    isAnonymous: false
+    note: ''
   });
 
   // 일괄 입력 상태
   const [bulkDonations, setBulkDonations] = useState<Array<{
-    donorId: string;
+    memberId: string;
     amount: number;
     fundType: string;
     note: string;
-    isAnonymous: boolean;
   }>>([]);
   const [bulkSettings, setBulkSettings] = useState({
     offeredOn: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
-    // TODO: API 연결 시 실제 데이터 로드
-    loadMockData();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      // Load real data from API
+      const [offeringsData, fundTypesData] = await Promise.all([
+        financialApi.getOfferings(),
+        financialApi.getFundTypes(true)
+      ]);
+
+      // Convert API data to component format
+      const convertedOfferings = offeringsData.map((offering: any) => ({
+        id: offering.id.toString(),
+        memberId: offering.member_id.toString(),
+        memberName: '', // Will need to fetch member data
+        offeredOn: offering.offered_on,
+        fundType: offering.fund_type,
+        amount: offering.amount,
+        note: offering.note || '',
+        inputUserId: offering.input_user_id.toString()
+      }));
+
+      setDonations(convertedOfferings);
+
+      // Load receipts
+      const receiptsData = await financialApi.getReceipts({ tax_year: selectedYear });
+      const convertedReceipts = receiptsData.map((receipt: any) => ({
+        id: receipt.id.toString(),
+        memberId: receipt.member_id.toString(),
+        memberName: '', // Will need to fetch member data
+        taxYear: receipt.tax_year,
+        issueNo: receipt.issue_no,
+        totalAmount: 0, // Will need to calculate
+        issuedAt: receipt.issued_at,
+        issuedBy: receipt.issued_by.toString(),
+        canceledAt: receipt.canceled_at
+      }));
+
+      setReceipts(convertedReceipts);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      // Fall back to mock data if API fails
+      loadMockData();
+    }
+  };
 
   const loadMockData = () => {
     // 목업 데이터
@@ -128,8 +170,8 @@ const DonationManagement: React.FC = () => {
     const mockDonations: Donation[] = [
       {
         id: '1',
-        donorId: '1',
-        donorName: '김철수',
+        memberId: '1',
+        memberName: '김철수',
         offeredOn: '2024-12-01',
         fundType: '십일조',
         amount: 100000,
@@ -138,8 +180,8 @@ const DonationManagement: React.FC = () => {
       },
       {
         id: '2',
-        donorId: '1',
-        donorName: '김철수',
+        memberId: '1',
+        memberName: '김철수',
         offeredOn: '2024-12-08',
         fundType: '감사헌금',
         amount: 50000,
@@ -148,8 +190,8 @@ const DonationManagement: React.FC = () => {
       },
       {
         id: '3',
-        donorId: '2',
-        donorName: '이영희',
+        memberId: '2',
+        memberName: '이영희',
         offeredOn: '2024-12-01',
         fundType: '십일조',
         amount: 80000,
@@ -157,8 +199,8 @@ const DonationManagement: React.FC = () => {
       },
       {
         id: '4',
-        donorId: null,
-        donorName: '무명',
+        memberId: '3',
+        memberName: '박민수',
         offeredOn: '2024-12-03',
         fundType: '주일헌금',
         amount: 20000,
@@ -167,8 +209,8 @@ const DonationManagement: React.FC = () => {
       },
       {
         id: '5',
-        donorId: null,
-        donorName: '무명',
+        memberId: '3',
+        memberName: '박민수',
         offeredOn: '2024-12-03',
         fundType: '건축헌금',
         amount: 100000,
@@ -177,8 +219,8 @@ const DonationManagement: React.FC = () => {
       },
       {
         id: '6',
-        donorId: null,
-        donorName: '무명',
+        memberId: '1',
+        memberName: '김철수',
         offeredOn: '2024-12-10',
         fundType: '주일헌금',
         amount: 15000,
@@ -189,8 +231,8 @@ const DonationManagement: React.FC = () => {
     const mockReceipts: Receipt[] = [
       {
         id: '1',
-        donorId: '1',
-        donorName: '김철수',
+        memberId: '1',
+        memberName: '김철수',
         taxYear: 2024,
         issueNo: '2024-001',
         totalAmount: 1200000,
@@ -204,51 +246,61 @@ const DonationManagement: React.FC = () => {
     setReceipts(mockReceipts);
   };
 
-  const handleAddDonation = () => {
-    if ((!newDonation.donorId && !newDonation.isAnonymous) || newDonation.amount <= 0) {
-      alert('기부자 또는 무명 선택과 금액을 입력해주세요.');
+  const handleAddDonation = async () => {
+    if (!newDonation.memberId || newDonation.amount <= 0) {
+      alert('교인과 금액을 입력해주세요.');
       return;
     }
 
-    let donorName = '무명';
-    let donorId = null;
-    
-    if (!newDonation.isAnonymous) {
-      const donor = members.find(m => m.id === newDonation.donorId);
-      if (!donor) {
-        alert('기부자를 찾을 수 없습니다.');
-        return;
-      }
-      donorName = donor.name;
-      donorId = newDonation.donorId;
+    const member = members.find(m => m.id === newDonation.memberId);
+    if (!member) {
+      alert('교인을 찾을 수 없습니다.');
+      return;
     }
 
-    const donation: Donation = {
-      id: Date.now().toString(),
-      donorId,
-      donorName,
-      offeredOn: newDonation.offeredOn,
-      fundType: newDonation.fundType,
-      amount: newDonation.amount,
-      note: newDonation.note,
-      inputUserId: 'admin' // TODO: 실제 로그인 사용자
-    };
+    try {
+      // Create offering via API
+      const offeringData = {
+        member_id: parseInt(newDonation.memberId),
+        church_id: 1, // TODO: Get from user context
+        offered_on: newDonation.offeredOn,
+        fund_type: newDonation.fundType,
+        amount: newDonation.amount,
+        note: newDonation.note
+      };
 
-    setDonations([donation, ...donations]);
-    setIsAddModalOpen(false);
-    setNewDonation({
-      donorId: '',
-      offeredOn: new Date().toISOString().split('T')[0],
-      fundType: '십일조',
-      amount: 0,
-      note: '',
-      isAnonymous: false
-    });
+      const createdOffering = await financialApi.createOffering(offeringData);
+
+      // Convert to component format
+      const donation: Donation = {
+        id: createdOffering.id.toString(),
+        memberId: createdOffering.member_id.toString(),
+        memberName: member.name,
+        offeredOn: createdOffering.offered_on,
+        fundType: createdOffering.fund_type,
+        amount: createdOffering.amount,
+        note: createdOffering.note || '',
+        inputUserId: createdOffering.input_user_id.toString()
+      };
+
+      setDonations([donation, ...donations]);
+      setIsAddModalOpen(false);
+      setNewDonation({
+        memberId: '',
+        offeredOn: new Date().toISOString().split('T')[0],
+        fundType: '십일조',
+        amount: 0,
+        note: ''
+      });
+    } catch (error) {
+      console.error('Failed to create offering:', error);
+      alert('헌금 등록에 실패했습니다.');
+    }
   };
 
   // 일괄 입력 관련 함수들
   const addBulkRow = () => {
-    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
+    setBulkDonations([...bulkDonations, { memberId: '', amount: 0, fundType: '십일조', note: '' }]);
   };
 
   const removeBulkRow = (index: number) => {
@@ -262,45 +314,51 @@ const DonationManagement: React.FC = () => {
     setBulkDonations(updated);
   };
 
-  const handleBulkSubmit = () => {
-    const validDonations = bulkDonations.filter(d => (d.donorId || d.isAnonymous) && d.amount > 0);
+  const handleBulkSubmit = async () => {
+    const validDonations = bulkDonations.filter(d => d.memberId && d.amount > 0);
     
     if (validDonations.length === 0) {
       alert('입력할 헌금 내역이 없습니다.');
       return;
     }
 
-    const newDonations: Donation[] = validDonations.map((bulk, index) => {
-      if (bulk.isAnonymous) {
-        return {
-          id: (Date.now() + index).toString(),
-          donorId: null,
-          donorName: '무명',
-          offeredOn: bulkSettings.offeredOn,
-          fundType: bulk.fundType,
-          amount: bulk.amount,
-          note: bulk.note,
-          inputUserId: 'admin'
-        };
-      } else {
-        const donor = members.find(m => m.id === bulk.donorId);
-        return {
-          id: (Date.now() + index).toString(),
-          donorId: bulk.donorId,
-          donorName: donor?.name || '',
-          offeredOn: bulkSettings.offeredOn,
-          fundType: bulk.fundType,
-          amount: bulk.amount,
-          note: bulk.note,
-          inputUserId: 'admin'
-        };
-      }
-    });
+    try {
+      // Prepare bulk offerings for API
+      const offeringsData = validDonations.map((bulk) => ({
+        member_id: parseInt(bulk.memberId),
+        church_id: 1, // TODO: Get from user context
+        offered_on: bulkSettings.offeredOn,
+        fund_type: bulk.fundType,
+        amount: bulk.amount,
+        note: bulk.note
+      }));
 
-    setDonations([...newDonations, ...donations]);
-    setIsBulkModalOpen(false);
-    setBulkDonations([]);
-    alert(`${validDonations.length}건의 헌금이 등록되었습니다.`);
+      // Create offerings via API
+      const createdOfferings = await financialApi.bulkCreateOfferings(offeringsData);
+
+      // Convert to component format
+      const newDonations: Donation[] = createdOfferings.map((offering: any, index: number) => {
+        const member = members.find(m => m.id === bulk.memberId);
+        return {
+          id: offering.id.toString(),
+          memberId: offering.member_id.toString(),
+          memberName: member?.name || '',
+          offeredOn: offering.offered_on,
+          fundType: offering.fund_type,
+          amount: offering.amount,
+          note: offering.note || '',
+          inputUserId: offering.input_user_id.toString()
+        };
+      });
+
+      setDonations([...newDonations, ...donations]);
+      setIsBulkModalOpen(false);
+      setBulkDonations([]);
+      alert(`${validDonations.length}건의 헌금이 등록되었습니다.`);
+    } catch (error) {
+      console.error('Failed to create bulk offerings:', error);
+      alert('일괄 헌금 등록에 실패했습니다.');
+    }
   };
 
   // 날짜 필터링 함수
@@ -338,46 +396,63 @@ const DonationManagement: React.FC = () => {
       : <ArrowDown className="w-4 h-4 text-blue-600" />;
   };
 
-  const generateReceipt = () => {
-    if (!selectedDonor) {
-      alert('기부자를 선택해주세요.');
+  const generateReceipt = async () => {
+    if (!selectedMember) {
+      alert('교인을 선택해주세요.');
       return;
     }
 
-    const donor = members.find(m => m.id === selectedDonor);
-    const donorDonations = donations.filter(d => 
-      d.donorId === selectedDonor && 
+    const member = members.find(m => m.id === selectedMember);
+    const memberDonations = donations.filter(d => 
+      d.memberId === selectedMember && 
       new Date(d.offeredOn).getFullYear() === selectedYear
     );
 
-    if (donorDonations.length === 0) {
-      alert('해당 기부자의 헌금 내역이 없습니다.');
+    if (memberDonations.length === 0) {
+      alert('해당 교인의 헌금 내역이 없습니다.');
       return;
     }
 
-    const totalAmount = donorDonations.reduce((sum, d) => sum + d.amount, 0);
+    const totalAmount = memberDonations.reduce((sum, d) => sum + d.amount, 0);
     const issueNo = `${selectedYear}-${String(receipts.length + 1).padStart(3, '0')}`;
 
-    const receipt: Receipt = {
-      id: Date.now().toString(),
-      donorId: selectedDonor,
-      donorName: donor?.name || '',
-      taxYear: selectedYear,
-      issueNo,
-      totalAmount,
-      issuedAt: new Date().toISOString().split('T')[0],
-      issuedBy: '담임목사'
-    };
+    try {
+      // Create receipt via API
+      const receiptData = {
+        church_id: 1, // TODO: Get from user context
+        member_id: parseInt(selectedMember),
+        tax_year: selectedYear,
+        issue_no: issueNo
+      };
 
-    setReceipts([receipt, ...receipts]);
-    setIsReceiptModalOpen(false);
-    setSelectedDonor('');
-    alert('기부금 영수증이 발행되었습니다.');
+      const createdReceipt = await financialApi.createReceipt(receiptData);
+
+      // Convert to component format
+      const receipt: Receipt = {
+        id: createdReceipt.id.toString(),
+        memberId: createdReceipt.member_id.toString(),
+        memberName: member?.name || '',
+        taxYear: createdReceipt.tax_year,
+        issueNo: createdReceipt.issue_no,
+        totalAmount,
+        issuedAt: createdReceipt.issued_at,
+        issuedBy: createdReceipt.issued_by.toString(),
+        canceledAt: createdReceipt.canceled_at
+      };
+
+      setReceipts([receipt, ...receipts]);
+      setIsReceiptModalOpen(false);
+      setSelectedMember('');
+      alert('기부금 영수증이 발행되었습니다.');
+    } catch (error) {
+      console.error('Failed to create receipt:', error);
+      alert('영수증 발행에 실패했습니다.');
+    }
   };
 
   const filteredDonations = donations.filter(donation => {
     // 검색 필터
-    const matchesSearch = donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = donation.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          donation.fundType.includes(searchTerm);
     
     // 날짜 필터
@@ -421,7 +496,7 @@ const DonationManagement: React.FC = () => {
   });
 
   const filteredReceipts = receipts.filter(receipt =>
-    receipt.donorName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    receipt.memberName.toLowerCase().includes(searchTerm.toLowerCase()) &&
     receipt.taxYear === selectedYear
   );
 
@@ -488,7 +563,7 @@ const DonationManagement: React.FC = () => {
                   variant="outline"
                   onClick={() => {
                     setIsBulkModalOpen(true);
-                    setBulkDonations([{ donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
+                    setBulkDonations([{ memberId: '', amount: 0, fundType: '십일조', note: '' }]);
                   }}
                   className="flex items-center space-x-2"
                 >
@@ -569,11 +644,11 @@ const DonationManagement: React.FC = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">기부자 수</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">헌금 교인 수</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {new Set(donations.map(d => d.donorId)).size}명
+                  {new Set(donations.map(d => d.memberId)).size}명
                 </div>
               </CardContent>
             </Card>
@@ -611,11 +686,11 @@ const DonationManagement: React.FC = () => {
                       </th>
                       <th className="text-left py-2 px-2">
                         <button
-                          onClick={() => handleSort('donorName')}
+                          onClick={() => handleSort('memberName')}
                           className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
                         >
-                          <span>기부자</span>
-                          {getSortIcon('donorName')}
+                          <span>교인</span>
+                          {getSortIcon('memberName')}
                         </button>
                       </th>
                       <th className="text-left py-2 px-2">
@@ -644,7 +719,7 @@ const DonationManagement: React.FC = () => {
                     {filteredDonations.map((donation) => (
                       <tr key={donation.id} className="border-b">
                         <td className="py-3 px-2">{donation.offeredOn}</td>
-                        <td className="py-3 px-2">{donation.donorName}</td>
+                        <td className="py-3 px-2">{donation.memberName}</td>
                         <td className="py-3 px-2">{donation.fundType}</td>
                         <td className="py-3 px-4 text-right font-medium">{formatCurrency(donation.amount)}</td>
                         <td className="py-3 px-4 text-gray-600">{donation.note}</td>
@@ -691,7 +766,7 @@ const DonationManagement: React.FC = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="기부자명 검색..."
+                  placeholder="교인명 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-80"
@@ -721,7 +796,7 @@ const DonationManagement: React.FC = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-2">발행번호</th>
-                      <th className="text-left py-2">기부자</th>
+                      <th className="text-left py-2">교인</th>
                       <th className="text-right py-2">총액</th>
                       <th className="text-left py-2">발행일</th>
                       <th className="text-left py-2">발행자</th>
@@ -732,7 +807,7 @@ const DonationManagement: React.FC = () => {
                     {filteredReceipts.map((receipt) => (
                       <tr key={receipt.id} className="border-b">
                         <td className="py-3 font-mono">{receipt.issueNo}</td>
-                        <td className="py-3">{receipt.donorName}</td>
+                        <td className="py-3">{receipt.memberName}</td>
                         <td className="py-3 text-right font-medium">{formatCurrency(receipt.totalAmount)}</td>
                         <td className="py-3">{receipt.issuedAt}</td>
                         <td className="py-3">{receipt.issuedBy}</td>
@@ -797,8 +872,7 @@ const DonationManagement: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-center py-2 px-3 border-b w-16">무명</th>
-                      <th className="text-left py-2 px-3 border-b">기부자</th>
+                      <th className="text-left py-2 px-3 border-b">교인</th>
                       <th className="text-left py-2 px-3 border-b">헌금 유형</th>
                       <th className="text-right py-2 px-3 border-b">금액</th>
                       <th className="text-left py-2 px-3 border-b">적요</th>
@@ -808,38 +882,19 @@ const DonationManagement: React.FC = () => {
                   <tbody>
                     {bulkDonations.map((bulk, index) => (
                       <tr key={index} className="border-b">
-                        <td className="py-2 px-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={bulk.isAnonymous}
-                            onChange={(e) => {
-                              updateBulkRow(index, 'isAnonymous', e.target.checked);
-                              if (e.target.checked) {
-                                updateBulkRow(index, 'donorId', '');
-                              }
-                            }}
-                            className="w-4 h-4"
-                          />
-                        </td>
                         <td className="py-2 px-3">
-                          {bulk.isAnonymous ? (
-                            <div className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm text-center">
-                              무명
-                            </div>
-                          ) : (
-                            <select
-                              value={bulk.donorId}
-                              onChange={(e) => updateBulkRow(index, 'donorId', e.target.value)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            >
-                              <option value="">기부자 선택</option>
-                              {members.map((member) => (
-                                <option key={member.id} value={member.id}>
-                                  {member.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
+                          <select
+                            value={bulk.memberId}
+                            onChange={(e) => updateBulkRow(index, 'memberId', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          >
+                            <option value="">교인 선택</option>
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.name}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="py-2 px-3">
                           <select
@@ -890,18 +945,17 @@ const DonationManagement: React.FC = () => {
               {/* 합계 정보 */}
               <div className="flex justify-end">
                 <div className="bg-gray-50 px-4 py-2 rounded-lg">
-                  <span className="text-sm text-gray-600">총 {bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length}건, </span>
+                  <span className="text-sm text-gray-600">총 {bulkDonations.filter(b => b.memberId && b.amount > 0).length}건, </span>
                   <span className="font-medium">
                     {formatCurrency(bulkDonations.reduce((sum, b) => sum + (b.amount || 0), 0))}
                   </span>
-                  <span className="text-sm text-gray-600 ml-2">(무명: {bulkDonations.filter(b => b.isAnonymous && b.amount > 0).length}건)</span>
                 </div>
               </div>
             </div>
 
             <div className="flex space-x-2">
               <Button onClick={handleBulkSubmit} className="flex-1">
-                {bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length}건 등록
+                {bulkDonations.filter(b => b.memberId && b.amount > 0).length}건 등록
               </Button>
               <Button 
                 variant="outline" 
@@ -926,42 +980,19 @@ const DonationManagement: React.FC = () => {
             
             <div className="space-y-4">
               <div>
-                <div className="flex items-center space-x-4 mb-2">
-                  <label className="block text-sm font-medium">기부자</label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={newDonation.isAnonymous}
-                      onChange={(e) => {
-                        setNewDonation({ 
-                          ...newDonation, 
-                          isAnonymous: e.target.checked,
-                          donorId: e.target.checked ? '' : newDonation.donorId
-                        });
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">무명 헌금</span>
-                  </label>
-                </div>
-                {newDonation.isAnonymous ? (
-                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500 text-center">
-                    무명
-                  </div>
-                ) : (
-                  <select
-                    value={newDonation.donorId}
-                    onChange={(e) => setNewDonation({ ...newDonation, donorId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="">기부자를 선택하세요</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <label className="block text-sm font-medium mb-1">교인</label>
+                <select
+                  value={newDonation.memberId}
+                  onChange={(e) => setNewDonation({ ...newDonation, memberId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">교인을 선택하세요</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1043,16 +1074,16 @@ const DonationManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">기부자</label>
+                <label className="block text-sm font-medium mb-1">교인</label>
                 <select
-                  value={selectedDonor}
-                  onChange={(e) => setSelectedDonor(e.target.value)}
+                  value={selectedMember}
+                  onChange={(e) => setSelectedMember(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="">기부자를 선택하세요</option>
+                  <option value="">교인을 선택하세요</option>
                   {members.map((member) => {
                     const yearDonations = donations.filter(d => 
-                      d.donorId === member.id && 
+                      d.memberId === member.id && 
                       new Date(d.offeredOn).getFullYear() === selectedYear
                     );
                     const totalAmount = yearDonations.reduce((sum, d) => sum + d.amount, 0);
@@ -1068,11 +1099,11 @@ const DonationManagement: React.FC = () => {
                 </select>
               </div>
 
-              {selectedDonor && (
+              {selectedMember && (
                 <div className="bg-gray-50 p-3 rounded-md">
                   <h4 className="font-medium mb-2">{selectedYear}년 헌금 내역</h4>
                   {donations
-                    .filter(d => d.donorId === selectedDonor && new Date(d.offeredOn).getFullYear() === selectedYear)
+                    .filter(d => d.memberId === selectedMember && new Date(d.offeredOn).getFullYear() === selectedYear)
                     .map((donation, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span>{donation.fundType}</span>
@@ -1085,7 +1116,7 @@ const DonationManagement: React.FC = () => {
                     <span>
                       {formatCurrency(
                         donations
-                          .filter(d => d.donorId === selectedDonor && new Date(d.offeredOn).getFullYear() === selectedYear)
+                          .filter(d => d.memberId === selectedMember && new Date(d.offeredOn).getFullYear() === selectedYear)
                           .reduce((sum, d) => sum + d.amount, 0)
                       )}
                     </span>
@@ -1102,7 +1133,7 @@ const DonationManagement: React.FC = () => {
                 variant="outline" 
                 onClick={() => {
                   setIsReceiptModalOpen(false);
-                  setSelectedDonor('');
+                  setSelectedMember('');
                 }}
                 className="flex-1"
               >
