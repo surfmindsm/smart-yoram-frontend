@@ -337,7 +337,11 @@ const PrayerRequestManagement: React.FC = () => {
       {/* 기도 요청 목록 */}
       <div className="space-y-4">
         {filteredRequests.map((request) => (
-          <div key={request.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div 
+            key={request.id} 
+            className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleViewDetails(request)}
+          >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
@@ -352,22 +356,22 @@ const PrayerRequestManagement: React.FC = () => {
                     </span>
                   </div>
                   
-                  <span className={cn(
+                  {/* <span className={cn(
                     "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
                     getStatusColor(request.status)
                   )}>
                     {getStatusText(request.status)}
-                  </span>
+                  </span> */}
                   
-                  <span className={cn("text-sm font-medium", getPrayerTypeColor(request.prayerType))}>
+                  {/* <span className={cn("text-sm font-medium", getPrayerTypeColor(request.prayerType))}>
                     {getPrayerTypeText(request.prayerType)}
-                  </span>
+                  </span> */}
                   
                   {request.isUrgent && (
                     <AlertTriangle className="h-4 w-4 text-red-500" />
                   )}
                   
-                  {request.isPublic ? (
+                  {/* {request.isPublic ? (
                     <div title="공개">
                       <Globe className="h-4 w-4 text-green-500" />
                     </div>
@@ -375,7 +379,7 @@ const PrayerRequestManagement: React.FC = () => {
                     <div title="비공개">
                       <Lock className="h-4 w-4 text-gray-500" />
                     </div>
-                  )}
+                  )} */}
                 </div>
                 
                 <p className="text-slate-700 mb-3 leading-relaxed">
@@ -408,34 +412,6 @@ const PrayerRequestManagement: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 ml-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleViewDetails(request)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                
-                {request.status === 'active' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMarkAnswered(request)}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                  </Button>
-                )}
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleVisibilityToggle(request.id)}
-                >
-                  {request.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                </Button>
               </div>
             </div>
           </div>
@@ -524,7 +500,7 @@ const PrayerRequestManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            {/* <div className="flex justify-end space-x-3 mt-6">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                 닫기
               </Button>
@@ -533,7 +509,7 @@ const PrayerRequestManagement: React.FC = () => {
                   응답 표시
                 </Button>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       )}
