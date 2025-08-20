@@ -221,51 +221,141 @@ const PrayerRequestManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 기도 요청 현황 및 빠른 액션 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 빠른 필터 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">진행중</p>
-              <p className="text-2xl font-bold text-green-600">
-                {requests.filter(r => r.status === 'active').length}
-              </p>
-            </div>
-            <Heart className="h-8 w-8 text-green-600" />
+          <h3 className="text-sm font-medium text-slate-700 mb-3">빠른 필터</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm('');
+                setTypeFilter('all');
+                setVisibilityFilter('all');
+                // 긴급 요청만 보이도록 필터링 (상태와 무관)
+                const urgentRequests = requests.filter(r => r.isUrgent);
+                if (urgentRequests.length > 0) {
+                  // 긴급 요청이 있으면 검색어로 필터링 (임시 방법)
+                  setSearchTerm('urgent_temp_filter');
+                }
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              <span>긴급</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setVisibilityFilter('public');
+                setTypeFilter('all');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Globe className="h-3 w-3" />
+              <span>공개</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setVisibilityFilter('private');
+                setTypeFilter('all');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Lock className="h-3 w-3" />
+              <span>비공개</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('all');
+                setTypeFilter('all');
+                setVisibilityFilter('all');
+                setSearchTerm('');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Filter className="h-3 w-3" />
+              <span>전체</span>
+            </Button>
           </div>
         </div>
-        
+
+        {/* 중요 알림 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">응답됨</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {requests.filter(r => r.status === 'answered').length}
-              </p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-blue-600" />
+          <h3 className="text-sm font-medium text-slate-700 mb-3">주의사항</h3>
+          <div className="space-y-2 text-xs">
+            {requests.filter(r => r.isUrgent).length > 0 && (
+              <div className="flex items-center space-x-2 text-red-600">
+                <AlertTriangle className="h-3 w-3" />
+                <span>긴급 요청 {requests.filter(r => r.isUrgent).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => {
+              const expiryDate = new Date(r.expiresAt);
+              const threeDaysFromNow = new Date();
+              threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+              return expiryDate <= threeDaysFromNow;
+            }).length > 0 && (
+              <div className="flex items-center space-x-2 text-orange-600">
+                <Timer className="h-3 w-3" />
+                <span>만료 임박 {requests.filter(r => {
+                  const expiryDate = new Date(r.expiresAt);
+                  const threeDaysFromNow = new Date();
+                  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+                  return expiryDate <= threeDaysFromNow;
+                }).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => !r.isPublic).length > 0 && (
+              <div className="flex items-center space-x-2 text-blue-600">
+                <Lock className="h-3 w-3" />
+                <span>비공개 요청 {requests.filter(r => !r.isPublic).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => r.isUrgent).length === 0 && requests.length > 0 && (
+              <div className="flex items-center space-x-2 text-green-600">
+                <CheckCircle className="h-3 w-3" />
+                <span>긴급 요청 없음</span>
+              </div>
+            )}
           </div>
         </div>
-        
+
+        {/* 기도 요청 통계 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">총 기도수</p>
+          <h3 className="text-sm font-medium text-slate-700 mb-3">통계</h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-slate-900">
+                {requests.length}
+              </p>
+              <p className="text-slate-600">총 요청</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-600">
+                {requests.filter(r => r.isUrgent).length}
+              </p>
+              <p className="text-slate-600">긴급</p>
+            </div>
+            <div className="text-center">
               <p className="text-2xl font-bold text-purple-600">
                 {requests.reduce((sum, r) => sum + r.prayerCount, 0)}
               </p>
+              <p className="text-slate-600">총 기도수</p>
             </div>
-            <Users className="h-8 w-8 text-purple-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">전체</p>
-              <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {requests.filter(r => r.isPublic).length}
+              </p>
+              <p className="text-slate-600">공개</p>
             </div>
-            <MessageSquare className="h-8 w-8 text-slate-600" />
           </div>
         </div>
       </div>
