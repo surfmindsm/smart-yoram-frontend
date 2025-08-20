@@ -29,28 +29,30 @@ import { pastoralCareService } from '../services/api';
 
 interface PastoralCareRequest {
   id: string;
+  churchId: number;
+  memberId?: number;
   requesterName: string;
   requesterPhone: string;
-  memberId?: string;
   requestType: 'general' | 'urgent' | 'hospital' | 'counseling';
   requestContent: string;
   preferredDate?: string;
   preferredTimeStart?: string;
   preferredTimeEnd?: string;
-  priority: 'high' | 'medium' | 'low';
   status: 'pending' | 'approved' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'urgent' | 'high' | 'normal' | 'low';
+  assignedPastorId?: number;
   assignedPastor?: {
-    id: string;
+    id: number;
     name: string;
     phone: string;
   };
   scheduledDate?: string;
   scheduledTime?: string;
-  adminNotes?: string;
   completionNotes?: string;
+  adminNotes?: string;
   rejectionReason?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   completedAt?: string;
 }
 
@@ -67,10 +69,12 @@ const PastoralCareManagement: React.FC = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [assignedPastorId, setAssignedPastorId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [completionNotes, setCompletionNotes] = useState('');
 
   // API에서 심방 신청 데이터 로드
   useEffect(() => {
@@ -110,16 +114,18 @@ const PastoralCareManagement: React.FC = () => {
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
       const transformedRequests: PastoralCareRequest[] = pastoralCareData.map((item: any) => ({
         id: item.id,
+        churchId: item.church_id,
+        memberId: item.member_id,
         requesterName: item.requester_name,
         requesterPhone: item.requester_phone,
-        memberId: item.member_id,
         requestType: item.request_type,
         requestContent: item.request_content,
         preferredDate: item.preferred_date,
         preferredTimeStart: item.preferred_time_start,
         preferredTimeEnd: item.preferred_time_end,
         status: item.status,
-        priority: item.priority,
+        priority: item.priority || 'normal',
+        assignedPastorId: item.assigned_pastor_id,
         assignedPastor: item.assigned_pastor_id ? {
           id: item.assigned_pastor_id,
           name: item.assigned_pastor?.name || '담당자 미지정',
@@ -310,6 +316,42 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
+  const handleCompleteVisit = (request: PastoralCareRequest) => {
+    setSelectedRequest(request);
+    setCompletionNotes('');
+    setShowCompletionModal(true);
+  };
+
+  const handleSaveCompletion = async () => {
+    if (!selectedRequest || !completionNotes) return;
+
+    try {
+      await pastoralCareService.updateRequest(selectedRequest.id, {
+        status: 'completed',
+        completion_notes: completionNotes,
+        completed_at: new Date().toISOString()
+      });
+      
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === selectedRequest.id 
+            ? { 
+                ...req, 
+                status: 'completed' as const, 
+                completionNotes: completionNotes,
+                completedAt: new Date().toISOString()
+              }
+            : req
+        )
+      );
+      
+      setShowCompletionModal(false);
+      setCompletionNotes('');
+    } catch (error) {
+      console.error('Failed to complete request:', error);
+    }
+  };
+
   const handleSaveAssignment = async () => {
     if (!selectedRequest || !assignedPastorId) return;
 
@@ -321,8 +363,9 @@ const PastoralCareManagement: React.FC = () => {
           req.id === selectedRequest.id 
             ? { 
                 ...req, 
+                assignedPastorId: parseInt(assignedPastorId),
                 assignedPastor: {
-                  id: assignedPastorId,
+                  id: parseInt(assignedPastorId),
                   name: '배정된 목사',
                   phone: ''
                 }
@@ -613,6 +656,17 @@ const PastoralCareManagement: React.FC = () => {
                           <User className="h-4 w-4" />
                         </Button>
                       )}
+                      {(request.status === 'scheduled' || request.status === 'in_progress') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCompleteVisit(request)}
+                          className="text-green-600 hover:text-green-800"
+                          title="심방 완료"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -890,6 +944,101 @@ const PastoralCareManagement: React.FC = () => {
                 variant="destructive"
               >
                 거부 확정
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 심방 완료 일지 작성 모달 */}
+      {showCompletionModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">심방 완료 일지 작성</h2>
+              <button
+                onClick={() => setShowCompletionModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-slate-600">신청자</p>
+                  <p className="font-medium">{selectedRequest.requesterName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">심방 유형</p>
+                  <p className="font-medium">{getRequestTypeText(selectedRequest.requestType)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">예정 일시</p>
+                  <p className="font-medium">
+                    {selectedRequest.scheduledDate} {selectedRequest.scheduledTime}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">담당자</p>
+                  <p className="font-medium">
+                    {selectedRequest.assignedPastor?.name || '미배정'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  신청 내용
+                </label>
+                <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-md">
+                  {selectedRequest.requestContent}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  심방 일지 <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-slate-500 mb-2">
+                  심방을 통해 확인한 내용, 기도 제목, 후속 조치 사항 등을 기록해주세요.
+                </p>
+                <textarea
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  placeholder="예:&#10;- 신청자 건강 상태: 수술 후 회복 중, 기력 회복됨&#10;- 가정 상황: 자녀 진학 문제로 고민 중&#10;- 기도 제목: 완전한 회복과 가정의 평안&#10;- 후속 조치: 2주 후 전화 안부 확인 예정&#10;- 기타: 교회 출석 재개 의지 확인함"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  rows={8}
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div className="flex items-start">
+                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-2" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">심방 일지 작성 가이드</p>
+                    <ul className="text-xs space-y-0.5">
+                      <li>• 신청자의 현재 상황과 필요 사항을 구체적으로 기록</li>
+                      <li>• 기도 제목과 관심사를 명확히 정리</li>
+                      <li>• 후속 조치나 지속적인 관심이 필요한 부분 명시</li>
+                      <li>• 개인정보 보호에 유의하여 작성</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setShowCompletionModal(false)}>
+                취소
+              </Button>
+              <Button 
+                onClick={handleSaveCompletion} 
+                disabled={!completionNotes.trim()}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                심방 완료 처리
               </Button>
             </div>
           </div>
