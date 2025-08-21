@@ -206,10 +206,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           keyType: typeof gptConfig?.api_key,
           isActive: gptConfig?.is_active
         });
-        
-        // 실제 키 내용 확인 (디버깅용)
-        console.log('🔍 실제 API 키 전체:', `"${gptConfig?.api_key}"`);
-        console.log('🔍 키 첫 20자:', gptConfig?.api_key?.substring(0, 20));
 
         if (!gptConfig?.api_key) {
           throw new Error('GPT API 키가 설정되지 않았습니다.');
@@ -219,10 +215,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           throw new Error('유효하지 않은 OpenAI API 키 형식입니다. sk-로 시작해야 합니다.');
         }
 
-        // API 키 길이 체크 - DB에서 잘린 키 감지
-        if (gptConfig.api_key.length < 20) {
-          console.error('❌ API 키가 잘려있음:', gptConfig.api_key.length, '자');
-          throw new Error(`DB에서 API 키가 잘려서 저장되었습니다 (${gptConfig.api_key.length}자). 백엔드 DB 스키마의 api_key 필드 길이를 확인하고, 키를 다시 입력해주세요.`);
+        // API 키 길이 체크
+        if (gptConfig?.api_key && gptConfig.api_key.length < 20) {
+          throw new Error('유효하지 않은 API 키입니다. 키 길이가 너무 짧습니다.');
         }
 
         // 에이전트의 시스템 프롬프트 사용
