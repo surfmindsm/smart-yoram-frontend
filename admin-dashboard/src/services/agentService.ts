@@ -153,19 +153,41 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
 export const callGPTDirectly = async (
   messages: ChatMessage[], 
   contextData: ChurchData,
-  userMessage: string
+  userMessage: string,
+  selectedAgent?: Agent | null
 ) => {
-  // 🚨 환경변수 API 키 체크
-  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  // 🔑 DB에서 API 키 로드
+  const { churchConfigService } = await import('./api');
+  let apiKey: string | null = null;
+  
+  try {
+    const gptConfig = await churchConfigService.getGptConfig();
+    apiKey = gptConfig.api_key;
+    console.log('🔑 DB에서 GPT API 키 로드 완료:', apiKey ? '✅ 키 있음' : '❌ 키 없음');
+  } catch (error) {
+    console.error('❌ DB에서 GPT 설정 로드 실패:', error);
+  }
+  
   if (!apiKey || apiKey === 'sk-proj-...') {
-    console.warn('⚠️ OpenAI API 키가 설정되지 않았거나 유효하지 않음. 백엔드 API로 폴백합니다.');
+    console.warn('⚠️ DB에 OpenAI API 키가 설정되지 않았거나 유효하지 않음. 백엔드 API로 폴백합니다.');
     throw new Error('OpenAI API 키 없음 - 백엔드 폴백 필요');
   }
+
+  // 에이전트별 시스템 프롬프트 설정
+  const getSystemPrompt = (agent: Agent | null | undefined, contextData: ChurchData) => {
+    // 교인정보 에이전트만 정확히 매칭
+    if (agent?.name === '교인정보 에이전트' || agent?.name?.includes('교인정보')) {
+      return `당신은 교회의 교인정보 관리 전문 AI입니다. 다음 교회 데이터를 참고하여 답변해주세요: ${JSON.stringify(contextData)}`;
+    }
+    
+    // 기본 일반 채팅 프롬프트
+    return `당신은 도움이 되는 AI 어시스턴트입니다. 친근하고 정확한 답변을 제공해주세요.`;
+  };
 
   const gptMessages = [
     { 
       role: 'system', 
-      content: `당신은 교회의 교인정보 관리 전문 AI입니다. 다음 교회 데이터를 참고하여 답변해주세요: ${JSON.stringify(contextData)}` 
+      content: getSystemPrompt(selectedAgent, contextData)
     },
     ...messages.map(msg => ({ role: msg.role, content: msg.content })),
     { role: 'user', content: userMessage }
@@ -280,7 +302,7 @@ export const getAIResponse = async (
     const contextData = await loadContextData(selectedAgent);
     
     // 2. 교인정보 에이전트의 특별 처리
-    if (selectedAgent?.id === '10' || selectedAgent?.name?.includes('교인')) {
+    if (selectedAgent?.name === '교인정보 에이전트' || selectedAgent?.name?.includes('교인정보')) {
       console.log('🔥 교인정보 에이전트: MCP를 통한 직접 처리');
       
       try {
@@ -323,7 +345,7 @@ export const getAIResponse = async (
         }
 
         // GPT API 직접 호출
-        const gptResult = await callGPTDirectly(allHistoryMessages, contextData, userMessage);
+        const gptResult = await callGPTDirectly(allHistoryMessages, contextData, userMessage, selectedAgent);
           
         // AI 응답을 MCP로 저장
         await saveMessageViaMCP(currentChatId, gptResult.content, 'assistant', gptResult.tokensUsed);

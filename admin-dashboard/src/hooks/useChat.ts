@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/chat';
 import { chatService, agentService } from '../services/api';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
@@ -14,8 +14,8 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export const useChat = () => {
-  // 🚀 localStorage에서 즉시 캐시된 데이터 로드
-  const getInitialChatHistory = (): ChatHistory[] => {
+  // 🚀 localStorage에서 즉시 캐시된 데이터 로드 (useMemo로 최적화)
+  const initialHistory = useMemo((): ChatHistory[] => {
     try {
       const cached = localStorage.getItem(CACHE_KEYS.CHAT_HISTORY);
       const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
@@ -35,9 +35,9 @@ export const useChat = () => {
       console.error('캐시 로드 실패:', error);
     }
     return [];
-  };
+  }, []);
   
-  const getInitialAgents = (): Agent[] => {
+  const initialAgents = useMemo((): Agent[] => {
     try {
       const cached = localStorage.getItem(CACHE_KEYS.AGENTS);
       const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
@@ -53,11 +53,7 @@ export const useChat = () => {
       console.error('캐시 로드 실패:', error);
     }
     return [];
-  };
-  
-  // 🚀 초기 캐시 데이터 로드
-  const initialHistory = getInitialChatHistory();
-  const initialAgents = getInitialAgents();
+  }, []);
 
   // 상태 정의
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -407,7 +403,7 @@ export const useChat = () => {
 
   // useEffect: currentChatId 변경 시 메시지 로드
   useEffect(() => {
-    if (currentChatId) {
+    if (currentChatId && !messageCache[currentChatId]) {
       loadMessages();
     }
   }, [currentChatId]);

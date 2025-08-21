@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
-import { getAIResponse } from '../services/agentService';
+import { churchConfigService } from '../services/api';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -28,6 +28,7 @@ interface UseChatHandlersProps {
   getMockAIResponse: (input: string) => ChatMessage;
   scrollToBottom: () => void;
   loadData: () => Promise<void>;
+  agents: Agent[];
 }
 
 export function useChatHandlers(props: UseChatHandlersProps) {
@@ -45,7 +46,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setChatHistory,
     setActiveTab,
     setSelectedAgent,
-    // messageCache는 실제로 사용됨 (캐시 업데이트에서)
     messageCache, // eslint-disable-line @typescript-eslint/no-unused-vars
     setMessageCache,
     editingChatId,
@@ -54,13 +54,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setEditingTitle,
     setOpenMenuId,
     setDeleteConfirmModal,
-    // getMockAIResponse는 MCP 시스템에서 사용하지 않음
     getMockAIResponse, // eslint-disable-line @typescript-eslint/no-unused-vars
     scrollToBottom,
-    loadData
+    loadData,
+    agents
   } = props;
 
-  // 🚀 MCP 기반 스마트 메시지 전송 핸들러
+  // 메시지 전송 핸들러
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
@@ -95,6 +95,42 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         };
 
         setChatHistory(prev => [newChatHistory, ...prev]);
+
+        // 백엔드에 채팅 히스토리 생성
+        try {
+          const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
+          const historyResponse = await fetch(`${API_BASE_URL}/chat/histories`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+            },
+            body: JSON.stringify({
+              id: parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
+              agent_id: parseInt(String(selectedAgentForChat?.id)) || 1,
+              title: `새 대화 ${new Date().toLocaleString()}`
+            })
+          });
+          
+          if (historyResponse.ok) {
+            const historyResult = await historyResponse.json();
+            console.log('✅ 채팅 히스토리 생성 성공:', historyResult);
+            
+            // 생성된 실제 ID로 업데이트
+            if (historyResult.id && historyResult.id !== parseInt(effectiveChatId.replace('chat_', ''))) {
+              const newChatId = `chat_${historyResult.id}`;
+              setCurrentChatId(newChatId);
+              effectiveChatId = newChatId;
+              console.log('🔄 채팅 ID 업데이트:', effectiveChatId, '->', newChatId);
+            }
+          } else {
+            const errorText = await historyResponse.text();
+            console.warn('⚠️ 채팅 히스토리 생성 실패:', errorText);
+            throw new Error(`채팅 히스토리 생성 실패: ${errorText}`);
+          }
+        } catch (error) {
+          console.warn('⚠️ 채팅 히스토리 생성 오류:', error);
+        }
       }
 
       // 메시지를 캐시에 저장
@@ -105,49 +141,44 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }));
       }
 
-      // MCP를 통한 사용자 메시지 저장
-      if (effectiveChatId) {
-        await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user');
+      // 에이전트 설정 확인
+      if (!selectedAgentForChat) {
+        const fallbackAgent = agents?.[0] || {
+          id: '1',
+          name: '기본 AI 도우미',
+          description: '도움이 되는 AI 어시스턴트입니다.',
+          category: '일반',
+          isActive: true
+        };
+        setSelectedAgentForChat(fallbackAgent);
+        console.log('⚠️ 에이전트 없음, 기본 에이전트 설정:', fallbackAgent.name);
       }
 
-      // 🚀 모든 에이전트가 MCP를 통해 실제 데이터베이스 조회
-      try {
-        console.log('🚀 MCP 기반 스마트 에이전트 처리:', selectedAgentForChat?.name);
+      // MCP를 통한 사용자 메시지 저장
+      if (effectiveChatId) {
+        await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user', undefined, selectedAgentForChat?.id);
+      }
+
+      console.log('🚀 스마트 에이전트 처리:', selectedAgentForChat?.name);
+      
+      let aiResponse: ChatMessage;
+      
+      // 교인정보 에이전트만 DB 조회 실행
+      if (selectedAgentForChat?.name === '교인정보 에이전트' || selectedAgentForChat?.name?.includes('교인정보')) {
+        console.log('🔍 교인정보 에이전트: DB 조회 실행');
         
-        // 1. 사용자 질문을 분석해서 관련 데이터베이스 조회
         const dbResult = await queryDatabaseViaMCP(userMessage.content);
-        
         console.log('📊 DB 조회 결과:', dbResult);
         
-        let aiResponse: ChatMessage;
-        
-        // 2. 조회된 실제 데이터를 컨텍스트로 GPT API 호출
         if (dbResult.success && dbResult.data.length > 0) {
-          console.log('✅ 실제 데이터로 GPT API 호출');
-          
-          const contextData = {
-            query: userMessage.content,
-            database_results: dbResult.data,
-            agent_info: {
-              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
-              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
-            },
-            data_summary: {
-              total_records: dbResult.data.length,
-              query_analysis: `사용자가 "${userMessage.content}"에 대해 질문했습니다.`
-            }
+          console.log('✅ 실제 데이터로 응답 생성');
+          aiResponse = {
+            id: `ai_${Date.now()}`,
+            role: 'assistant',
+            content: `조회된 데이터를 바탕으로 답변드리겠습니다:\n\n${JSON.stringify(dbResult.data, null, 2)}`,
+            timestamp: new Date()
           };
-          
-          // getAIResponse는 ChatMessage 객체를 반환함
-          aiResponse = await getAIResponse(
-            effectiveChatId || `temp_${Date.now()}`,
-            selectedAgentForChat,
-            userMessage.content,
-            messages
-          );
         } else if (dbResult.error) {
-          console.log('⚠️ DB 조회 실패, 에러 메시지와 함께 응답');
-          
           aiResponse = {
             id: `ai_${Date.now()}`,
             role: 'assistant',
@@ -155,87 +186,135 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             timestamp: new Date()
           };
         } else {
-          console.log('📭 조회된 데이터가 없음, 일반 응답');
-          
-          const contextData = {
-            query: userMessage.content,
-            message: '요청하신 조건에 맞는 데이터를 찾을 수 없습니다.',
-            agent_info: {
-              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
-              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
-            }
+          aiResponse = {
+            id: `ai_${Date.now()}`,
+            role: 'assistant',
+            content: '조회된 데이터가 없습니다. 다른 검색어로 시도해보세요.',
+            timestamp: new Date()
           };
+        }
+      } else {
+        console.log('🤖 일반 에이전트: 직접 GPT API 호출');
+        
+        // GPT 설정 가져오기
+        const gptConfig = await churchConfigService.getGptConfig();
+        console.log('🔑 GPT 설정 로드:', gptConfig);
+        console.log('🔍 API 키 상세 정보:', {
+          hasApiKey: !!gptConfig?.api_key,
+          keyLength: gptConfig?.api_key?.length || 0,
+          keyPrefix: gptConfig?.api_key?.substring(0, 7) || 'none',
+          keyType: typeof gptConfig?.api_key,
+          isActive: gptConfig?.is_active
+        });
+        
+        // 실제 키 내용 확인 (디버깅용)
+        console.log('🔍 실제 API 키 전체:', `"${gptConfig?.api_key}"`);
+        console.log('🔍 키 첫 20자:', gptConfig?.api_key?.substring(0, 20));
+
+        if (!gptConfig?.api_key) {
+          throw new Error('GPT API 키가 설정되지 않았습니다.');
+        }
+
+        if (!gptConfig?.api_key.startsWith('sk-')) {
+          throw new Error('유효하지 않은 OpenAI API 키 형식입니다. sk-로 시작해야 합니다.');
+        }
+
+        // API 키 길이 체크 - DB에서 잘린 키 감지
+        if (gptConfig.api_key.length < 20) {
+          console.error('❌ API 키가 잘려있음:', gptConfig.api_key.length, '자');
+          throw new Error(`DB에서 API 키가 잘려서 저장되었습니다 (${gptConfig.api_key.length}자). 백엔드 DB 스키마의 api_key 필드 길이를 확인하고, 키를 다시 입력해주세요.`);
+        }
+
+        // 에이전트의 시스템 프롬프트 사용
+        const systemPrompt = selectedAgentForChat?.systemPrompt || 
+          selectedAgentForChat?.system_prompt || 
+          '당신은 교회 사역을 돕는 AI 도우미입니다. 한국어로 친근하고 도움이 되는 답변을 제공해주세요.';
+
+        // GPT API 직접 호출
+        const messages = [
+          { role: 'system', content: systemPrompt },
+          ...updatedMessages.slice(0, -1).map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          { role: 'user', content: userMessage.content }
+        ];
+
+        const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${gptConfig.api_key}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: messages,
+            temperature: 0.7
+          })
+        });
+
+        if (!gptResponse.ok) {
+          const errorData = await gptResponse.text();
+          console.error('❌ GPT API 상세 오류:', {
+            status: gptResponse.status,
+            statusText: gptResponse.statusText,
+            error: errorData,
+            apiKey: gptConfig.api_key ? `***${gptConfig.api_key.slice(-4)}` : 'null'
+          });
           
-          // getAIResponse는 ChatMessage 객체를 반환함
-          aiResponse = await getAIResponse(
-            effectiveChatId || `temp_${Date.now()}`,
-            selectedAgentForChat,
-            userMessage.content,
-            messages
-          );
+          if (gptResponse.status === 401) {
+            throw new Error('GPT API 키가 유효하지 않습니다. 교회 설정에서 새로운 API 키를 입력해주세요.');
+          } else if (gptResponse.status === 429) {
+            throw new Error('GPT API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+          } else {
+            throw new Error(`GPT API 오류 (${gptResponse.status}): ${gptResponse.statusText}`);
+          }
         }
 
-        // AI 응답을 메시지에 추가
-        const finalMessages = [...updatedMessages, aiResponse];
-        setMessages(finalMessages);
+        const gptData = await gptResponse.json();
+        const responseText = gptData.choices[0]?.message?.content || '죄송합니다. 응답을 생성할 수 없습니다.';
 
-        // 캐시 업데이트
-        if (effectiveChatId) {
-          setMessageCache(prev => ({
-            ...prev,
-            [effectiveChatId as string]: finalMessages
-          }));
-        }
-
-        // MCP를 통한 AI 응답 저장
-        if (effectiveChatId) {
-          await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant');
-        }
-
-        scrollToBottom();
-
-      } catch (aiError) {
-        console.error('❌ MCP 스마트 에이전트 처리 실패:', aiError);
-        
-        // 에러 발생 시 사용자에게 친화적인 메시지 제공
-        const errorResponse: ChatMessage = {
-          id: `ai_error_${Date.now()}`,
+        aiResponse = {
+          id: `ai-${Date.now()}`,
+          content: responseText,
           role: 'assistant',
-          content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n**문제 상황:** 데이터베이스 연결 또는 AI 처리 과정에서 오류\n**해결 방법:** 잠시 후 다시 시도해 주세요\n\n문제가 지속되면 관리자에게 문의해 주세요.`,
-          timestamp: new Date()
+          timestamp: new Date(),
+          tokensUsed: gptData.usage?.total_tokens || 0,
+          cost: 0
         };
-        
-        const finalMessages = [...updatedMessages, errorResponse];
-        setMessages(finalMessages);
-
-        // 캐시 업데이트
-        if (effectiveChatId) {
-          setMessageCache(prev => ({
-            ...prev,
-            [effectiveChatId as string]: finalMessages
-          }));
-        }
-
-        // MCP를 통한 에러 응답 저장
-        if (effectiveChatId) {
-          await saveMessageViaMCP(effectiveChatId, errorResponse.content, 'assistant');
-        }
-
-        scrollToBottom();
       }
+        
+      // AI 응답 추가
+      const finalMessages = [...updatedMessages, aiResponse];
+      setMessages(finalMessages);
+
+      // 캐시 업데이트
+      if (effectiveChatId) {
+        setMessageCache(prev => ({
+          ...prev,
+          [effectiveChatId as string]: finalMessages
+        }));
+      }
+
+      // MCP를 통한 AI 응답 저장
+      if (effectiveChatId) {
+        await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant', aiResponse.tokensUsed, selectedAgentForChat?.id);
+      }
+
+      scrollToBottom();
 
     } catch (error) {
       console.error('❌ 메시지 전송 실패:', error);
       
-      // 전체 프로세스 실패 시 사용자에게 알림
-      const systemErrorResponse: ChatMessage = {
-        id: `system_error_${Date.now()}`,
+      // 에러 응답 생성
+      const errorResponse: ChatMessage = {
+        id: `error_${Date.now()}`,
         role: 'assistant',
-        content: `시스템 오류가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.`,
+        content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n잠시 후 다시 시도해 주세요.`,
         timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, systemErrorResponse]);
+      setMessages(prev => [...prev, errorResponse]);
       scrollToBottom();
     } finally {
       setIsLoading(false);
@@ -246,15 +325,45 @@ export function useChatHandlers(props: UseChatHandlersProps) {
   const handleNewChat = async () => {
     setMessages([]);
     setCurrentChatId(null);
-    setSelectedAgentForChat(null);
     setInputValue('');
     
     // 데이터 다시 로드
     await loadData();
     
-    // 에이전트 탭으로 전환
-    setActiveTab('agents');
-    setSelectedAgent(null);
+    // 에이전트 로드 대기 (최대 3초)
+    let retryCount = 0;
+    while ((!agents || agents.length === 0) && retryCount < 30) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      retryCount++;
+    }
+    
+    // 🚀 기본 에이전트 자동 선택 (첫 번째 에이전트 또는 교인정보 에이전트)
+    console.log('🔍 사용 가능한 에이전트:', agents);
+    if (agents && agents.length > 0) {
+      // "교인정보 에이전트" 또는 "교인정보"가 포함된 에이전트 우선 선택
+      const defaultAgent = agents.find(agent => 
+        agent.name?.includes('교인정보') || agent.name?.includes('교인 정보')
+      ) || agents[0]; // 못 찾으면 첫 번째 에이전트 선택
+      
+      setSelectedAgentForChat(defaultAgent);
+      setSelectedAgent(defaultAgent);
+      console.log('🤖 기본 에이전트 자동 선택:', defaultAgent?.name, 'ID:', defaultAgent?.id);
+    } else {
+      // 에이전트가 없으면 기본값 설정
+      const fallbackAgent = {
+        id: '1',
+        name: '기본 AI 도우미',
+        description: '도움이 되는 AI 어시스턴트입니다.',
+        category: '일반',
+        isActive: true
+      };
+      setSelectedAgentForChat(fallbackAgent);
+      setSelectedAgent(fallbackAgent);
+      console.log('🤖 폴백 에이전트 설정:', fallbackAgent.name);
+    }
+    
+    // 히스토리 탭 유지 (에이전트 탭으로 강제 이동하지 않음)
+    setActiveTab('history');
   };
 
   // 에이전트와 채팅 시작

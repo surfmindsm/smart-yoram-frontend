@@ -355,7 +355,9 @@ export const chatService = {
   
   // 특정 채팅의 메시지 목록 조회
   getChatMessages: async (historyId: string) => {
-    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
+    // chat_ 접두어 제거하여 정수 ID만 사용
+    const cleanId = historyId.toString().replace('chat_', '');
+    const response = await api.get(getApiUrl(`/chat/histories/${cleanId}/messages`));
     return response.data;
   },
   

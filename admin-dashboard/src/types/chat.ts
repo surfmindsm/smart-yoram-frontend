@@ -22,6 +22,8 @@ export interface Agent {
   description: string;
   isActive: boolean;
   church_data_sources?: string[];
+  system_prompt?: string;
+  systemPrompt?: string;
 }
 
 export interface DeleteConfirmModal {

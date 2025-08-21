@@ -34,7 +34,8 @@ const AIChat: React.FC = () => {
     setDeleteConfirmModal: chatState.setDeleteConfirmModal,
     getMockAIResponse: chatState.getMockAIResponse,
     scrollToBottom: chatState.scrollToBottom,
-    loadData: chatState.loadData
+    loadData: chatState.loadData,
+    agents: chatState.agents
   });
 
   // 다운로드 핸들러
