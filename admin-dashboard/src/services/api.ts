@@ -420,13 +420,6 @@ export const chatService = {
     const url = getApiUrl(`/chat/histories/${historyId}`);
     const payload = { is_bookmarked: isBookmarked }; // 백엔드 필드명에 맞춤
     
-    console.log('🔖 BookmarkChat API 요청:', {
-      url,
-      historyId,
-      payload,
-      method: 'PUT'
-    });
-    
     try {
       const response = await api.put(url, payload);
       return response.data;
@@ -932,17 +925,12 @@ export const financialService = {
   getOfferings: async (params?: { 
     skip?: number; 
     limit?: number; 
-    member_id?: number;
-    fund_type?: string;
+    church_id?: number;
     start_date?: string;
     end_date?: string;
   }) => {
     const url = getApiUrl('/financial/offerings');
-    console.log('🌐 Offerings API 호출 URL:', url);
-    console.log('🌐 Offerings API 파라미터:', params);
     const response = await api.get(url, { params });
-    console.log('🌐 Offerings API 원본 response:', response);
-    console.log('🌐 Offerings API response.data:', response.data);
     return response.data;
   },
 

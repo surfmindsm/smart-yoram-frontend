@@ -27,7 +27,6 @@ export const useChat = () => {
             ...history,
             timestamp: new Date(history.timestamp)
           }));
-          console.log('🚀 캐시된 채팅 히스토리 즉시 로드:', parsedHistory.length, '개');
           return parsedHistory;
         }
       }
@@ -45,7 +44,6 @@ export const useChat = () => {
       if (cached && timestamp) {
         const age = Date.now() - parseInt(timestamp);
         if (age < CACHE_DURATION) {
-          console.log('🚀 캐시된 에이전트 즉시 로드:', JSON.parse(cached).length, '개');
           return JSON.parse(cached);
         }
       }
@@ -87,7 +85,6 @@ export const useChat = () => {
     try {
       localStorage.setItem(CACHE_KEYS.CHAT_HISTORY, JSON.stringify(histories));
       localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
-      console.log('💾 채팅 히스토리 캐시 저장:', histories.length, '개');
     } catch (error) {
       console.error('캐시 저장 실패:', error);
     }
@@ -97,7 +94,6 @@ export const useChat = () => {
     try {
       localStorage.setItem(CACHE_KEYS.AGENTS, JSON.stringify(agentList));
       localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
-      console.log('💾 에이전트 캐시 저장:', agentList.length, '개');
     } catch (error) {
       console.error('캐시 저장 실패:', error);
     }
@@ -114,15 +110,11 @@ export const useChat = () => {
 
   // 전체 채팅 삭제 시작 (다이얼로그 표시)
   const deleteAllChats = () => {
-    console.log('🗑️ 전체 채팅 삭제 함수 호출됨');
-    console.log('현재 채팅 히스토리:', chatHistory);
     
     // 일반 채팅만 삭제 (북마크된 채팅은 제외)
     const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
-    console.log('삭제할 일반 채팅 목록:', nonBookmarkedChats);
     
     if (nonBookmarkedChats.length === 0) {
-      console.log('삭제할 채팅이 없습니다.');
       return;
     }
     
@@ -136,16 +128,11 @@ export const useChat = () => {
 
   // 실제 전체 채팅 삭제 실행
   const executeDeleteAllChats = async () => {
-    console.log('🗑️ 전체 채팅 삭제 실행');
-    
     try {
       // 일반 채팅만 삭제 (북마크된 채팅은 제외)
       const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
-      
-      console.log('API 호출 시작...');
       // 각 채팅 삭제 API 호출
       for (const chat of nonBookmarkedChats) {
-        console.log('채팅 삭제 중:', chat.id, chat.title);
         try {
           await chatService.deleteChat(chat.id);
         } catch (apiError) {
@@ -155,7 +142,6 @@ export const useChat = () => {
       
       // 상태에서 일반 채팅 제거 (북마크된 채팅만 남김)
       const updatedHistory = chatHistory.filter(chat => chat.isBookmarked);
-      console.log('업데이트된 히스토리:', updatedHistory);
       setChatHistory(updatedHistory);
       
       // 캐시 업데이트
@@ -166,10 +152,7 @@ export const useChat = () => {
       if (currentChat && !currentChat.isBookmarked) {
         setCurrentChatId(null);
         setMessages([]);
-        console.log('현재 선택된 채팅도 삭제되어 초기화');
       }
-      
-      console.log('✅ 전체 채팅 삭제 완료');
     } catch (error) {
       console.error('❌ 전체 채팅 삭제 실패:', error);
     }
@@ -206,7 +189,6 @@ export const useChat = () => {
   const loadData = async (forceRefresh = false) => {
     // 강제 새로고침이 아니고 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
     if (!forceRefresh && (isLoadingData || isDataLoaded)) {
-      console.log('⚡ 중복 로딩 방지:', { isLoadingData, isDataLoaded });
       return;
     }
     
@@ -215,7 +197,6 @@ export const useChat = () => {
     const hasCachedAgents = agents.length > 0;
     
     if (!forceRefresh && hasCachedHistory && hasCachedAgents) {
-      console.log('🚀 캐시된 데이터 사용 - API 호출 생략');
       setIsDataLoaded(true);
       setLoadingChats(false);
       
@@ -226,12 +207,9 @@ export const useChat = () => {
       return;
     }
     
-    console.log('🔄 채팅 히스토리 새로고침:', { forceRefresh, hasCachedHistory });
-    
     // 강제 새로고침 시 캐시 무효화
     if (forceRefresh) {
       setIsDataLoaded(false);
-      console.log('🗑️ 캐시 무효화 - 강제 새로고침');
     }
     
     try {
@@ -247,7 +225,6 @@ export const useChat = () => {
       // 채팅 히스토리 처리
       if (chatsResult.status === 'fulfilled') {
         const response = chatsResult.value;
-        console.log('🔍 채팅 히스토리 API 응답:', response);
         
         // API 응답 구조 다양성 처리
         let histories = [];
@@ -282,13 +259,10 @@ export const useChat = () => {
           
           // 날짜순으로 정렬 (리좌트 순)
           formattedHistories.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-          
-          console.log('✅ 포맷된 채팅 히스토리:', formattedHistories);
           setChatHistory(formattedHistories);
           saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
           
           // 항상 새 대화 상태로 시작 (자동 선택 비활성화)
-          console.log('🎆 새 대화 상태 유지 - 자동 선택 안함');
         } else {
           console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', histories);
           setChatHistory([]);
@@ -306,14 +280,11 @@ export const useChat = () => {
         ];
         setChatHistory(mockHistory);
         saveChatHistoryToCache(mockHistory); // 🚀 캐시 저장
-        // Mock 데이터에서도 자동 선택 비활성화
-        console.log('🎆 Mock 데이터 - 새 대화 상태 유지');
       }
 
       // 에이전트 처리 (기존 커밋과 동일한 로직)
       if (agentsResult.status === 'fulfilled') {
         const response = agentsResult.value;
-        console.log('🔍 AIChat - 에이전트 API 응답:', response);
         
         let agentList = [];
         
@@ -341,13 +312,12 @@ export const useChat = () => {
           
           setAgents(transformedAgents);
           saveAgentsToCache(transformedAgents); // 🚀 캐시 저장
-          console.log('✅ AIChat - 에이전트 로드 성공:', transformedAgents.length, '개');
         } else {
-          console.log('⚠️ AIChat - 에이전트 목록이 비어있음');
+          console.warn('⚠️ AIChat - 에이전트 목록이 비어있음');
           setAgents([]);
         }
       } else {
-        console.log('❌ AIChat - 에이전트 로딩 실패, Mock 데이터 사용');
+        console.warn('❌ AIChat - 에이전트 로딩 실패, Mock 데이터 사용');
         const mockAgents: Agent[] = [
           { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
           { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true },
@@ -355,12 +325,10 @@ export const useChat = () => {
           { id: '4', name: '상담 에이전트', category: '목회 상담', description: '신앙 상담과 개인적인 고민을 함께 나눌 수 있습니다.', isActive: true }
         ];
         setAgents(mockAgents);
-        console.log('🔄 AIChat - Mock 에이전트 사용:', mockAgents.length, '개');
       }
       
       // ✅ 데이터 로딩 완료 표시
       setIsDataLoaded(true);
-      console.log('✅ 데이터 로딩 완료!');
       
     } catch (error) {
       console.error('❌ AIChat - 전체 데이터 로딩 실패:', error);
@@ -377,7 +345,6 @@ export const useChat = () => {
       ];
       setChatHistory(mockHistory);
       // 자동 선택 비활성화
-      console.log('🎆 에러 시도 새 대화 상태 유지');
       
       const mockAgents: Agent[] = [
         { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
@@ -413,7 +380,7 @@ export const useChat = () => {
       
       // 🛡️ 서버 응답이 비어있고 이미 로컬 메시지가 있다면 기존 메시지 유지
       if (formattedMessages.length === 0 && messages.length > 0) {
-        console.log('🔄 서버 응답이 비어있지만 로컬 메시지 유지:', messages.length, '개');
+        console.warn('🔄 서버 응답이 비어있지만 로컬 메시지 유지:', messages.length, '개');
         // 현재 메시지를 캐시에 저장
         setMessageCache(prev => ({
           ...prev,
@@ -434,7 +401,7 @@ export const useChat = () => {
       
       // 404 오류인 경우 (히스토리가 아직 생성되지 않은 경우) 빈 메시지로 시작
       if ((error as any)?.response?.status === 404) {
-        console.log('🔄 히스토리가 아직 생성되지 않음, 빈 메시지로 시작');
+        console.warn('🔄 히스토리가 아직 생성되지 않음, 빈 메시지로 시작');
         setMessages([]);
         return;
       }
@@ -454,8 +421,6 @@ export const useChat = () => {
               timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
               tokensUsed: msg.tokens_used || msg.tokensUsed
             }));
-            
-            console.log('💾 로컬 스토리지에서 채팅 히스토리 복구:', formattedLocalMessages.length, '개');
             setMessages(formattedLocalMessages);
             
             // 캐시에도 저장
@@ -479,7 +444,6 @@ export const useChat = () => {
 
   // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
   useEffect(() => {
-    console.log('🚀 컴포넌트 마운트 - 데이터 로딩 시작');
     // 새로고침 시 강제 로드를 위해 캐시 무시
     loadData(true);
   }, []); // 빈 의존성 배열로 마운트 시에만 실행

@@ -129,7 +129,6 @@ const PastoralCareManagement: React.FC = () => {
       const response = await pastoralCareService.getRequests(params);
       
       // 백엔드 응답 구조 확인 및 데이터 추출
-      console.log('Pastoral care requests API response:', response);
       
       let pastoralCareData = [];
       
@@ -197,8 +196,6 @@ const PastoralCareManagement: React.FC = () => {
       if (typeFilter !== 'all') params.request_type = typeFilter;
       
       const response = await pastoralCareService.getRequests(params);
-      
-      console.log('Completed pastoral care records API response:', response);
       
       let recordsData = [];
       
@@ -441,18 +438,11 @@ const PastoralCareManagement: React.FC = () => {
       alert('심방 기록을 입력해주세요.');
       return;
     }
-
-    console.log('🔄 심방 완료 처리 시작');
-    console.log('📋 요청 ID:', selectedRequest.id);
-    console.log('📝 완료 노트:', completionNotes);
-
     const updateData = {
       status: 'completed',
       completion_notes: completionNotes,
       completed_at: new Date().toISOString()
     };
-
-    console.log('📤 API 요청 데이터:', updateData);
 
     try {
       // 심방 신청을 완료 상태로 업데이트 - completeRequest 엔드포인트 사용
@@ -460,8 +450,6 @@ const PastoralCareManagement: React.FC = () => {
         completion_notes: completionNotes,
         completed_at: new Date().toISOString()
       });
-      
-      console.log('✅ API 응답 성공:', response);
 
       // 완료된 심방을 기록 목록에 추가
       const completedRecord: PastoralCareRecord = {
@@ -486,7 +474,6 @@ const PastoralCareManagement: React.FC = () => {
       
       setShowCompletionModal(false);
       setCompletionNotes('');
-      console.log('🎉 심방 완료 처리 성공');
       alert('심방이 완료되었고 기록이 저장되었습니다.');
     } catch (error: any) {
       console.error('❌ 심방 완료 처리 실패:', error);
@@ -537,22 +524,9 @@ const PastoralCareManagement: React.FC = () => {
     };
 
     try {
-      console.log('📝 심방 일지 수정 시작');
-      console.log('📋 기록 ID:', selectedRecord.id);
-      console.log('📄 수정된 노트:', editingNotes);
-      console.log('📤 API 요청 데이터:', updateData);
-
       // API 호출로 일지 내용 업데이트 - completeRequest 엔드포인트 사용
       const response = await pastoralCareService.completeRequest(selectedRecord.id, updateData);
-      
-      console.log('✅ API 응답 성공:', response);
-      console.log('🔍 응답에서 completion_notes 확인:', response.completion_notes);
-
-      // 업데이트된 데이터 다시 조회해서 확인
-      console.log('🔄 업데이트 확인을 위해 데이터 재조회 중...');
       const updatedRecord = await pastoralCareService.getRequest(selectedRecord.id);
-      console.log('📊 재조회된 데이터:', updatedRecord);
-      console.log('📝 재조회된 completion_notes:', updatedRecord.completion_notes);
 
       // 로컬 상태 업데이트
       setCompletedRecords(prev => prev.map(record => 
@@ -562,7 +536,6 @@ const PastoralCareManagement: React.FC = () => {
       ));
 
       setShowRecordDetailModal(false);
-      console.log('✅ 심방 일지 수정 완료');
       
       if (updatedRecord.completion_notes === editingNotes) {
         alert('심방 일지가 수정되었습니다.');

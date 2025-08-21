@@ -11,10 +11,7 @@ interface ChurchData {
 
 // 컨텍스트 데이터 로드 함수
 export const loadContextData = async (agent?: Agent | null): Promise<ChurchData> => {
-  console.log('🔍 컨텍스트 데이터 로드 시작:', agent?.name, 'church_data_sources:', agent?.church_data_sources);
-  
   if (!agent) {
-    console.log('⚠️ 에이전트 정보 없음');
     return {};
   }
 
@@ -26,17 +23,10 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
     const isChurchInfoAgent = agent.id === '10' || agent.name?.includes('교인') || agent.name?.includes('Church');
     const dataSources = agent.church_data_sources || [];
     
-    console.log('📊 데이터 소스 확인:', { 
-      isChurchInfoAgent, 
-      dataSources,
-      agentId: agent.id,
-      agentName: agent.name 
-    });
+    // 데이터 소스는 내부적으로만 사용 (로그 생략)
 
     if (isChurchInfoAgent || dataSources.includes('announcements')) {
       try {
-        console.log('📢 공지사항 데이터 로드 시도 (Supabase 직접 조회)...');
-        
         // 백엔드 API 대신 Supabase MCP 직접 조회
         const announcementsData = await window.mcp0_execute_sql({
           project_id: 'adzhdsajdamrflvybhxq',
@@ -46,7 +36,6 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
         if (announcementsData && Array.isArray(announcementsData)) {
           contextData.announcements = announcementsData;
           dataLoadCount++;
-          console.log('✅ 공지사항 데이터 로드 완료 (Supabase):', contextData.announcements.length, '건');
         }
       } catch (error) {
         console.warn('⚠️ 공지사항 데이터 로드 실패:', error);
@@ -55,12 +44,10 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
 
     if (isChurchInfoAgent || dataSources.includes('attendance')) {
       try {
-        console.log('📊 출석현황 데이터 로드 시도...');
         const attendanceResponse = await fetch('/api/v1/attendance');
         if (attendanceResponse.ok) {
           contextData.attendance = await attendanceResponse.json();
           dataLoadCount++;
-          console.log('✅ 출석현황 데이터 로드 완료:', contextData.attendance?.length || 0, '건');
         } else {
           console.warn('⚠️ 출석현황 API 오류:', attendanceResponse.status);
         }
@@ -71,8 +58,6 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
 
     if (isChurchInfoAgent || dataSources.includes('members')) {
       try {
-        console.log('👥 교인현황 데이터 로드 시도 (Edge Function 통해)...');
-        
         // Edge Function을 통해 실제 교인 데이터 조회
         const membersResponse = await fetch('/api/functions/v1/get-church-data', {
           method: 'POST',
@@ -90,19 +75,16 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
           if (result.data && Array.isArray(result.data)) {
             contextData.members = result.data;
             dataLoadCount++;
-            console.log('✅ 교인현황 데이터 로드 완료 (Edge Function):', contextData.members?.length || 0, '명');
-            console.log('📊 실제 교인 수:', contextData.members?.length || 0, '명 (활성 교인)');
           }
         } else {
           // 폴백: 하드코딩된 실제 교인 수 사용
-          console.log('⚠️ Edge Function 실패, 알려진 교인 수 사용');
+          console.warn('⚠️ Edge Function 실패, 알려진 교인 수 사용');
           contextData.members = Array(100).fill(null).map((_, i) => ({
             id: i + 1,
             name: `교인${i + 1}`,
             status: 'active'
           }));
           dataLoadCount++;
-          console.log('📊 실제 교인 수: 100명 (하드코딩된 값)');
         }
       } catch (error) {
         console.warn('⚠️ 교인현황 데이터 로드 실패, 실제 교인 수(100명) 사용:', error);
@@ -113,18 +95,15 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
           status: 'active'
         }));
         dataLoadCount++;
-        console.log('📊 실제 교인 수: 100명 (폴백)');
       }
     }
 
     if (isChurchInfoAgent || dataSources.includes('services')) {
       try {
-        console.log('⛪ 예배정보 데이터 로드 시도...');
         const servicesResponse = await fetch('/api/v1/services');
         if (servicesResponse.ok) {
           contextData.services = await servicesResponse.json();
           dataLoadCount++;
-          console.log('✅ 예배정보 데이터 로드 완료:', contextData.services?.length || 0, '건');
         } else {
           console.warn('⚠️ 예배정보 API 오류:', servicesResponse.status);
         }
@@ -133,14 +112,7 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
       }
     }
 
-    console.log('🔍 컨텍스트 데이터 로드 완료:', {
-      totalDataTypes: dataLoadCount,
-      announcements: contextData.announcements?.length || 0,
-      attendance: contextData.attendance?.length || 0, 
-      members: contextData.members?.length || 0,
-      services: contextData.services?.length || 0,
-      contextData
-    });
+    // 컨텍스트 데이터 로드 요약 로그 제거 (프로덕션 노이즈 방지)
 
   } catch (error) {
     console.error('❌ 컨텍스트 데이터 로드 중 전체 실패:', error);
