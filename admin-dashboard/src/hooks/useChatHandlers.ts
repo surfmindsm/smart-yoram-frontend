@@ -270,9 +270,28 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         
         if (responseData.success && responseData.data) {
           const data = responseData.data;
-          const rawContent = data.ai_response || data.content || data.message || aiContent;
-          // 문자열이 아닌 경우 문자열로 변환
-          aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          console.log('🔍 백엔드 응답 상세 데이터:', data);
+          
+          let rawContent = data.ai_response || data.content || data.message;
+          
+          // 객체인 경우 적절한 파싱 시도
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            if (rawContent.content) {
+              aiContent = rawContent.content;
+            } else if (rawContent.message) {
+              aiContent = rawContent.message;
+            } else if (rawContent.text) {
+              aiContent = rawContent.text;
+            } else {
+              // 최후 수단으로 JSON 문자열화
+              aiContent = JSON.stringify(rawContent, null, 2);
+            }
+          } else if (typeof rawContent === 'string') {
+            aiContent = rawContent;
+          } else {
+            aiContent = String(rawContent) || '응답을 생성하지 못했습니다.';
+          }
+          
           tokensUsed = data.tokens_used || data.tokensUsed || 0;
           
           // 백엔드에서 실제 생성된 chat_history_id 받기
@@ -287,12 +306,20 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             }
           }
         } else if (responseData.ai_response) {
-          const rawContent = responseData.ai_response;
-          aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          let rawContent = responseData.ai_response;
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
+          } else {
+            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          }
           tokensUsed = responseData.tokens_used || 0;
         } else if (responseData.content) {
-          const rawContent = responseData.content;
-          aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          let rawContent = responseData.content;
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
+          } else {
+            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          }
           tokensUsed = responseData.tokens_used || 0;
         }
         
