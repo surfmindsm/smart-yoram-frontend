@@ -125,7 +125,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             {chatHistory.filter(chat => chat.isBookmarked).length > 0 && (
               <>
                 <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
-                  <Star className="w-4 h-4 mr-1 text-yellow-500" />
+                  <Star className="w-3 h-3 mr-1 text-yellow-500" />
                   고정된 대화
                 </h3>
                 
@@ -146,7 +146,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       <div className="flex items-center space-x-2 pr-8">
                         <Star 
                           className={cn(
-                            "h-3 w-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                            "w-3 h-3 cursor-pointer hover:text-yellow-400 transition-colors",
                             chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
                           )}
                           onClick={(e) => {
@@ -274,7 +274,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <div className="flex items-center space-x-2 pr-8">
                       <Star 
                         className={cn(
-                          "h-3 w-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                          "w-3 h-3 cursor-pointer hover:text-yellow-400 transition-colors",
                           chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
                         )}
                         onClick={(e) => {
