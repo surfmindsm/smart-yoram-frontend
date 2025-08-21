@@ -60,9 +60,7 @@ export const useChat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialHistory);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(
-    initialHistory.length > 0 ? initialHistory[0].id : null
-  );
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null); // 항상 새 대화로 시작
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
@@ -289,9 +287,8 @@ export const useChat = () => {
           setChatHistory(formattedHistories);
           saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
           
-          if (formattedHistories.length > 0 && !currentChatId) {
-            setCurrentChatId(formattedHistories[0].id);
-          }
+          // 항상 새 대화 상태로 시작 (자동 선택 비활성화)
+          console.log('🎆 새 대화 상태 유지 - 자동 선택 안함');
         } else {
           console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', histories);
           setChatHistory([]);
@@ -309,9 +306,8 @@ export const useChat = () => {
         ];
         setChatHistory(mockHistory);
         saveChatHistoryToCache(mockHistory); // 🚀 캐시 저장
-        if (!currentChatId) {
-          setCurrentChatId(mockHistory[0].id);
-        }
+        // Mock 데이터에서도 자동 선택 비활성화
+        console.log('🎆 Mock 데이터 - 새 대화 상태 유지');
       }
 
       // 에이전트 처리 (기존 커밋과 동일한 로직)
@@ -380,7 +376,8 @@ export const useChat = () => {
         }
       ];
       setChatHistory(mockHistory);
-      setCurrentChatId(mockHistory[0].id);
+      // 자동 선택 비활성화
+      console.log('🎆 에러 시도 새 대화 상태 유지');
       
       const mockAgents: Agent[] = [
         { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },

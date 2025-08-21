@@ -243,13 +243,14 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           },
           body: JSON.stringify({
             chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
-            content: userMessage.content,
+            content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
             role: 'user',
             agent_id: selectedAgentForChat?.id || agents?.[0]?.id,
-            messages: updatedMessages.slice(0, -1).map(msg => ({
+            messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
               role: msg.role,
-              content: msg.content
+              content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
             })),
+            optimize_speed: true, // 백엔드에 속도 최적화 요청
             create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
             agent_name: selectedAgentForChat?.name || '기본 AI 도우미'
           })
