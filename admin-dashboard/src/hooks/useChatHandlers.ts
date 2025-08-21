@@ -329,40 +329,12 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setCurrentChatId(null);
     setInputValue('');
     
+    // 에이전트 선택 초기화 - 첫 진입과 동일한 상태로 만들기
+    setSelectedAgentForChat(null);
+    setSelectedAgent(null);
+    
     // 데이터 다시 로드
     await loadData();
-    
-    // 에이전트 로드 대기 (최대 3초)
-    let retryCount = 0;
-    while ((!agents || agents.length === 0) && retryCount < 30) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      retryCount++;
-    }
-    
-    // 🚀 기본 에이전트 자동 선택 (첫 번째 에이전트 또는 교인정보 에이전트)
-    console.log('🔍 사용 가능한 에이전트:', agents);
-    if (agents && agents.length > 0) {
-      // "교인정보 에이전트" 또는 "교인정보"가 포함된 에이전트 우선 선택
-      const defaultAgent = agents.find(agent => 
-        agent.name?.includes('교인정보') || agent.name?.includes('교인 정보')
-      ) || agents[0]; // 못 찾으면 첫 번째 에이전트 선택
-      
-      setSelectedAgentForChat(defaultAgent);
-      setSelectedAgent(defaultAgent);
-      console.log('🤖 기본 에이전트 자동 선택:', defaultAgent?.name, 'ID:', defaultAgent?.id);
-    } else {
-      // 에이전트가 없으면 기본값 설정
-      const fallbackAgent = {
-        id: '1',
-        name: '기본 AI 도우미',
-        description: '도움이 되는 AI 어시스턴트입니다.',
-        category: '일반',
-        isActive: true
-      };
-      setSelectedAgentForChat(fallbackAgent);
-      setSelectedAgent(fallbackAgent);
-      console.log('🤖 폴백 에이전트 설정:', fallbackAgent.name);
-    }
     
     // 히스토리 탭 유지 (에이전트 탭으로 강제 이동하지 않음)
     setActiveTab('history');
