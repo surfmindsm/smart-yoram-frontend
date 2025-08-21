@@ -97,8 +97,11 @@ const PastoralCareManagement: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showRecordDetailModal, setShowRecordDetailModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedRecord, setSelectedRecord] = useState<PastoralCareRecord | null>(null);
+  const [editingNotes, setEditingNotes] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [assignedPastorId, setAssignedPastorId] = useState('');
@@ -518,6 +521,63 @@ const PastoralCareManagement: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleRecordDetail = (record: PastoralCareRecord) => {
+    setSelectedRecord(record);
+    setEditingNotes(record.completionNotes || '');
+    setShowRecordDetailModal(true);
+  };
+
+  const handleUpdateNotes = async () => {
+    if (!selectedRecord) return;
+
+    const updateData = {
+      completion_notes: editingNotes
+    };
+
+    try {
+      console.log('📝 심방 일지 수정 시작');
+      console.log('📋 기록 ID:', selectedRecord.id);
+      console.log('📄 수정된 노트:', editingNotes);
+      console.log('📤 API 요청 데이터:', updateData);
+
+      // API 호출로 일지 내용 업데이트 - completeRequest 엔드포인트 사용
+      const response = await pastoralCareService.completeRequest(selectedRecord.id, updateData);
+      
+      console.log('✅ API 응답 성공:', response);
+      console.log('🔍 응답에서 completion_notes 확인:', response.completion_notes);
+
+      // 업데이트된 데이터 다시 조회해서 확인
+      console.log('🔄 업데이트 확인을 위해 데이터 재조회 중...');
+      const updatedRecord = await pastoralCareService.getRequest(selectedRecord.id);
+      console.log('📊 재조회된 데이터:', updatedRecord);
+      console.log('📝 재조회된 completion_notes:', updatedRecord.completion_notes);
+
+      // 로컬 상태 업데이트
+      setCompletedRecords(prev => prev.map(record => 
+        record.id === selectedRecord.id 
+          ? { ...record, completionNotes: editingNotes }
+          : record
+      ));
+
+      setShowRecordDetailModal(false);
+      console.log('✅ 심방 일지 수정 완료');
+      
+      if (updatedRecord.completion_notes === editingNotes) {
+        alert('심방 일지가 수정되었습니다.');
+      } else {
+        alert('⚠️ 프론트엔드는 성공했지만 DB 업데이트를 확인할 수 없습니다. 백엔드 확인이 필요합니다.');
+      }
+    } catch (error: any) {
+      console.error('❌ 심방 일지 수정 실패:', error);
+      console.error('📄 에러 상세:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      alert(`심방 일지 수정에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
+    }
   };
 
   const handleSaveAssignment = async () => {
@@ -1068,7 +1128,9 @@ const PastoralCareManagement: React.FC = () => {
 
           <div className="space-y-4">
             {filteredRecords.map((record) => (
-              <div key={record.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow"
+              <div key={record.id} 
+                   className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                   onClick={() => handleRecordDetail(record)}
                    >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -1708,6 +1770,110 @@ const PastoralCareManagement: React.FC = () => {
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 심방 완료 처리
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 심방 기록 상세 모달 */}
+      {showRecordDetailModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">심방 기록 상세</h2>
+              <button 
+                onClick={() => setShowRecordDetailModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* 기본 정보 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">신청자</label>
+                  <p className="text-slate-900">{selectedRecord.requesterName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">연락처</label>
+                  <p className="text-slate-900">{selectedRecord.requesterPhone}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">심방 유형</label>
+                  <p className="text-slate-900">{getRequestTypeText(selectedRecord.requestType)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">우선순위</label>
+                  <span className={cn("px-2 py-1 text-xs font-medium rounded", getPriorityColor(selectedRecord.priority))}>
+                    {getPriorityText(selectedRecord.priority)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">심방일</label>
+                  <p className="text-slate-900">{selectedRecord.scheduledDate} {selectedRecord.scheduledTime}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">담당 목회자</label>
+                  <p className="text-slate-900">{selectedRecord.assignedPastor?.name || '미지정'}</p>
+                </div>
+              </div>
+
+              {/* 신청 내용 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">신청 내용</label>
+                <div className="bg-slate-50 p-3 rounded-md">
+                  <p className="text-slate-700">{selectedRecord.requestContent}</p>
+                </div>
+              </div>
+
+              {/* 심방 일지 편집 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  심방 일지 <Edit className="inline h-4 w-4 ml-1" />
+                </label>
+                <textarea
+                  value={editingNotes}
+                  onChange={(e) => setEditingNotes(e.target.value)}
+                  placeholder="심방을 통해 확인한 내용, 기도 제목, 후속 조치 사항 등을 기록해주세요."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  rows={6}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  심방 내용을 수정하시려면 위 텍스트 영역을 편집하고 저장 버튼을 클릭하세요.
+                </p>
+              </div>
+
+              {/* 메타 정보 */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">신청일</label>
+                  <p className="text-sm text-slate-600">
+                    {new Date(selectedRecord.createdAt).toLocaleDateString('ko-KR')}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">완료일</label>
+                  <p className="text-sm text-slate-600">
+                    {selectedRecord.completedAt ? new Date(selectedRecord.completedAt).toLocaleDateString('ko-KR') : '미기록'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 버튼 영역 */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button variant="outline" onClick={() => setShowRecordDetailModal(false)}>
+                취소
+              </Button>
+              <Button 
+                onClick={handleUpdateNotes}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                일지 저장
               </Button>
             </div>
           </div>
