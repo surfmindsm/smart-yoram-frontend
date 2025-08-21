@@ -941,64 +941,21 @@ export const prayerRequestService = {
 
 // 재정관리 API 서비스
 export const financialService = {
-  // 기부자 관리
-  getDonors: async (params?: { skip?: number; limit?: number; search?: string }) => {
-    const response = await api.get(getApiUrl('/financial/donors'), { params });
-    return response.data;
-  },
-
-  createDonor: async (donorData: any) => {
-    const response = await api.post(getApiUrl('/financial/donors'), donorData);
-    return response.data;
-  },
-
-  updateDonor: async (donorId: number, donorData: any) => {
-    const response = await api.put(getApiUrl(`/financial/donors/${donorId}`), donorData);
-    return response.data;
-  },
-
-  deleteDonor: async (donorId: number) => {
-    const response = await api.delete(getApiUrl(`/financial/donors/${donorId}`));
-    return response.data;
-  },
-
-  // member_id로 donor_id를 찾거나 생성
-  getOrCreateDonorByMemberId: async (memberId: number, memberData: any) => {
-    try {
-      // 1. 기존 donor 찾기
-      const donors = await financialService.getDonors();
-      const existingDonor = donors.find((donor: any) => donor.member_id === memberId);
-      
-      if (existingDonor) {
-        return existingDonor.id;
-      }
-      
-      // 2. 없으면 자동 생성
-      const donorData = {
-        member_id: memberId,
-        legal_name: memberData.name,
-        address: memberData.address || '',
-        rrn_encrypted: '' // 기본값
-      };
-      
-      const newDonor = await financialService.createDonor(donorData);
-      return newDonor.id;
-    } catch (error) {
-      console.error('Donor 생성/조회 실패:', error);
-      throw error;
-    }
-  },
-
   // 헌금 관리
   getOfferings: async (params?: { 
     skip?: number; 
     limit?: number; 
-    donor_id?: number;
+    member_id?: number;
     fund_type?: string;
     start_date?: string;
     end_date?: string;
   }) => {
-    const response = await api.get(getApiUrl('/financial/offerings'), { params });
+    const url = getApiUrl('/financial/offerings');
+    console.log('🌐 Offerings API 호출 URL:', url);
+    console.log('🌐 Offerings API 파라미터:', params);
+    const response = await api.get(url, { params });
+    console.log('🌐 Offerings API 원본 response:', response);
+    console.log('🌐 Offerings API response.data:', response.data);
     return response.data;
   },
 
@@ -1026,7 +983,7 @@ export const financialService = {
   getReceipts: async (params?: { 
     skip?: number; 
     limit?: number; 
-    donor_id?: number;
+    member_id?: number;
     tax_year?: number;
   }) => {
     const response = await api.get(getApiUrl('/financial/receipts'), { params });

@@ -58,7 +58,7 @@ interface Donor {
 
 interface Offering {
   id: number;
-  donor_id?: number;
+  member_id?: number;
   church_id: number;
   offered_on: string;
   fund_type: string;
@@ -67,16 +67,16 @@ interface Offering {
   input_user_id: number;
   created_at: string;
   updated_at: string;
-  donor?: {
-    legal_name: string;
-    member_id?: number;
+  member?: {
+    name: string;
+    id?: number;
   };
 }
 
 interface Receipt {
   id: number;
-  donor_id: number | null;
-  donor?: {
+  member_id: number | null;
+  member?: {
     id: number;
     name: string;
     phone: string;
@@ -257,19 +257,41 @@ const DonationManagement: React.FC = () => {
 
       console.log('🔍 API 호출 시작...');
 
-      // API 병렬 호출로 로딩 시간 3배 단축
-      const [offeringsResponse, donorsResponse, membersResponse, receiptsResponse] = await Promise.all([
-        financialService.getOfferings(),
-        financialService.getDonors(),
-        memberService.getMembers(),
-        financialService.getReceipts()
-      ]);
+      // API 병렬 호출로 로딩 시간 단축 (donors API 제거)
+      let offeringsResponse, membersResponse, receiptsResponse;
+      try {
+        [offeringsResponse, membersResponse, receiptsResponse] = await Promise.all([
+          financialService.getOfferings().then(res => {
+            console.log('🎯 Offerings API 성공 - 상세 응답:', res);
+            console.log('🎯 Offerings API 응답 타입:', typeof res, '배열?', Array.isArray(res));
+            return res;
+          }).catch(err => {
+            console.error('❌ Offerings API 오류:', err);
+            console.error('❌ Offerings API 오류 상세:', err.response?.data || err.message);
+            return [];
+          }),
+          memberService.getMembers().catch(err => {
+            console.error('❌ Members API 오류:', err);
+            return [];
+          }),
+          financialService.getReceipts().catch(err => {
+            console.error('❌ Receipts API 오류:', err);
+            return [];
+          })
+        ]);
+      } catch (error) {
+        console.error('❌ API 병렬 호출 전체 실패:', error);
+        offeringsResponse = [];
+        membersResponse = [];
+        receiptsResponse = [];
+      }
 
       // 교회 정보는 별도로 호출 (실패해도 다른 기능에 영향 없도록)
       let churchData: any = null;
       try {
         churchData = await churchService.getMyChurch();
         console.log('✅ 교회 정보 로드 성공:', churchData);
+        console.log('🏛️ 교회 ID 확인:', churchData?.id);
         setChurchInfo(churchData);
         
         // 교회 정보가 로드되면 즉시 영수증 폼에 반영
@@ -287,71 +309,76 @@ const DonationManagement: React.FC = () => {
         // 교회 정보 실패는 무시하고 계속 진행
       }
 
-      console.log('📊 원본 응답 데이터:');
+      console.log('📈 원본 응답 데이터:');
       console.log('- offeringsResponse:', offeringsResponse);
-      console.log('- donorsResponse:', donorsResponse);
+      console.log('- offeringsResponse 타입:', typeof offeringsResponse, '길이:', Array.isArray(offeringsResponse) ? offeringsResponse.length : 'N/A');
       console.log('- membersResponse 전체:', membersResponse);
-      console.log('- membersResponse 타입:', typeof membersResponse);
-      console.log('- membersResponse가 배열인가?:', Array.isArray(membersResponse));
+      console.log('- membersResponse 타입:', typeof membersResponse, '길이:', Array.isArray(membersResponse) ? membersResponse.length : 'N/A');
       console.log('- receiptsResponse:', receiptsResponse);
+      console.log('- receiptsResponse 타입:', typeof receiptsResponse, '길이:', Array.isArray(receiptsResponse) ? receiptsResponse.length : 'N/A');
 
-      // 응답 정규화 - memberService.getMembers()는 배열을 직접 반환
-      const offeringsArray = Array.isArray(offeringsResponse) ? offeringsResponse : offeringsResponse?.data || [];
-      const donorsArray = Array.isArray(donorsResponse) ? donorsResponse : donorsResponse?.data || [];
-      // memberService는 response.data를 반환하므로, 이미 배열 형태
-      const membersArray = Array.isArray(membersResponse) ? membersResponse : [];
-      const receiptsArray = Array.isArray(receiptsResponse) ? receiptsResponse : receiptsResponse?.data || [];
+      // 응답 정규화 - API별로 다른 구조 확인
+      console.log('🔍 응답 구조 분석:');
+      console.log('- offeringsResponse 구조:', offeringsResponse);
+      console.log('- offeringsResponse.offerings 존재?', !!offeringsResponse?.offerings);
+      console.log('- offeringsResponse가 배열?', Array.isArray(offeringsResponse));
+      
+      // offerings API 응답이 배열인지 객체인지 확인
+      let offeringsArray = [];
+      if (Array.isArray(offeringsResponse)) {
+        offeringsArray = offeringsResponse;
+        console.log('✅ offerings: 배열 직접 반환');
+      } else if (offeringsResponse?.offerings) {
+        offeringsArray = offeringsResponse.offerings;
+        console.log('✅ offerings: 객체.offerings 사용');
+      } else if (offeringsResponse?.data) {
+        offeringsArray = offeringsResponse.data;
+        console.log('✅ offerings: 객체.data 사용');
+      } else {
+        console.log('⚠️ offerings: 예상하지 못한 구조, 빈 배열 사용');
+      }
+      
+      const membersArray = membersResponse || []; // 배열 직접 반환
+      const receiptsArray = receiptsResponse?.receipts || receiptsResponse || [];
 
       console.log('📋 정규화된 배열들:');
       console.log('- offeringsArray 길이:', offeringsArray.length);
-      console.log('- donorsArray 길이:', donorsArray.length);
       console.log('- membersArray 길이:', membersArray.length);
       console.log('- receiptsArray 길이:', receiptsArray.length);
       console.log('- membersArray 내용:', membersArray);
 
-      // members가 비어있는 경우 목 데이터 사용
+      // 실제 API 데이터만 사용
+      setMembers(membersArray);
+      
       if (membersArray.length === 0) {
-        console.warn('⚠️ 교인 데이터가 비어있습니다. 목 데이터를 사용합니다.');
-        // 개발/테스트용 목 데이터
-        const mockMembers: Member[] = [
-          { id: 1, name: '김철수', phone: '010-1234-5678', address: '서울시 강남구' },
-          { id: 2, name: '이영희', phone: '010-2345-6789', address: '서울시 서초구' },
-          { id: 3, name: '박민수', phone: '010-3456-7890', address: '서울시 송파구' },
-          { id: 4, name: '최수진', phone: '010-4567-8901', address: '서울시 마포구' },
-          { id: 5, name: '정호영', phone: '010-5678-9012', address: '서울시 영등포구' }
-        ];
-        setMembers(mockMembers);
-      } else {
-        setMembers(membersArray);
+        console.warn('⚠️ 교인 데이터가 비어있습니다.');
       }
 
-      // receipts 데이터에 donor 정보 매핑
-      const receiptsWithDonorInfo = receiptsArray.map((receipt: any) => {
-        const donor = donorsArray.find((d: any) => d.id === receipt.donor_id);
-        const member = donor ? membersArray.find((m: any) => m.id === donor.member_id) : null;
+      // receipts 데이터에 member 정보 매핑
+      const receiptsWithMemberInfo = receiptsArray.map((receipt: any) => {
+        const member = membersArray.find((m: any) => m.id === receipt.member_id);
         
         return {
           ...receipt,
-          donorName: member?.name || donor?.legal_name || '무명',
-          donor: {
-            id: donor?.id,
-            name: member?.name || donor?.legal_name || '무명',
+          donorName: member?.name || '무명',
+          member: {
+            id: member?.id,
+            name: member?.name || '무명',
             phone: member?.phone || '',
-            legal_name: donor?.legal_name || '',
-            address: member?.address || donor?.address || ''
+            legal_name: member?.name || '',
+            address: member?.address || ''
           }
         };
       });
 
       setOfferings(offeringsArray);
-      setDonors(donorsArray);
-      // members는 위에서 이미 설정됨 (membersArray 또는 mockMembers)
+      setDonors([]); // donors 비워둔 (members로 대체)
       setFundTypes([]);
-      setReceipts(receiptsWithDonorInfo);
+      setReceipts(receiptsWithMemberInfo);
 
       // Offerings를 Donations로 변환
       if (offeringsArray.length > 0) {
-        const convertedDonations = convertOfferingsToDonations(offeringsArray, donorsArray, membersArray);
+        const convertedDonations = convertOfferingsToDonations(offeringsArray, membersArray);
         setDonations(convertedDonations);
       } else {
         setDonations([]);
@@ -375,28 +402,23 @@ const DonationManagement: React.FC = () => {
   };
 
   // Offering을 Donation으로 변환하는 함수 (기존 UI 호환성)
-  const convertOfferingsToDonations = (offerings: Offering[], donorsArray: any[], membersArray: any[]): Donation[] => {
+  const convertOfferingsToDonations = (offerings: Offering[], membersArray: any[]): Donation[] => {
     
     return offerings.map(offering => {
       let donorName = '무명';
       let memberId = null; // member_id를 donorId로 사용
       
-      if (offering.donor_id && offering.donor_id !== null) {
-        // 1. 먼저 offering에 포함된 donor 정보 확인
-        if (offering.donor?.legal_name) {
-          donorName = offering.donor.legal_name;
+      if (offering.member_id && offering.member_id !== null) {
+        // 1. 먼저 offering에 포함된 member 정보 확인
+        if (offering.member?.name) {
+          donorName = offering.member.name;
+          memberId = offering.member.id || offering.member_id;
         } else {
-          // 2. donors 배열에서 해당 기부자 찾기
-          const donor = donorsArray.find((d: any) => d.id === offering.donor_id);
-          if (donor) {
-            // 3. 기부자와 연결된 교인 정보 찾기
-            const relatedMember = membersArray.find((m: any) => m.id === donor.member_id);
-            if (relatedMember) {
-              donorName = relatedMember.name;
-              memberId = relatedMember.id; // member_id를 사용
-            } else {
-              donorName = donor.legal_name || '무명';
-            }
+          // 2. members 배열에서 해당 교인 찾기
+          const member = membersArray.find((m: any) => m.id === offering.member_id);
+          if (member) {
+            donorName = member.name;
+            memberId = member.id;
           }
         }
       }
@@ -414,142 +436,7 @@ const DonationManagement: React.FC = () => {
     });
   };
 
-  const loadMockData = () => {
-    // 목업 데이터 (API 실패 시 폴백)
-    const mockMembers: Member[] = [
-      { id: 1, name: '김철수', rrn: '801234-1******', address: '서울시 강남구' },
-      { id: 2, name: '이영희', rrn: '750101-2******', address: '서울시 서초구' },
-      { id: 3, name: '박민수', rrn: '851215-1******', address: '서울시 송파구' },
-      { id: 4, name: '최수진', rrn: '900101-2******', address: '서울시 마포구' },
-      { id: 5, name: '정호영', rrn: '920101-1******', address: '서울시 영등포구' }
-    ];
-
-    const mockDonations: Donation[] = [
-      {
-        id: 1,
-        donorId: 1,
-        donorName: '김철수',
-        offeredOn: '2024-01-01',
-        fundType: '십일조',
-        amount: 100000,
-        note: '감사헌금',
-        inputUserId: 1
-      },
-      {
-        id: 2,
-        donorId: 2,
-        donorName: '이영희',
-        offeredOn: '2024-01-01',
-        fundType: '감사헌금',
-        amount: 50000,
-        note: '',
-        inputUserId: 1
-      },
-      {
-        id: 3,
-        donorId: 3,
-        donorName: '박민수',
-        offeredOn: '2024-01-02',
-        fundType: '십일조',
-        amount: 120000,
-        note: '',
-        inputUserId: 1
-      },
-      {
-        id: 4,
-        donorId: 1,
-        donorName: '김철수',
-        offeredOn: '2024-01-03',
-        fundType: '건축헌금',
-        amount: 200000,
-        note: '새성전 건축',
-        inputUserId: 1
-      },
-      {
-        id: 5,
-        donorId: 4,
-        donorName: '최수진',
-        offeredOn: '2024-01-05',
-        fundType: '십일조',
-        amount: 80000,
-        note: '',
-        inputUserId: 1
-      },
-      {
-        id: 6,
-        donorId: 2,
-        donorName: '이영희',
-        offeredOn: '2024-01-07',
-        fundType: '선교헌금',
-        amount: 30000,
-        note: '아프리카 선교',
-        inputUserId: 1
-      },
-      {
-        id: 7,
-        donorId: null,
-        donorName: '무명',
-        offeredOn: '2024-01-10',
-        fundType: '감사헌금',
-        amount: 20000,
-        note: '익명헌금',
-        inputUserId: 1
-      },
-      {
-        id: 8,
-        donorId: 5,
-        donorName: '정호영',
-        offeredOn: '2024-01-12',
-        fundType: '십일조',
-        amount: 150000,
-        note: '',
-        inputUserId: 1
-      }
-    ];
-
-    const mockReceipts: Receipt[] = [
-      {
-        id: 1,
-        donor_id: 1,
-        tax_year: 2024,
-        issue_no: 'R2024001',
-        total_amount: '1200000',
-        issued_at: '2024-01-15',
-        issued_by: '관리자',
-        church_id: 1,
-        updated_at: '2024-01-15',
-        // UI 호환 속성들
-        donorName: '김철수',
-        taxYear: 2024,
-        issueNo: 'R2024001',
-        totalAmount: 1200000,
-        issuedAt: '2024-01-15',
-        issuedBy: '관리자'
-      },
-      {
-        id: 2,
-        donor_id: 2,
-        tax_year: 2024,
-        issue_no: 'R2024002',
-        total_amount: '800000',
-        issued_at: '2024-01-15',
-        issued_by: '관리자',
-        church_id: 1,
-        updated_at: '2024-01-15',
-        // UI 호환 속성들
-        donorName: '이영희',
-        taxYear: 2024,
-        issueNo: 'R2024002',
-        totalAmount: 800000,
-        issuedAt: '2024-01-15',
-        issuedBy: '관리자'
-      }
-    ];
-
-    setMembers(mockMembers);
-    setDonations(mockDonations);
-    setReceipts(mockReceipts);
-  };
+  // 목업 데이터 제거됨 - 실제 API 데이터만 사용
 
   const handleAddDonation = async () => {
     
@@ -561,23 +448,21 @@ const DonationManagement: React.FC = () => {
     try {
       setSubmitLoading(true);
       
-      let donorId = null;
+      let memberId: number | null = null;
       
       if (!newDonation.isAnonymous) {
-        // member_id로 donor_id 자동 찾기/생성
-        const memberId = parseInt(newDonation.donorId);
+        // member_id 직접 사용
+        memberId = parseInt(newDonation.donorId);
         const memberData = members.find(m => m.id === memberId);
         
-        if (memberData) {
-          donorId = await financialService.getOrCreateDonorByMemberId(memberId, memberData);
-        } else {
+        if (!memberData) {
           throw new Error('선택한 교인 정보를 찾을 수 없습니다.');
         }
       }
 
       const offeringData = {
-        donor_id: donorId,
-        church_id: 1, // TODO: 실제 교회 ID로 변경
+        member_id: memberId,
+        church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
         offered_on: newDonation.offeredOn,
         fund_type: newDonation.fundType,
         amount: newDonation.amount.toString(),
@@ -591,7 +476,7 @@ const DonationManagement: React.FC = () => {
         // 옵티미스틱 UI 업데이트 - 즉시 화면에 반영
         const newDonationItem: Donation = {
           id: result.id || Date.now(), // 임시 ID
-          donorId: donorId,
+          donorId: memberId,
           donorName: newDonation.isAnonymous ? '무명' : 
                     members.find(m => m.id === parseInt(newDonation.donorId))?.name || '무명',
           offeredOn: newDonation.offeredOn,
@@ -657,35 +542,22 @@ const DonationManagement: React.FC = () => {
         let successCount = 0;
         
         // 병렬 처리로 속도 대폭 개선
-        const donorCache = new Map<number, number>(); // member_id → donor_id 캐시
         
-        // 1단계: 고유한 member_id들의 donor_id를 병렬로 가져오기
-        const uniqueMemberIds = Array.from(new Set(
-          validDonations
-            .filter(bulk => !bulk.isAnonymous)
-            .map(bulk => Number(bulk.donorId))
-        ));
-        
-        const donorPromises = uniqueMemberIds.map(async (memberId) => {
-          const memberData = members.find(m => m.id === memberId);
-          if (memberData) {
-            const donorId = await financialService.getOrCreateDonorByMemberId(memberId, memberData);
-            donorCache.set(memberId, donorId);
-            return { memberId, donorId };
-          } else {
-            throw new Error(`선택한 교인 정보를 찾을 수 없습니다. (ID: ${memberId})`);
-          }
-        });
-        
-        await Promise.all(donorPromises);
-        
-        // 2단계: 모든 헌금을 병렬로 등록
+        // 모든 헌금을 병렬로 등록 (member_id 직접 사용)
         const offeringPromises = validDonations.map(async (bulk, index) => {
-          const donorId = bulk.isAnonymous ? null : donorCache.get(Number(bulk.donorId));
+          const memberId = bulk.isAnonymous ? null : Number(bulk.donorId);
+          
+          // 무명이 아닌 경우 교인 정보 확인
+          if (!bulk.isAnonymous && memberId) {
+            const memberData = members.find(m => m.id === memberId);
+            if (!memberData) {
+              throw new Error(`선택한 교인 정보를 찾을 수 없습니다. (ID: ${memberId})`);
+            }
+          }
           
           const offeringData = {
-            donor_id: donorId,
-            church_id: 1,
+            member_id: memberId,
+            church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
             offered_on: bulkSettings.offeredOn,
             fund_type: bulk.fundType,
             amount: bulk.amount.toString(),
@@ -696,7 +568,7 @@ const DonationManagement: React.FC = () => {
           
           return {
             id: result.id || Date.now() + index,
-            donorId: donorId,
+            donorId: memberId,
             donorName: bulk.isAnonymous ? '무명' : 
                       members.find(m => m.id === Number(bulk.donorId))?.name || '무명',
             offeredOn: bulkSettings.offeredOn,
@@ -865,10 +737,10 @@ const DonationManagement: React.FC = () => {
       const issueNo = `R${selectedYear}${String(Date.now()).slice(-6)}`;
       
       const receiptData = {
-        donor_id: actualDonorId,
+        member_id: actualDonorId, // donor_id 대신 member_id 사용
         tax_year: selectedYear,
         total_amount: donorDonations.reduce((sum, d) => sum + d.amount, 0).toString(),
-        church_id: 1, // TODO: 실제 교회 ID로 변경
+        church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
         issue_no: issueNo
       };
 
@@ -942,7 +814,7 @@ const DonationManagement: React.FC = () => {
   });
 
   const filteredReceipts = receipts.filter(receipt => {
-    const donorName = receipt.donorName || receipt.donor?.name || '';
+    const donorName = receipt.donorName || receipt.member?.name || '';
     const taxYear = receipt.taxYear || receipt.tax_year;
     return donorName.toLowerCase().includes(searchTerm.toLowerCase()) &&
            taxYear === selectedYear;
@@ -1211,13 +1083,12 @@ const DonationManagement: React.FC = () => {
 
   // 개별 영수증 인쇄 처리
   const handleReceiptPrint = (receipt: any) => {
-    // 해당 영수증의 기부자와 기부 내역 찾기
-    const donorId = receipt.donorId || receipt.donor_id;
+    // 해당 영수증의 교인과 기부 내역 찾기
+    const memberId = receipt.donorId || receipt.member_id;
     const taxYear = receipt.taxYear || receipt.tax_year;
     
-    // 기부자 정보 찾기
-    const donor = donors.find(d => d.id === donorId);
-    const member = donor ? members.find(m => m.id === donor.member_id) : null;
+    // 교인 정보 찾기
+    const member = members.find(m => m.id === memberId);
     
     if (!member) {
       alert('기부자 정보를 찾을 수 없습니다.');
@@ -1596,7 +1467,7 @@ const DonationManagement: React.FC = () => {
                     {filteredReceipts.map((receipt) => (
                       <tr key={receipt.id} className="border-b">
                         <td className="py-3 font-mono">{receipt.issueNo || receipt.issue_no}</td>
-                        <td className="py-3">{receipt.donorName || receipt.donor?.name || ''}</td>
+                        <td className="py-3">{receipt.donorName || receipt.member?.name || ''}</td>
                         <td className="py-3 text-right font-medium">
                           {formatCurrency(receipt.totalAmount || Number(receipt.total_amount) || 0)}
                         </td>
