@@ -107,7 +107,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             },
             body: JSON.stringify({
               id: parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
-              agent_id: parseInt(String(selectedAgentForChat?.id)) || 1,
+              agent_id: 1, // 기본 agent_id 사용
               title: `새 대화 ${new Date().toLocaleString()}`
             })
           });

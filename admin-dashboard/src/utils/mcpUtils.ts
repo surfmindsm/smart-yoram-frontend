@@ -56,12 +56,14 @@ export const saveMessageViaMCP = async (
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
         },
         body: JSON.stringify({
-          chat_history_id: parseInt(chatHistoryId.replace('chat_', '')) || parseInt(chatHistoryId) || Date.now(),
+          chat_history_id: typeof chatHistoryId === 'string' 
+            ? parseInt(chatHistoryId.replace('chat_', '')) || parseInt(chatHistoryId) || Date.now()
+            : parseInt(String(chatHistoryId)) || Date.now(),
           content,
           role,
           tokens_used: tokensUsed || 0,
-          // agent_id는 백엔드에 실제 존재하는 ID만 사용 (존재하지 않으면 생략)
-          ...(agentId && parseInt(String(agentId)) && parseInt(String(agentId)) !== 1 ? { agent_id: parseInt(String(agentId)) } : {})
+          // agent_id는 필수 필드이므로 기본값 1 사용
+          agent_id: agentId ? parseInt(String(agentId)) : 1
         })
       });
 
