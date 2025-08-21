@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ChatMessage, Agent, ChatHistory } from '../../types/chat';
 import { Button } from '../ui/button';
 import { Bot, Send, Download, FileText, FileCode, FileImage, File } from 'lucide-react';
@@ -37,6 +37,33 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   currentChatId,
   chatHistory
 }) => {
+  // 입력창 포커스를 위한 ref
+  const mainInputRef = useRef<HTMLTextAreaElement>(null);
+  const bottomInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // 메시지 전송 후 입력창 포커스 복원을 위한 함수
+  const handleSendWithFocus = () => {
+    onSendMessage();
+    // 메시지 전송 후 입력창에 포커스 복원
+    setTimeout(() => {
+      if (messages.length === 0) {
+        mainInputRef.current?.focus();
+      } else {
+        bottomInputRef.current?.focus();
+      }
+    }, 100);
+  };
+  
+  // 컴포넌트 마운트 시와 상태 변경 시 자동 포커스
+  useEffect(() => {
+    if (activeTab === 'history') {
+      if (messages.length === 0 && mainInputRef.current) {
+        mainInputRef.current.focus();
+      } else if (messages.length > 0 && bottomInputRef.current) {
+        bottomInputRef.current.focus();
+      }
+    }
+  }, [activeTab, messages.length, selectedAgentForChat]);
   // 현재 채팅의 제목을 가져오는 함수
   const getCurrentChatTitle = () => {
     if (!currentChatId) return '새로운 채팅';
@@ -64,81 +91,66 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
-        {selectedAgentForChat ? (
-          // 에이전트가 선택된 상태에서 첫 메시지 입력 대기
-          <div className="w-full max-w-2xl">
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mb-4">
-                <Bot className="w-8 h-8 text-sky-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">
-                {selectedAgentForChat.name}
-              </h2>
-              <div className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-sky-100 text-sky-800 mb-3">
-                {selectedAgentForChat.category}
-              </div>
-              <p className="text-slate-600 text-center max-w-md">
-                {selectedAgentForChat.description}
-              </p>
+        {/* 통일된 ChatGPT 스타일 첫 화면 */}
+        <div className="w-full max-w-4xl">
+          <div className="text-center mb-12">
+            <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Bot className="w-10 h-10 text-sky-600" />
             </div>
-
-            {/* 중앙 입력창 */}
-            <div className="relative">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={onKeyPress}
-                placeholder={`${selectedAgentForChat.name}에게 질문해보세요...`}
-                className="w-full px-4 py-4 pr-14 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-sky-500 bg-white shadow-sm text-slate-700 placeholder-slate-400"
-                rows={3}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={onSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                className="absolute bottom-3 right-3 w-8 h-8 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 rounded-lg"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+            {selectedAgentForChat ? (
+              // 에이전트가 선택된 경우
+              <>
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                  {selectedAgentForChat.name}
+                </h1>
+                <div className="inline-flex px-4 py-2 rounded-full text-sm font-medium bg-sky-100 text-sky-800 mb-4">
+                  {selectedAgentForChat.category}
+                </div>
+                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                  {selectedAgentForChat.description}
+                </p>
+              </>
+            ) : (
+              // 에이전트가 선택되지 않은 경우
+              <>
+                <h1 className="text-3xl font-bold text-slate-900 mb-4">
+                  AI 교역자와 대화하기
+                </h1>
+                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                  교회 업무를 도와주는 다양한 AI 에이전트들과 대화해보세요.<br />
+                  아래에서 원하는 에이전트를 선택하거나 직접 질문을 입력하세요.
+                </p>
+              </>
+            )}
           </div>
-        ) : (
-          // 에이전트가 선택되지 않은 초기 상태
-          <div className="w-full max-w-4xl">
-            <div className="text-center mb-12">
-              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Bot className="w-10 h-10 text-sky-600" />
-              </div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-4">
-                AI 교역자와 대화하기
-              </h1>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                교회 업무를 도와주는 다양한 AI 에이전트들과 대화해보세요.<br />
-                아래에서 원하는 에이전트를 선택하거나 직접 질문을 입력하세요.
-              </p>
-            </div>
 
-            {/* 중앙 입력창 */}
-            <div className="relative mb-12">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={onKeyPress}
-                placeholder="무엇을 도와드릴까요? 질문을 입력하거나 아래 추천 에이전트를 선택해보세요..."
-                className="w-full px-6 py-4 pr-16 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-sky-500 bg-white shadow-lg text-slate-700 placeholder-slate-400 text-lg"
-                rows={3}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={onSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                className="absolute bottom-4 right-4 w-10 h-10 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 rounded-xl"
-              >
-                <Send className="h-5 w-5" />
-              </Button>
-            </div>
+          {/* 중앙 입력창 - 동일한 스타일 */}
+          <div className="relative mb-12">
+            <textarea
+              ref={mainInputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={onKeyPress}
+              placeholder={selectedAgentForChat 
+                ? `${selectedAgentForChat.name}에게 질문해보세요...`
+                : "무엇을 도와드릴까요? 질문을 입력하거나 아래 추천 에이전트를 선택해보세요..."
+              }
+              className="w-full px-6 py-4 pr-16 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-sky-500 bg-white shadow-lg text-slate-700 placeholder-slate-400 text-lg"
+              rows={3}
+              disabled={isLoading}
+              autoFocus
+            />
+            <Button
+              onClick={handleSendWithFocus}
+              disabled={!inputValue.trim() || isLoading}
+              className="absolute bottom-4 right-4 w-10 h-10 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 rounded-xl"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
 
-            {/* 추천 에이전트 카드들 */}
+          {/* 추천 에이전트 카드들 - 에이전트 미선택 시만 표시 */}
+          {!selectedAgentForChat && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
               {recommendedAgents.map((agent) => (
                 <div
@@ -163,8 +175,8 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
@@ -248,6 +260,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           <div className="p-4">
             <div className="flex space-x-2">
               <textarea
+                ref={bottomInputRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={onKeyPress}
@@ -255,9 +268,10 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                 rows={1}
                 style={{ minHeight: '44px', maxHeight: '120px' }}
+                autoFocus
               />
               <Button
-                onClick={onSendMessage}
+                onClick={handleSendWithFocus}
                 disabled={!inputValue.trim() || isLoading}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
               >

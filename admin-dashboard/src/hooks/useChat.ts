@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/chat';
 import { chatService, agentService } from '../services/api';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
@@ -14,8 +14,8 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export const useChat = () => {
-  // 🚀 localStorage에서 즉시 캐시된 데이터 로드
-  const getInitialChatHistory = (): ChatHistory[] => {
+  // 🚀 localStorage에서 즉시 캐시된 데이터 로드 (useMemo로 최적화)
+  const initialHistory = useMemo((): ChatHistory[] => {
     try {
       const cached = localStorage.getItem(CACHE_KEYS.CHAT_HISTORY);
       const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
@@ -35,9 +35,9 @@ export const useChat = () => {
       console.error('캐시 로드 실패:', error);
     }
     return [];
-  };
+  }, []);
   
-  const getInitialAgents = (): Agent[] => {
+  const initialAgents = useMemo((): Agent[] => {
     try {
       const cached = localStorage.getItem(CACHE_KEYS.AGENTS);
       const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
@@ -53,20 +53,14 @@ export const useChat = () => {
       console.error('캐시 로드 실패:', error);
     }
     return [];
-  };
-  
-  // 🚀 초기 캐시 데이터 로드
-  const initialHistory = getInitialChatHistory();
-  const initialAgents = getInitialAgents();
+  }, []);
 
   // 상태 정의
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialHistory);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(
-    initialHistory.length > 0 ? initialHistory[0].id : null
-  );
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null); // 항상 새 대화로 시작
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
@@ -208,19 +202,19 @@ export const useChat = () => {
     };
   };
 
-  // 🚀 데이터 로딩 최적화 - 중복 호출 방지 + 캐시 활용
-  const loadData = async () => {
-    // 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
-    if (isLoadingData || isDataLoaded) {
+  // 🚀 데이터 로딩 최적화 - 강제 새로고침 옵션 추가
+  const loadData = async (forceRefresh = false) => {
+    // 강제 새로고침이 아니고 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
+    if (!forceRefresh && (isLoadingData || isDataLoaded)) {
       console.log('⚡ 중복 로딩 방지:', { isLoadingData, isDataLoaded });
       return;
     }
     
-    // 🚀 캐시가 있으면 API 호출 생략
+    // 🚀 강제 새로고침이 아니고 캐시가 있으면 API 호출 생략
     const hasCachedHistory = chatHistory.length > 0;
     const hasCachedAgents = agents.length > 0;
     
-    if (hasCachedHistory && hasCachedAgents) {
+    if (!forceRefresh && hasCachedHistory && hasCachedAgents) {
       console.log('🚀 캐시된 데이터 사용 - API 호출 생략');
       setIsDataLoaded(true);
       setLoadingChats(false);
@@ -230,6 +224,14 @@ export const useChat = () => {
         setCurrentChatId(chatHistory[0].id);
       }
       return;
+    }
+    
+    console.log('🔄 채팅 히스토리 새로고침:', { forceRefresh, hasCachedHistory });
+    
+    // 강제 새로고침 시 캐시 무효화
+    if (forceRefresh) {
+      setIsDataLoaded(false);
+      console.log('🗑️ 캐시 무효화 - 강제 새로고침');
     }
     
     try {
@@ -245,19 +247,50 @@ export const useChat = () => {
       // 채팅 히스토리 처리
       if (chatsResult.status === 'fulfilled') {
         const response = chatsResult.value;
-        const histories = response.data || response;
-        if (Array.isArray(histories)) {
-          const formattedHistories = histories.map((history: any) => ({
-            ...history,
-            timestamp: new Date(history.timestamp || history.created_at),
-            isBookmarked: history.is_bookmarked || false
-          }));
+        console.log('🔍 채팅 히스토리 API 응답:', response);
+        
+        // API 응답 구조 다양성 처리
+        let histories = [];
+        if (response.success && Array.isArray(response.data)) {
+          histories = response.data;
+        } else if (Array.isArray(response.data)) {
+          histories = response.data;
+        } else if (Array.isArray(response)) {
+          histories = response;
+        } else {
+          console.warn('⚠️ 예상치 못한 API 응답 구조:', response);
+          histories = [];
+        }
+        
+        console.log('🗂 추출된 히스토리 데이터:', histories);
+        
+        if (Array.isArray(histories) && histories.length > 0) {
+          const formattedHistories = histories.map((history: any) => {
+            // ID 형식 통일 (chat_ 접두사 추가)
+            const formattedId = history.id?.toString().startsWith('chat_') 
+              ? history.id 
+              : `chat_${history.id}`;
+              
+            return {
+              id: formattedId,
+              title: history.title || '새 대화',
+              timestamp: new Date(history.timestamp || history.created_at || history.updated_at || Date.now()),
+              messageCount: history.message_count || history.messageCount || 0,
+              isBookmarked: history.is_bookmarked || history.isBookmarked || false
+            };
+          });
+          
+          // 날짜순으로 정렬 (리좌트 순)
+          formattedHistories.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          
+          console.log('✅ 포맷된 채팅 히스토리:', formattedHistories);
           setChatHistory(formattedHistories);
           saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
-          if (formattedHistories.length > 0 && !currentChatId) {
-            setCurrentChatId(formattedHistories[0].id);
-          }
+          
+          // 항상 새 대화 상태로 시작 (자동 선택 비활성화)
+          console.log('🎆 새 대화 상태 유지 - 자동 선택 안함');
         } else {
+          console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', histories);
           setChatHistory([]);
         }
       } else {
@@ -273,9 +306,8 @@ export const useChat = () => {
         ];
         setChatHistory(mockHistory);
         saveChatHistoryToCache(mockHistory); // 🚀 캐시 저장
-        if (!currentChatId) {
-          setCurrentChatId(mockHistory[0].id);
-        }
+        // Mock 데이터에서도 자동 선택 비활성화
+        console.log('🎆 Mock 데이터 - 새 대화 상태 유지');
       }
 
       // 에이전트 처리 (기존 커밋과 동일한 로직)
@@ -344,7 +376,8 @@ export const useChat = () => {
         }
       ];
       setChatHistory(mockHistory);
-      setCurrentChatId(mockHistory[0].id);
+      // 자동 선택 비활성화
+      console.log('🎆 에러 시도 새 대화 상태 유지');
       
       const mockAgents: Agent[] = [
         { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
@@ -398,6 +431,45 @@ export const useChat = () => {
       }));
     } catch (error) {
       console.error('메시지 로딩 실패:', error);
+      
+      // 404 오류인 경우 (히스토리가 아직 생성되지 않은 경우) 빈 메시지로 시작
+      if ((error as any)?.response?.status === 404) {
+        console.log('🔄 히스토리가 아직 생성되지 않음, 빈 메시지로 시작');
+        setMessages([]);
+        return;
+      }
+      
+      // 로컬 스토리지에서 메시지 복구 시도
+      try {
+        const localKey = `chat_messages_${currentChatId}`;
+        const localData = localStorage.getItem(localKey);
+        
+        if (localData) {
+          const localMessages = JSON.parse(localData);
+          if (Array.isArray(localMessages) && localMessages.length > 0) {
+            const formattedLocalMessages = localMessages.map((msg: any) => ({
+              id: msg.id || `msg-${Date.now()}`,
+              content: msg.content,
+              role: msg.role,
+              timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
+              tokensUsed: msg.tokens_used || msg.tokensUsed
+            }));
+            
+            console.log('💾 로컬 스토리지에서 채팅 히스토리 복구:', formattedLocalMessages.length, '개');
+            setMessages(formattedLocalMessages);
+            
+            // 캐시에도 저장
+            setMessageCache(prev => ({
+              ...prev,
+              [currentChatId]: formattedLocalMessages
+            }));
+            return;
+          }
+        }
+      } catch (localError) {
+        console.warn('⚠️ 로컬 스토리지 복구 실패:', localError);
+      }
+      
       // 🛡️ 에러 발생 시에도 기존 메시지가 있다면 유지
       if (messages.length === 0) {
         setMessages([]);
@@ -405,12 +477,19 @@ export const useChat = () => {
     }
   };
 
-  // useEffect: currentChatId 변경 시 메시지 로드
+  // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
   useEffect(() => {
-    if (currentChatId) {
+    console.log('🚀 컴포넌트 마운트 - 데이터 로딩 시작');
+    // 새로고침 시 강제 로드를 위해 캐시 무시
+    loadData(true);
+  }, []); // 빈 의존성 배열로 마운트 시에만 실행
+
+  // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)
+  useEffect(() => {
+    if (currentChatId && !messageCache[currentChatId] && !isLoading) {
       loadMessages();
     }
-  }, [currentChatId]);
+  }, [currentChatId, isLoading]);
 
   // useEffect: 외부 클릭으로 메뉴 닫기
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { ChatMessage, Agent } from '../types/chat';
-import { loadMessagesViaMCP, saveMessageViaMCP } from '../utils/mcpUtils';
+import { loadMessagesViaMCP } from '../utils/mcpUtils';
 
 // 교회 데이터 타입 정의
 interface ChurchData {
@@ -153,19 +153,41 @@ export const loadContextData = async (agent?: Agent | null): Promise<ChurchData>
 export const callGPTDirectly = async (
   messages: ChatMessage[], 
   contextData: ChurchData,
-  userMessage: string
+  userMessage: string,
+  selectedAgent?: Agent | null
 ) => {
-  // 🚨 환경변수 API 키 체크
-  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  // 🔑 DB에서 API 키 로드
+  const { churchConfigService } = await import('./api');
+  let apiKey: string | null = null;
+  
+  try {
+    const gptConfig = await churchConfigService.getGptConfig();
+    apiKey = gptConfig.api_key;
+    console.log('🔑 DB에서 GPT API 키 로드 완료:', apiKey ? '✅ 키 있음' : '❌ 키 없음');
+  } catch (error) {
+    console.error('❌ DB에서 GPT 설정 로드 실패:', error);
+  }
+  
   if (!apiKey || apiKey === 'sk-proj-...') {
-    console.warn('⚠️ OpenAI API 키가 설정되지 않았거나 유효하지 않음. 백엔드 API로 폴백합니다.');
+    console.warn('⚠️ DB에 OpenAI API 키가 설정되지 않았거나 유효하지 않음. 백엔드 API로 폴백합니다.');
     throw new Error('OpenAI API 키 없음 - 백엔드 폴백 필요');
   }
+
+  // 에이전트별 시스템 프롬프트 설정
+  const getSystemPrompt = (agent: Agent | null | undefined, contextData: ChurchData) => {
+    // 교인정보 에이전트만 정확히 매칭
+    if (agent?.name === '교인정보 에이전트' || agent?.name?.includes('교인정보')) {
+      return `당신은 교회의 교인정보 관리 전문 AI입니다. 다음 교회 데이터를 참고하여 답변해주세요: ${JSON.stringify(contextData)}`;
+    }
+    
+    // 기본 일반 채팅 프롬프트
+    return `당신은 도움이 되는 AI 어시스턴트입니다. 친근하고 정확한 답변을 제공해주세요.`;
+  };
 
   const gptMessages = [
     { 
       role: 'system', 
-      content: `당신은 교회의 교인정보 관리 전문 AI입니다. 다음 교회 데이터를 참고하여 답변해주세요: ${JSON.stringify(contextData)}` 
+      content: getSystemPrompt(selectedAgent, contextData)
     },
     ...messages.map(msg => ({ role: msg.role, content: msg.content })),
     { role: 'user', content: userMessage }
@@ -208,65 +230,9 @@ export const callGPTDirectly = async (
 };
 
 // Edge Function 호출
-export const callEdgeFunction = async (
-  chatId: string,
-  agentId: string,
-  userMessage: string,
-  messages: ChatMessage[],
-  contextData: ChurchData
-) => {
-  const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/chat-manager/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
-    },
-    body: JSON.stringify({
-      chat_history_id: chatId,
-      agent_id: agentId,
-      content: userMessage,
-      messages: messages, // 🔥 이전 대화 히스토리 포함
-      context_data: contextData // 🔥 실제 교회 데이터 포함
-    })
-  });
+// callEdgeFunction 제거됨 - 중복 AI 응답 생성 방지
 
-  if (!response.ok) {
-    throw new Error(`Edge Function 호출 실패: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data;
-};
-
-// 백엔드 API 호출
-export const callBackendAPI = async (
-  chatId: string,
-  agentId: string,
-  userMessage: string,
-  messages: ChatMessage[],
-  contextData: ChurchData
-) => {
-  const response = await fetch('/api/v1/chat/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat_history_id: chatId,
-      agent_id: agentId,
-      content: userMessage,
-      messages: messages,
-      context_data: contextData
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`백엔드 API 호출 실패: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data;
-};
+// callBackendAPI 함수 제거됨 - 중복 AI 응답 생성 방지
 
 // 메인 AI 응답 처리 함수
 export const getAIResponse = async (
@@ -280,7 +246,7 @@ export const getAIResponse = async (
     const contextData = await loadContextData(selectedAgent);
     
     // 2. 교인정보 에이전트의 특별 처리
-    if (selectedAgent?.id === '10' || selectedAgent?.name?.includes('교인')) {
+    if (selectedAgent?.name === '교인정보 에이전트' || selectedAgent?.name?.includes('교인정보')) {
       console.log('🔥 교인정보 에이전트: MCP를 통한 직접 처리');
       
       try {
@@ -312,7 +278,7 @@ export const getAIResponse = async (
             tokensUsed: 50
           };
           
-          await saveMessageViaMCP(currentChatId, accurateResponse.content, 'assistant', accurateResponse.tokensUsed);
+          // 메시지 저장은 useChatHandlers에서 처리하므로 제거
           return {
             id: `ai-${Date.now()}`,
             content: accurateResponse.content,
@@ -323,10 +289,9 @@ export const getAIResponse = async (
         }
 
         // GPT API 직접 호출
-        const gptResult = await callGPTDirectly(allHistoryMessages, contextData, userMessage);
+        const gptResult = await callGPTDirectly(allHistoryMessages, contextData, userMessage, selectedAgent);
           
-        // AI 응답을 MCP로 저장
-        await saveMessageViaMCP(currentChatId, gptResult.content, 'assistant', gptResult.tokensUsed);
+        // 메시지 저장은 useChatHandlers에서 처리하므로 제거
           
         return {
           id: `ai-${Date.now()}`,
@@ -341,56 +306,17 @@ export const getAIResponse = async (
       }
     }
 
-    // 3. 일반 에이전트: Edge Function 우선 시도 (백엔드 API가 500 오류 중)
-    try {
-      console.log('🚀 Edge Function으로 AI 응답 요청...');
-      const edgeResult = await callEdgeFunction(
-        currentChatId,
-        selectedAgent?.id || 'default',
-        userMessage,
-        existingMessages,
-        contextData
-      );
-
-      if (edgeResult.text) {
-        console.log('✅ Edge Function 응답 성공:', edgeResult.text.substring(0, 50) + '...');
-        return {
-          id: `ai-${Date.now()}`,
-          content: edgeResult.text,
-          role: 'assistant',
-          timestamp: new Date(edgeResult.timestamp || Date.now()),
-          tokensUsed: edgeResult.tokensUsed || 0,
-          cost: edgeResult.cost || 0
-        };
-      }
-    } catch (edgeError) {
-      console.warn('🚨 Edge Function 실패, 백엔드 API 시도:', edgeError);
-
-      // 4. 백엔드 API 폴백
-      try {
-        const backendResult = await callBackendAPI(
-          currentChatId,
-          selectedAgent?.id || 'default',
-          userMessage,
-          existingMessages,
-          contextData
-        );
-
-        if (backendResult.ai_response) {
-          return {
-            id: `ai-${Date.now()}`,
-            content: backendResult.ai_response.content,
-            role: backendResult.ai_response.role,
-            timestamp: new Date(backendResult.ai_response.timestamp),
-            tokensUsed: backendResult.ai_response.tokensUsed,
-            cost: backendResult.ai_response.cost
-          };
-        }
-      } catch (backendError) {
-        console.warn('❌ 백엔드 API도 실패:', backendError);
-        throw new Error('모든 AI 서비스 호출 실패');
-      }
-    }
+    // 3. 일반 에이전트: 직접 GPT API 호출 (Edge Function 제거하여 중복 저장 방지)
+    console.log('🚀 일반 에이전트: 직접 GPT API 호출');
+    const gptResult = await callGPTDirectly(existingMessages, contextData, userMessage, selectedAgent);
+      
+    return {
+      id: `ai-${Date.now()}`,
+      content: gptResult.content,
+      role: 'assistant',
+      timestamp: new Date(),
+      tokensUsed: gptResult.tokensUsed
+    };
 
     throw new Error('AI 응답 생성 실패');
   } catch (error) {

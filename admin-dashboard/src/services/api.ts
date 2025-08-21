@@ -342,10 +342,30 @@ export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
+      console.log('📞 채팅 히스토리 API 호출:', {
+        url: getApiUrl('/chat/histories'),
+        params,
+        timestamp: new Date().toISOString()
+      });
+      
       const response = await api.get(getApiUrl('/chat/histories'), { params });
+      
+      console.log('📎 채팅 히스토리 API 응답:', {
+        status: response.status,
+        dataType: typeof response.data,
+        dataLength: Array.isArray(response.data) ? response.data.length : 'not array',
+        rawData: response.data
+      });
+      
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get chat histories:', error);
+      console.error('❌ 채팅 히스토리 API 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: getApiUrl('/chat/histories')
+      });
+      
       if (error.response?.status === 422) {
         console.warn('Chat histories endpoint returned 422, returning empty array');
       }
@@ -355,22 +375,13 @@ export const chatService = {
   
   // 특정 채팅의 메시지 목록 조회
   getChatMessages: async (historyId: string) => {
-    const response = await api.get(getApiUrl(`/chat/histories/${historyId}/messages`));
+    // chat_ 접두어 제거하여 정수 ID만 사용
+    const cleanId = historyId.toString().replace('chat_', '');
+    const response = await api.get(getApiUrl(`/chat/histories/${cleanId}/messages`));
     return response.data;
   },
   
-  // 메시지 전송 및 AI 응답 생성
-  sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
-    const payload: any = {
-      chat_history_id: parseInt(chatHistoryId), // 백엔드가 정수 ID를 기대
-      content: message.trim(),
-      agent_id: agentId ? parseInt(agentId) : 1 // 백엔드가 정수를 기대 (기본값 1)
-    };
-    
-    console.log('📤 Sending message with payload:', payload);
-    const response = await api.post(getApiUrl('/chat/messages'), payload);
-    return response.data;
-  },
+  // sendMessage 함수 제거됨 - 중복 AI 응답 생성 방지
   
   // 새 채팅 생성
   createChatHistory: async (agentId?: string, title?: string) => {
@@ -941,64 +952,21 @@ export const prayerRequestService = {
 
 // 재정관리 API 서비스
 export const financialService = {
-  // 기부자 관리
-  getDonors: async (params?: { skip?: number; limit?: number; search?: string }) => {
-    const response = await api.get(getApiUrl('/financial/donors'), { params });
-    return response.data;
-  },
-
-  createDonor: async (donorData: any) => {
-    const response = await api.post(getApiUrl('/financial/donors'), donorData);
-    return response.data;
-  },
-
-  updateDonor: async (donorId: number, donorData: any) => {
-    const response = await api.put(getApiUrl(`/financial/donors/${donorId}`), donorData);
-    return response.data;
-  },
-
-  deleteDonor: async (donorId: number) => {
-    const response = await api.delete(getApiUrl(`/financial/donors/${donorId}`));
-    return response.data;
-  },
-
-  // member_id로 donor_id를 찾거나 생성
-  getOrCreateDonorByMemberId: async (memberId: number, memberData: any) => {
-    try {
-      // 1. 기존 donor 찾기
-      const donors = await financialService.getDonors();
-      const existingDonor = donors.find((donor: any) => donor.member_id === memberId);
-      
-      if (existingDonor) {
-        return existingDonor.id;
-      }
-      
-      // 2. 없으면 자동 생성
-      const donorData = {
-        member_id: memberId,
-        legal_name: memberData.name,
-        address: memberData.address || '',
-        rrn_encrypted: '' // 기본값
-      };
-      
-      const newDonor = await financialService.createDonor(donorData);
-      return newDonor.id;
-    } catch (error) {
-      console.error('Donor 생성/조회 실패:', error);
-      throw error;
-    }
-  },
-
   // 헌금 관리
   getOfferings: async (params?: { 
     skip?: number; 
     limit?: number; 
-    donor_id?: number;
+    member_id?: number;
     fund_type?: string;
     start_date?: string;
     end_date?: string;
   }) => {
-    const response = await api.get(getApiUrl('/financial/offerings'), { params });
+    const url = getApiUrl('/financial/offerings');
+    console.log('🌐 Offerings API 호출 URL:', url);
+    console.log('🌐 Offerings API 파라미터:', params);
+    const response = await api.get(url, { params });
+    console.log('🌐 Offerings API 원본 response:', response);
+    console.log('🌐 Offerings API response.data:', response.data);
     return response.data;
   },
 
@@ -1026,7 +994,7 @@ export const financialService = {
   getReceipts: async (params?: { 
     skip?: number; 
     limit?: number; 
-    donor_id?: number;
+    member_id?: number;
     tax_year?: number;
   }) => {
     const response = await api.get(getApiUrl('/financial/receipts'), { params });

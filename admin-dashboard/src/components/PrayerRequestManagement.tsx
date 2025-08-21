@@ -6,7 +6,7 @@ import {
   Heart, Calendar, Clock, Phone, User, Filter, Search, 
   MoreHorizontal, Eye, Edit, CheckCircle, XCircle, 
   MessageSquare, Users, Globe, Lock, AlertTriangle,
-  BookOpen, Star, Timer
+  BookOpen, Star, Timer, FileText
 } from 'lucide-react';
 
 interface PrayerRequest {
@@ -18,7 +18,7 @@ interface PrayerRequest {
   prayerContent: string;
   isAnonymous: boolean;
   isUrgent: boolean;
-  status: 'active' | 'answered' | 'closed';
+  status: 'pending' | 'approved' | 'active' | 'answered' | 'closed';
   isPublic: boolean;
   adminNotes?: string;
   answeredTestimony?: string;
@@ -40,6 +40,10 @@ const PrayerRequestManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<PrayerRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [prayerRecord, setPrayerRecord] = useState('');
 
   // API에서 중보 기도 요청 데이터 로드
   useEffect(() => {
@@ -168,6 +172,61 @@ const PrayerRequestManagement: React.FC = () => {
     setShowDetailModal(true);
   };
 
+  const handleApprove = (request: PrayerRequest) => {
+    setSelectedRequest(request);
+    setApprovalNotes('');
+    setShowApprovalModal(true);
+  };
+
+  const handleApprovalSubmit = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      // 기존 updateRequest API를 사용하여 승인 처리
+      await prayerRequestService.updateRequest(selectedRequest.id, {
+        status: 'approved',
+        admin_notes: approvalNotes
+      });
+      
+      // 요청 목록 새로고침
+      await loadPrayerRequests();
+      
+      // 승인 모달 닫고 기록 모달 열기
+      setShowApprovalModal(false);
+      setPrayerRecord('');
+      setShowRecordModal(true);
+    } catch (error) {
+      console.error('승인 처리 실패:', error);
+      alert('승인 처리에 실패했습니다.');
+    }
+  };
+
+  const handleRecordSubmit = async () => {
+    if (!selectedRequest || !prayerRecord.trim()) {
+      alert('기록 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 기존 updateRequest API를 사용하여 기도 기록 저장
+      await prayerRequestService.updateRequest(selectedRequest.id, {
+        admin_notes: (selectedRequest.adminNotes || '') + '\n\n[기도 기록] ' + new Date().toLocaleString('ko-KR') + '\n' + prayerRecord
+      });
+      
+      // 기록 모달 닫기
+      setShowRecordModal(false);
+      setSelectedRequest(null);
+      
+      // 요청 목록 새로고침
+      await loadPrayerRequests();
+      
+      alert('기도 기록이 성공적으로 저장되었습니다.');
+    } catch (error) {
+      console.error('기록 저장 실패:', error);
+      alert('기록 저장에 실패했습니다.');
+    }
+  };
+
   const handleMarkAnswered = (request: PrayerRequest) => {
     setSelectedRequest(request);
     setShowAnswerModal(true);
@@ -221,51 +280,141 @@ const PrayerRequestManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 기도 요청 현황 및 빠른 액션 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 빠른 필터 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">진행중</p>
-              <p className="text-2xl font-bold text-green-600">
-                {requests.filter(r => r.status === 'active').length}
-              </p>
-            </div>
-            <Heart className="h-8 w-8 text-green-600" />
+          <h3 className="text-sm font-medium text-slate-700 mb-3">빠른 필터</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm('');
+                setTypeFilter('all');
+                setVisibilityFilter('all');
+                // 긴급 요청만 보이도록 필터링 (상태와 무관)
+                const urgentRequests = requests.filter(r => r.isUrgent);
+                if (urgentRequests.length > 0) {
+                  // 긴급 요청이 있으면 검색어로 필터링 (임시 방법)
+                  setSearchTerm('urgent_temp_filter');
+                }
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              <span>긴급</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setVisibilityFilter('public');
+                setTypeFilter('all');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Globe className="h-3 w-3" />
+              <span>공개</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setVisibilityFilter('private');
+                setTypeFilter('all');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Lock className="h-3 w-3" />
+              <span>비공개</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('all');
+                setTypeFilter('all');
+                setVisibilityFilter('all');
+                setSearchTerm('');
+              }}
+              className="flex items-center space-x-1 text-xs"
+            >
+              <Filter className="h-3 w-3" />
+              <span>전체</span>
+            </Button>
           </div>
         </div>
-        
+
+        {/* 중요 알림 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">응답됨</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {requests.filter(r => r.status === 'answered').length}
-              </p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-blue-600" />
+          <h3 className="text-sm font-medium text-slate-700 mb-3">주의사항</h3>
+          <div className="space-y-2 text-xs">
+            {requests.filter(r => r.isUrgent).length > 0 && (
+              <div className="flex items-center space-x-2 text-red-600">
+                <AlertTriangle className="h-3 w-3" />
+                <span>긴급 요청 {requests.filter(r => r.isUrgent).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => {
+              const expiryDate = new Date(r.expiresAt);
+              const threeDaysFromNow = new Date();
+              threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+              return expiryDate <= threeDaysFromNow;
+            }).length > 0 && (
+              <div className="flex items-center space-x-2 text-orange-600">
+                <Timer className="h-3 w-3" />
+                <span>만료 임박 {requests.filter(r => {
+                  const expiryDate = new Date(r.expiresAt);
+                  const threeDaysFromNow = new Date();
+                  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+                  return expiryDate <= threeDaysFromNow;
+                }).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => !r.isPublic).length > 0 && (
+              <div className="flex items-center space-x-2 text-blue-600">
+                <Lock className="h-3 w-3" />
+                <span>비공개 요청 {requests.filter(r => !r.isPublic).length}건</span>
+              </div>
+            )}
+            {requests.filter(r => r.isUrgent).length === 0 && requests.length > 0 && (
+              <div className="flex items-center space-x-2 text-green-600">
+                <CheckCircle className="h-3 w-3" />
+                <span>긴급 요청 없음</span>
+              </div>
+            )}
           </div>
         </div>
-        
+
+        {/* 기도 요청 통계 */}
         <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">총 기도수</p>
+          <h3 className="text-sm font-medium text-slate-700 mb-3">통계</h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-slate-900">
+                {requests.length}
+              </p>
+              <p className="text-slate-600">총 요청</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-600">
+                {requests.filter(r => r.isUrgent).length}
+              </p>
+              <p className="text-slate-600">긴급</p>
+            </div>
+            <div className="text-center">
               <p className="text-2xl font-bold text-purple-600">
                 {requests.reduce((sum, r) => sum + r.prayerCount, 0)}
               </p>
+              <p className="text-slate-600">총 기도수</p>
             </div>
-            <Users className="h-8 w-8 text-purple-600" />
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">전체</p>
-              <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {requests.filter(r => r.isPublic).length}
+              </p>
+              <p className="text-slate-600">공개</p>
             </div>
-            <MessageSquare className="h-8 w-8 text-slate-600" />
           </div>
         </div>
       </div>
@@ -337,7 +486,11 @@ const PrayerRequestManagement: React.FC = () => {
       {/* 기도 요청 목록 */}
       <div className="space-y-4">
         {filteredRequests.map((request) => (
-          <div key={request.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div 
+            key={request.id} 
+            className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleViewDetails(request)}
+          >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
@@ -352,22 +505,22 @@ const PrayerRequestManagement: React.FC = () => {
                     </span>
                   </div>
                   
-                  <span className={cn(
+                  {/* <span className={cn(
                     "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
                     getStatusColor(request.status)
                   )}>
                     {getStatusText(request.status)}
-                  </span>
+                  </span> */}
                   
-                  <span className={cn("text-sm font-medium", getPrayerTypeColor(request.prayerType))}>
+                  {/* <span className={cn("text-sm font-medium", getPrayerTypeColor(request.prayerType))}>
                     {getPrayerTypeText(request.prayerType)}
-                  </span>
+                  </span> */}
                   
                   {request.isUrgent && (
                     <AlertTriangle className="h-4 w-4 text-red-500" />
                   )}
                   
-                  {request.isPublic ? (
+                  {/* {request.isPublic ? (
                     <div title="공개">
                       <Globe className="h-4 w-4 text-green-500" />
                     </div>
@@ -375,7 +528,7 @@ const PrayerRequestManagement: React.FC = () => {
                     <div title="비공개">
                       <Lock className="h-4 w-4 text-gray-500" />
                     </div>
-                  )}
+                  )} */}
                 </div>
                 
                 <p className="text-slate-700 mb-3 leading-relaxed">
@@ -407,35 +560,56 @@ const PrayerRequestManagement: React.FC = () => {
                       <span>만료: {new Date(request.expiresAt).toLocaleDateString('ko-KR')}</span>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* 상태 표시 */}
+                    <span className={cn(
+                      "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
+                      request.status === 'pending' ? "bg-yellow-100 text-yellow-800" :
+                      request.status === 'approved' ? "bg-green-100 text-green-800" :
+                      request.status === 'active' ? "bg-blue-100 text-blue-800" :
+                      request.status === 'answered' ? "bg-purple-100 text-purple-800" :
+                      "bg-gray-100 text-gray-800"
+                    )}>
+                      {request.status === 'pending' ? '대기' :
+                       request.status === 'approved' ? '승인' :
+                       request.status === 'active' ? '진행' :
+                       request.status === 'answered' ? '응답' : '종료'}
+                    </span>
+                    
+                    {/* 액션 버튼들 */}
+                    {request.status === 'pending' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApprove(request);
+                        }}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        승인
+                      </Button>
+                    )}
+                    
+                    {(request.status === 'approved' || request.status === 'active') && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRequest(request);
+                          setPrayerRecord('');
+                          setShowRecordModal(true);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        기록
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 ml-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleViewDetails(request)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                
-                {request.status === 'active' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleMarkAnswered(request)}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                  </Button>
-                )}
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleVisibilityToggle(request.id)}
-                >
-                  {request.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                </Button>
               </div>
             </div>
           </div>
@@ -451,9 +625,9 @@ const PrayerRequestManagement: React.FC = () => {
 
       {/* 상세 보기 모달 */}
       {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">기도 요청 상세</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
@@ -463,7 +637,7 @@ const PrayerRequestManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-2">요청자 정보</h3>
@@ -524,15 +698,125 @@ const PrayerRequestManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                 닫기
               </Button>
-              {selectedRequest.status === 'active' && (
-                <Button onClick={() => handleMarkAnswered(selectedRequest)}>
-                  응답 표시
-                </Button>
-              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 승인 모달 */}
+      {showApprovalModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">기도 요청 승인</h2>
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-slate-600 mb-4">
+                  <span className="font-medium">{selectedRequest.requesterName}</span>님의 기도 요청을 승인하시겠습니까?
+                </p>
+                <div className="bg-slate-50 p-3 rounded-md mb-4">
+                  <p className="text-sm text-slate-700">{selectedRequest.prayerContent}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  승인 메모 (선택사항)
+                </label>
+                <textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="승인과 관련된 메모를 입력하세요..."
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+
+            </div>
+            <div className="flex space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button
+                onClick={() => setShowApprovalModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleApprovalSubmit}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                승인
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 기도 기록 작성 모달 */}
+      {showRecordModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">기도 기록 작성</h2>
+              <button
+                onClick={() => setShowRecordModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">기도 요청 내용</h3>
+                <p className="text-blue-700 text-sm">
+                  <span className="font-medium">요청자:</span> {selectedRequest.requesterName}
+                </p>
+                <p className="text-blue-700 text-sm mt-1">{selectedRequest.prayerContent}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  기도 기록 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={prayerRecord}
+                  onChange={(e) => setPrayerRecord(e.target.value)}
+                  placeholder="이 기도 요청에 대한 기도 내용, 느낀 점, 하나님의 응답 등을 기록해주세요..."
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={6}
+                />
+              </div>
+            </div>
+            <div className="flex space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button
+                onClick={() => setShowRecordModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleRecordSubmit}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!prayerRecord.trim()}
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                기록 저장
+              </Button>
             </div>
           </div>
         </div>

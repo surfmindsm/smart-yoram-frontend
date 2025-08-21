@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
-import { getAIResponse } from '../services/agentService';
+import { churchConfigService, chatService } from '../services/api';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -28,6 +28,7 @@ interface UseChatHandlersProps {
   getMockAIResponse: (input: string) => ChatMessage;
   scrollToBottom: () => void;
   loadData: () => Promise<void>;
+  agents: Agent[];
 }
 
 export function useChatHandlers(props: UseChatHandlersProps) {
@@ -45,7 +46,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setChatHistory,
     setActiveTab,
     setSelectedAgent,
-    // messageCache는 실제로 사용됨 (캐시 업데이트에서)
     messageCache, // eslint-disable-line @typescript-eslint/no-unused-vars
     setMessageCache,
     editingChatId,
@@ -54,13 +54,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setEditingTitle,
     setOpenMenuId,
     setDeleteConfirmModal,
-    // getMockAIResponse는 MCP 시스템에서 사용하지 않음
     getMockAIResponse, // eslint-disable-line @typescript-eslint/no-unused-vars
     scrollToBottom,
-    loadData
+    loadData,
+    agents
   } = props;
 
-  // 🚀 MCP 기반 스마트 메시지 전송 핸들러
+  // 메시지 전송 핸들러
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
@@ -78,13 +78,29 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setInputValue('');
+      
+      // 사용자 메시지 추가 후 즉시 스크롤
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
 
       // 새 채팅이거나 채팅 ID가 없는 경우 새로 생성
       let effectiveChatId = currentChatId;
+      let historyCreated = false;
+      
+      console.log('🔍 채팅 ID 상태 확인:', { 
+        currentChatId, 
+        effectiveChatId, 
+        needsNewHistory: !effectiveChatId,
+        selectedAgentName: selectedAgentForChat?.name,
+        selectedAgentId: selectedAgentForChat?.id
+      });
       
       if (!effectiveChatId) {
-        effectiveChatId = `chat_${Date.now()}`;
-        setCurrentChatId(effectiveChatId);
+        // 새 대화 시작 시 임시 Chat ID 생성 (UI 깜빡임 방지)
+        const tempChatId = `chat_${Date.now()}`;
+        console.log('🆕 임시 채팅 ID 생성:', tempChatId);
+        effectiveChatId = tempChatId;
 
         const newChatHistory: ChatHistory = {
           id: effectiveChatId,
@@ -95,6 +111,60 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         };
 
         setChatHistory(prev => [newChatHistory, ...prev]);
+
+        // 백엔드 히스토리 생성 (AI 응답 생성 없이)
+        try {
+          const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
+          const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+          
+          console.log('📡 히스토리 생성 API 호출 (AI 응답 생성 없이):', {
+            url: `${API_BASE_URL}/chat/histories`,
+            agentId,
+            effectiveChatId
+          });
+
+          const historyResponse = await fetch(`${API_BASE_URL}/chat/histories`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+              'X-Skip-AI-Response': 'true'  // AI 응답 생성 차단
+            },
+            body: JSON.stringify({
+              id: parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
+              agent_id: agentId,
+              title: selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`,
+              skip_ai_generation: true,  // AI 응답 생성 건너뛰기
+              history_only: true         // 히스토리만 생성
+            })
+          });
+          
+          if (historyResponse.ok) {
+            const historyResult = await historyResponse.json();
+            console.log('✅ 채팅 히스토리 생성 성공:', historyResult);
+            historyCreated = true;
+            
+            // 생성된 실제 ID로 업데이트
+            if (historyResult.id) {
+              const actualDbId = historyResult.id;
+              const newChatId = `chat_${actualDbId}`;
+              
+              // ID가 다르면 업데이트
+              if (actualDbId !== parseInt(effectiveChatId.replace('chat_', ''))) {
+                setCurrentChatId(newChatId);
+                effectiveChatId = newChatId;
+                console.log('🔄 채팅 ID 업데이트:', effectiveChatId, '->', newChatId);
+              }
+            }
+          } else {
+            const errorText = await historyResponse.text();
+            console.warn('⚠️ 채팅 히스토리 생성 실패:', errorText);
+            historyCreated = false;
+          }
+        } catch (error) {
+          console.error('❌ 채팅 히스토리 생성 오류:', error);
+          historyCreated = false;
+        }
       }
 
       // 메시지를 캐시에 저장
@@ -105,49 +175,50 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }));
       }
 
-      // MCP를 통한 사용자 메시지 저장
-      if (effectiveChatId) {
-        await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user');
+      // 에이전트 설정 확인
+      if (!selectedAgentForChat) {
+        // 실제 로드된 에이전트가 있으면 첫 번째 에이전트 사용
+        if (agents && agents.length > 0) {
+          const firstAgent = agents[0];
+          setSelectedAgentForChat(firstAgent);
+          console.log('✅ 로드된 첫 번째 에이전트 자동 선택:', firstAgent.name, 'ID:', firstAgent.id);
+        } else {
+          // 에이전트가 없으면 로컬 전용 모드
+          const fallbackAgent = {
+            id: 'local_agent',
+            name: '로컬 AI 도우미',
+            description: '로컬에서만 동작하는 AI 어시스턴트입니다.',
+            category: '일반',
+            isActive: true
+          };
+          setSelectedAgentForChat(fallbackAgent);
+          console.log('⚠️ 로드된 에이전트 없음, 로컬 전용 에이전트 설정:', fallbackAgent.name);
+        }
       }
 
-      // 🚀 모든 에이전트가 MCP를 통해 실제 데이터베이스 조회
-      try {
-        console.log('🚀 MCP 기반 스마트 에이전트 처리:', selectedAgentForChat?.name);
+      // 사용자 메시지 저장은 백엔드에서 처리됨
+      console.log('📝 사용자 메시지는 백엔드 AI 응답 생성 시 함께 저장됨');
+
+      console.log('🚀 스마트 에이전트 처리:', selectedAgentForChat?.name);
+      
+      let aiResponse: ChatMessage;
+      
+      // 교인정보 에이전트만 DB 조회 실행
+      if (selectedAgentForChat?.name === '교인정보 에이전트' || selectedAgentForChat?.name?.includes('교인정보')) {
+        console.log('🔍 교인정보 에이전트: DB 조회 실행');
         
-        // 1. 사용자 질문을 분석해서 관련 데이터베이스 조회
         const dbResult = await queryDatabaseViaMCP(userMessage.content);
-        
         console.log('📊 DB 조회 결과:', dbResult);
         
-        let aiResponse: ChatMessage;
-        
-        // 2. 조회된 실제 데이터를 컨텍스트로 GPT API 호출
         if (dbResult.success && dbResult.data.length > 0) {
-          console.log('✅ 실제 데이터로 GPT API 호출');
-          
-          const contextData = {
-            query: userMessage.content,
-            database_results: dbResult.data,
-            agent_info: {
-              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
-              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
-            },
-            data_summary: {
-              total_records: dbResult.data.length,
-              query_analysis: `사용자가 "${userMessage.content}"에 대해 질문했습니다.`
-            }
+          console.log('✅ 실제 데이터로 응답 생성');
+          aiResponse = {
+            id: `ai_${Date.now()}`,
+            role: 'assistant',
+            content: `조회된 데이터를 바탕으로 답변드리겠습니다:\n\n${JSON.stringify(dbResult.data, null, 2)}`,
+            timestamp: new Date()
           };
-          
-          // getAIResponse는 ChatMessage 객체를 반환함
-          aiResponse = await getAIResponse(
-            effectiveChatId || `temp_${Date.now()}`,
-            selectedAgentForChat,
-            userMessage.content,
-            messages
-          );
         } else if (dbResult.error) {
-          console.log('⚠️ DB 조회 실패, 에러 메시지와 함께 응답');
-          
           aiResponse = {
             id: `ai_${Date.now()}`,
             role: 'assistant',
@@ -155,88 +226,213 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             timestamp: new Date()
           };
         } else {
-          console.log('📭 조회된 데이터가 없음, 일반 응답');
-          
-          const contextData = {
-            query: userMessage.content,
-            message: '요청하신 조건에 맞는 데이터를 찾을 수 없습니다.',
-            agent_info: {
-              name: selectedAgentForChat?.name || '스마트 교회 에이전트',
-              description: selectedAgentForChat?.description || '교회 데이터를 활용한 맞춤형 서비스'
-            }
+          aiResponse = {
+            id: `ai_${Date.now()}`,
+            role: 'assistant',
+            content: '조회된 데이터가 없습니다. 다른 검색어로 시도해보세요.',
+            timestamp: new Date()
           };
+        }
+      } else {
+        // 백엔드에서 AI 응답 생성하도록 API 호출
+        console.log('📡 백엔드 AI 응답 생성 API 호출');
+        
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+        const token = localStorage.getItem('token');
+        
+        const response = await fetch(`${apiUrl}/chat/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          body: JSON.stringify({
+            chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
+            content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
+            role: 'user',
+            agent_id: selectedAgentForChat?.id || agents?.[0]?.id,
+            messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
+              role: msg.role,
+              content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
+            })),
+            optimize_speed: true, // 백엔드에 속도 최적화 요청
+            create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
+            agent_name: selectedAgentForChat?.name || '기본 AI 도우미'
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`백엔드 AI 응답 생성 실패: ${response.status} ${errorText}`);
+        }
+
+        const responseData = await response.json();
+        console.log('✅ 백엔드 AI 응답 성공:', responseData);
+        
+        // 백엔드 응답 데이터 구조 확인 및 파싱
+        let aiContent = '응답을 생성하지 못했습니다.';
+        let tokensUsed = 0;
+        let actualChatId = effectiveChatId;
+        
+        if (responseData.success && responseData.data) {
+          const data = responseData.data;
+          console.log('🔍 백엔드 응답 상세 데이터:', data);
           
-          // getAIResponse는 ChatMessage 객체를 반환함
-          aiResponse = await getAIResponse(
-            effectiveChatId || `temp_${Date.now()}`,
-            selectedAgentForChat,
-            userMessage.content,
-            messages
-          );
+          let rawContent = data.ai_response || data.content || data.message;
+          
+          // 객체인 경우 적절한 파싱 시도
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            if (rawContent.content) {
+              aiContent = rawContent.content;
+            } else if (rawContent.message) {
+              aiContent = rawContent.message;
+            } else if (rawContent.text) {
+              aiContent = rawContent.text;
+            } else {
+              // 최후 수단으로 JSON 문자열화
+              aiContent = JSON.stringify(rawContent, null, 2);
+            }
+          } else if (typeof rawContent === 'string') {
+            aiContent = rawContent;
+          } else {
+            aiContent = String(rawContent) || '응답을 생성하지 못했습니다.';
+          }
+          
+          tokensUsed = data.tokens_used || data.tokensUsed || 0;
+          
+          // 백엔드에서 실제 생성된 chat_history_id 받기
+          if (data.chat_history_id) {
+            actualChatId = `chat_${data.chat_history_id}`;
+            console.log('🔄 백엔드에서 실제 Chat ID 받음:', actualChatId);
+            
+            // 임시 ID와 다르면 업데이트
+            if (actualChatId !== effectiveChatId) {
+              setCurrentChatId(actualChatId);
+              effectiveChatId = actualChatId;
+            }
+          }
+        } else if (responseData.ai_response) {
+          let rawContent = responseData.ai_response;
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
+          } else {
+            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          }
+          tokensUsed = responseData.tokens_used || 0;
+        } else if (responseData.content) {
+          let rawContent = responseData.content;
+          if (typeof rawContent === 'object' && rawContent !== null) {
+            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
+          } else {
+            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
+          }
+          tokensUsed = responseData.tokens_used || 0;
         }
-
-        // AI 응답을 메시지에 추가
-        const finalMessages = [...updatedMessages, aiResponse];
-        setMessages(finalMessages);
-
-        // 캐시 업데이트
-        if (effectiveChatId) {
-          setMessageCache(prev => ({
-            ...prev,
-            [effectiveChatId as string]: finalMessages
-          }));
-        }
-
-        // MCP를 통한 AI 응답 저장
-        if (effectiveChatId) {
-          await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant');
-        }
-
-        scrollToBottom();
-
-      } catch (aiError) {
-        console.error('❌ MCP 스마트 에이전트 처리 실패:', aiError);
         
-        // 에러 발생 시 사용자에게 친화적인 메시지 제공
-        const errorResponse: ChatMessage = {
-          id: `ai_error_${Date.now()}`,
+        console.log('🔍 파싱된 AI 응답:', { aiContent, tokensUsed, actualChatId });
+        
+        aiResponse = {
+          id: `ai_${Date.now()}`,
           role: 'assistant',
-          content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n**문제 상황:** 데이터베이스 연결 또는 AI 처리 과정에서 오류\n**해결 방법:** 잠시 후 다시 시도해 주세요\n\n문제가 지속되면 관리자에게 문의해 주세요.`,
-          timestamp: new Date()
+          content: aiContent,
+          timestamp: new Date(),
+          tokensUsed: tokensUsed
         };
+      }
         
-        const finalMessages = [...updatedMessages, errorResponse];
-        setMessages(finalMessages);
+      // AI 응답 추가
+      const finalMessages = [...updatedMessages, aiResponse];
+      setMessages(finalMessages);
 
-        // 캐시 업데이트
-        if (effectiveChatId) {
-          setMessageCache(prev => ({
-            ...prev,
-            [effectiveChatId as string]: finalMessages
-          }));
-        }
+      // 로딩 상태 즉시 해제 (UI 응답성 향상)
+      setIsLoading(false);
 
-        // MCP를 통한 에러 응답 저장
-        if (effectiveChatId) {
-          await saveMessageViaMCP(effectiveChatId, errorResponse.content, 'assistant');
-        }
+      // 캐시 업데이트
+      if (effectiveChatId) {
+        setMessageCache(prev => ({
+          ...prev,
+          [effectiveChatId as string]: finalMessages
+        }));
+      }
 
+      // AI 응답 추가 후 스크롤 (약간의 지연으로 DOM 업데이트 보장)
+      setTimeout(() => {
         scrollToBottom();
+      }, 100);
+
+      // AI 응답 저장은 백엔드에서 이미 처리됨
+      console.log('📝 AI 응답은 백엔드에서 이미 DB에 저장됨');
+
+      // 🎯 제목 자동 생성: 2번째 메시지부터 시작 (더 빠른 반응)
+      if (finalMessages.length >= 2 && finalMessages.length <= 4) {
+        console.log('🎯 채팅 제목 자동 생성 시작...', {
+          messageCount: finalMessages.length,
+          chatId: effectiveChatId,
+          messages: finalMessages.map(m => ({ role: m.role, contentPreview: m.content.slice(0, 50) }))
+        });
+        
+        try {
+          const generatedTitle = await chatService.generateChatTitle(
+            finalMessages.map(msg => ({
+              content: msg.content,
+              role: msg.role
+            }))
+          );
+          
+          console.log('🔍 생성된 제목 검증:', { generatedTitle, length: generatedTitle?.length });
+          
+          if (generatedTitle && generatedTitle !== '새 대화' && generatedTitle.length > 2) {
+            console.log('✅ 제목 적용 중:', generatedTitle);
+            
+            // 1. 로컬 상태 즉시 업데이트
+            setChatHistory(prev => {
+              const updated = prev.map(chat => 
+                chat.id === effectiveChatId 
+                  ? { ...chat, title: generatedTitle }
+                  : chat
+              );
+              console.log('💾 로컬 채팅 히스토리 업데이트:', updated);
+              return updated;
+            });
+            
+            // 2. 백엔드에 제목 저장 (비동기)
+            try {
+              await chatService.updateChatTitle(
+                effectiveChatId.replace('chat_', ''), 
+                generatedTitle
+              );
+              console.log('🌐 백엔드 제목 저장 완료:', generatedTitle);
+            } catch (backendError) {
+              console.warn('⚠️ 백엔드 제목 저장 실패:', backendError);
+            }
+            
+            console.log('💾 채팅 제목 업데이트 완료:', generatedTitle);
+          } else {
+            console.warn('⚠️ 제목 생성 실패 또는 유효하지 않음:', generatedTitle);
+          }
+        } catch (titleError) {
+          console.error('❌ 제목 자동 생성 오류:', titleError);
+        }
+      } else {
+        console.log('📊 제목 생성 조건 미충족:', { messageCount: finalMessages.length });
       }
 
     } catch (error) {
       console.error('❌ 메시지 전송 실패:', error);
       
-      // 전체 프로세스 실패 시 사용자에게 알림
-      const systemErrorResponse: ChatMessage = {
-        id: `system_error_${Date.now()}`,
+      // 에러 응답 생성
+      const errorResponse: ChatMessage = {
+        id: `error_${Date.now()}`,
         role: 'assistant',
-        content: `시스템 오류가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.`,
+        content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n잠시 후 다시 시도해 주세요.`,
         timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, systemErrorResponse]);
-      scrollToBottom();
+      setMessages(prev => [...prev, errorResponse]);
+      // 에러 메시지 추가 후 스크롤
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     } finally {
       setIsLoading(false);
     }
@@ -246,15 +442,17 @@ export function useChatHandlers(props: UseChatHandlersProps) {
   const handleNewChat = async () => {
     setMessages([]);
     setCurrentChatId(null);
-    setSelectedAgentForChat(null);
     setInputValue('');
+    
+    // 에이전트 선택 초기화 - 첫 진입과 동일한 상태로 만들기
+    setSelectedAgentForChat(null);
+    setSelectedAgent(null);
     
     // 데이터 다시 로드
     await loadData();
     
-    // 에이전트 탭으로 전환
-    setActiveTab('agents');
-    setSelectedAgent(null);
+    // 히스토리 탭 유지 (에이전트 탭으로 강제 이동하지 않음)
+    setActiveTab('history');
   };
 
   // 에이전트와 채팅 시작
@@ -264,6 +462,42 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setMessages([]);
     setCurrentChatId(null);
     setActiveTab('history');
+  };
+
+  // 특정 교회와 에이전트로 새 대화 시작
+  const handleStartNewChatWithAgent = async (churchId: number, agentId: number | string) => {
+    console.log(`🏛️ Church ID ${churchId}와 Agent ID ${agentId}로 새 대화 시작`);
+    
+    // 기존 상태 초기화
+    setMessages([]);
+    setCurrentChatId(null);
+    setInputValue('');
+    
+    // 해당 에이전트 찾기 (agentId를 string으로 변환하여 비교)
+    const agentIdStr = String(agentId);
+    const targetAgent = agents.find(agent => agent.id === agentIdStr);
+    
+    if (targetAgent) {
+      console.log(`✅ Agent ID ${agentId} 찾음:`, targetAgent.name);
+      setSelectedAgentForChat(targetAgent);
+      setSelectedAgent(targetAgent);
+    } else {
+      console.warn(`⚠️ Agent ID ${agentId}를 찾을 수 없음. 사용 가능한 에이전트:`, 
+        agents.map(a => ({ id: a.id, name: a.name })));
+      
+      // 첫 번째 에이전트를 기본값으로 사용
+      if (agents.length > 0) {
+        const firstAgent = agents[0];
+        setSelectedAgentForChat(firstAgent);
+        setSelectedAgent(firstAgent);
+        console.log(`🔄 첫 번째 에이전트로 대체:`, firstAgent.name);
+      }
+    }
+    
+    // 히스토리 탭으로 이동
+    setActiveTab('history');
+    
+    console.log(`🚀 Church ID ${churchId}, Agent ID ${agentId || agents[0]?.id}로 새 대화 준비 완료`);
   };
 
   // 채팅 삭제
@@ -301,14 +535,30 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
   // 북마크 토글
   const handleToggleBookmark = async (chatId: string, currentBookmarkState: boolean) => {
+    const newBookmarkState = !currentBookmarkState;
+    
     try {
+      // 1. 로컬 상태 즉시 업데이트
       setChatHistory(prev => prev.map(chat => 
         chat.id === chatId 
-          ? { ...chat, isBookmarked: !currentBookmarkState }
+          ? { ...chat, isBookmarked: newBookmarkState }
           : chat
       ));
+      
+      // 2. 백엔드에 북마크 상태 저장
+      const historyId = chatId.replace('chat_', '');
+      await chatService.bookmarkChat(historyId, newBookmarkState);
+      console.log('✅ 북마크 상태 DB 저장 완료:', { chatId, isBookmarked: newBookmarkState });
+      
     } catch (error) {
-      console.error('북마크 업데이트 실패:', error);
+      console.error('❌ 북마크 업데이트 실패:', error);
+      
+      // 실패 시 상태 롤백
+      setChatHistory(prev => prev.map(chat => 
+        chat.id === chatId 
+          ? { ...chat, isBookmarked: currentBookmarkState }
+          : chat
+      ));
     }
   };
 
@@ -364,6 +614,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     handleSendMessage,
     handleNewChat,
     handleStartAgentChat,
+    handleStartNewChatWithAgent,
     handleKeyPress,
     handleDeleteChat,
     handleToggleBookmark,

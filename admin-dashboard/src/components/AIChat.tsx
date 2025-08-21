@@ -34,7 +34,8 @@ const AIChat: React.FC = () => {
     setDeleteConfirmModal: chatState.setDeleteConfirmModal,
     getMockAIResponse: chatState.getMockAIResponse,
     scrollToBottom: chatState.scrollToBottom,
-    loadData: chatState.loadData
+    loadData: chatState.loadData,
+    agents: chatState.agents
   });
 
   // 다운로드 핸들러
@@ -61,6 +62,14 @@ const AIChat: React.FC = () => {
   useEffect(() => {
     chatState.loadData();
   }, []);
+
+  // Church ID 1과 Agent ID 1로 새 대화 시작하는 함수
+  const startNewChatWithChurchAndAgent = () => {
+    const churchId = 1;
+    const agentId = 1;
+    console.log(`🚀 Church ID ${churchId}, Agent ID ${agentId}로 새 대화 시작 요청`);
+    chatHandlers.handleStartNewChatWithAgent(churchId, agentId);
+  };
 
   return (
     <div className="h-[calc(100vh-7rem)] bg-slate-50 overflow-hidden">

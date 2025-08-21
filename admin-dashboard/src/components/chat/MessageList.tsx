@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage } from '../../types/chat';
 import { Copy } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -13,6 +13,17 @@ interface MessageListProps {
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messagesEndRef }) => {
+  // 메시지 리스트 변경 시 자동 스크롤
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  }, [messages.length, isLoading]);
+  
   return (
     <div className="max-w-5xl mx-auto px-1 space-y-4 py-4">
       {messages.map((message, index) => (
@@ -68,7 +79,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
                   em: ({children}) => <em className="italic text-slate-600">{children}</em>,
                 }}
               >
-                {message.content}
+                {typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}
               </ReactMarkdown>
             </div>
             
@@ -79,7 +90,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
             )}>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(message.content);
+                  const textContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
+                  navigator.clipboard.writeText(textContent);
                   console.log('메시지가 복사되었습니다');
                 }}
                 className="inline-flex items-center px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
@@ -108,23 +120,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
         </div>
       )}
       
-      {isLoading && (
-        <div className="max-w-5xl mx-auto px-1 flex justify-start">
-          <div className="max-w-4xl">
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-slate-500 rounded-full animate-pulse" 
-                   style={{ 
-                     animation: 'pulse 1.5s ease-in-out infinite',
-                     transformOrigin: 'center'
-                   }}>
-              </div>
-              <span className="ml-3 text-sm text-slate-500">생각하는 중...</span>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div ref={messagesEndRef} />
+      {/* 스크롤 타깃 - 더 나은 가시성을 위해 약간의 여백 추가 */}
+      <div ref={messagesEndRef} className="h-4" />
     </div>
   );
 };
