@@ -24,7 +24,8 @@ import {
   Users,
   Phone,
   Edit,
-  Plus
+  Plus,
+  Printer
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { pastoralCareService } from '../services/api';
@@ -58,22 +59,46 @@ interface PastoralCareRequest {
   completedAt?: string;
 }
 
+interface PastoralCareRecord {
+  id: string;
+  requesterName: string;
+  requesterPhone?: string;
+  requestType: 'general' | 'urgent' | 'hospital' | 'counseling';
+  requestContent: string;
+  priority: 'urgent' | 'high' | 'normal' | 'low';
+  scheduledDate: string;
+  scheduledTime: string;
+  assignedPastor?: {
+    id: number;
+    name: string;
+    phone: string;
+  };
+  completionNotes?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
 const PastoralCareManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'requests' | 'records'>('requests');
   const [requests, setRequests] = useState<PastoralCareRequest[]>([]);
-  const [completedRecords, setCompletedRecords] = useState<PastoralCareRequest[]>([]);
+  const [completedRecords, setCompletedRecords] = useState<PastoralCareRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [personFilter, setPersonFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [assignedPastorId, setAssignedPastorId] = useState('');
@@ -187,32 +212,23 @@ const PastoralCareManagement: React.FC = () => {
         recordsData = [];
       }
       
-      const transformedRecords: PastoralCareRequest[] = recordsData.map((item: any) => ({
+      const transformedRecords: PastoralCareRecord[] = recordsData.map((item: any) => ({
         id: item.id,
-        churchId: item.church_id,
-        memberId: item.member_id,
         requesterName: item.requester_name,
         requesterPhone: item.requester_phone,
         requestType: item.request_type,
         requestContent: item.request_content,
-        preferredDate: item.preferred_date,
-        preferredTimeStart: item.preferred_time_start,
-        preferredTimeEnd: item.preferred_time_end,
-        status: item.status,
         priority: item.priority || 'normal',
-        assignedPastorId: item.assigned_pastor_id,
         assignedPastor: item.assigned_pastor_id ? {
           id: item.assigned_pastor_id,
           name: item.assigned_pastor?.name || '담당자 미지정',
           phone: item.assigned_pastor?.phone || ''
         } : undefined,
-        scheduledDate: item.scheduled_date,
-        scheduledTime: item.scheduled_time,
+        scheduledDate: item.scheduled_date || '미지정',
+        scheduledTime: item.scheduled_time || '미지정',
         completionNotes: item.completion_notes,
-        adminNotes: item.admin_notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        completedAt: item.completed_at
+        completedAt: item.completed_at,
+        createdAt: item.created_at
       }));
       
       setCompletedRecords(transformedRecords);
@@ -287,13 +303,23 @@ const PastoralCareManagement: React.FC = () => {
   });
 
   const filteredRecords = completedRecords.filter(record => {
-    const matchesSearch = record.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (record.completionNotes && record.completionNotes.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = 
+      record.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.completionNotes && record.completionNotes.toLowerCase().includes(searchTerm.toLowerCase()));
+    
     const matchesPriority = priorityFilter === 'all' || record.priority === priorityFilter;
     const matchesType = typeFilter === 'all' || record.requestType === typeFilter;
     
-    return matchesSearch && matchesPriority && matchesType;
+    // 사람별 필터
+    const matchesPerson = !personFilter || record.requesterName.toLowerCase().includes(personFilter.toLowerCase());
+    
+    // 날짜 필터
+    const recordDate = record.completedAt ? new Date(record.completedAt) : new Date();
+    const matchesDateFrom = !dateFromFilter || recordDate >= new Date(dateFromFilter);
+    const matchesDateTo = !dateToFilter || recordDate <= new Date(dateToFilter + 'T23:59:59');
+    
+    return matchesSearch && matchesPriority && matchesType && matchesPerson && matchesDateFrom && matchesDateTo;
   });
 
   const handleViewDetails = (request: PastoralCareRequest) => {
@@ -307,6 +333,7 @@ const PastoralCareManagement: React.FC = () => {
     setScheduledTime('');
     setShowScheduleModal(true);
   };
+
 
   const handleApprove = async (request: PastoralCareRequest) => {
     try {
@@ -407,33 +434,65 @@ const PastoralCareManagement: React.FC = () => {
   };
 
   const handleSaveCompletion = async () => {
-    if (!selectedRequest || !completionNotes) return;
+    if (!selectedRequest || !completionNotes.trim()) {
+      alert('심방 기록을 입력해주세요.');
+      return;
+    }
 
     try {
+      // 심방 신청을 완료 상태로 업데이트
       await pastoralCareService.updateRequest(selectedRequest.id, {
         status: 'completed',
         completion_notes: completionNotes,
         completed_at: new Date().toISOString()
       });
-      
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === selectedRequest.id 
-            ? { 
-                ...req, 
-                status: 'completed' as const, 
-                completionNotes: completionNotes,
-                completedAt: new Date().toISOString()
-              }
-            : req
-        )
-      );
+
+      // 완료된 심방을 기록 목록에 추가
+      const completedRecord: PastoralCareRecord = {
+        id: selectedRequest.id,
+        requesterName: selectedRequest.requesterName,
+        requesterPhone: selectedRequest.requesterPhone,
+        requestType: selectedRequest.requestType,
+        requestContent: selectedRequest.requestContent,
+        priority: selectedRequest.priority,
+        scheduledDate: selectedRequest.scheduledDate || new Date().toISOString().split('T')[0],
+        scheduledTime: selectedRequest.scheduledTime || '미지정',
+        assignedPastor: selectedRequest.assignedPastor,
+        completionNotes: completionNotes,
+        completedAt: new Date().toISOString(),
+        createdAt: selectedRequest.createdAt
+      };
+
+      setCompletedRecords(prev => [completedRecord, ...prev]);
+
+      // 요청 목록에서 완료된 항목 제거
+      setRequests(prev => prev.filter(req => req.id !== selectedRequest.id));
       
       setShowCompletionModal(false);
       setCompletionNotes('');
+      alert('심방이 완료되었고 기록이 저장되었습니다.');
     } catch (error) {
-      console.error('Failed to complete request:', error);
+      console.error('심방 완료 처리 실패:', error);
+      alert('심방 완료 처리에 실패했습니다.');
     }
+  };
+
+  const handlePrintCard = (request: PastoralCareRequest) => {
+    // 성도 정보를 조회하여 심방 카드 인쇄 준비
+    setSelectedRequest(request);
+    // 실제로는 성도 정보 API를 호출해야 하지만, 여기서는 기본 정보 사용
+    setSelectedMember({
+      name: request.requesterName,
+      phone: request.requesterPhone,
+      address: '주소 미등록',
+      family: [],
+      recentVisits: []
+    });
+    setShowPrintModal(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleSaveAssignment = async () => {
@@ -503,49 +562,55 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <div className="border-b border-slate-200">
-        <nav className="-mb-px flex space-x-8">
+      {/* 탭 네비게이션 개선 */}
+      <div className="bg-white rounded-lg border border-slate-200 p-1 mb-6 flex">
           <button
             onClick={() => setActiveTab('requests')}
             className={cn(
-              "whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm",
+              "flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2",
               activeTab === 'requests'
-                ? "border-sky-500 text-sky-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
             )}
           >
-            신청 관리
-            {requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length > 0 && (
-              <span className="ml-2 bg-sky-100 text-sky-600 py-0.5 px-2 rounded-full text-xs">
-                {requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled').length}
-              </span>
-            )}
+            <Users className="h-4 w-4" />
+            <span>심방 신청</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-xs font-medium",
+              activeTab === 'requests' 
+                ? "bg-blue-500 text-white" 
+                : "bg-slate-200 text-slate-600"
+            )}>
+              {requests.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('records')}
             className={cn(
-              "whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm",
+              "flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2",
               activeTab === 'records'
-                ? "border-sky-500 text-sky-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
             )}
           >
-            심방 기록
-            {completedRecords.length > 0 && (
-              <span className="ml-2 bg-green-100 text-green-600 py-0.5 px-2 rounded-full text-xs">
-                {completedRecords.length}
-              </span>
-            )}
+            <FileText className="h-4 w-4" />
+            <span>심방 기록</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-xs font-medium",
+              activeTab === 'records' 
+                ? "bg-blue-500 text-white" 
+                : "bg-slate-200 text-slate-600"
+            )}>
+              {completedRecords.length}
+            </span>
           </button>
-        </nav>
       </div>
 
       {/* 신청 관리 탭 */}
       {activeTab === 'requests' && (
         <>
           {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -618,7 +683,7 @@ const PastoralCareManagement: React.FC = () => {
                   <p className="text-sm text-slate-600">이번 달</p>
                   <p className="text-2xl font-bold text-blue-600">
                     {completedRecords.filter(r => {
-                      const completedAt = new Date(r.completedAt || r.updatedAt || r.createdAt);
+                      const completedAt = new Date(r.completedAt || r.createdAt);
                       const thisMonth = new Date();
                       return completedAt.getMonth() === thisMonth.getMonth() && 
                              completedAt.getFullYear() === thisMonth.getFullYear();
@@ -846,15 +911,25 @@ const PastoralCareManagement: React.FC = () => {
                         </Button>
                       )}
                       {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCompleteVisit(request)}
-                          className="text-green-600 hover:text-green-800"
-                          title={request.status === 'approved' ? "심방 기록 작성" : "심방 완료"}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setShowCompletionModal(true);
+                            }}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 p-2 rounded-md transition-colors"
+                            title="심방 완료"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handlePrintCard(request)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-md transition-colors"
+                            title="심방 카드 인쇄"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -876,10 +951,100 @@ const PastoralCareManagement: React.FC = () => {
       {/* 심방 기록 목록 */}
       {activeTab === 'records' && (
         <>
+          {/* 심방 기록 필터링 */}
+          <div className="bg-white p-4 rounded-lg border border-slate-200 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">심방 기록 검색 및 필터</h3>
+              <button
+                onClick={() => {
+                  setPersonFilter('');
+                  setDateFromFilter('');
+                  setDateToFilter('');
+                  setSearchTerm('');
+                  setPriorityFilter('all');
+                  setTypeFilter('all');
+                }}
+                className="text-sm text-slate-600 hover:text-slate-800"
+              >
+                필터 초기화
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 사람별 검색 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  성명 검색
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="성명으로 검색..."
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    value={personFilter}
+                    onChange={(e) => setPersonFilter(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* 기간 필터 - 시작일 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  시작일
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  value={dateFromFilter}
+                  onChange={(e) => setDateFromFilter(e.target.value)}
+                />
+              </div>
+
+              {/* 기간 필터 - 종료일 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  종료일
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  value={dateToFilter}
+                  onChange={(e) => setDateToFilter(e.target.value)}
+                />
+              </div>
+
+              {/* 우선순위 필터 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  우선순위
+                </label>
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                >
+                  <option value="all">전체</option>
+                  <option value="high">긴급</option>
+                  <option value="medium">보통</option>
+                  <option value="low">일반</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 검색 결과 통계 */}
+            <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+              <span>총 {filteredRecords.length}건의 심방 기록</span>
+              {(personFilter || dateFromFilter || dateToFilter || priorityFilter !== 'all' || typeFilter !== 'all') && (
+                <span className="text-blue-600">필터 적용 중</span>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-4">
             {filteredRecords.map((record) => (
-              <div key={record.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-                   onClick={() => handleViewDetails(record)}>
+              <div key={record.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow"
+                   >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
@@ -1218,10 +1383,212 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       )}
 
+      {/* 심방 기록 완료 모달 */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800">심방 기록 작성</h3>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  신청자: {selectedRequest?.requesterName}
+                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  전화번호: {selectedRequest?.requesterPhone}
+                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  심방 내용
+                </label>
+                <textarea
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  rows={4}
+                  placeholder="심방 내용과 기도제목을 기록해주세요..."
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCompletionModal(false);
+                  setCompletionNotes('');
+                }}
+              >
+                취소
+              </Button>
+              <Button onClick={handleSaveCompletion}>
+                기록 저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 심방 카드 인쇄 모달 */}
+      {showPrintModal && selectedMember && selectedRequest && (
+        <>
+          <style>
+            {`
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                .print-area, .print-area * {
+                  visibility: visible;
+                }
+                .print-area {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}
+          </style>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-screen overflow-y-auto">
+              <div className="p-6 border-b border-slate-200 no-print">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-800">심방 카드</h3>
+                  <div className="flex space-x-2">
+                    <Button onClick={handlePrint} className="flex items-center space-x-2">
+                      <Printer className="h-4 w-4" />
+                      <span>인쇄</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPrintModal(false)}
+                    >
+                      닫기
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="print-area p-6">
+                <div className="border border-slate-300 rounded-lg p-6 bg-white">
+                  {/* 헤더 */}
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">심방 카드</h2>
+                    <div className="text-sm text-slate-600">
+                      발급일: {new Date().toLocaleDateString('ko-KR')}
+                    </div>
+                  </div>
+
+                  {/* 성도 기본 정보 */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                      성도 정보
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="font-medium text-slate-700">이름:</span>
+                        <span className="ml-2 text-slate-900">{selectedMember.name}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-700">연락처:</span>
+                        <span className="ml-2 text-slate-900">{selectedMember.phone}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium text-slate-700">주소:</span>
+                        <span className="ml-2 text-slate-900">{selectedMember.address}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 가족 현황 */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                      가족 현황
+                    </h3>
+                    {selectedMember.family.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedMember.family.map((member: any, index: number) => (
+                          <div key={index} className="flex items-center space-x-4">
+                            <span className="font-medium text-slate-700">{member.relationship}:</span>
+                            <span className="text-slate-900">{member.name}</span>
+                            <span className="text-sm text-slate-600">({member.age}세)</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-600 text-sm">가족 정보가 등록되지 않았습니다.</p>
+                    )}
+                  </div>
+
+                  {/* 심방 요청 정보 */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                      이번 심방 정보
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="font-medium text-slate-700">심방 유형:</span>
+                        <span className="ml-2 text-slate-900">{selectedRequest.requestType}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-700">우선순위:</span>
+                        <span className="ml-2 text-slate-900">{getPriorityText(selectedRequest.priority)}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium text-slate-700">요청 내용:</span>
+                        <p className="mt-1 text-slate-900 text-sm bg-slate-50 p-3 rounded">
+                          {selectedRequest.requestContent}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 심방 기록 작성 공간 */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                      심방 기록
+                    </h3>
+                    <div className="border border-slate-200 rounded p-4 min-h-[120px]">
+                      <div className="text-sm text-slate-500 mb-2">심방일: _______________</div>
+                      <div className="text-sm text-slate-500 mb-2">담당 목회자: _______________</div>
+                      <div className="border-t border-slate-200 pt-2 mt-4">
+                        <div className="text-sm text-slate-500 mb-2">심방 내용:</div>
+                        <div className="space-y-3">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="border-b border-slate-200 h-4"></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="border-t border-slate-200 pt-2 mt-4">
+                        <div className="text-sm text-slate-500 mb-2">기도 제목:</div>
+                        <div className="space-y-3">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="border-b border-slate-200 h-4"></div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 하단 정보 */}
+                  <div className="text-center text-xs text-slate-500 mt-8 pt-4 border-t border-slate-200">
+                    <div>본 심방 카드는 목회 활동의 일환으로 작성되었습니다.</div>
+                    <div className="mt-1">문의사항이 있으시면 교회로 연락주시기 바랍니다.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* 심방 완료 일지 작성 모달 */}
       {showCompletionModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+          <div className="bg-white rounded-lg w-full max-w-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">
                 {selectedRequest.status === 'approved' ? '심방 기록 작성' : '심방 완료 일지 작성'}
