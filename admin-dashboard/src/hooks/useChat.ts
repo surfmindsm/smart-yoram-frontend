@@ -394,6 +394,38 @@ export const useChat = () => {
       }));
     } catch (error) {
       console.error('메시지 로딩 실패:', error);
+      
+      // 로컬 스토리지에서 메시지 복구 시도
+      try {
+        const localKey = `chat_messages_${currentChatId}`;
+        const localData = localStorage.getItem(localKey);
+        
+        if (localData) {
+          const localMessages = JSON.parse(localData);
+          if (Array.isArray(localMessages) && localMessages.length > 0) {
+            const formattedLocalMessages = localMessages.map((msg: any) => ({
+              id: msg.id || `msg-${Date.now()}`,
+              content: msg.content,
+              role: msg.role,
+              timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
+              tokensUsed: msg.tokens_used || msg.tokensUsed
+            }));
+            
+            console.log('💾 로컬 스토리지에서 채팅 히스토리 복구:', formattedLocalMessages.length, '개');
+            setMessages(formattedLocalMessages);
+            
+            // 캐시에도 저장
+            setMessageCache(prev => ({
+              ...prev,
+              [currentChatId]: formattedLocalMessages
+            }));
+            return;
+          }
+        }
+      } catch (localError) {
+        console.warn('⚠️ 로컬 스토리지 복구 실패:', localError);
+      }
+      
       // 🛡️ 에러 발생 시에도 기존 메시지가 있다면 유지
       if (messages.length === 0) {
         setMessages([]);

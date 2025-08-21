@@ -56,14 +56,36 @@ export const saveMessageViaMCP = async (
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
         },
         body: JSON.stringify({
-          chat_history_id: typeof chatHistoryId === 'string' 
-            ? parseInt(chatHistoryId.replace('chat_', '')) || parseInt(chatHistoryId) || Date.now()
-            : parseInt(String(chatHistoryId)) || Date.now(),
+          chat_history_id: (() => {
+            // chat_history_id를 안전하게 정수로 변환
+            let numericId;
+            if (typeof chatHistoryId === 'string') {
+              if (chatHistoryId.startsWith('chat_')) {
+                numericId = parseInt(chatHistoryId.replace('chat_', ''));
+              } else {
+                numericId = parseInt(chatHistoryId);
+              }
+            } else {
+              numericId = parseInt(String(chatHistoryId));
+            }
+            
+            // 변환에 실패했거나 유효하지 않은 값이면 현재 타임스탬프 사용
+            if (isNaN(numericId) || numericId <= 0) {
+              numericId = Date.now();
+              console.warn('⚠️ chat_history_id 변환 실패, 타임스탬프 사용:', numericId);
+            }
+            
+            console.log('🔄 chat_history_id 변환:', chatHistoryId, '->', numericId);
+            return numericId;
+          })(),
           content,
           role,
           tokens_used: tokensUsed || 0,
-          // agent_id는 필수 필드이므로 기본값 1 사용
-          agent_id: agentId ? parseInt(String(agentId)) : 1
+          // agent_id가 전달되지 않으면 메시지 저장 스킵
+          agent_id: agentId ? parseInt(String(agentId)) : (() => {
+            console.warn('⚠️ agent_id가 없어 메시지 저장 실패 예상');
+            return 1; // 임시값이지만 실패할 것임
+          })()
         })
       });
 
@@ -106,7 +128,7 @@ export const saveMessageViaMCP = async (
 };
 
 /**
- * MCP를 통한 메시지 조회
+ * MCP를 통한 메시지 조회 (로컬 스토리지 폴백 포함)
  */
 export const loadMessagesViaMCP = async (
   chatHistoryId: string, 
@@ -189,6 +211,30 @@ export const loadMessagesViaMCP = async (
       }
     } catch (directMcpError) {
       console.warn('⚠️ 직접 MCP API 호출도 실패:', directMcpError);
+    }
+
+    // 로컬 스토리지에서 메시지 복구 시도
+    try {
+      const localKey = `chat_messages_${chatHistoryId}`;
+      const localData = localStorage.getItem(localKey);
+      
+      if (localData) {
+        const localMessages = JSON.parse(localData);
+        if (Array.isArray(localMessages) && localMessages.length > 0) {
+          const messages: ChatMessage[] = localMessages.map((msg: any) => ({
+            id: msg.id || `msg-${Date.now()}`,
+            content: msg.content,
+            role: msg.role as 'user' | 'assistant',
+            timestamp: new Date(msg.created_at || msg.timestamp),
+            tokensUsed: msg.tokens_used || msg.tokensUsed
+          }));
+          
+          console.log('💾 로컬 스토리지에서 메시지 복구:', messages.length, '개');
+          return messages;
+        }
+      }
+    } catch (localError) {
+      console.warn('⚠️ 로컬 스토리지 메시지 복구 실패:', localError);
     }
     
     // MCP 실패 시 폴백으로 현재 세션 메시지 사용

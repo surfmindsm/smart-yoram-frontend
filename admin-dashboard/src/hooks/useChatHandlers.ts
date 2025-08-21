@@ -81,6 +81,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
       // 새 채팅이거나 채팅 ID가 없는 경우 새로 생성
       let effectiveChatId = currentChatId;
+      let historyCreated = false;
       
       if (!effectiveChatId) {
         effectiveChatId = `chat_${Date.now()}`;
@@ -99,6 +100,34 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         // 백엔드에 채팅 히스토리 생성
         try {
           const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
+          
+          // 선택된 에이전트의 ID 사용, 없으면 첫 번째 에이전트 사용
+          const agentId = selectedAgentForChat?.id 
+            ? parseInt(String(selectedAgentForChat.id)) 
+            : agents?.[0]?.id 
+              ? parseInt(String(agents[0].id))
+              : null;
+
+          console.log('🔍 히스토리 생성 조건 검사:', {
+            agentId,
+            selectedAgentId: selectedAgentForChat?.id,
+            firstAgentId: agents?.[0]?.id,
+            isLocalAgent: selectedAgentForChat?.id && String(selectedAgentForChat.id).startsWith('local_'),
+            apiUrl: `${API_BASE_URL}/chat/histories`
+          });
+
+          // 에이전트가 없거나 로컬 전용 에이전트면 히스토리 생성하지 않고 로컬에서만 처리
+          if (!agentId || (selectedAgentForChat?.id && String(selectedAgentForChat.id).startsWith('local_'))) {
+            console.warn('⚠️ 유효한 에이전트가 없거나 로컬 전용 에이전트로 백엔드 히스토리 생성 건너뜀');
+            throw new Error('Agent not available or local only');
+          }
+
+          console.log('📡 히스토리 생성 API 호출 시작:', {
+            url: `${API_BASE_URL}/chat/histories`,
+            agentId,
+            effectiveChatId
+          });
+
           const historyResponse = await fetch(`${API_BASE_URL}/chat/histories`, {
             method: 'POST',
             headers: {
@@ -107,21 +136,37 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             },
             body: JSON.stringify({
               id: parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
-              agent_id: 1, // 기본 agent_id 사용
-              title: `새 대화 ${new Date().toLocaleString()}`
+              agent_id: agentId,
+              title: selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`
             })
           });
           
           if (historyResponse.ok) {
             const historyResult = await historyResponse.json();
             console.log('✅ 채팅 히스토리 생성 성공:', historyResult);
+            historyCreated = true;
             
             // 생성된 실제 ID로 업데이트
-            if (historyResult.id && historyResult.id !== parseInt(effectiveChatId.replace('chat_', ''))) {
-              const newChatId = `chat_${historyResult.id}`;
-              setCurrentChatId(newChatId);
-              effectiveChatId = newChatId;
-              console.log('🔄 채팅 ID 업데이트:', effectiveChatId, '->', newChatId);
+            if (historyResult.id) {
+              const actualDbId = historyResult.id;
+              const newChatId = `chat_${actualDbId}`;
+              
+              // ID가 다르면 업데이트
+              if (actualDbId !== parseInt(effectiveChatId.replace('chat_', ''))) {
+                setCurrentChatId(newChatId);
+                effectiveChatId = newChatId;
+                console.log('🔄 채팅 ID 업데이트:', effectiveChatId, '->', newChatId);
+                
+                // 캐시도 새 ID로 업데이트
+                setMessageCache(prev => {
+                  if (!effectiveChatId) return prev;
+                  const oldMessages = prev[effectiveChatId] || [];
+                  const newCache = { ...prev };
+                  delete newCache[effectiveChatId];
+                  newCache[newChatId] = oldMessages;
+                  return newCache;
+                });
+              }
             }
           } else {
             const errorText = await historyResponse.text();
@@ -129,7 +174,14 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             throw new Error(`채팅 히스토리 생성 실패: ${errorText}`);
           }
         } catch (error) {
-          console.warn('⚠️ 채팅 히스토리 생성 오류:', error);
+          console.error('❌ 채팅 히스토리 생성 오류 상세:', {
+            error: error,
+            message: error instanceof Error ? error.message : String(error),
+            effectiveChatId,
+            agentId: selectedAgentForChat?.id || agents?.[0]?.id,
+            apiUrl: `${process.env.REACT_APP_API_URL}/api/v1/chat/histories`
+          });
+          historyCreated = false;
         }
       }
 
@@ -143,20 +195,41 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
       // 에이전트 설정 확인
       if (!selectedAgentForChat) {
-        const fallbackAgent = agents?.[0] || {
-          id: '1',
-          name: '기본 AI 도우미',
-          description: '도움이 되는 AI 어시스턴트입니다.',
-          category: '일반',
-          isActive: true
-        };
-        setSelectedAgentForChat(fallbackAgent);
-        console.log('⚠️ 에이전트 없음, 기본 에이전트 설정:', fallbackAgent.name);
+        // 실제 로드된 에이전트가 있으면 첫 번째 에이전트 사용
+        if (agents && agents.length > 0) {
+          const firstAgent = agents[0];
+          setSelectedAgentForChat(firstAgent);
+          console.log('✅ 로드된 첫 번째 에이전트 자동 선택:', firstAgent.name, 'ID:', firstAgent.id);
+        } else {
+          // 에이전트가 없으면 로컬 전용 모드
+          const fallbackAgent = {
+            id: 'local_agent',
+            name: '로컬 AI 도우미',
+            description: '로컬에서만 동작하는 AI 어시스턴트입니다.',
+            category: '일반',
+            isActive: true
+          };
+          setSelectedAgentForChat(fallbackAgent);
+          console.log('⚠️ 로드된 에이전트 없음, 로컬 전용 에이전트 설정:', fallbackAgent.name);
+        }
       }
 
-      // MCP를 통한 사용자 메시지 저장
-      if (effectiveChatId) {
-        await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user', undefined, selectedAgentForChat?.id);
+      // MCP를 통한 사용자 메시지 저장 (히스토리가 성공적으로 생성된 경우에만)
+      if (effectiveChatId && historyCreated) {
+        const agentIdForMessage = selectedAgentForChat?.id 
+          ? parseInt(String(selectedAgentForChat.id)) 
+          : agents?.[0]?.id 
+            ? parseInt(String(agents[0].id))
+            : null;
+        
+        console.log('📝 히스토리 생성 완료 후 메시지 저장 시작:', effectiveChatId, 'agent_id:', agentIdForMessage);
+        if (agentIdForMessage) {
+          await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user', undefined, agentIdForMessage);
+        } else {
+          console.warn('⚠️ agent_id가 없어 메시지 DB 저장 건너뜀');
+        }
+      } else if (effectiveChatId && !historyCreated) {
+        console.log('⚠️ 히스토리 생성 실패로 메시지는 로컬에만 저장');
       }
 
       console.log('🚀 스마트 에이전트 처리:', selectedAgentForChat?.name);
@@ -296,13 +369,26 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
       scrollToBottom();
 
-      // MCP를 통한 AI 응답 저장 (백그라운드에서 실행)
-      if (effectiveChatId) {
+      // MCP를 통한 AI 응답 저장 (히스토리가 성공적으로 생성된 경우에만)
+      if (effectiveChatId && historyCreated) {
         try {
-          await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant', aiResponse.tokensUsed, selectedAgentForChat?.id);
+          const agentIdForAIMessage = selectedAgentForChat?.id 
+            ? parseInt(String(selectedAgentForChat.id)) 
+            : agents?.[0]?.id 
+              ? parseInt(String(agents[0].id))
+              : null;
+          
+          console.log('📝 AI 응답 DB 저장 시작:', effectiveChatId, 'agent_id:', agentIdForAIMessage);
+          if (agentIdForAIMessage) {
+            await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant', aiResponse.tokensUsed, agentIdForAIMessage);
+          } else {
+            console.warn('⚠️ agent_id가 없어 AI 응답 DB 저장 건너뜀');
+          }
         } catch (error) {
           console.warn('⚠️ AI 응답 저장 실패 (UI에는 영향 없음):', error);
         }
+      } else if (effectiveChatId && !historyCreated) {
+        console.log('⚠️ 히스토리 생성 실패로 AI 응답은 로컬에만 저장');
       }
 
     } catch (error) {
