@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ChatMessage, Agent, ChatHistory } from '../../types/chat';
 import { Button } from '../ui/button';
 import { Bot, Send, Download, FileText, FileCode, FileImage, File } from 'lucide-react';
@@ -37,6 +37,33 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   currentChatId,
   chatHistory
 }) => {
+  // 입력창 포커스를 위한 ref
+  const mainInputRef = useRef<HTMLTextAreaElement>(null);
+  const bottomInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // 메시지 전송 후 입력창 포커스 복원을 위한 함수
+  const handleSendWithFocus = () => {
+    onSendMessage();
+    // 메시지 전송 후 입력창에 포커스 복원
+    setTimeout(() => {
+      if (messages.length === 0) {
+        mainInputRef.current?.focus();
+      } else {
+        bottomInputRef.current?.focus();
+      }
+    }, 100);
+  };
+  
+  // 컴포넌트 마운트 시와 상태 변경 시 자동 포커스
+  useEffect(() => {
+    if (activeTab === 'history') {
+      if (messages.length === 0 && mainInputRef.current) {
+        mainInputRef.current.focus();
+      } else if (messages.length > 0 && bottomInputRef.current) {
+        bottomInputRef.current.focus();
+      }
+    }
+  }, [activeTab, messages.length, selectedAgentForChat]);
   // 현재 채팅의 제목을 가져오는 함수
   const getCurrentChatTitle = () => {
     if (!currentChatId) return '새로운 채팅';
@@ -100,6 +127,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           {/* 중앙 입력창 - 동일한 스타일 */}
           <div className="relative mb-12">
             <textarea
+              ref={mainInputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={onKeyPress}
@@ -110,9 +138,10 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
               className="w-full px-6 py-4 pr-16 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-sky-500 bg-white shadow-lg text-slate-700 placeholder-slate-400 text-lg"
               rows={3}
               disabled={isLoading}
+              autoFocus
             />
             <Button
-              onClick={onSendMessage}
+              onClick={handleSendWithFocus}
               disabled={!inputValue.trim() || isLoading}
               className="absolute bottom-4 right-4 w-10 h-10 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 rounded-xl"
             >
@@ -231,6 +260,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           <div className="p-4">
             <div className="flex space-x-2">
               <textarea
+                ref={bottomInputRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={onKeyPress}
@@ -238,9 +268,10 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                 rows={1}
                 style={{ minHeight: '44px', maxHeight: '120px' }}
+                autoFocus
               />
               <Button
-                onClick={onSendMessage}
+                onClick={handleSendWithFocus}
                 disabled={!inputValue.trim() || isLoading}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
               >

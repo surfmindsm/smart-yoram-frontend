@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage } from '../../types/chat';
 import { Copy } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -13,6 +13,17 @@ interface MessageListProps {
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messagesEndRef }) => {
+  // 메시지 리스트 변경 시 자동 스크롤
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  }, [messages.length, isLoading]);
+  
   return (
     <div className="max-w-5xl mx-auto px-1 space-y-4 py-4">
       {messages.map((message, index) => (
@@ -109,7 +120,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
         </div>
       )}
       
-      <div ref={messagesEndRef} />
+      {/* 스크롤 타깃 - 더 나은 가시성을 위해 약간의 여백 추가 */}
+      <div ref={messagesEndRef} className="h-4" />
     </div>
   );
 };

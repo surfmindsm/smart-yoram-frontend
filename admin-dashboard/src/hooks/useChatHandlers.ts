@@ -78,6 +78,11 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setInputValue('');
+      
+      // 사용자 메시지 추가 후 즉시 스크롤
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
 
       // 새 채팅이거나 채팅 ID가 없는 경우 새로 생성
       let effectiveChatId = currentChatId;
@@ -350,7 +355,10 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }));
       }
 
-      scrollToBottom();
+      // AI 응답 추가 후 스크롤 (약간의 지연으로 DOM 업데이트 보장)
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
 
       // AI 응답 저장은 백엔드에서 이미 처리됨
       console.log('📝 AI 응답은 백엔드에서 이미 DB에 저장됨');
@@ -421,7 +429,10 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       };
       
       setMessages(prev => [...prev, errorResponse]);
-      scrollToBottom();
+      // 에러 메시지 추가 후 스크롤
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     } finally {
       setIsLoading(false);
     }
