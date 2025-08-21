@@ -39,7 +39,14 @@ export const saveMessageViaMCP = async (
   agentId?: string | number
 ): Promise<{ success: boolean }> => {
   try {
-    console.log('💾 MCP로 메시지 저장:', { chatHistoryId, role, content: content.substring(0, 50) + '...' });
+    console.log('💾 MCP로 메시지 저장 상세:', { 
+      chatHistoryId, 
+      role, 
+      contentLength: content.length,
+      contentPreview: content.substring(0, 100) + '...',
+      tokensUsed,
+      agentId
+    });
     
     const query = 'INSERT INTO chat_messages (chat_history_id, content, role, tokens_used, created_at) VALUES ($1, $2, $3, $4, NOW())';
     const params = [chatHistoryId, content, role, tokensUsed || null];

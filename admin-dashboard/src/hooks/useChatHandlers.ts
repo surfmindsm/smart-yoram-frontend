@@ -222,7 +222,12 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             ? parseInt(String(agents[0].id))
             : null;
         
-        console.log('📝 히스토리 생성 완료 후 메시지 저장 시작:', effectiveChatId, 'agent_id:', agentIdForMessage);
+        console.log('📝 사용자 메시지 저장 시작:', {
+          effectiveChatId, 
+          agentId: agentIdForMessage,
+          role: 'user',
+          content: userMessage.content.substring(0, 50) + '...'
+        });
         if (agentIdForMessage) {
           await saveMessageViaMCP(effectiveChatId, userMessage.content, 'user', undefined, agentIdForMessage);
         } else {
