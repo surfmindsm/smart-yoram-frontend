@@ -342,10 +342,30 @@ export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
+      console.log('📞 채팅 히스토리 API 호출:', {
+        url: getApiUrl('/chat/histories'),
+        params,
+        timestamp: new Date().toISOString()
+      });
+      
       const response = await api.get(getApiUrl('/chat/histories'), { params });
+      
+      console.log('📎 채팅 히스토리 API 응답:', {
+        status: response.status,
+        dataType: typeof response.data,
+        dataLength: Array.isArray(response.data) ? response.data.length : 'not array',
+        rawData: response.data
+      });
+      
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get chat histories:', error);
+      console.error('❌ 채팅 히스토리 API 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: getApiUrl('/chat/histories')
+      });
+      
       if (error.response?.status === 422) {
         console.warn('Chat histories endpoint returned 422, returning empty array');
       }

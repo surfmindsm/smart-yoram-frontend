@@ -204,19 +204,19 @@ export const useChat = () => {
     };
   };
 
-  // 🚀 데이터 로딩 최적화 - 중복 호출 방지 + 캐시 활용
-  const loadData = async () => {
-    // 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
-    if (isLoadingData || isDataLoaded) {
+  // 🚀 데이터 로딩 최적화 - 강제 새로고침 옵션 추가
+  const loadData = async (forceRefresh = false) => {
+    // 강제 새로고침이 아니고 이미 로딩 중이거나 로드 완료된 경우 중복 호출 방지
+    if (!forceRefresh && (isLoadingData || isDataLoaded)) {
       console.log('⚡ 중복 로딩 방지:', { isLoadingData, isDataLoaded });
       return;
     }
     
-    // 🚀 캐시가 있으면 API 호출 생략
+    // 🚀 강제 새로고침이 아니고 캐시가 있으면 API 호출 생략
     const hasCachedHistory = chatHistory.length > 0;
     const hasCachedAgents = agents.length > 0;
     
-    if (hasCachedHistory && hasCachedAgents) {
+    if (!forceRefresh && hasCachedHistory && hasCachedAgents) {
       console.log('🚀 캐시된 데이터 사용 - API 호출 생략');
       setIsDataLoaded(true);
       setLoadingChats(false);
@@ -226,6 +226,14 @@ export const useChat = () => {
         setCurrentChatId(chatHistory[0].id);
       }
       return;
+    }
+    
+    console.log('🔄 채팅 히스토리 새로고침:', { forceRefresh, hasCachedHistory });
+    
+    // 강제 새로고침 시 캐시 무효화
+    if (forceRefresh) {
+      setIsDataLoaded(false);
+      console.log('🗑️ 캐시 무효화 - 강제 새로고침');
     }
     
     try {
@@ -241,19 +249,51 @@ export const useChat = () => {
       // 채팅 히스토리 처리
       if (chatsResult.status === 'fulfilled') {
         const response = chatsResult.value;
-        const histories = response.data || response;
-        if (Array.isArray(histories)) {
-          const formattedHistories = histories.map((history: any) => ({
-            ...history,
-            timestamp: new Date(history.timestamp || history.created_at),
-            isBookmarked: history.is_bookmarked || false
-          }));
+        console.log('🔍 채팅 히스토리 API 응답:', response);
+        
+        // API 응답 구조 다양성 처리
+        let histories = [];
+        if (response.success && Array.isArray(response.data)) {
+          histories = response.data;
+        } else if (Array.isArray(response.data)) {
+          histories = response.data;
+        } else if (Array.isArray(response)) {
+          histories = response;
+        } else {
+          console.warn('⚠️ 예상치 못한 API 응답 구조:', response);
+          histories = [];
+        }
+        
+        console.log('🗂 추출된 히스토리 데이터:', histories);
+        
+        if (Array.isArray(histories) && histories.length > 0) {
+          const formattedHistories = histories.map((history: any) => {
+            // ID 형식 통일 (chat_ 접두사 추가)
+            const formattedId = history.id?.toString().startsWith('chat_') 
+              ? history.id 
+              : `chat_${history.id}`;
+              
+            return {
+              id: formattedId,
+              title: history.title || '새 대화',
+              timestamp: new Date(history.timestamp || history.created_at || history.updated_at || Date.now()),
+              messageCount: history.message_count || history.messageCount || 0,
+              isBookmarked: history.is_bookmarked || history.isBookmarked || false
+            };
+          });
+          
+          // 날짜순으로 정렬 (리좌트 순)
+          formattedHistories.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          
+          console.log('✅ 포맷된 채팅 히스토리:', formattedHistories);
           setChatHistory(formattedHistories);
           saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
+          
           if (formattedHistories.length > 0 && !currentChatId) {
             setCurrentChatId(formattedHistories[0].id);
           }
         } else {
+          console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', histories);
           setChatHistory([]);
         }
       } else {
@@ -439,6 +479,13 @@ export const useChat = () => {
       }
     }
   };
+
+  // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
+  useEffect(() => {
+    console.log('🚀 컴포넌트 마운트 - 데이터 로딩 시작');
+    // 새로고침 시 강제 로드를 위해 캐시 무시
+    loadData(true);
+  }, []); // 빈 의존성 배열로 마운트 시에만 실행
 
   // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)
   useEffect(() => {

@@ -354,9 +354,14 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       // AI 응답 저장은 백엔드에서 이미 처리됨
       console.log('📝 AI 응답은 백엔드에서 이미 DB에 저장됨');
 
-      // 🎯 제목 자동 생성: 2번째 AI 응답 후 (총 4개 메시지: 사용자→AI→사용자→AI)
-      if (finalMessages.length >= 4 && finalMessages.length <= 6) {
-        console.log('🎯 채팅 제목 자동 생성 시작...');
+      // 🎯 제목 자동 생성: 2번째 메시지부터 시작 (더 빠른 반응)
+      if (finalMessages.length >= 2 && finalMessages.length <= 4) {
+        console.log('🎯 채팅 제목 자동 생성 시작...', {
+          messageCount: finalMessages.length,
+          chatId: effectiveChatId,
+          messages: finalMessages.map(m => ({ role: m.role, contentPreview: m.content.slice(0, 50) }))
+        });
+        
         try {
           const generatedTitle = await chatService.generateChatTitle(
             finalMessages.map(msg => ({
@@ -365,21 +370,42 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             }))
           );
           
+          console.log('🔍 생성된 제목 검증:', { generatedTitle, length: generatedTitle?.length });
+          
           if (generatedTitle && generatedTitle !== '새 대화' && generatedTitle.length > 2) {
-            console.log('✅ 생성된 제목:', generatedTitle);
+            console.log('✅ 제목 적용 중:', generatedTitle);
             
-            // 채팅 히스토리 제목 업데이트
-            setChatHistory(prev => prev.map(chat => 
-              chat.id === effectiveChatId 
-                ? { ...chat, title: generatedTitle }
-                : chat
-            ));
+            // 1. 로컬 상태 즉시 업데이트
+            setChatHistory(prev => {
+              const updated = prev.map(chat => 
+                chat.id === effectiveChatId 
+                  ? { ...chat, title: generatedTitle }
+                  : chat
+              );
+              console.log('💾 로컬 채팅 히스토리 업데이트:', updated);
+              return updated;
+            });
+            
+            // 2. 백엔드에 제목 저장 (비동기)
+            try {
+              await chatService.updateChatTitle(
+                effectiveChatId.replace('chat_', ''), 
+                generatedTitle
+              );
+              console.log('🌐 백엔드 제목 저장 완료:', generatedTitle);
+            } catch (backendError) {
+              console.warn('⚠️ 백엔드 제목 저장 실패:', backendError);
+            }
             
             console.log('💾 채팅 제목 업데이트 완료:', generatedTitle);
+          } else {
+            console.warn('⚠️ 제목 생성 실패 또는 유효하지 않음:', generatedTitle);
           }
         } catch (titleError) {
-          console.warn('⚠️ 제목 자동 생성 실패:', titleError);
+          console.error('❌ 제목 자동 생성 오류:', titleError);
         }
+      } else {
+        console.log('📊 제목 생성 조건 미충족:', { messageCount: finalMessages.length });
       }
 
     } catch (error) {
