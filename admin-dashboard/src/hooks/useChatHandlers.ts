@@ -453,6 +453,42 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setActiveTab('history');
   };
 
+  // 특정 교회와 에이전트로 새 대화 시작
+  const handleStartNewChatWithAgent = async (churchId: number, agentId: number | string) => {
+    console.log(`🏛️ Church ID ${churchId}와 Agent ID ${agentId}로 새 대화 시작`);
+    
+    // 기존 상태 초기화
+    setMessages([]);
+    setCurrentChatId(null);
+    setInputValue('');
+    
+    // 해당 에이전트 찾기 (agentId를 string으로 변환하여 비교)
+    const agentIdStr = String(agentId);
+    const targetAgent = agents.find(agent => agent.id === agentIdStr);
+    
+    if (targetAgent) {
+      console.log(`✅ Agent ID ${agentId} 찾음:`, targetAgent.name);
+      setSelectedAgentForChat(targetAgent);
+      setSelectedAgent(targetAgent);
+    } else {
+      console.warn(`⚠️ Agent ID ${agentId}를 찾을 수 없음. 사용 가능한 에이전트:`, 
+        agents.map(a => ({ id: a.id, name: a.name })));
+      
+      // 첫 번째 에이전트를 기본값으로 사용
+      if (agents.length > 0) {
+        const firstAgent = agents[0];
+        setSelectedAgentForChat(firstAgent);
+        setSelectedAgent(firstAgent);
+        console.log(`🔄 첫 번째 에이전트로 대체:`, firstAgent.name);
+      }
+    }
+    
+    // 히스토리 탭으로 이동
+    setActiveTab('history');
+    
+    console.log(`🚀 Church ID ${churchId}, Agent ID ${agentId || agents[0]?.id}로 새 대화 준비 완료`);
+  };
+
   // 채팅 삭제
   const handleDeleteChat = async (chatId: string) => {
     const chat = chatHistory.find(c => c.id === chatId);
@@ -567,6 +603,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     handleSendMessage,
     handleNewChat,
     handleStartAgentChat,
+    handleStartNewChatWithAgent,
     handleKeyPress,
     handleDeleteChat,
     handleToggleBookmark,
