@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
-import { churchConfigService } from '../services/api';
+import { churchConfigService, chatService } from '../services/api';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -353,6 +353,34 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
       // AI 응답 저장은 백엔드에서 이미 처리됨
       console.log('📝 AI 응답은 백엔드에서 이미 DB에 저장됨');
+
+      // 🎯 제목 자동 생성: 2번째 AI 응답 후 (총 4개 메시지: 사용자→AI→사용자→AI)
+      if (finalMessages.length >= 4 && finalMessages.length <= 6) {
+        console.log('🎯 채팅 제목 자동 생성 시작...');
+        try {
+          const generatedTitle = await chatService.generateChatTitle(
+            finalMessages.map(msg => ({
+              content: msg.content,
+              role: msg.role
+            }))
+          );
+          
+          if (generatedTitle && generatedTitle !== '새 대화' && generatedTitle.length > 2) {
+            console.log('✅ 생성된 제목:', generatedTitle);
+            
+            // 채팅 히스토리 제목 업데이트
+            setChatHistory(prev => prev.map(chat => 
+              chat.id === effectiveChatId 
+                ? { ...chat, title: generatedTitle }
+                : chat
+            ));
+            
+            console.log('💾 채팅 제목 업데이트 완료:', generatedTitle);
+          }
+        } catch (titleError) {
+          console.warn('⚠️ 제목 자동 생성 실패:', titleError);
+        }
+      }
 
     } catch (error) {
       console.error('❌ 메시지 전송 실패:', error);
