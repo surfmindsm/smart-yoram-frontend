@@ -488,14 +488,30 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
   // 북마크 토글
   const handleToggleBookmark = async (chatId: string, currentBookmarkState: boolean) => {
+    const newBookmarkState = !currentBookmarkState;
+    
     try {
+      // 1. 로컬 상태 즉시 업데이트
       setChatHistory(prev => prev.map(chat => 
         chat.id === chatId 
-          ? { ...chat, isBookmarked: !currentBookmarkState }
+          ? { ...chat, isBookmarked: newBookmarkState }
           : chat
       ));
+      
+      // 2. 백엔드에 북마크 상태 저장
+      const historyId = chatId.replace('chat_', '');
+      await chatService.bookmarkChat(historyId, newBookmarkState);
+      console.log('✅ 북마크 상태 DB 저장 완료:', { chatId, isBookmarked: newBookmarkState });
+      
     } catch (error) {
-      console.error('북마크 업데이트 실패:', error);
+      console.error('❌ 북마크 업데이트 실패:', error);
+      
+      // 실패 시 상태 롤백
+      setChatHistory(prev => prev.map(chat => 
+        chat.id === chatId 
+          ? { ...chat, isBookmarked: currentBookmarkState }
+          : chat
+      ));
     }
   };
 
