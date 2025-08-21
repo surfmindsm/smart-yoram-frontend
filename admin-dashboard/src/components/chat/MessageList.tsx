@@ -108,22 +108,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
         </div>
       )}
       
-      {isLoading && (
-        <div className="max-w-5xl mx-auto px-1 flex justify-start">
-          <div className="max-w-4xl">
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-slate-500 rounded-full animate-pulse" 
-                   style={{ 
-                     animation: 'pulse 1.5s ease-in-out infinite',
-                     transformOrigin: 'center'
-                   }}>
-              </div>
-              <span className="ml-3 text-sm text-slate-500">생각하는 중...</span>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <div ref={messagesEndRef} />
     </div>
   );
