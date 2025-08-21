@@ -283,6 +283,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       const finalMessages = [...updatedMessages, aiResponse];
       setMessages(finalMessages);
 
+      // 로딩 상태 즉시 해제 (UI 응답성 향상)
+      setIsLoading(false);
+
       // 캐시 업데이트
       if (effectiveChatId) {
         setMessageCache(prev => ({
@@ -291,12 +294,16 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }));
       }
 
-      // MCP를 통한 AI 응답 저장
-      if (effectiveChatId) {
-        await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant', aiResponse.tokensUsed, selectedAgentForChat?.id);
-      }
-
       scrollToBottom();
+
+      // MCP를 통한 AI 응답 저장 (백그라운드에서 실행)
+      if (effectiveChatId) {
+        try {
+          await saveMessageViaMCP(effectiveChatId, aiResponse.content, 'assistant', aiResponse.tokensUsed, selectedAgentForChat?.id);
+        } catch (error) {
+          console.warn('⚠️ AI 응답 저장 실패 (UI에는 영향 없음):', error);
+        }
+      }
 
     } catch (error) {
       console.error('❌ 메시지 전송 실패:', error);
