@@ -439,13 +439,26 @@ const PastoralCareManagement: React.FC = () => {
       return;
     }
 
+    console.log('🔄 심방 완료 처리 시작');
+    console.log('📋 요청 ID:', selectedRequest.id);
+    console.log('📝 완료 노트:', completionNotes);
+
+    const updateData = {
+      status: 'completed',
+      completion_notes: completionNotes,
+      completed_at: new Date().toISOString()
+    };
+
+    console.log('📤 API 요청 데이터:', updateData);
+
     try {
-      // 심방 신청을 완료 상태로 업데이트
-      await pastoralCareService.updateRequest(selectedRequest.id, {
-        status: 'completed',
+      // 심방 신청을 완료 상태로 업데이트 - completeRequest 엔드포인트 사용
+      const response = await pastoralCareService.completeRequest(selectedRequest.id, {
         completion_notes: completionNotes,
         completed_at: new Date().toISOString()
       });
+      
+      console.log('✅ API 응답 성공:', response);
 
       // 완료된 심방을 기록 목록에 추가
       const completedRecord: PastoralCareRecord = {
@@ -470,10 +483,22 @@ const PastoralCareManagement: React.FC = () => {
       
       setShowCompletionModal(false);
       setCompletionNotes('');
+      console.log('🎉 심방 완료 처리 성공');
       alert('심방이 완료되었고 기록이 저장되었습니다.');
-    } catch (error) {
-      console.error('심방 완료 처리 실패:', error);
-      alert('심방 완료 처리에 실패했습니다.');
+    } catch (error: any) {
+      console.error('❌ 심방 완료 처리 실패:', error);
+      console.error('📄 에러 상세:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+      
+      if (error.response?.data) {
+        console.error('🚨 서버 응답 데이터:', JSON.stringify(error.response.data, null, 2));
+      }
+      
+      alert(`심방 완료 처리에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
     }
   };
 
@@ -1118,7 +1143,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 상세 보기 모달 */}
       {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">심방 신청 상세</h2>
@@ -1210,7 +1235,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 일정 조율 모달 */}
       {showScheduleModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">일정 조율</h2>
@@ -1272,7 +1297,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 담당자 배정 모달 */}
       {showAssignModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">담당자 배정</h2>
@@ -1328,7 +1353,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 거부 사유 입력 모달 */}
       {showRejectModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">신청 거부</h2>
@@ -1385,7 +1410,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 심방 기록 완료 모달 */}
       {showCompletionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
             <div className="p-6 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-800">심방 기록 작성</h3>
@@ -1452,7 +1477,7 @@ const PastoralCareManagement: React.FC = () => {
               }
             `}
           </style>
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
             <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-screen overflow-y-auto">
               <div className="p-6 border-b border-slate-200 no-print">
                 <div className="flex items-center justify-between">
@@ -1587,9 +1612,9 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* 심방 완료 일지 작성 모달 */}
       {showCompletionModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">
                 {selectedRequest.status === 'approved' ? '심방 기록 작성' : '심방 완료 일지 작성'}
               </h2>
@@ -1601,7 +1626,7 @@ const PastoralCareManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
                 <div>
                   <p className="text-sm text-slate-600">신청자</p>
@@ -1673,8 +1698,7 @@ const PastoralCareManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
               <Button variant="outline" onClick={() => setShowCompletionModal(false)}>
                 취소
               </Button>

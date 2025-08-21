@@ -625,9 +625,9 @@ const PrayerRequestManagement: React.FC = () => {
 
       {/* 상세 보기 모달 */}
       {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">기도 요청 상세</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
@@ -637,7 +637,7 @@ const PrayerRequestManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-2">요청자 정보</h3>
@@ -698,7 +698,7 @@ const PrayerRequestManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                 닫기
               </Button>
@@ -709,9 +709,9 @@ const PrayerRequestManagement: React.FC = () => {
 
       {/* 승인 모달 */}
       {showApprovalModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">기도 요청 승인</h2>
               <button
                 onClick={() => setShowApprovalModal(false)}
@@ -721,7 +721,7 @@ const PrayerRequestManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-6 space-y-4">
               <div>
                 <p className="text-slate-600 mb-4">
                   <span className="font-medium">{selectedRequest.requesterName}</span>님의 기도 요청을 승인하시겠습니까?
@@ -744,22 +744,22 @@ const PrayerRequestManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-4">
-                <Button
-                  onClick={() => setShowApprovalModal(false)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={handleApprovalSubmit}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  승인
-                </Button>
-              </div>
+            </div>
+            <div className="flex space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button
+                onClick={() => setShowApprovalModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleApprovalSubmit}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                승인
+              </Button>
             </div>
           </div>
         </div>
@@ -767,9 +767,9 @@ const PrayerRequestManagement: React.FC = () => {
 
       {/* 기도 기록 작성 모달 */}
       {showRecordModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">기도 기록 작성</h2>
               <button
                 onClick={() => setShowRecordModal(false)}
@@ -779,7 +779,7 @@ const PrayerRequestManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-6 space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                 <h3 className="text-sm font-medium text-blue-800 mb-2">기도 요청 내용</h3>
                 <p className="text-blue-700 text-sm">
@@ -799,28 +799,24 @@ const PrayerRequestManagement: React.FC = () => {
                   className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={6}
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  💡 기도한 날짜, 시간, 느낀 점, 하나님의 음성이나 인도하심 등을 구체적으로 기록해보세요.
-                </p>
               </div>
-
-              <div className="flex space-x-3 pt-4">
-                <Button
-                  onClick={() => setShowRecordModal(false)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={handleRecordSubmit}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={!prayerRecord.trim()}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  기록 저장
-                </Button>
-              </div>
+            </div>
+            <div className="flex space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button
+                onClick={() => setShowRecordModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleRecordSubmit}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!prayerRecord.trim()}
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                기록 저장
+              </Button>
             </div>
           </div>
         </div>
