@@ -361,18 +361,7 @@ export const chatService = {
     return response.data;
   },
   
-  // 메시지 전송 및 AI 응답 생성
-  sendMessage: async (chatHistoryId: string, message: string, agentId?: string) => {
-    const payload: any = {
-      chat_history_id: parseInt(chatHistoryId), // 백엔드가 정수 ID를 기대
-      content: message.trim(),
-      agent_id: agentId ? parseInt(agentId) : 1 // 백엔드가 정수를 기대 (기본값 1)
-    };
-    
-    console.log('📤 Sending message with payload:', payload);
-    const response = await api.post(getApiUrl('/chat/messages'), payload);
-    return response.data;
-  },
+  // sendMessage 함수 제거됨 - 중복 AI 응답 생성 방지
   
   // 새 채팅 생성
   createChatHistory: async (agentId?: string, title?: string) => {

@@ -395,6 +395,13 @@ export const useChat = () => {
     } catch (error) {
       console.error('메시지 로딩 실패:', error);
       
+      // 404 오류인 경우 (히스토리가 아직 생성되지 않은 경우) 빈 메시지로 시작
+      if ((error as any)?.response?.status === 404) {
+        console.log('🔄 히스토리가 아직 생성되지 않음, 빈 메시지로 시작');
+        setMessages([]);
+        return;
+      }
+      
       // 로컬 스토리지에서 메시지 복구 시도
       try {
         const localKey = `chat_messages_${currentChatId}`;
@@ -433,12 +440,12 @@ export const useChat = () => {
     }
   };
 
-  // useEffect: currentChatId 변경 시 메시지 로드
+  // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)
   useEffect(() => {
-    if (currentChatId && !messageCache[currentChatId]) {
+    if (currentChatId && !messageCache[currentChatId] && !isLoading) {
       loadMessages();
     }
-  }, [currentChatId]);
+  }, [currentChatId, isLoading]);
 
   // useEffect: 외부 클릭으로 메뉴 닫기
   useEffect(() => {

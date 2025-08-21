@@ -48,61 +48,66 @@ export const saveMessageViaMCP = async (
       agentId
     });
     
+    // chat_history_id를 정수로 변환
+    let numericChatId: number;
+    if (typeof chatHistoryId === 'string') {
+      if (chatHistoryId.startsWith('chat_')) {
+        numericChatId = parseInt(chatHistoryId.replace('chat_', ''));
+      } else {
+        numericChatId = parseInt(chatHistoryId);
+      }
+    } else {
+      numericChatId = parseInt(String(chatHistoryId));
+    }
+    
+    if (isNaN(numericChatId) || numericChatId <= 0) {
+      console.warn('⚠️ 유효하지 않은 chat_history_id:', chatHistoryId);
+      return { success: false };
+    }
+
     const query = 'INSERT INTO chat_messages (chat_history_id, content, role, tokens_used, created_at) VALUES ($1, $2, $3, $4, NOW())';
-    const params = [chatHistoryId, content, role, tokensUsed || null];
+    const params = [numericChatId, content, role, tokensUsed || null];
     
     console.log('🔍 MCP SQL 실행:', { query, params });
 
-    // 백엔드 API를 통한 메시지 저장
+    // 백엔드 API로 메시지만 저장 (AI 응답 생성 차단)
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-      const response = await fetch(`${API_BASE_URL}/chat/messages`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+      const token = localStorage.getItem('token');
+      
+      console.log('📡 메시지만 저장하는 백엔드 API 호출:', {
+        url: `${apiUrl}/chat/messages`,
+        chatHistoryId: numericChatId,
+        role,
+        contentLength: content.length
+      });
+      
+      const response = await fetch(`${apiUrl}/chat/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'X-Skip-AI-Response': 'true'  // AI 응답 생성 차단 헤더
         },
         body: JSON.stringify({
-          chat_history_id: (() => {
-            // chat_history_id를 안전하게 정수로 변환
-            let numericId;
-            if (typeof chatHistoryId === 'string') {
-              if (chatHistoryId.startsWith('chat_')) {
-                numericId = parseInt(chatHistoryId.replace('chat_', ''));
-              } else {
-                numericId = parseInt(chatHistoryId);
-              }
-            } else {
-              numericId = parseInt(String(chatHistoryId));
-            }
-            
-            // 변환에 실패했거나 유효하지 않은 값이면 현재 타임스탬프 사용
-            if (isNaN(numericId) || numericId <= 0) {
-              numericId = Date.now();
-              console.warn('⚠️ chat_history_id 변환 실패, 타임스탬프 사용:', numericId);
-            }
-            
-            console.log('🔄 chat_history_id 변환:', chatHistoryId, '->', numericId);
-            return numericId;
-          })(),
+          chat_history_id: numericChatId,
           content,
           role,
           tokens_used: tokensUsed || 0,
-          // agent_id가 전달되지 않으면 메시지 저장 스킵
-          agent_id: agentId ? parseInt(String(agentId)) : (() => {
-            console.warn('⚠️ agent_id가 없어 메시지 저장 실패 예상');
-            return 1; // 임시값이지만 실패할 것임
-          })()
+          agent_id: agentId ? parseInt(String(agentId)) : null,
+          skip_ai_generation: true,     // AI 응답 생성 건너뛰기
+          store_only: true,             // 저장만 수행
+          no_response: true             // 응답 생성 안함
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ 백엔드 API 메시지 저장 성공:', result);
+        console.log('✅ 백엔드 메시지 저장 성공:', result);
         return { success: true };
       } else {
         const errorText = await response.text();
-        console.warn('⚠️ 백엔드 API 오류:', response.status, errorText);
+        console.warn('⚠️ 백엔드 메시지 저장 실패:', response.status, errorText);
       }
     } catch (apiError) {
       console.warn('⚠️ 백엔드 API 호출 실패:', apiError);

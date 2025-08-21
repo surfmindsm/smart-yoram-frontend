@@ -17,30 +17,8 @@ export const generateAIToolContent = async (
     // 도구별 프롬프트 생성
     const prompt = createToolPrompt(toolType, inputs);
     
-    // Edge Function 호출 (기존 chat-manager 사용)
-    const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/chat-manager/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
-      },
-      body: JSON.stringify({
-        chat_history_id: `ai-tools-${toolType}-${Date.now()}`,
-        agent_id: 'ai-tools-agent',
-        content: prompt,
-        messages: [], // AI Tools는 이전 대화 없음
-        context_data: {} // 필요시 교회 데이터 추가 가능
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Edge Function 호출 실패: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ AI Tools 생성 완료:', data);
-    
-    return data.text || data.content || '생성된 콘텐츠를 가져올 수 없습니다.';
+    // Edge Function 호출 제거됨 - 중복 AI 응답 생성 방지
+    throw new Error('AI Tools Edge Function 호출이 제거되었습니다');
     
   } catch (error) {
     console.error(`❌ AI Tools ${toolType} 생성 실패:`, error);
@@ -107,31 +85,8 @@ export const generateAutoFillSuggestions = async (
 
     const prompt = createAutoFillPrompt(toolType, basicInputs);
     
-    // Edge Function 호출
-    const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/chat-manager/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
-      },
-      body: JSON.stringify({
-        chat_history_id: `ai-autofill-${toolType}-${Date.now()}`,
-        agent_id: 'ai-autofill-agent',
-        content: prompt,
-        messages: [],
-        context_data: {}
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`자동 입력 API 호출 실패: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const suggestions = parseAutoFillResponse(data.text || data.content);
-    
-    console.log('✅ AI 자동 입력 완료:', suggestions);
-    return suggestions;
+    // Edge Function 호출 제거됨 - 중복 AI 응답 생성 방지
+    throw new Error('AutoFill Edge Function 호출이 제거되었습니다');
     
   } catch (error) {
     console.error(`❌ AI 자동 입력 실패:`, error);
