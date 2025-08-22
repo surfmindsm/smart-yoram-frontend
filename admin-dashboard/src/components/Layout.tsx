@@ -39,24 +39,55 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
-  const generalMenuItems = [
-    { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
-    { path: '/statistics', name: '통계 분석', Icon: ChartLine },
-    { path: '/member-management', name: '교인 관리', Icon: Users },
-    { path: '/donations', name: '헌금 관리', Icon: DollarSign },
-    { path: '/announcements', name: '공지사항', Icon: Megaphone },
-    { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
-    { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
-    { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
-    { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
-    { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
-    { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
-    { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
-    { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
-    { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
-    { path: '/bulletins', name: '주보 관리', Icon: FileText },
-    { path: '/church', name: '교회 정보', Icon: Church },
-    { path: '/church-settings', name: '시스템 설정', Icon: Settings },
+  // Sidebar menu grouped by sections
+  const menuGroups = [
+    {
+      title: '분석',
+      items: [
+        { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
+        { path: '/statistics', name: '통계 분석', Icon: ChartLine },
+      ],
+    },
+    {
+      title: '교인 관리',
+      items: [
+        { path: '/member-management', name: '교인 관리', Icon: Users },
+        { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
+        { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
+        { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
+      ],
+    },
+    {
+      title: '재정',
+      items: [
+        { path: '/donations', name: '헌금 관리', Icon: DollarSign },
+      ],
+    },
+    {
+      title: '예배 · 소식',
+      items: [
+        { path: '/announcements', name: '공지사항', Icon: Megaphone },
+        { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
+        { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
+        { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
+        { path: '/bulletins', name: '주보 관리', Icon: FileText },
+      ],
+    },
+    {
+      title: '교회 운영',
+      items: [
+        { path: '/church', name: '교회 정보', Icon: Church },
+        { path: '/church-settings', name: '시스템 설정', Icon: Settings },
+        { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
+      ],
+    },
+    {
+      title: '기타',
+      items: [
+        { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
+        { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
+      ],
+    },
   ];
 
   const aiMenuItems = [
@@ -103,30 +134,41 @@ const Layout: React.FC = () => {
           )}
         >
           <nav className="p-4 space-y-1">
-            {/* 일반 메뉴 */}
-            {generalMenuItems.map((item: { path: string; name: string; Icon: React.ElementType }) => {
-              const IconComponent = item.Icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sky-50 text-sky-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <IconComponent className={cn(
-                    "mr-3 h-5 w-5",
-                    isActive ? "text-sky-600" : "text-slate-400"
-                  )} />
-                  {item.name}
-                </Link>
-              );
-            })}
+            {/* 섹션별 일반 메뉴 */}
+            {menuGroups.map((group, idx) => (
+              <div key={group.title} className="mb-2">
+                {idx > 0 && <div className="border-t border-slate-200 my-3"></div>}
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {group.title}
+                  </h3>
+                </div>
+                {group.items.map((item: { path: string; name: string; Icon: React.ElementType }) => {
+                  const IconComponent = item.Icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-sky-50 text-sky-700"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      )}
+                    >
+                      <IconComponent
+                        className={cn(
+                          "mr-3 h-5 w-5",
+                          isActive ? "text-sky-600" : "text-slate-400"
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
             
             {/* AI 메뉴 구분선 */}
             <div className="border-t border-slate-200 my-4"></div>
