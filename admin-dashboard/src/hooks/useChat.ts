@@ -239,7 +239,7 @@ export const useChat = () => {
           histories = [];
         }
         
-        console.log('🗂 추출된 히스토리 데이터:', histories);
+        // 배포용: 과도한 히스토리 로깅 제거
         
         if (Array.isArray(histories) && histories.length > 0) {
           const formattedHistories = histories.map((history: any) => {

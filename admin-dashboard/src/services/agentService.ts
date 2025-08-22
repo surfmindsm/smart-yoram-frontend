@@ -135,7 +135,6 @@ export const callGPTDirectly = async (
   try {
     const gptConfig = await churchConfigService.getGptConfig();
     apiKey = gptConfig.api_key;
-    console.log('🔑 DB에서 GPT API 키 로드 완료:', apiKey ? '✅ 키 있음' : '❌ 키 없음');
   } catch (error) {
     console.error('❌ DB에서 GPT 설정 로드 실패:', error);
   }
@@ -165,7 +164,7 @@ export const callGPTDirectly = async (
     { role: 'user', content: userMessage }
   ];
 
-  console.log('🔑 OpenAI API 호출 시작 (키 마지막 4자리):', apiKey.slice(-4));
+  // 배포용: OpenAI 호출 관련 상세 로그 제거
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -193,7 +192,6 @@ export const callGPTDirectly = async (
   }
 
   const data = await response.json();
-  console.log('✅ OpenAI API 호출 성공:', data.usage);
   
   return {
     content: data.choices[0].message.content,
@@ -219,32 +217,21 @@ export const getAIResponse = async (
     
     // 2. 교인정보 에이전트의 특별 처리
     if (selectedAgent?.name === '교인정보 에이전트' || selectedAgent?.name?.includes('교인정보')) {
-      console.log('🔥 교인정보 에이전트: MCP를 통한 직접 처리');
       
       try {
         // 🔥 현재 세션 메시지 우선 사용 (더 신뢰할 수 있음)
-        console.log('📚 현재 세션 메시지:', existingMessages.length, '개');
         
         // MCP에서 추가 히스토리 조회 시도 (옵션)
         const mcpMessages = await loadMessagesViaMCP(currentChatId, existingMessages);
-        console.log('📚 MCP 히스토리 조회 완료:', mcpMessages.length, '개 메시지');
         
         // 현재 세션 메시지가 있으면 우선 사용, 없으면 MCP 메시지 사용
         const allHistoryMessages = existingMessages.length > 0 ? existingMessages : mcpMessages;
-        console.log('📚 최종 사용할 히스토리:', allHistoryMessages.length, '개 메시지');
         
         // 히스토리 내용 로깅 (디버깅용)
-        if (allHistoryMessages.length > 0) {
-          console.log('🔍 히스토리 미리보기:', allHistoryMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content.substring(0, 30) + '...',
-            timestamp: msg.timestamp
-          })));
-        }
+        // 배포용: 히스토리 미리보기 상세 로깅 제거
         
         // 교인 수 질문에 대한 정확한 답변 처리
         if (userMessage.includes('교인') && (userMessage.includes('몇명') || userMessage.includes('몇 명') || userMessage.includes('수'))) {
-          console.log('🎯 교인 수 질문 감지 - 정확한 답변 제공');
           const accurateResponse = {
             content: "우리 교회의 현재 등록된 교인 수는 **100명**입니다.\n\n이는 현재 활동 중인 정식 교인들의 수이며, 실제 데이터베이스에 등록된 정확한 숫자입니다.",
             tokensUsed: 50
@@ -278,8 +265,7 @@ export const getAIResponse = async (
       }
     }
 
-    // 3. 일반 에이전트: 직접 GPT API 호출 (Edge Function 제거하여 중복 저장 방지)
-    console.log('🚀 일반 에이전트: 직접 GPT API 호출');
+    // 3. 일반 에이전트: 직접 GPT API 호출 (상세 로그 제거)
     const gptResult = await callGPTDirectly(existingMessages, contextData, userMessage, selectedAgent);
       
     return {

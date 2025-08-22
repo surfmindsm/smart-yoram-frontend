@@ -73,7 +73,6 @@ const AIChat: React.FC = () => {
     // 에이전트 목록이 로드된 상태에서만 시도
     if (agentIdParam && chatState.agents && chatState.agents.length > 0) {
       const churchIdNum = churchIdParam ? parseInt(churchIdParam, 10) : 1;
-      console.log(`🚀 URL 파라미터로 새 대화 시작: churchId=${churchIdNum}, agentId=${agentIdParam}`);
       chatHandlers.handleStartNewChatWithAgent(churchIdNum, agentIdParam);
       autoStartedRef.current = true;
     }
@@ -141,12 +140,10 @@ const AIChat: React.FC = () => {
           
           // 전체 삭제인 경우
           if (modalChatId === 'ALL_CHATS') {
-            console.log('🗑️ 전체 삭제 확인됨');
             await chatState.executeDeleteAllChats();
           } 
           // 개별 채팅 삭제인 경우
           else {
-            console.log('🗑️ 개별 채팅 삭제 확인됨');
             chatHandlers.handleDeleteConfirmModal();
           }
           

@@ -137,8 +137,6 @@ export const loadMessagesViaMCP = async (
     const query = 'SELECT id, content, role, tokens_used, created_at FROM chat_messages WHERE chat_history_id = $1 ORDER BY created_at ASC';
     const params = [chatHistoryId];
     
-    console.log('🔍 MCP SQL 실행:', { query, params });
-
     // 🔥 실제 Supabase MCP 서버를 통한 DB 조회 
     try {
       // 백엔드 API를 통해 MCP 호출 (서버사이드에서 MCP 실행)

@@ -92,7 +92,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
                 onClick={() => {
                   const textContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
                   navigator.clipboard.writeText(textContent);
-                  console.log('메시지가 복사되었습니다');
                 }}
                 className="inline-flex items-center px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
               >

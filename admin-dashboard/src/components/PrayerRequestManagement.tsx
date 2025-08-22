@@ -62,7 +62,6 @@ const PrayerRequestManagement: React.FC = () => {
       const response = await prayerRequestService.getRequests(params);
       
       // 백엔드 응답 구조 확인 및 데이터 추출
-      console.log('Prayer requests API response:', response);
       
       let prayerRequestsData = [];
       
