@@ -88,18 +88,11 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       let effectiveChatId = currentChatId;
       let historyCreated = false;
       
-      console.log('🔍 채팅 ID 상태 확인:', { 
-        currentChatId, 
-        effectiveChatId, 
-        needsNewHistory: !effectiveChatId,
-        selectedAgentName: selectedAgentForChat?.name,
-        selectedAgentId: selectedAgentForChat?.id
-      });
+      
       
       if (!effectiveChatId) {
         // 새 대화 시작 시 임시 Chat ID 생성 (UI 깜빡임 방지)
         const tempChatId = `chat_${Date.now()}`;
-        console.log('🆕 임시 채팅 ID 생성:', tempChatId);
         effectiveChatId = tempChatId;
 
         const newChatHistory: ChatHistory = {
@@ -117,11 +110,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
           const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
           
-          console.log('📡 히스토리 생성 API 호출 (AI 응답 생성 없이):', {
-            url: `${API_BASE_URL}/chat/histories`,
-            agentId,
-            effectiveChatId
-          });
+          
 
           const historyResponse = await fetch(`${API_BASE_URL}/chat/histories`, {
             method: 'POST',
@@ -141,7 +130,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           
           if (historyResponse.ok) {
             const historyResult = await historyResponse.json();
-            console.log('✅ 채팅 히스토리 생성 성공:', historyResult);
             historyCreated = true;
             
             // 생성된 실제 ID로 업데이트
@@ -153,7 +141,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
               if (actualDbId !== parseInt(effectiveChatId.replace('chat_', ''))) {
                 setCurrentChatId(newChatId);
                 effectiveChatId = newChatId;
-                console.log('🔄 채팅 ID 업데이트:', effectiveChatId, '->', newChatId);
               }
             }
           } else {
@@ -181,7 +168,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         if (agents && agents.length > 0) {
           const firstAgent = agents[0];
           setSelectedAgentForChat(firstAgent);
-          console.log('✅ 로드된 첫 번째 에이전트 자동 선택:', firstAgent.name, 'ID:', firstAgent.id);
         } else {
           // 에이전트가 없으면 로컬 전용 모드
           const fallbackAgent = {
@@ -192,26 +178,20 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             isActive: true
           };
           setSelectedAgentForChat(fallbackAgent);
-          console.log('⚠️ 로드된 에이전트 없음, 로컬 전용 에이전트 설정:', fallbackAgent.name);
         }
       }
 
       // 사용자 메시지 저장은 백엔드에서 처리됨
-      console.log('📝 사용자 메시지는 백엔드 AI 응답 생성 시 함께 저장됨');
-
-      console.log('🚀 스마트 에이전트 처리:', selectedAgentForChat?.name);
+      
       
       let aiResponse: ChatMessage;
       
       // 교인정보 에이전트만 DB 조회 실행
       if (selectedAgentForChat?.name === '교인정보 에이전트' || selectedAgentForChat?.name?.includes('교인정보')) {
-        console.log('🔍 교인정보 에이전트: DB 조회 실행');
         
         const dbResult = await queryDatabaseViaMCP(userMessage.content);
-        console.log('📊 DB 조회 결과:', dbResult);
         
         if (dbResult.success && dbResult.data.length > 0) {
-          console.log('✅ 실제 데이터로 응답 생성');
           aiResponse = {
             id: `ai_${Date.now()}`,
             role: 'assistant',
@@ -235,7 +215,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }
       } else {
         // 백엔드에서 AI 응답 생성하도록 API 호출
-        console.log('📡 백엔드 AI 응답 생성 API 호출');
         
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
         const token = localStorage.getItem('token');
@@ -267,7 +246,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }
 
         const responseData = await response.json();
-        console.log('✅ 백엔드 AI 응답 성공:', responseData);
         
         // 백엔드 응답 데이터 구조 확인 및 파싱
         let aiContent = '응답을 생성하지 못했습니다.';
@@ -276,7 +254,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         
         if (responseData.success && responseData.data) {
           const data = responseData.data;
-          console.log('🔍 백엔드 응답 상세 데이터:', data);
           
           let rawContent = data.ai_response || data.content || data.message;
           
@@ -303,7 +280,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           // 백엔드에서 실제 생성된 chat_history_id 받기
           if (data.chat_history_id) {
             actualChatId = `chat_${data.chat_history_id}`;
-            console.log('🔄 백엔드에서 실제 Chat ID 받음:', actualChatId);
             
             // 임시 ID와 다르면 업데이트
             if (actualChatId !== effectiveChatId) {
@@ -329,7 +305,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           tokensUsed = responseData.tokens_used || 0;
         }
         
-        console.log('🔍 파싱된 AI 응답:', { aiContent, tokensUsed, actualChatId });
         
         aiResponse = {
           id: `ai_${Date.now()}`,
@@ -361,15 +336,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       }, 100);
 
       // AI 응답 저장은 백엔드에서 이미 처리됨
-      console.log('📝 AI 응답은 백엔드에서 이미 DB에 저장됨');
 
       // 🎯 제목 자동 생성: 2번째 메시지부터 시작 (더 빠른 반응)
       if (finalMessages.length >= 2 && finalMessages.length <= 4) {
-        console.log('🎯 채팅 제목 자동 생성 시작...', {
-          messageCount: finalMessages.length,
-          chatId: effectiveChatId,
-          messages: finalMessages.map(m => ({ role: m.role, contentPreview: m.content.slice(0, 50) }))
-        });
         
         try {
           const generatedTitle = await chatService.generateChatTitle(
@@ -379,10 +348,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             }))
           );
           
-          console.log('🔍 생성된 제목 검증:', { generatedTitle, length: generatedTitle?.length });
-          
           if (generatedTitle && generatedTitle !== '새 대화' && generatedTitle.length > 2) {
-            console.log('✅ 제목 적용 중:', generatedTitle);
             
             // 1. 로컬 상태 즉시 업데이트
             setChatHistory(prev => {
@@ -391,7 +357,6 @@ export function useChatHandlers(props: UseChatHandlersProps) {
                   ? { ...chat, title: generatedTitle }
                   : chat
               );
-              console.log('💾 로컬 채팅 히스토리 업데이트:', updated);
               return updated;
             });
             
@@ -401,20 +366,16 @@ export function useChatHandlers(props: UseChatHandlersProps) {
                 effectiveChatId.replace('chat_', ''), 
                 generatedTitle
               );
-              console.log('🌐 백엔드 제목 저장 완료:', generatedTitle);
             } catch (backendError) {
               console.warn('⚠️ 백엔드 제목 저장 실패:', backendError);
             }
             
-            console.log('💾 채팅 제목 업데이트 완료:', generatedTitle);
           } else {
             console.warn('⚠️ 제목 생성 실패 또는 유효하지 않음:', generatedTitle);
           }
         } catch (titleError) {
           console.error('❌ 제목 자동 생성 오류:', titleError);
         }
-      } else {
-        console.log('📊 제목 생성 조건 미충족:', { messageCount: finalMessages.length });
       }
 
     } catch (error) {
@@ -466,19 +427,17 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
   // 특정 교회와 에이전트로 새 대화 시작
   const handleStartNewChatWithAgent = async (churchId: number, agentId: number | string) => {
-    console.log(`🏛️ Church ID ${churchId}와 Agent ID ${agentId}로 새 대화 시작`);
     
     // 기존 상태 초기화
     setMessages([]);
     setCurrentChatId(null);
     setInputValue('');
     
-    // 해당 에이전트 찾기 (agentId를 string으로 변환하여 비교)
+    // 해당 에이전트 찾기 (숫자/문자열 혼용 대비하여 문자열로 정규화 비교)
     const agentIdStr = String(agentId);
-    const targetAgent = agents.find(agent => agent.id === agentIdStr);
+    const targetAgent = agents.find(agent => String(agent.id) === agentIdStr);
     
     if (targetAgent) {
-      console.log(`✅ Agent ID ${agentId} 찾음:`, targetAgent.name);
       setSelectedAgentForChat(targetAgent);
       setSelectedAgent(targetAgent);
     } else {
@@ -490,14 +449,11 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         const firstAgent = agents[0];
         setSelectedAgentForChat(firstAgent);
         setSelectedAgent(firstAgent);
-        console.log(`🔄 첫 번째 에이전트로 대체:`, firstAgent.name);
       }
     }
     
     // 히스토리 탭으로 이동
     setActiveTab('history');
-    
-    console.log(`🚀 Church ID ${churchId}, Agent ID ${agentId || agents[0]?.id}로 새 대화 준비 완료`);
   };
 
   // 채팅 삭제
@@ -548,7 +504,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       // 2. 백엔드에 북마크 상태 저장
       const historyId = chatId.replace('chat_', '');
       await chatService.bookmarkChat(historyId, newBookmarkState);
-      console.log('✅ 북마크 상태 DB 저장 완료:', { chatId, isBookmarked: newBookmarkState });
+      
       
     } catch (error) {
       console.error('❌ 북마크 업데이트 실패:', error);

@@ -146,7 +146,6 @@ const MemberManagement: React.FC = () => {
     e.preventDefault();
     try {
       // Don't send church_id - backend will use current user's church_id
-      console.log('Sending member data:', newMember);
       const response = await api.post('/members/', newMember);
       setMembers([...members, response.data]);
       setShowAddModal(false);
@@ -397,9 +396,6 @@ const MemberManagement: React.FC = () => {
                           src={cleanPhotoUrl(member.profile_photo_url)!}
                           alt={member.name}
                           className="h-16 w-16 rounded-full object-cover"
-                          onLoad={(e) => {
-                            console.log('Image loaded:', member.name);
-                          }}
                           onError={(e) => {
                             const target = e.currentTarget as HTMLImageElement;
                             console.error('Image load error:', {

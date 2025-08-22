@@ -1,7 +1,6 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
-  console.log('🚀 Proxy middleware disabled - using direct API calls');
   
   // 프록시 비활성화 - 운영 서버 직접 호출
   /*

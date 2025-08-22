@@ -12,7 +12,6 @@ export const generateAIToolContent = async (
   inputs: any
 ): Promise<string> => {
   try {
-    console.log(`🚀 AI Tools ${toolType} 생성 시작:`, inputs);
 
     // 도구별 프롬프트 생성
     const prompt = createToolPrompt(toolType, inputs);
@@ -81,7 +80,6 @@ export const generateAutoFillSuggestions = async (
   basicInputs: any
 ): Promise<any> => {
   try {
-    console.log(`🤖 AI 자동 입력 ${toolType} 시작:`, basicInputs);
 
     const prompt = createAutoFillPrompt(toolType, basicInputs);
     

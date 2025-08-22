@@ -242,7 +242,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    console.log('🔴 전체 삭제 버튼 클릭됨!');
                     onDeleteAllChats();
                   }}
                   className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 h-auto"

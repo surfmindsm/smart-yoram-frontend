@@ -74,7 +74,6 @@ export const authService = {
   login: async (username: string, password: string) => {
     // 백엔드 재배포 후 OAuth2PasswordRequestForm 스펙 변경으로 인한 수정
     // application/x-www-form-urlencoded 형식으로 변경
-    console.log('🔐 Attempting login with OAuth2 form data format');
     
     const formData = new URLSearchParams();
     formData.append('username', username);
@@ -92,7 +91,6 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(user));
     }
     
-    console.log('✅ Login successful');
     return response.data;
   },
   
@@ -253,8 +251,7 @@ export const agentService = {
     } catch (error: any) {
       console.error('Failed to get agents:', error);
       if (error.response?.status === 422) {
-        console.warn('Agents endpoint returned 422, returning empty array');
-      }
+        }
       return [];
     }
   },
@@ -293,14 +290,12 @@ export const agentService = {
         return response.data;
       }
       
-      console.warn('Unexpected agent templates response format, returning empty array');
       return [];
     } catch (error: any) {
       console.error('Failed to get agent templates:', error);
       
       // 422 에러 등으로 템플릿 로드 실패 시 빈 배열 반환 (백엔드 수정 전까지 유지)
       if (error.response?.status === 422) {
-        console.warn('Agent templates endpoint still returns 422, using fallback');
         return [];
       }
       
@@ -342,20 +337,9 @@ export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
-      console.log('📞 채팅 히스토리 API 호출:', {
-        url: getApiUrl('/chat/histories'),
-        params,
-        timestamp: new Date().toISOString()
-      });
       
       const response = await api.get(getApiUrl('/chat/histories'), { params });
       
-      console.log('📎 채팅 히스토리 API 응답:', {
-        status: response.status,
-        dataType: typeof response.data,
-        dataLength: Array.isArray(response.data) ? response.data.length : 'not array',
-        rawData: response.data
-      });
       
       return response.data;
     } catch (error: any) {
@@ -367,7 +351,6 @@ export const chatService = {
       });
       
       if (error.response?.status === 422) {
-        console.warn('Chat histories endpoint returned 422, returning empty array');
       }
       return [];
     }
@@ -414,7 +397,6 @@ export const chatService = {
       payload.agent_id = 1; // 기본 에이전트 ID
     }
     
-    console.log('📤 Creating chat with payload:', payload);
     const response = await api.post(getApiUrl('/chat/histories'), payload);
     return response.data;
   },
@@ -438,16 +420,8 @@ export const chatService = {
     const url = getApiUrl(`/chat/histories/${historyId}`);
     const payload = { is_bookmarked: isBookmarked }; // 백엔드 필드명에 맞춤
     
-    console.log('🔖 BookmarkChat API 요청:', {
-      url,
-      historyId,
-      payload,
-      method: 'PUT'
-    });
-    
     try {
       const response = await api.put(url, payload);
-      console.log('✅ BookmarkChat API 성공:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ BookmarkChat API 실패:', {
@@ -565,13 +539,11 @@ export const churchConfigService = {
     try {
       // 백엔드 보고서에 따르면 수정되었다고 하지만, 실제로는 아직 405 에러 발생중
       // 일단 시도해보고 405 에러면 즉시 fallback 사용
-      console.log('Attempting to load GPT config from /church/gpt-config');
       const response = await api.get(getApiUrl('/church/gpt-config'));
       
       // 백엔드 보고서에 따른 새로운 응답 형식: { success: true, data: {...} }
       if (response.data.success && response.data.data) {
         const config = response.data.data;
-        console.log('Successfully loaded GPT config with new format');
         return {
           api_key: config.api_key || null,
           database_connected: config.database_connected || false,
@@ -584,7 +556,6 @@ export const churchConfigService = {
       }
       
       // 이전 응답 형식도 지원 (호환성 유지)
-      console.log('Using legacy GPT config format');
       return {
         api_key: response.data.api_key || null,
         database_connected: response.data.database_connected || false,
@@ -600,7 +571,6 @@ export const churchConfigService = {
       // 405 에러면 즉시 church/profile fallback 시도 (백엔드 배포 전까지)
       if (error.response?.status === 405) {
         try {
-          console.log('Using church/profile fallback for GPT config');
           const fallbackResponse = await api.get(getApiUrl('/church/profile'));
           const profile = fallbackResponse.data;
           
@@ -619,7 +589,6 @@ export const churchConfigService = {
       }
       
       // 최종 fallback - 기본값 반환하여 화면이 정상 작동하도록 함
-      console.log('Using default GPT config values');
       return {
         api_key: null,
         database_connected: false,
@@ -956,17 +925,12 @@ export const financialService = {
   getOfferings: async (params?: { 
     skip?: number; 
     limit?: number; 
-    member_id?: number;
-    fund_type?: string;
+    church_id?: number;
     start_date?: string;
     end_date?: string;
   }) => {
     const url = getApiUrl('/financial/offerings');
-    console.log('🌐 Offerings API 호출 URL:', url);
-    console.log('🌐 Offerings API 파라미터:', params);
     const response = await api.get(url, { params });
-    console.log('🌐 Offerings API 원본 response:', response);
-    console.log('🌐 Offerings API response.data:', response.data);
     return response.data;
   },
 

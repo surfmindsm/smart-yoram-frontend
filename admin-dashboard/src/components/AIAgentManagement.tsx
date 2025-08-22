@@ -137,17 +137,16 @@ const AIAgentManagement: React.FC = () => {
 
   const loadAgents = async () => {
     try {
-      console.log('Loading agents from API...');
+      // load agents
       const response = await agentService.getAgents();
       
       // 백엔드 재배포 후 새로운 응답 형식: {success: true, data: {...}}
       if (response.success && response.data) {
-        console.log('New API format detected, processing data...');
+        // processing new API format
         
         // 새 형식에서 agents 배열 추출
         if (Array.isArray(response.data.agents)) {
-          console.log('Successfully loaded agents:', response.data.agents.length);
-          console.log('🔍 첫 번째 에이전트 데이터 구조:', response.data.agents[0]);
+          // agents loaded
           
           // 백엔드 snake_case를 프론트엔드 camelCase로 변환
           const transformedAgents = response.data.agents.map((agent: any) => ({
@@ -163,10 +162,8 @@ const AIAgentManagement: React.FC = () => {
             updatedAt: agent.updated_at ? new Date(agent.updated_at) : new Date()
           }));
           
-          console.log('✅ 변환된 첫 번째 에이전트:', transformedAgents[0]);
           setAgents(transformedAgents);
         } else if (Array.isArray(response.data)) {
-          console.log('Data is direct array:', response.data.length);
           setAgents(response.data);
         } else {
           console.warn('Data contains no agents array:', response.data);
@@ -175,10 +172,8 @@ const AIAgentManagement: React.FC = () => {
       } 
       // 이전 응답 형식 지원 (호환성 유지)
       else if (response && response.agents && Array.isArray(response.agents)) {
-        console.log('Legacy format detected, using agents array');
         setAgents(response.agents);
       } else if (Array.isArray(response)) {
-        console.log('Direct array format detected');
         setAgents(response);
       } else {
         console.warn('Unknown response format:', response);
@@ -192,12 +187,11 @@ const AIAgentManagement: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      console.log('Loading templates from API...');
+      // load templates
       const templateList = await agentService.getAgentTemplates();
       
       // 강력한 타입 검사: 배열인지 확인
       if (Array.isArray(templateList)) {
-        console.log('Successfully loaded templates:', templateList.length);
         setTemplates(templateList);
       } else {
         console.warn('Template API returned non-array response:', templateList);
@@ -206,15 +200,9 @@ const AIAgentManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to load templates:', error);
       
-      // 에러 응답 내용 확인 (디버깅용)
-      if (error.response?.data) {
-        console.error('Error response data:', error.response.data);
-        
-        // validation 에러 객체가 들어오는 경우 방어
-        if (typeof error.response.data === 'object' && 
-            (error.response.data.type || error.response.data.msg)) {
-          console.warn('Detected validation error object, using empty array');
-        }
+      // 에러 응답 내용 확인 (간소화)
+      if (error.response?.data && typeof error.response.data === 'object' && (error.response.data.type || error.response.data.msg)) {
+        console.warn('Detected validation error object, using empty array');
       }
       
       // 어떤 경우든 안전한 빈 배열로 설정
@@ -314,15 +302,12 @@ const AIAgentManagement: React.FC = () => {
       setError(null);
       
       // 1단계: 시스템 프롬프트 자동 생성 (Edge Function 사용)
-      console.log('🤖 시스템 프롬프트 생성 중...');
       const promptResult = await promptService.generateSystemPrompt({
         name: newAgent.name,
         category: newAgent.category,
         description: newAgent.description,
         detailedDescription: newAgent.detailedDescription || newAgent.description
       });
-
-      console.log('✅ 시스템 프롬프트 생성 완료:', promptResult.systemPrompt);
       
       // 2단계: 에이전트 생성
       const agentData = {
@@ -336,8 +321,6 @@ const AIAgentManagement: React.FC = () => {
         template_id: newAgent.isFromTemplate ? newAgent.templateId : undefined,
         church_data_sources: newAgent.churchDataSources
       };
-
-      console.log('🔥 에이전트 생성 중...', agentData);
       const createdAgent = await agentService.createAgent(agentData);
       
       // 로컬 상태 업데이트
@@ -366,7 +349,6 @@ const AIAgentManagement: React.FC = () => {
         }
       });
 
-      console.log('🎉 에이전트 생성 완료!');
       
     } catch (error: any) {
       console.error('Failed to create agent:', error);
@@ -381,16 +363,14 @@ const AIAgentManagement: React.FC = () => {
   };
 
   const toggleAgentStatus = async (id: string) => {
-    console.log('🚨 toggleAgentStatus 함수 호출됨! ID:', id);
+    // toggle agent status
     
     try {
       const agent = agents.find(a => a.id === id);
       if (!agent) {
-        console.log('❌ 에이전트를 찾을 수 없음:', id);
+        console.warn('에이전트를 찾을 수 없음:', id);
         return;
       }
-      
-      console.log(`🔄 에이전트 ${agent.name} 상태 변경 시도: ${agent.isActive ? '비활성' : '활성'}화`);
       
       let response;
       if (agent.isActive) {
@@ -399,17 +379,12 @@ const AIAgentManagement: React.FC = () => {
         response = await agentService.activateAgent(id);
       }
       
-      console.log('✅ API 응답:', response);
-      
       // 백엔드에서 업데이트된 상태를 다시 불러오기
-      console.log('🔄 백엔드에서 최신 에이전트 목록 다시 로드 중...');
       await loadAgents();
-      
-      console.log(`🎉 에이전트 ${agent.name} 상태 변경 완료`);
       
     } catch (error: any) {
       console.error('Failed to toggle agent status:', error);
-      console.error('에러 상세:', error.response?.data || error.message);
+      console.warn('에러 상세:', error.response?.data || error.message);
       
       // API 호출 실패 시 로컬 상태는 변경하지 않음
       if (error.response?.status === 405) {

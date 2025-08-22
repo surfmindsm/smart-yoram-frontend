@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useChatHandlers } from '../hooks/useChatHandlers';
 import { downloadAsTXT, downloadAsMD, downloadAsPDF, downloadAsDOCX, getCurrentChatTitle } from '../utils/fileExportUtils';
@@ -63,13 +63,20 @@ const AIChat: React.FC = () => {
     chatState.loadData();
   }, []);
 
-  // Church ID 1과 Agent ID 1로 새 대화 시작하는 함수
-  const startNewChatWithChurchAndAgent = () => {
-    const churchId = 1;
-    const agentId = 1;
-    console.log(`🚀 Church ID ${churchId}, Agent ID ${agentId}로 새 대화 시작 요청`);
-    chatHandlers.handleStartNewChatWithAgent(churchId, agentId);
-  };
+  // URL 파라미터 기반 자동 새 대화 시작 (에이전트 목록 로드 후 1회만 실행)
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const agentIdParam = params.get('agentId');
+    const churchIdParam = params.get('churchId');
+    // 에이전트 목록이 로드된 상태에서만 시도
+    if (agentIdParam && chatState.agents && chatState.agents.length > 0) {
+      const churchIdNum = churchIdParam ? parseInt(churchIdParam, 10) : 1;
+      chatHandlers.handleStartNewChatWithAgent(churchIdNum, agentIdParam);
+      autoStartedRef.current = true;
+    }
+  }, [chatState.agents, chatHandlers]);
 
   return (
     <div className="h-[calc(100vh-7rem)] bg-slate-50 overflow-hidden">
@@ -133,12 +140,10 @@ const AIChat: React.FC = () => {
           
           // 전체 삭제인 경우
           if (modalChatId === 'ALL_CHATS') {
-            console.log('🗑️ 전체 삭제 확인됨');
             await chatState.executeDeleteAllChats();
           } 
           // 개별 채팅 삭제인 경우
           else {
-            console.log('🗑️ 개별 채팅 삭제 확인됨');
             chatHandlers.handleDeleteConfirmModal();
           }
           

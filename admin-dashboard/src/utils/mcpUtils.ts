@@ -39,14 +39,7 @@ export const saveMessageViaMCP = async (
   agentId?: string | number
 ): Promise<{ success: boolean }> => {
   try {
-    console.log('💾 MCP로 메시지 저장 상세:', { 
-      chatHistoryId, 
-      role, 
-      contentLength: content.length,
-      contentPreview: content.substring(0, 100) + '...',
-      tokensUsed,
-      agentId
-    });
+    // save message via MCP/back-end (logs reduced)
     
     // chat_history_id를 정수로 변환
     let numericChatId: number;
@@ -68,19 +61,12 @@ export const saveMessageViaMCP = async (
     const query = 'INSERT INTO chat_messages (chat_history_id, content, role, tokens_used, created_at) VALUES ($1, $2, $3, $4, NOW())';
     const params = [numericChatId, content, role, tokensUsed || null];
     
-    console.log('🔍 MCP SQL 실행:', { query, params });
+    // execute SQL via MCP (server-side)
 
     // 백엔드 API로 메시지만 저장 (AI 응답 생성 차단)
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
       const token = localStorage.getItem('token');
-      
-      console.log('📡 메시지만 저장하는 백엔드 API 호출:', {
-        url: `${apiUrl}/chat/messages`,
-        chatHistoryId: numericChatId,
-        role,
-        contentLength: content.length
-      });
       
       const response = await fetch(`${apiUrl}/chat/messages`, {
         method: 'POST',
@@ -102,8 +88,7 @@ export const saveMessageViaMCP = async (
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ 백엔드 메시지 저장 성공:', result);
+        // saved successfully
         return { success: true };
       } else {
         const errorText = await response.text();
@@ -125,7 +110,7 @@ export const saveMessageViaMCP = async (
         created_at: new Date().toISOString()
       });
       localStorage.setItem(localKey, JSON.stringify(existing));
-      console.log('💾 로컬 스토리지에 메시지 저장 완료');
+      // saved to local storage (fallback)
       return { success: true };
     } catch (localError) {
       console.warn('⚠️ 로컬 스토리지 저장 실패:', localError);
@@ -147,13 +132,11 @@ export const loadMessagesViaMCP = async (
   fallbackMessages: ChatMessage[] = []
 ): Promise<ChatMessage[]> => {
   try {
-    console.log('📚 MCP로 메시지 조회:', chatHistoryId);
+    // load messages via MCP/back-end (logs reduced)
     
     const query = 'SELECT id, content, role, tokens_used, created_at FROM chat_messages WHERE chat_history_id = $1 ORDER BY created_at ASC';
     const params = [chatHistoryId];
     
-    console.log('🔍 MCP SQL 실행:', { query, params });
-
     // 🔥 실제 Supabase MCP 서버를 통한 DB 조회 
     try {
       // 백엔드 API를 통해 MCP 호출 (서버사이드에서 MCP 실행)
@@ -169,7 +152,6 @@ export const loadMessagesViaMCP = async (
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ MCP 조회 성공:', result);
         
         if (result.messages && Array.isArray(result.messages)) {
           // DB 결과를 ChatMessage 형식으로 변환
@@ -180,8 +162,6 @@ export const loadMessagesViaMCP = async (
             timestamp: new Date(row.created_at),
             tokensUsed: row.tokens_used
           }));
-          
-          console.log('📚 MCP 히스토리 변환 완료:', messages.length, '개 메시지');
           return messages;
         }
       } else {
@@ -193,8 +173,6 @@ export const loadMessagesViaMCP = async (
 
     // 폴백: 직접 백엔드 MCP API 호출 시도
     try {
-      console.log('🔄 직접 백엔드 MCP API 호출 시도...');
-      
       const response = await fetch('/api/v1/mcp/load-messages', {
         method: 'POST',
         headers: {
@@ -217,7 +195,6 @@ export const loadMessagesViaMCP = async (
             tokensUsed: row.tokens_used
           }));
           
-          console.log('✅ 직접 MCP API 호출 성공:', messages.length, '개 메시지');
           return messages;
         }
       }
@@ -241,7 +218,6 @@ export const loadMessagesViaMCP = async (
             tokensUsed: msg.tokens_used || msg.tokensUsed
           }));
           
-          console.log('💾 로컬 스토리지에서 메시지 복구:', messages.length, '개');
           return messages;
         }
       }
@@ -250,7 +226,6 @@ export const loadMessagesViaMCP = async (
     }
     
     // MCP 실패 시 폴백으로 현재 세션 메시지 사용
-    console.log('🔄 폴백 메시지 사용:', fallbackMessages.length, '개');
     return fallbackMessages;
     
   } catch (error) {
@@ -258,7 +233,6 @@ export const loadMessagesViaMCP = async (
     
     // 🔄 임시 해결책: fallbackMessages가 비어있으면 현재 대화 시도
     if (fallbackMessages.length === 0) {
-      console.log('🔍 대화 캐시에서 히스토리 검색 시도...');
       // 현재는 빈 배열 반환하여 현재 세션 메시지 사용하도록 함
       return [];
     }
@@ -276,7 +250,7 @@ export const queryDatabaseViaMCP = async (
   churchId: number = 1
 ): Promise<DatabaseQueryResult> => {
   try {
-    console.log('🔍 스마트 DB 조회 시작:', userQuestion);
+    // smart DB query start (logs reduced)
     
     // 질문 분석 및 쿼리 생성
     const queryInfo = analyzeQuestionAndBuildQuery(userQuestion, churchId);
@@ -289,7 +263,7 @@ export const queryDatabaseViaMCP = async (
       };
     }
     
-    console.log('📝 생성된 쿼리:', queryInfo.query);
+    // query built
     
     // 간단한 로컬 처리 (Edge Functions 대신)
     try {

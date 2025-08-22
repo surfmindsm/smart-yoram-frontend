@@ -154,12 +154,7 @@ const DonationManagement: React.FC = () => {
 
   // 교회 정보 자동 입력
   useEffect(() => {
-    console.log('🏛️ 교회 정보 자동 입력 useEffect 실행:', churchInfo);
     if (churchInfo) {
-      console.log('✅ 교회 정보로 영수증 폼 자동 채우기:');
-      console.log('- 교회명:', churchInfo.name);
-      console.log('- 교회주소:', churchInfo.address);
-      console.log('- 사업자등록번호:', churchInfo.business_registration_number);
       
       setReceiptInfo(prev => ({
         ...prev,
@@ -168,7 +163,7 @@ const DonationManagement: React.FC = () => {
         churchRegNo: churchInfo.business_registration_number || ''
       }));
     } else {
-      console.log('⚠️ 교회 정보가 없어서 자동 입력 불가');
+      // 교회 정보가 없을 때는 조용히 패스
     }
   }, [churchInfo]);
 
@@ -255,17 +250,11 @@ const DonationManagement: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 API 호출 시작...');
-
       // API 병렬 호출로 로딩 시간 단축 (donors API 제거)
       let offeringsResponse, membersResponse, receiptsResponse;
       try {
         [offeringsResponse, membersResponse, receiptsResponse] = await Promise.all([
-          financialService.getOfferings().then(res => {
-            console.log('🎯 Offerings API 성공 - 상세 응답:', res);
-            console.log('🎯 Offerings API 응답 타입:', typeof res, '배열?', Array.isArray(res));
-            return res;
-          }).catch(err => {
+          financialService.getOfferings().catch(err => {
             console.error('❌ Offerings API 오류:', err);
             console.error('❌ Offerings API 오류 상세:', err.response?.data || err.message);
             return [];
@@ -290,8 +279,6 @@ const DonationManagement: React.FC = () => {
       let churchData: any = null;
       try {
         churchData = await churchService.getMyChurch();
-        console.log('✅ 교회 정보 로드 성공:', churchData);
-        console.log('🏛️ 교회 ID 확인:', churchData?.id);
         setChurchInfo(churchData);
         
         // 교회 정보가 로드되면 즉시 영수증 폼에 반영
@@ -302,50 +289,27 @@ const DonationManagement: React.FC = () => {
             churchAddress: churchData.address || '',
             churchRegNo: churchData.business_registration_number || ''
           }));
-          console.log('🏛️ 교회 정보 즉시 적용 완료');
         }
       } catch (churchError) {
         console.warn('⚠️ 교회 정보 로드 실패 (다른 기능은 정상 동작):', churchError);
         // 교회 정보 실패는 무시하고 계속 진행
       }
-
-      console.log('📈 원본 응답 데이터:');
-      console.log('- offeringsResponse:', offeringsResponse);
-      console.log('- offeringsResponse 타입:', typeof offeringsResponse, '길이:', Array.isArray(offeringsResponse) ? offeringsResponse.length : 'N/A');
-      console.log('- membersResponse 전체:', membersResponse);
-      console.log('- membersResponse 타입:', typeof membersResponse, '길이:', Array.isArray(membersResponse) ? membersResponse.length : 'N/A');
-      console.log('- receiptsResponse:', receiptsResponse);
-      console.log('- receiptsResponse 타입:', typeof receiptsResponse, '길이:', Array.isArray(receiptsResponse) ? receiptsResponse.length : 'N/A');
-
       // 응답 정규화 - API별로 다른 구조 확인
-      console.log('🔍 응답 구조 분석:');
-      console.log('- offeringsResponse 구조:', offeringsResponse);
-      console.log('- offeringsResponse.offerings 존재?', !!offeringsResponse?.offerings);
-      console.log('- offeringsResponse가 배열?', Array.isArray(offeringsResponse));
       
       // offerings API 응답이 배열인지 객체인지 확인
       let offeringsArray = [];
       if (Array.isArray(offeringsResponse)) {
         offeringsArray = offeringsResponse;
-        console.log('✅ offerings: 배열 직접 반환');
       } else if (offeringsResponse?.offerings) {
         offeringsArray = offeringsResponse.offerings;
-        console.log('✅ offerings: 객체.offerings 사용');
       } else if (offeringsResponse?.data) {
         offeringsArray = offeringsResponse.data;
-        console.log('✅ offerings: 객체.data 사용');
       } else {
-        console.log('⚠️ offerings: 예상하지 못한 구조, 빈 배열 사용');
+        // 예상치 못한 구조면 빈 배열 사용
       }
       
       const membersArray = membersResponse || []; // 배열 직접 반환
       const receiptsArray = receiptsResponse?.receipts || receiptsResponse || [];
-
-      console.log('📋 정규화된 배열들:');
-      console.log('- offeringsArray 길이:', offeringsArray.length);
-      console.log('- membersArray 길이:', membersArray.length);
-      console.log('- receiptsArray 길이:', receiptsArray.length);
-      console.log('- membersArray 내용:', membersArray);
 
       // 실제 API 데이터만 사용
       setMembers(membersArray);
@@ -384,7 +348,6 @@ const DonationManagement: React.FC = () => {
         setDonations([]);
       }
 
-      console.log('✅ 데이터 로딩 완료');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
       console.error('❌ API 호출 실패:', error);
@@ -743,12 +706,7 @@ const DonationManagement: React.FC = () => {
         church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
         issue_no: issueNo
       };
-
-      console.log('영수증 발행 요청 데이터:', receiptData);
-
       const result = await financialService.createReceipt(receiptData);
-      
-      console.log('영수증 발행 성공:', result);
       
       // PDF 생성 및 다운로드
       generateReceiptPDF(selectedMember, donorDonations, selectedYear, result.issue_no || issueNo, receiptInfo);
