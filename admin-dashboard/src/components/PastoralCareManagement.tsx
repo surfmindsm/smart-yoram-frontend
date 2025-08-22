@@ -25,7 +25,13 @@ import {
   Phone,
   Edit,
   Plus,
-  Printer
+  Printer,
+  MapPin,
+  Navigation,
+  Target,
+  Map,
+  Zap,
+  Info
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { pastoralCareService } from '../services/api';
@@ -57,6 +63,13 @@ interface PastoralCareRequest {
   createdAt: string;
   updatedAt?: string;
   completedAt?: string;
+  // 🆕 새로 추가된 위치 관련 필드들
+  address?: string;          // 방문 주소
+  latitude?: number;         // 위도
+  longitude?: number;        // 경도
+  contactInfo?: string;      // 추가 연락처 정보
+  isUrgent?: boolean;        // 긴급 여부
+  distanceKm?: number;       // 거리 (검색 결과용)
 }
 
 interface PastoralCareRecord {
@@ -76,6 +89,12 @@ interface PastoralCareRecord {
   completionNotes?: string;
   completedAt?: string;
   createdAt: string;
+  // 🆕 위치 관련 필드 추가 (선택적)
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  contactInfo?: string;
+  isUrgent?: boolean;
 }
 
 const PastoralCareManagement: React.FC = () => {
@@ -102,6 +121,14 @@ const PastoralCareManagement: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<PastoralCareRecord | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
+  
+  // 🆕 위치 관련 상태
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [searchLocation, setSearchLocation] = useState({ latitude: 37.5665, longitude: 126.9780, radius_km: 5.0 });
+  const [locationSearchResults, setLocationSearchResults] = useState<PastoralCareRequest[]>([]);
+  const [urgentFilter, setUrgentFilter] = useState<string>('all');
+  const [hasLocationFilter, setHasLocationFilter] = useState<string>('all');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [assignedPastorId, setAssignedPastorId] = useState('');
@@ -172,7 +199,14 @@ const PastoralCareManagement: React.FC = () => {
         adminNotes: item.admin_notes,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
-        completedAt: item.completed_at
+        completedAt: item.completed_at,
+        // 🆕 새로 추가된 위치 관련 필드들
+        address: item.address,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        contactInfo: item.contact_info,
+        isUrgent: item.is_urgent || false,
+        distanceKm: item.distance_km  // 위치 검색 결과에서만 사용
       }));
       
       setRequests(transformedRequests);
@@ -228,7 +262,13 @@ const PastoralCareManagement: React.FC = () => {
         scheduledTime: item.scheduled_time || '미지정',
         completionNotes: item.completion_notes,
         completedAt: item.completed_at,
-        createdAt: item.created_at
+        createdAt: item.created_at,
+        // 🆕 위치 관련 필드 추가
+        address: item.address,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        contactInfo: item.contact_info,
+        isUrgent: item.is_urgent || false
       }));
       
       setCompletedRecords(transformedRecords);
@@ -292,14 +332,210 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
+  // 🆕 현재 위치 가져오기
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setSearchLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            radius_km: 5.0
+          });
+        },
+        (error) => {
+          console.error('위치 정보 획득 실패:', error);
+          alert('위치 정보를 가져올 수 없습니다. 기본 위치(서울 시청)를 사용합니다.');
+        }
+      );
+    } else {
+      alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+    }
+  };
+  
+  // 🆕 거리 표시 포맷
+  const formatDistance = (distance?: number) => {
+    if (!distance) return '';
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
+  };
+  
+  // 🆕 위치 기반 검색 기능
+  const loadLocationBasedRequests = async () => {
+    try {
+      setLoading(true);
+      
+      // 위치 기반 검색 API 호출 (가상의 API - 실제로는 pastoralCareService에 추가 필요)
+      const locationSearchUrl = '/api/v1/pastoral-care/admin/requests/search/location';
+      const response = await fetch(locationSearchUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(searchLocation)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLocationSearchResults(data || []);
+      } else {
+        console.error('위치 기반 검색 실패:', response.status);
+        setLocationSearchResults([]);
+      }
+    } catch (error) {
+      console.error('위치 기반 검색 오류:', error);
+      setLocationSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 🆕 긴급 요청 로드 기능
+  const loadUrgentRequests = async () => {
+    try {
+      setLoading(true);
+      
+      // 긴급 요청 전용 API 호출
+      const urgentUrl = '/api/v1/pastoral-care/admin/requests/urgent';
+      const response = await fetch(urgentUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const urgentData = await response.json();
+        
+        // 기존 요청 목록에서 긴급 요청만 필터링
+        const transformedUrgentRequests = urgentData.map((item: any) => ({
+          id: item.id,
+          churchId: item.church_id,
+          memberId: item.member_id,
+          requesterName: item.requester_name,
+          requesterPhone: item.requester_phone,
+          requestType: item.request_type,
+          requestContent: item.request_content,
+          preferredDate: item.preferred_date,
+          preferredTimeStart: item.preferred_time_start,
+          preferredTimeEnd: item.preferred_time_end,
+          status: item.status,
+          priority: item.priority || 'normal',
+          assignedPastorId: item.assigned_pastor_id,
+          assignedPastor: item.assigned_pastor_id ? {
+            id: item.assigned_pastor_id,
+            name: item.assigned_pastor?.name || '담당자 미지정',
+            phone: item.assigned_pastor?.phone || ''
+          } : undefined,
+          scheduledDate: item.scheduled_date,
+          scheduledTime: item.scheduled_time,
+          completionNotes: item.completion_notes,
+          adminNotes: item.admin_notes,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          completedAt: item.completed_at,
+          address: item.address,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          contactInfo: item.contact_info,
+          isUrgent: item.is_urgent || false
+        }));
+        
+        setRequests(transformedUrgentRequests);
+      } else {
+        console.error('긴급 요청 로드 실패:', response.status);
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('긴급 요청 로드 오류:', error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 🆕 위치 정보 있는 요청 로드
+  const loadRequestsWithLocation = async () => {
+    try {
+      setLoading(true);
+      
+      const withLocationUrl = '/api/v1/pastoral-care/admin/requests/with-location';
+      const response = await fetch(withLocationUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const locationData = await response.json();
+        
+        const transformedLocationRequests = locationData.map((item: any) => ({
+          id: item.id,
+          churchId: item.church_id,
+          memberId: item.member_id,
+          requesterName: item.requester_name,
+          requesterPhone: item.requester_phone,
+          requestType: item.request_type,
+          requestContent: item.request_content,
+          preferredDate: item.preferred_date,
+          preferredTimeStart: item.preferred_time_start,
+          preferredTimeEnd: item.preferred_time_end,
+          status: item.status,
+          priority: item.priority || 'normal',
+          assignedPastorId: item.assigned_pastor_id,
+          assignedPastor: item.assigned_pastor_id ? {
+            id: item.assigned_pastor_id,
+            name: item.assigned_pastor?.name || '담당자 미지정',
+            phone: item.assigned_pastor?.phone || ''
+          } : undefined,
+          scheduledDate: item.scheduled_date,
+          scheduledTime: item.scheduled_time,
+          completionNotes: item.completion_notes,
+          adminNotes: item.admin_notes,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          completedAt: item.completed_at,
+          address: item.address,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          contactInfo: item.contact_info,
+          isUrgent: item.is_urgent || false
+        }));
+        
+        setRequests(transformedLocationRequests);
+      } else {
+        console.error('위치 정보 있는 요청 로드 실패:', response.status);
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('위치 정보 있는 요청 로드 오류:', error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.requestContent.toLowerCase().includes(searchTerm.toLowerCase());
+                         request.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (request.address && request.address.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
     const matchesType = typeFilter === 'all' || request.requestType === typeFilter;
+    // 🆕 긴급 요청 필터
+    const matchesUrgent = urgentFilter === 'all' || 
+                         (urgentFilter === 'urgent' && request.isUrgent) ||
+                         (urgentFilter === 'normal' && !request.isUrgent);
+    // 🆕 위치 정보 필터
+    const matchesLocation = hasLocationFilter === 'all' ||
+                           (hasLocationFilter === 'with_location' && request.address && request.latitude && request.longitude) ||
+                           (hasLocationFilter === 'without_location' && (!request.address || !request.latitude || !request.longitude));
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesType;
+    return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesUrgent && matchesLocation;
   });
 
   const filteredRecords = completedRecords.filter(record => {
@@ -464,7 +700,13 @@ const PastoralCareManagement: React.FC = () => {
         assignedPastor: selectedRequest.assignedPastor,
         completionNotes: completionNotes,
         completedAt: new Date().toISOString(),
-        createdAt: selectedRequest.createdAt
+        createdAt: selectedRequest.createdAt,
+        // 🆕 위치 관련 정보 포함
+        address: selectedRequest.address,
+        latitude: selectedRequest.latitude,
+        longitude: selectedRequest.longitude,
+        contactInfo: selectedRequest.contactInfo,
+        isUrgent: selectedRequest.isUrgent
       };
 
       setCompletedRecords(prev => [completedRecord, ...prev]);
@@ -668,7 +910,7 @@ const PastoralCareManagement: React.FC = () => {
       {activeTab === 'requests' && (
         <>
           {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -678,6 +920,19 @@ const PastoralCareManagement: React.FC = () => {
                   </p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
+              </div>
+            </div>
+            
+            {/* 🆕 긴급 요청 통계 추가 */}
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">긴급 요청</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {requests.filter(r => r.isUrgent).length}
+                  </p>
+                </div>
+                <Zap className="h-8 w-8 text-red-600" />
               </div>
             </div>
             
@@ -795,7 +1050,116 @@ const PastoralCareManagement: React.FC = () => {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-200">
+          <div className="space-y-4 pt-4 border-t border-slate-200">
+            {/* 🆕 위치 기반 검색 섽션 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-blue-800 flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  위치 기반 검색
+                </h4>
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={getCurrentLocation}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    <Navigation className="h-3 w-3 mr-1" />
+                    현재 위치
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={loadLocationBasedRequests}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Target className="h-3 w-3 mr-1" />
+                    검색
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">위도</label>
+                  <input
+                    type="number"
+                    step="0.0000001"
+                    value={searchLocation.latitude}
+                    onChange={(e) => setSearchLocation({...searchLocation, latitude: parseFloat(e.target.value) || 0})}
+                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="37.5665"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">경도</label>
+                  <input
+                    type="number"
+                    step="0.0000001"
+                    value={searchLocation.longitude}
+                    onChange={(e) => setSearchLocation({...searchLocation, longitude: parseFloat(e.target.value) || 0})}
+                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="126.9780"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">반경 (km)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="50"
+                    value={searchLocation.radius_km}
+                    onChange={(e) => setSearchLocation({...searchLocation, radius_km: parseFloat(e.target.value) || 5.0})}
+                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="5.0"
+                  />
+                </div>
+              </div>
+              
+              {locationSearchResults.length > 0 && (
+                <div className="mt-3 text-xs text-blue-700">
+                  검색 결과: {locationSearchResults.length}건 (거리순 정렬)
+                </div>
+              )}
+            </div>
+            
+            {/* 🆕 빠른 액션 버튼들 */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-800 mb-3">빠른 액션</h4>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadUrgentRequests}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  긴급 요청만 보기
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadRequestsWithLocation}
+                  className="text-green-600 border-green-300 hover:bg-green-50"
+                >
+                  <MapPin className="h-3 w-3 mr-1" />
+                  위치 정보 있는 요청
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadPastoralCareRequests}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                >
+                  <User className="h-3 w-3 mr-1" />
+                  전체 요청 다시 로드
+                </Button>
+              </div>
+            </div>
+            
+            {/* 기존 필터들 */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">상태</label>
               <select
@@ -841,6 +1205,7 @@ const PastoralCareManagement: React.FC = () => {
                 <option value="counseling">상담</option>
               </select>
             </div>
+            </div>
           </div>
         )}
       </div>
@@ -860,6 +1225,13 @@ const PastoralCareManagement: React.FC = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   우선순위
+                </th>
+                {/* 🆕 위치 정보 열 추가 */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    위치/거리
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   상태
@@ -893,14 +1265,51 @@ const PastoralCareManagement: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-slate-900">
-                      {getRequestTypeText(request.requestType)}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-slate-900">
+                        {getRequestTypeText(request.requestType)}
+                      </span>
+                      {/* 🆕 긴급 요청 표시 */}
+                      {request.isUrgent && (
+                        <Badge className="bg-red-100 text-red-800 text-xs px-1 py-0">
+                          <Zap className="h-3 w-3 mr-1" />
+                          긴급
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={cn("text-sm font-medium", getPriorityColor(request.priority))}>
                       {getPriorityText(request.priority)}
                     </span>
+                  </td>
+                  {/* 🆕 위치 정보 열 */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      {request.address ? (
+                        <>
+                          <div className="flex items-center text-sm text-slate-900">
+                            <MapPin className="h-3 w-3 mr-1 text-slate-400" />
+                            <span className="truncate max-w-[120px]" title={request.address}>
+                              {request.address}
+                            </span>
+                          </div>
+                          {request.distanceKm && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              {formatDistance(request.distanceKm)} 거리
+                            </div>
+                          )}
+                          {request.contactInfo && (
+                            <div className="text-xs text-slate-500 flex items-center" title={request.contactInfo}>
+                              <Info className="h-3 w-3 mr-1" />
+                              추가연락처
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400">위치 미등록</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={cn(
@@ -1118,6 +1527,13 @@ const PastoralCareManagement: React.FC = () => {
                       <span className="text-sm text-slate-600">
                         {getRequestTypeText(record.requestType)}
                       </span>
+                      {/* 🆕 긴급 요청 표시 */}
+                      {(record as any).isUrgent && (
+                        <Badge className="bg-red-100 text-red-800 text-xs px-1 py-0">
+                          <Zap className="h-3 w-3 mr-1" />
+                          긴급
+                        </Badge>
+                      )}
                     </div>
                     
                     <div className="flex items-center space-x-4 text-sm text-slate-500 mb-3">
@@ -1138,6 +1554,32 @@ const PastoralCareManagement: React.FC = () => {
                     <p className="text-slate-600 text-sm mb-3 line-clamp-2">
                       <span className="font-medium">신청 내용:</span> {record.requestContent}
                     </p>
+                    
+                    {/* 🆕 위치 정보 확장 표시 */}
+                    {((record as any).address || (record as any).contactInfo) && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                        <div className="space-y-2">
+                          {(record as any).address && (
+                            <div className="flex items-start space-x-2 text-sm">
+                              <MapPin className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="font-medium text-blue-800">방문 주소:</span>
+                                <p className="text-blue-700 mt-1">{(record as any).address}</p>
+                              </div>
+                            </div>
+                          )}
+                          {(record as any).contactInfo && (
+                            <div className="flex items-start space-x-2 text-sm">
+                              <Phone className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="font-medium text-blue-800">추가 연락처:</span>
+                                <p className="text-blue-700 mt-1">{(record as any).contactInfo}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {record.completionNotes && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
@@ -1224,6 +1666,59 @@ const PastoralCareManagement: React.FC = () => {
                   {selectedRequest.preferredTimeStart && selectedRequest.preferredTimeEnd && (
                     <p><span className="font-medium">시간:</span> {selectedRequest.preferredTimeStart} - {selectedRequest.preferredTimeEnd}</p>
                   )}
+                </div>
+              )}
+
+              {/* 🆕 위치 정보 섹션 개선 */}
+              {(selectedRequest.address || selectedRequest.contactInfo || selectedRequest.isUrgent) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    위치 및 추가 정보
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedRequest.address && (
+                      <div className="bg-white rounded-md p-3">
+                        <div className="flex items-start space-x-3">
+                          <MapPin className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-800 mb-1">방문 주소</p>
+                            <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.address}</p>
+                            {selectedRequest.latitude && selectedRequest.longitude && (
+                              <div className="mt-2 text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                                📍 좌표: {typeof selectedRequest.latitude === 'number' ? selectedRequest.latitude.toFixed(6) : selectedRequest.latitude}, {typeof selectedRequest.longitude === 'number' ? selectedRequest.longitude.toFixed(6) : selectedRequest.longitude}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {selectedRequest.contactInfo && (
+                      <div className="bg-white rounded-md p-3">
+                        <div className="flex items-start space-x-3">
+                          <Phone className="h-5 w-5 text-green-600 mt-1 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 mb-1">추가 연락처 정보</p>
+                            <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.contactInfo}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRequest.isUrgent && (
+                        <div className="flex items-center space-x-2 bg-red-100 text-red-800 px-3 py-1 rounded-full">
+                          <Zap className="h-4 w-4" />
+                          <span className="text-sm font-medium">긴급 요청</span>
+                        </div>
+                      )}
+                      {selectedRequest.distanceKm && (
+                        <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                          <Target className="h-4 w-4" />
+                          <span className="text-sm font-medium">거리: {formatDistance(selectedRequest.distanceKm)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1765,7 +2260,7 @@ const PastoralCareManagement: React.FC = () => {
             
             <div className="p-6 space-y-6">
               {/* 기본 정보 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">신청자</label>
                   <p className="text-slate-900">{selectedRecord.requesterName}</p>
@@ -1780,9 +2275,17 @@ const PastoralCareManagement: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">우선순위</label>
-                  <span className={cn("px-2 py-1 text-xs font-medium rounded", getPriorityColor(selectedRecord.priority))}>
-                    {getPriorityText(selectedRecord.priority)}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className={cn("px-2 py-1 text-xs font-medium rounded", getPriorityColor(selectedRecord.priority))}>
+                      {getPriorityText(selectedRecord.priority)}
+                    </span>
+                    {selectedRecord.isUrgent && (
+                      <Badge className="bg-red-100 text-red-800 text-xs px-1 py-0">
+                        <Zap className="h-3 w-3 mr-1" />
+                        긴급
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">심방일</label>
@@ -1795,12 +2298,46 @@ const PastoralCareManagement: React.FC = () => {
               </div>
 
               {/* 신청 내용 */}
-              <div>
+              <div className="mb-6">
                 <label className="block text-sm font-medium text-slate-700 mb-2">신청 내용</label>
                 <div className="bg-slate-50 p-3 rounded-md">
-                  <p className="text-slate-700">{selectedRecord.requestContent}</p>
+                  <p className="text-slate-700 leading-relaxed">{selectedRecord.requestContent}</p>
                 </div>
               </div>
+              
+              {/* 🆕 위치 정보 섹션 */}
+              {(selectedRecord.address || selectedRecord.contactInfo) && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    위치 및 연락처 정보
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedRecord.address && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-blue-800 mb-1">방문 주소</p>
+                            <p className="text-slate-900 leading-relaxed">{selectedRecord.address}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {selectedRecord.contactInfo && (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-start space-x-2">
+                          <Phone className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-green-800 mb-1">추가 연락처 정보</p>
+                            <p className="text-slate-900 leading-relaxed">{selectedRecord.contactInfo}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* 심방 일지 편집 */}
               <div>
