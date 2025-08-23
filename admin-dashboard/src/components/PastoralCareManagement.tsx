@@ -143,6 +143,17 @@ const PastoralCareManagement: React.FC = () => {
       loadCompletedRecords();
     }
   }, [activeTab, statusFilter, priorityFilter, typeFilter]);
+  
+  // 초기 로드 시 모든 데이터 로드 (카운트 업데이트를 위해)
+  useEffect(() => {
+    const loadAllData = async () => {
+      await Promise.all([
+        loadPastoralCareRequests(),
+        loadCompletedRecords()
+      ]);
+    };
+    loadAllData();
+  }, []);
 
   const loadPastoralCareRequests = async () => {
     try {
@@ -714,6 +725,9 @@ const PastoralCareManagement: React.FC = () => {
       // 요청 목록에서 완료된 항목 제거
       setRequests(prev => prev.filter(req => req.id !== selectedRequest.id));
       
+      // 탭 바 카운트 즉시 업데이트를 위해 상태 강제 업데이트
+      setActiveTab(prev => prev); // 리렌더링 트리거
+      
       setShowCompletionModal(false);
       setCompletionNotes('');
       alert('심방이 완료되었고 기록이 저장되었습니다.');
@@ -776,6 +790,9 @@ const PastoralCareManagement: React.FC = () => {
           ? { ...record, completionNotes: editingNotes }
           : record
       ));
+      
+      // 선택된 기록 업데이트
+      setSelectedRecord(prev => prev ? { ...prev, completionNotes: editingNotes } : null);
 
       setShowRecordDetailModal(false);
       
@@ -862,12 +879,12 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 탭 네비게이션 개선 */}
-      <div className="bg-white rounded-lg border border-slate-200 p-1 mb-6 flex">
+      {/* 탭 네비게이션 좌측 정렬로 변경 */}
+      <div className="bg-white rounded-lg border border-slate-200 p-1 mb-6 inline-flex">
           <button
             onClick={() => setActiveTab('requests')}
             className={cn(
-              "flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2",
+              "py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center space-x-2",
               activeTab === 'requests'
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
@@ -876,7 +893,7 @@ const PastoralCareManagement: React.FC = () => {
             <Users className="h-4 w-4" />
             <span>심방 신청</span>
             <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-medium",
+              "px-2 py-0.5 rounded-full text-xs font-medium ml-1",
               activeTab === 'requests' 
                 ? "bg-blue-500 text-white" 
                 : "bg-slate-200 text-slate-600"
@@ -887,7 +904,7 @@ const PastoralCareManagement: React.FC = () => {
           <button
             onClick={() => setActiveTab('records')}
             className={cn(
-              "flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-2",
+              "py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center space-x-2",
               activeTab === 'records'
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
@@ -896,7 +913,7 @@ const PastoralCareManagement: React.FC = () => {
             <FileText className="h-4 w-4" />
             <span>심방 기록</span>
             <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-medium",
+              "px-2 py-0.5 rounded-full text-xs font-medium ml-1",
               activeTab === 'records' 
                 ? "bg-blue-500 text-white" 
                 : "bg-slate-200 text-slate-600"
