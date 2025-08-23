@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import {
   Users,
@@ -15,50 +14,63 @@ import {
   Smartphone,
   MessageCircle
 } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import StatCard from './dashboard/StatCard';
+import QuickActionCard from './dashboard/QuickActionCard';
 
-const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState([
-    { title: '전체 교인', value: '0', Icon: Users, color: 'bg-blue-500' },
-    { title: '오늘 출석', value: '0', Icon: CheckCircle, color: 'bg-green-500' },
-    { title: '이번 주 새가족', value: '0', Icon: UserPlus, color: 'bg-purple-500' },
-    { title: '활성 사용자', value: '0', Icon: User, color: 'bg-yellow-500' },
-  ]);
-
+const Dashboard = React.memo(() => {
+  const [dashboardData, setDashboardData] = useState({
+    totalMembers: 0,
+    todayAttendance: 0,
+    newMembersThisWeek: 0,
+    activeUsers: 1
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      // Fetch members count
-      const membersResponse = await api.get('/members/');
-      const totalMembers = membersResponse.data.length;
+      setError(null);
       
-      // Fetch today's attendance
+      // 병렬로 API 호출하여 성능 개선
       const today = new Date().toISOString().split('T')[0];
-      const attendanceResponse = await api.get(`/attendances/?start_date=${today}&end_date=${today}`);
-      const todayAttendance = attendanceResponse.data.filter((a: any) => a.is_present).length;
-
-      // Update stats
-      setStats([
-        { title: '전체 교인', value: totalMembers.toString(), Icon: Users, color: 'bg-blue-500' },
-        { title: '오늘 출석', value: todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' },
-        { title: '이번 주 새가족', value: '0', Icon: UserPlus, color: 'bg-purple-500' },
-        { title: '활성 사용자', value: '1', Icon: User, color: 'bg-yellow-500' },
+      const [membersResponse, attendanceResponse] = await Promise.all([
+        api.get('/members/').catch(() => ({ data: [] })),
+        api.get(`/attendances/?start_date=${today}&end_date=${today}`).catch(() => ({ data: [] }))
       ]);
+      
+      const totalMembers = membersResponse.data.length || 0;
+      const todayAttendance = attendanceResponse.data?.filter((a: any) => a.is_present)?.length || 0;
+
+      setDashboardData({
+        totalMembers,
+        todayAttendance,
+        newMembersThisWeek: 0, // TODO: 실제 로직 구현
+        activeUsers: 1
+      });
     } catch (error) {
       console.error('대시보드 데이터 조회 실패:', error);
+      setError('데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const quickActions = [
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // stats 배열을 useMemo로 최적화
+  const stats = useMemo(() => [
+    { title: '전체 교인', value: dashboardData.totalMembers.toString(), Icon: Users, color: 'bg-blue-500' },
+    { title: '오늘 출석', value: dashboardData.todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' },
+    { title: '이번 주 새가족', value: dashboardData.newMembersThisWeek.toString(), Icon: UserPlus, color: 'bg-purple-500' },
+    { title: '활성 사용자', value: dashboardData.activeUsers.toString(), Icon: User, color: 'bg-yellow-500' },
+  ], [dashboardData]);
+
+  // quickActions를 useMemo로 최적화 (정적 데이터이므로)
+  const quickActions = useMemo(() => [
     {
       title: '교인 등록',
       description: '새로운 교인을 등록합니다',
@@ -101,7 +113,32 @@ const Dashboard: React.FC = () => {
       link: '/attendance',
       color: 'bg-red-500'
     }
-  ];
+  ], []);
+
+  // 에러가 있으면 에러 메시지 표시
+  if (error) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">대시보드</h2>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-destructive mb-4">{error}</p>
+              <button
+                onClick={fetchDashboardData}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                disabled={loading}
+              >
+                {loading ? '다시 로딩 중...' : '다시 시도'}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -111,50 +148,32 @@ const Dashboard: React.FC = () => {
       
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => {
-          const IconComponent = stat.Icon;
-          return (
-            <Card key={index} className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className={cn("p-3 rounded-lg", stat.color.replace('bg-', 'bg-') + '/10')}>
-                    <IconComponent className={cn("h-6 w-6", stat.color.replace('bg-', 'text-'))} />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {stats.map((stat, index) => (
+          <StatCard
+            key={`stat-${index}`}
+            title={stat.title}
+            value={stat.value}
+            Icon={stat.Icon}
+            color={stat.color}
+            loading={loading}
+          />
+        ))}
       </div>
 
       {/* Quick Actions */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4">빠른 작업</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quickActions.map((action, index) => {
-            const IconComponent = action.Icon;
-            return (
-              <Link key={index} to={action.link}>
-                <Card className="border-muted hover:shadow-md transition-shadow duration-200 cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className={cn("p-3 rounded-lg", action.color.replace('bg-', 'bg-') + '/10')}>
-                        <IconComponent className={cn("h-6 w-6", action.color.replace('bg-', 'text-'))} />
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="text-lg font-medium text-foreground">{action.title}</h4>
-                        <p className="text-sm text-muted-foreground">{action.description}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+          {quickActions.map((action, index) => (
+            <QuickActionCard
+              key={`action-${action.title}-${index}`}
+              title={action.title}
+              description={action.description}
+              Icon={action.Icon}
+              link={action.link}
+              color={action.color}
+            />
+          ))}
         </div>
       </div>
 
@@ -189,6 +208,8 @@ const Dashboard: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;
