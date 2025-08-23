@@ -31,7 +31,8 @@ import {
   Target,
   Map,
   Zap,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { pastoralCareService } from '../services/api';
@@ -143,7 +144,6 @@ const PastoralCareManagement: React.FC = () => {
     requestContent: '',
     preferredDate: '',
     preferredTimeStart: '',
-    preferredTimeEnd: '',
     priority: 'normal' as 'urgent' | 'high' | 'normal' | 'low',
     address: '',
     contactInfo: '',
@@ -774,15 +774,13 @@ const PastoralCareManagement: React.FC = () => {
         request_content: newRequest.requestContent,
         preferred_date: newRequest.preferredDate || null,
         preferred_time_start: newRequest.preferredTimeStart || null,
-        preferred_time_end: newRequest.preferredTimeEnd || null,
         priority: newRequest.priority,
         address: newRequest.address || null,
         contact_info: newRequest.contactInfo || null,
-        is_urgent: newRequest.isUrgent,
-        status: 'pending' // 관리자 등록이므로 대기 상태로 시작
+        is_urgent: newRequest.isUrgent
       };
 
-      await pastoralCareService.createRequest(requestData);
+      await pastoralCareService.createUserRequest(requestData);
       
       // 등록 성공 후 목록 새로고침
       await loadPastoralCareRequests();
@@ -795,7 +793,6 @@ const PastoralCareManagement: React.FC = () => {
         requestContent: '',
         preferredDate: '',
         preferredTimeStart: '',
-        preferredTimeEnd: '',
         priority: 'normal',
         address: '',
         contactInfo: '',
@@ -2578,7 +2575,7 @@ const PastoralCareManagement: React.FC = () => {
               {/* 희망 일정 */}
               <div>
                 <h3 className="text-lg font-medium text-slate-900 mb-3">희망 일정 (선택사항)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">희망 날짜</label>
                     <input
@@ -2589,20 +2586,11 @@ const PastoralCareManagement: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">시작 시간</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">희망 시간</label>
                     <input
                       type="time"
                       value={newRequest.preferredTimeStart}
                       onChange={(e) => setNewRequest({...newRequest, preferredTimeStart: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">종료 시간</label>
-                    <input
-                      type="time"
-                      value={newRequest.preferredTimeEnd}
-                      onChange={(e) => setNewRequest({...newRequest, preferredTimeEnd: e.target.value})}
                       className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
