@@ -128,7 +128,6 @@ const PastoralCareManagement: React.FC = () => {
   const [searchLocation, setSearchLocation] = useState({ latitude: 37.5665, longitude: 126.9780, radius_km: 5.0 });
   const [locationSearchResults, setLocationSearchResults] = useState<PastoralCareRequest[]>([]);
   const [urgentFilter, setUrgentFilter] = useState<string>('all');
-  const [hasLocationFilter, setHasLocationFilter] = useState<string>('all');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [assignedPastorId, setAssignedPastorId] = useState('');
@@ -541,12 +540,8 @@ const PastoralCareManagement: React.FC = () => {
     const matchesUrgent = urgentFilter === 'all' || 
                          (urgentFilter === 'urgent' && request.isUrgent) ||
                          (urgentFilter === 'normal' && !request.isUrgent);
-    // 🆕 위치 정보 필터
-    const matchesLocation = hasLocationFilter === 'all' ||
-                           (hasLocationFilter === 'with_location' && request.address && request.latitude && request.longitude) ||
-                           (hasLocationFilter === 'without_location' && (!request.address || !request.latitude || !request.longitude));
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesUrgent && matchesLocation;
+    return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesUrgent;
   });
 
   const filteredRecords = completedRecords.filter(record => {
@@ -1068,8 +1063,8 @@ const PastoralCareManagement: React.FC = () => {
 
         {showFilters && (
           <div className="space-y-4 pt-4 border-t border-slate-200">
-            {/* 🆕 위치 기반 검색 섽션 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* 🆕 위치 기반 검색 섽션 - 주석처리 */}
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-blue-800 flex items-center">
                   <MapPin className="h-4 w-4 mr-2" />
@@ -1139,7 +1134,7 @@ const PastoralCareManagement: React.FC = () => {
                   검색 결과: {locationSearchResults.length}건 (거리순 정렬)
                 </div>
               )}
-            </div>
+            </div> */}
             
             {/* 🆕 빠른 액션 버튼들 */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -1176,7 +1171,7 @@ const PastoralCareManagement: React.FC = () => {
             </div>
             
             {/* 기존 필터들 */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">상태</label>
               <select
@@ -1220,6 +1215,19 @@ const PastoralCareManagement: React.FC = () => {
                 <option value="urgent">긴급 심방</option>
                 <option value="hospital">병원 심방</option>
                 <option value="counseling">상담</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">긴급 여부</label>
+              <select
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                value={urgentFilter}
+                onChange={(e) => setUrgentFilter(e.target.value)}
+              >
+                <option value="all">전체</option>
+                <option value="urgent">긴급 요청</option>
+                <option value="normal">일반 요청</option>
               </select>
             </div>
             </div>
