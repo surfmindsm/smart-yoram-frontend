@@ -133,6 +133,22 @@ const PastoralCareManagement: React.FC = () => {
   const [assignedPastorId, setAssignedPastorId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [completionNotes, setCompletionNotes] = useState('');
+  
+  // 🆕 관리자 직접 등록 모달 상태
+  const [showAdminRegistrationModal, setShowAdminRegistrationModal] = useState(false);
+  const [newRequest, setNewRequest] = useState({
+    requesterName: '',
+    requesterPhone: '',
+    requestType: 'general' as 'general' | 'urgent' | 'hospital' | 'counseling',
+    requestContent: '',
+    preferredDate: '',
+    preferredTimeStart: '',
+    preferredTimeEnd: '',
+    priority: 'normal' as 'urgent' | 'high' | 'normal' | 'low',
+    address: '',
+    contactInfo: '',
+    isUrgent: false
+  });
 
   // API에서 심방 신청 데이터 로드
   useEffect(() => {
@@ -743,6 +759,57 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
+  // 🆕 관리자 직접 등록 함수
+  const handleAdminRegistration = async () => {
+    try {
+      if (!newRequest.requesterName || !newRequest.requesterPhone || !newRequest.requestContent) {
+        alert('필수 정보(신청자명, 연락처, 신청내용)를 모두 입력해주세요.');
+        return;
+      }
+
+      const requestData = {
+        requester_name: newRequest.requesterName,
+        requester_phone: newRequest.requesterPhone,
+        request_type: newRequest.requestType,
+        request_content: newRequest.requestContent,
+        preferred_date: newRequest.preferredDate || null,
+        preferred_time_start: newRequest.preferredTimeStart || null,
+        preferred_time_end: newRequest.preferredTimeEnd || null,
+        priority: newRequest.priority,
+        address: newRequest.address || null,
+        contact_info: newRequest.contactInfo || null,
+        is_urgent: newRequest.isUrgent,
+        status: 'pending' // 관리자 등록이므로 대기 상태로 시작
+      };
+
+      await pastoralCareService.createRequest(requestData);
+      
+      // 등록 성공 후 목록 새로고침
+      await loadPastoralCareRequests();
+      
+      // 폼 초기화
+      setNewRequest({
+        requesterName: '',
+        requesterPhone: '',
+        requestType: 'general',
+        requestContent: '',
+        preferredDate: '',
+        preferredTimeStart: '',
+        preferredTimeEnd: '',
+        priority: 'normal',
+        address: '',
+        contactInfo: '',
+        isUrgent: false
+      });
+      
+      setShowAdminRegistrationModal(false);
+      alert('심방 신청이 성공적으로 등록되었습니다.');
+    } catch (error: any) {
+      console.error('관리자 심방 신청 등록 실패:', error);
+      alert(`심방 신청 등록에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
   const handlePrintCard = (request: PastoralCareRequest) => {
     // 성도 정보를 조회하여 심방 카드 인쇄 준비
     setSelectedRequest(request);
@@ -863,6 +930,13 @@ const PastoralCareManagement: React.FC = () => {
           <p className="text-slate-600 mt-1">심방 신청 관리와 완료된 심방 기록을 확인하세요</p>
         </div>
         <div className="flex items-center space-x-3">
+          <Button
+            onClick={() => setShowAdminRegistrationModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            직접 등록
+          </Button>
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
@@ -2408,6 +2482,184 @@ const PastoralCareManagement: React.FC = () => {
               >
                 <Edit className="h-4 w-4 mr-2" />
                 일지 저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 관리자 직접 등록 모달 */}
+      {showAdminRegistrationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-3xl shadow-xl max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">심방 신청 직접 등록</h2>
+              <button 
+                onClick={() => setShowAdminRegistrationModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* 기본 정보 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    신청자명 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.requesterName}
+                    onChange={(e) => setNewRequest({...newRequest, requesterName: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="신청자 성명 입력"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    연락처 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={newRequest.requesterPhone}
+                    onChange={(e) => setNewRequest({...newRequest, requesterPhone: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="010-0000-0000"
+                  />
+                </div>
+              </div>
+
+              {/* 심방 정보 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">심방 유형</label>
+                  <select
+                    value={newRequest.requestType}
+                    onChange={(e) => setNewRequest({...newRequest, requestType: e.target.value as 'general' | 'urgent' | 'hospital' | 'counseling'})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="general">일반 심방</option>
+                    <option value="urgent">긴급 심방</option>
+                    <option value="hospital">병원 심방</option>
+                    <option value="counseling">상담</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">우선순위</label>
+                  <select
+                    value={newRequest.priority}
+                    onChange={(e) => setNewRequest({...newRequest, priority: e.target.value as 'urgent' | 'high' | 'normal' | 'low'})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="low">낮음</option>
+                    <option value="normal">보통</option>
+                    <option value="high">높음</option>
+                    <option value="urgent">긴급</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 신청 내용 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  신청 내용 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={newRequest.requestContent}
+                  onChange={(e) => setNewRequest({...newRequest, requestContent: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={4}
+                  placeholder="심방이 필요한 이유나 상황을 자세히 입력해주세요..."
+                />
+              </div>
+
+              {/* 희망 일정 */}
+              <div>
+                <h3 className="text-lg font-medium text-slate-900 mb-3">희망 일정 (선택사항)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">희망 날짜</label>
+                    <input
+                      type="date"
+                      value={newRequest.preferredDate}
+                      onChange={(e) => setNewRequest({...newRequest, preferredDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">시작 시간</label>
+                    <input
+                      type="time"
+                      value={newRequest.preferredTimeStart}
+                      onChange={(e) => setNewRequest({...newRequest, preferredTimeStart: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">종료 시간</label>
+                    <input
+                      type="time"
+                      value={newRequest.preferredTimeEnd}
+                      onChange={(e) => setNewRequest({...newRequest, preferredTimeEnd: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 위치 및 추가 정보 */}
+              <div>
+                <h3 className="text-lg font-medium text-slate-900 mb-3">위치 및 추가 정보 (선택사항)</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">방문 주소</label>
+                    <input
+                      type="text"
+                      value={newRequest.address}
+                      onChange={(e) => setNewRequest({...newRequest, address: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="예: 서울특별시 강남구 테헤란로 123"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">추가 연락처 정보</label>
+                    <input
+                      type="text"
+                      value={newRequest.contactInfo}
+                      onChange={(e) => setNewRequest({...newRequest, contactInfo: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="예: 가족 연락처, 특이사항 등"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isUrgent"
+                      checked={newRequest.isUrgent}
+                      onChange={(e) => setNewRequest({...newRequest, isUrgent: e.target.checked})}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                    />
+                    <label htmlFor="isUrgent" className="ml-2 block text-sm text-slate-900">
+                      긴급 요청으로 표시
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 버튼 영역 */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button variant="outline" onClick={() => setShowAdminRegistrationModal(false)}>
+                취소
+              </Button>
+              <Button 
+                onClick={handleAdminRegistration}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                등록하기
               </Button>
             </div>
           </div>
