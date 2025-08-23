@@ -72,14 +72,14 @@ api.interceptors.response.use(
 
 export const authService = {
   login: async (username: string, password: string) => {
-    // 백엔드 재배포 후 OAuth2PasswordRequestForm 스펙 변경으로 인한 수정
+    // 정확한 관리자 로그인 엔드포인트 사용
     // application/x-www-form-urlencoded 형식으로 변경
     
     const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
     
-    const response = await api.post(getApiUrl('/auth/login/access-token'), formData, {
+    const response = await api.post(getApiUrl('/auth/member/login'), formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
