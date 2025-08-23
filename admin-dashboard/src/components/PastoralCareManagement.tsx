@@ -1684,11 +1684,6 @@ const PastoralCareManagement: React.FC = () => {
                           <div className="flex-1">
                             <p className="text-sm font-medium text-blue-800 mb-1">방문 주소</p>
                             <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.address}</p>
-                            {selectedRequest.latitude && selectedRequest.longitude && (
-                              <div className="mt-2 text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
-                                📍 좌표: {typeof selectedRequest.latitude === 'number' ? selectedRequest.latitude.toFixed(6) : selectedRequest.latitude}, {typeof selectedRequest.longitude === 'number' ? selectedRequest.longitude.toFixed(6) : selectedRequest.longitude}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
