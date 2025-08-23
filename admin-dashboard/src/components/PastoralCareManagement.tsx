@@ -1266,7 +1266,11 @@ const PastoralCareManagement: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-slate-50">
+                <tr 
+                  key={request.id} 
+                  className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => handleViewDetails(request)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <User className="h-8 w-8 bg-slate-100 rounded-full p-1.5 text-slate-600" />
@@ -1349,69 +1353,69 @@ const PastoralCareManagement: React.FC = () => {
                     {new Date(request.createdAt).toLocaleDateString('ko-KR')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetails(request)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
                       {request.status === 'pending' && (
                         <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleApprove(request)}
-                            className="text-green-600 hover:text-green-800"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApprove(request);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleReject(request)}
-                            className="text-red-600 hover:text-red-800"
+                            승인
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReject(request);
+                            }}
+                            className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSchedule(request)}
+                            거부
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSchedule(request);
+                            }}
+                            className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <Calendar className="h-4 w-4" />
-                          </Button>
+                            일정조율
+                          </button>
                         </>
                       )}
                       {request.status === 'approved' && !request.assignedPastor && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAssignPastor(request)}
-                          className="text-blue-600 hover:text-blue-800"
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssignPastor(request);
+                          }}
+                          className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                         >
-                          <User className="h-4 w-4" />
-                        </Button>
+                          담당자배정
+                        </button>
                       )}
                       {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
                         <>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setSelectedRequest(request);
                               setShowCompletionModal(true);
                             }}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50 p-2 rounded-md transition-colors"
-                            title="심방 완료"
+                            className="px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <CheckCircle className="h-4 w-4" />
+                            완료처리
                           </button>
                           <button
-                            onClick={() => handlePrintCard(request)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-md transition-colors"
-                            title="심방 카드 인쇄"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrintCard(request);
+                            }}
+                            className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <Printer className="h-4 w-4" />
+                            카드인쇄
                           </button>
                         </>
                       )}
