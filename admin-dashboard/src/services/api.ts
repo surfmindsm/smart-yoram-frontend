@@ -836,8 +836,14 @@ export const pastoralCareService = {
     return response.data;
   },
 
-  // 모바일용 API (필요시)
+  // 관리자용 심방 신청 등록
   createRequest: async (requestData: any) => {
+    const response = await api.post(getApiUrl('/pastoral-care/admin/requests'), requestData);
+    return response.data;
+  },
+
+  // 모바일용 API (필요시)
+  createUserRequest: async (requestData: any) => {
     const response = await api.post(getApiUrl('/pastoral-care/requests'), requestData);
     return response.data;
   },
