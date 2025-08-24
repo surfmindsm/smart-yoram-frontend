@@ -28,7 +28,9 @@ import {
   UserCheck,
   Users,
   Briefcase,
-  Heart
+  Heart,
+  Upload,
+  Download
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -98,6 +100,9 @@ const MemberManagement: React.FC = () => {
   const [editedMember, setEditedMember] = useState<Partial<Member>>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showExcelImportModal, setShowExcelImportModal] = useState(false);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   
   // View and pagination states
   const [viewType, setViewType] = useState<'card' | 'grid'>('card');
@@ -342,6 +347,102 @@ const MemberManagement: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
+  const downloadExcelTemplate = () => {
+    const headers = [
+      '이름',
+      '영문명',
+      '이메일',
+      '성별',
+      '생년월일',
+      '전화번호',
+      '주소',
+      '직분',
+      '구역',
+      '부서코드',
+      '직분코드',
+      '임명일',
+      '안수교회',
+      '직업',
+      '직장명',
+      '직장전화번호',
+      '결혼상태',
+      '배우자이름',
+      '결혼일'
+    ];
+    
+    const sampleData = [
+      '홍길동',
+      'Hong Gil Dong',
+      'hong@email.com',
+      '남',
+      '1990-01-01',
+      '010-1234-5678',
+      '서울시 강남구',
+      '집사',
+      '1구역',
+      'WORSHIP',
+      'DEACON',
+      '2020-01-01',
+      '중앙교회',
+      '회사원',
+      '삼성전자',
+      '02-1234-5678',
+      '기혼',
+      '김영희',
+      '2015-05-20'
+    ];
+    
+    // CSV 형식으로 생성
+    const csvContent = [
+      headers.join(','),
+      sampleData.join(',')
+    ].join('\n');
+    
+    // BOM을 추가하여 한글 인코딩 문제 해결
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { 
+      type: 'text/csv;charset=utf-8;' 
+    });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '교인정보_엑셀템플릿.csv';
+    link.click();
+    
+    URL.revokeObjectURL(link.href);
+  };
+
+  const handleExcelImport = async () => {
+    if (!excelFile) {
+      alert('파일을 선택해주세요.');
+      return;
+    }
+    
+    setIsImporting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', excelFile);
+      
+      const response = await api.post('/members/bulk-import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      alert(`총 ${response.data.imported_count}명의 교인이 성공적으로 등록되었습니다.`);
+      setShowExcelImportModal(false);
+      setExcelFile(null);
+      fetchMembers(); // 목록 새로고침
+    } catch (error: any) {
+      console.error('엑셀 등록 실패:', error);
+      const errorMessage = error.response?.data?.detail || '엑셀 등록에 실패했습니다.';
+      alert(`엑셀 등록 실패: ${errorMessage}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active': return '활동';
@@ -376,13 +477,31 @@ const MemberManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
-        <Button 
-          onClick={() => setShowAddMemberModal(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          교인 추가
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={downloadExcelTemplate}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            엑셀 템플릿 다운로드
+          </Button>
+          <Button 
+            onClick={() => setShowExcelImportModal(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            엑셀 일괄 등록
+          </Button>
+          <Button 
+            onClick={() => setShowAddMemberModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            교인 추가
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -1591,6 +1710,80 @@ const MemberManagement: React.FC = () => {
               >
                 <Trash2 className="w-4 h-4" />
                 삭제
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excel Import Modal */}
+      <Dialog open={showExcelImportModal} onOpenChange={setShowExcelImportModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              엑셀 일괄 등록
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <p className="text-sm text-blue-800">
+                <strong>안내:</strong> 엑셀 템플릿을 먼저 다운로드하여 작성한 후 업로드해주세요.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                엑셀 파일 선택
+              </label>
+              <Input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setExcelFile(file);
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                CSV, XLSX, XLS 파일만 가능
+              </p>
+            </div>
+            
+            {excelFile && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                <p className="text-sm text-green-800">
+                  <strong>선택된 파일:</strong> {excelFile.name}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => {
+                  setShowExcelImportModal(false);
+                  setExcelFile(null);
+                }}
+                variant="outline"
+                disabled={isImporting}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleExcelImport}
+                disabled={!excelFile || isImporting}
+                className="flex items-center gap-2"
+              >
+                {isImporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    등록 중...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    등록 시작
+                  </>
+                )}
               </Button>
             </div>
           </div>
