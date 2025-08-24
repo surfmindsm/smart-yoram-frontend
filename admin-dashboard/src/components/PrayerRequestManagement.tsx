@@ -6,7 +6,7 @@ import {
   Heart, Calendar, Clock, Phone, User, Filter, Search, 
   MoreHorizontal, Eye, Edit, CheckCircle, XCircle, 
   MessageSquare, Users, Globe, Lock, AlertTriangle,
-  BookOpen, Star, Timer, FileText
+  BookOpen, Star, Timer, FileText, Plus
 } from 'lucide-react';
 
 interface PrayerRequest {
@@ -42,8 +42,19 @@ const PrayerRequestManagement: React.FC = () => {
   const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState('');
   const [prayerRecord, setPrayerRecord] = useState('');
+  const [newRequest, setNewRequest] = useState({
+    requesterName: '',
+    requesterPhone: '',
+    prayerType: 'general' as const,
+    prayerContent: '',
+    isAnonymous: false,
+    isUrgent: false,
+    isPublic: true
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
   // API에서 중보 기도 요청 데이터 로드
   useEffect(() => {
@@ -226,6 +237,52 @@ const PrayerRequestManagement: React.FC = () => {
     }
   };
 
+  const handleCreateRequest = async () => {
+    if (!newRequest.requesterName.trim() || !newRequest.prayerContent.trim()) {
+      alert('요청자 이름과 기도 내용을 입력해주세요.');
+      return;
+    }
+
+    setIsCreating(true);
+    
+    try {
+      const requestData = {
+        requester_name: newRequest.isAnonymous ? '익명' : newRequest.requesterName,
+        requester_phone: newRequest.requesterPhone,
+        prayer_type: newRequest.prayerType,
+        prayer_content: newRequest.prayerContent,
+        is_anonymous: newRequest.isAnonymous,
+        is_urgent: newRequest.isUrgent,
+        is_public: newRequest.isPublic,
+        status: 'active' // 관리자가 등록하는 경우 바로 활성 상태로
+      };
+
+      await prayerRequestService.createRequest(requestData);
+      
+      // 폼 초기화
+      setNewRequest({
+        requesterName: '',
+        requesterPhone: '',
+        prayerType: 'general',
+        prayerContent: '',
+        isAnonymous: false,
+        isUrgent: false,
+        isPublic: true
+      });
+      
+      setShowCreateModal(false);
+      await loadPrayerRequests();
+      
+      alert('기도 요청이 성공적으로 등록되었습니다.');
+    } catch (error: any) {
+      console.error('기도 요청 등록 실패:', error);
+      const errorMessage = error.response?.data?.detail || '기도 요청 등록에 실패했습니다.';
+      alert(`등록 실패: ${errorMessage}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const handleMarkAnswered = (request: PrayerRequest) => {
     setSelectedRequest(request);
     setShowAnswerModal(true);
@@ -268,6 +325,13 @@ const PrayerRequestManagement: React.FC = () => {
           <p className="text-slate-600 mt-1">교인들의 기도 요청을 관리하고 응답을 기록하세요</p>
         </div>
         <div className="flex items-center space-x-3">
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2 bg-sky-600 hover:bg-sky-700 text-white"
+          >
+            <Plus className="h-4 w-4" />
+            <span>기도 요청 등록</span>
+          </Button>
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
@@ -815,6 +879,164 @@ const PrayerRequestManagement: React.FC = () => {
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 기록 저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 기도 요청 등록 모달 */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-semibold text-slate-900">기도 요청 등록</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 요청자 이름 */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    요청자 이름 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.requesterName}
+                    onChange={(e) => setNewRequest({...newRequest, requesterName: e.target.value})}
+                    placeholder="이름을 입력하세요"
+                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    disabled={newRequest.isAnonymous}
+                  />
+                </div>
+
+                {/* 전화번호 */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    전화번호
+                  </label>
+                  <input
+                    type="tel"
+                    value={newRequest.requesterPhone}
+                    onChange={(e) => setNewRequest({...newRequest, requesterPhone: e.target.value})}
+                    placeholder="010-1234-5678"
+                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* 기도 유형 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  기도 유형
+                </label>
+                <select
+                  value={newRequest.prayerType}
+                  onChange={(e) => setNewRequest({...newRequest, prayerType: e.target.value as any})}
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                >
+                  <option value="general">일반</option>
+                  <option value="healing">치유</option>
+                  <option value="family">가정</option>
+                  <option value="work">직장/사업</option>
+                  <option value="spiritual">영성</option>
+                  <option value="thanksgiving">감사</option>
+                </select>
+              </div>
+
+              {/* 기도 내용 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  기도 요청 내용 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={newRequest.prayerContent}
+                  onChange={(e) => setNewRequest({...newRequest, prayerContent: e.target.value})}
+                  placeholder="기도 요청 내용을 상세히 입력해주세요..."
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  rows={5}
+                />
+              </div>
+
+              {/* 옵션 */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-6">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={newRequest.isAnonymous}
+                      onChange={(e) => {
+                        setNewRequest({
+                          ...newRequest, 
+                          isAnonymous: e.target.checked,
+                          requesterName: e.target.checked ? '익명' : ''
+                        });
+                      }}
+                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    <span className="text-sm text-slate-700">익명 요청</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={newRequest.isUrgent}
+                      onChange={(e) => setNewRequest({...newRequest, isUrgent: e.target.checked})}
+                      className="rounded border-slate-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm text-slate-700">긴급 요청</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={newRequest.isPublic}
+                      onChange={(e) => setNewRequest({...newRequest, isPublic: e.target.checked})}
+                      className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm text-slate-700">공개 요청</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>안내:</strong> 관리자가 등록하는 기도 요청은 승인 없이 바로 활성 상태가 됩니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 p-6 border-t border-slate-200 bg-slate-50">
+              <Button
+                onClick={() => setShowCreateModal(false)}
+                variant="outline"
+                className="flex-1"
+                disabled={isCreating}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleCreateRequest}
+                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                disabled={isCreating || !newRequest.requesterName.trim() || !newRequest.prayerContent.trim()}
+              >
+                {isCreating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    등록 중...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    등록 완료
+                  </>
+                )}
               </Button>
             </div>
           </div>
