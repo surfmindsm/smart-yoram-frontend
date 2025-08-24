@@ -38,6 +38,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
 import { Textarea } from './ui/textarea';
+import AddMemberModal from './AddMemberModal';
 
 interface Member {
   id: number;
@@ -96,6 +97,7 @@ const MemberManagement: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedMember, setEditedMember] = useState<Partial<Member>>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   
   // View and pagination states
   const [viewType, setViewType] = useState<'card' | 'grid'>('card');
@@ -375,7 +377,7 @@ const MemberManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
         <Button 
-          onClick={() => navigate('/add-member')}
+          onClick={() => setShowAddMemberModal(true)}
           className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -1594,6 +1596,13 @@ const MemberManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Member Modal */}
+      <AddMemberModal 
+        open={showAddMemberModal} 
+        onOpenChange={setShowAddMemberModal}
+        onMemberAdded={fetchMembers}
+      />
     </div>
   );
 };
