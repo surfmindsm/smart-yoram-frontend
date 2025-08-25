@@ -108,50 +108,38 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
         // 백엔드 히스토리 생성 (AI 응답 생성 없이)
         try {
-          const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
           const agentId = selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id;
           
+          const historyResult = await chatService.createChatHistory(
+            agentId, 
+            selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`
+          );
           
-
-          const historyResponse = await fetch(`${API_BASE_URL}/chat/histories`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-              'X-Skip-AI-Response': 'true'  // AI 응답 생성 차단
-            },
-            body: JSON.stringify({
-              id: parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
-              agent_id: agentId,
-              title: selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`,
-              skip_ai_generation: true,  // AI 응답 생성 건너뛰기
-              history_only: true         // 히스토리만 생성
-            })
-          });
+          historyCreated = true;
           
-          if (historyResponse.ok) {
-            const historyResult = await historyResponse.json();
-            historyCreated = true;
+          // 생성된 실제 ID로 업데이트
+          if (historyResult.id) {
+            const actualDbId = historyResult.id;
+            const newChatId = `chat_${actualDbId}`;
             
-            // 생성된 실제 ID로 업데이트
-            if (historyResult.id) {
-              const actualDbId = historyResult.id;
-              const newChatId = `chat_${actualDbId}`;
-              
-              // ID가 다르면 업데이트
-              if (actualDbId !== parseInt(effectiveChatId.replace('chat_', ''))) {
-                setCurrentChatId(newChatId);
-                effectiveChatId = newChatId;
-              }
+            // ID가 다르면 업데이트
+            if (actualDbId !== parseInt(effectiveChatId.replace('chat_', ''))) {
+              setCurrentChatId(newChatId);
+              effectiveChatId = newChatId;
             }
+          }
+        } catch (error: any) {
+          if (error.message === 'ENDPOINT_NOT_AVAILABLE') {
+            console.warn('⚠️ 채팅 히스토리 API 미구현, 로컬 모드 사용');
+            // 로컬 ID 생성 (백엔드 구현 전까지 임시)
+            const tempId = `temp_${Date.now()}`;
+            setCurrentChatId(tempId);
+            effectiveChatId = tempId;
+            historyCreated = true; // 로컬에서는 성공으로 처리
           } else {
-            const errorText = await historyResponse.text();
-            console.warn('⚠️ 채팅 히스토리 생성 실패:', errorText);
+            console.error('❌ 채팅 히스토리 생성 오류:', error);
             historyCreated = false;
           }
-        } catch (error) {
-          console.error('❌ 채팅 히스토리 생성 오류:', error);
-          historyCreated = false;
         }
       }
 
@@ -216,37 +204,19 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }
       } else {
         // 백엔드에서 AI 응답 생성하도록 API 호출
-        
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch(`${apiUrl}/chat/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify({
-            chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
-            content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
-            role: 'user',
-            agent_id: selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id,
-            messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
-              role: msg.role,
-              content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
-            })),
-            optimize_speed: true, // 백엔드에 속도 최적화 요청
-            create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
-            agent_name: selectedAgentForChat?.name || '기본 AI 도우미'
-          })
+        const responseData = await chatService.sendMessage({
+          chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
+          content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
+          role: 'user',
+          agent_id: selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id,
+          messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
+            role: msg.role,
+            content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
+          })),
+          optimize_speed: true, // 백엔드에 속도 최적화 요청
+          create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
+          agent_name: selectedAgentForChat?.name || '기본 AI 도우미'
         });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`백엔드 AI 응답 생성 실패: ${response.status} ${errorText}`);
-        }
-
-        const responseData = await response.json();
         
         // 백엔드 응답 데이터 구조 확인 및 파싱
         let aiContent = '응답을 생성하지 못했습니다.';
@@ -379,14 +349,30 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ 메시지 전송 실패:', error);
+      
+      let errorContent = '죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n잠시 후 다시 시도해 주세요.';
+      
+      if (error.message === 'ENDPOINT_NOT_AVAILABLE') {
+        console.warn('⚠️ 채팅 메시지 API 미구현, 기본 응답 사용');
+        errorContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || '기본 AI 도우미'}입니다.\n\n현재 백엔드 API가 구현 중이므로 실제 AI 응답을 제공할 수 없습니다.\n백엔드 팀이 /chat/messages 엔드포인트를 구현하면 정상 작동할 예정입니다.\n\n문의하신 내용을 기록했습니다.`;
+      } else if (error.message === 'VALIDATION_ERROR') {
+        console.warn('⚠️ 백엔드 데이터 검증 에러 - chat_history_id null 처리 필요');
+        errorContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || '기본 AI 도우미'}입니다.\n\n현재 백엔드에서 새 채팅 시작 시 데이터 검증 에러가 발생하고 있습니다.\n백엔드 팀이 chat_history_id=null 처리 로직을 수정하면 정상 작동할 예정입니다.\n\n⚠️ 백엔드 이슈: /chat/messages에서 chat_history_id가 null일 때 422 에러 발생`;
+      } else if (error.message === 'SERVER_ERROR') {
+        console.warn('⚠️ 백엔드 서버 내부 에러 - 500 에러 발생');
+        errorContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || '기본 AI 도우미'}입니다.\n\n현재 백엔드 서버에서 내부 에러가 발생하고 있습니다.\n백엔드 팀이 서버 에러를 수정하면 정상 작동할 예정입니다.\n\n⚠️ 백엔드 이슈: /chat/messages에서 500 Internal Server Error 발생`;
+      } else if (error.message === 'CORS_ERROR') {
+        console.warn('⚠️ CORS 에러 - 백엔드 CORS 설정 필요');
+        errorContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || '기본 AI 도우미'}입니다.\n\n현재 백엔드에서 CORS 설정이 localhost:3000을 허용하지 않고 있습니다.\n백엔드 팀이 CORS 설정을 수정하면 정상 작동할 예정입니다.\n\n⚠️ 백엔드 이슈: CORS policy 에러 - localhost:3000 허용 필요`;
+      }
       
       // 에러 응답 생성
       const errorResponse: ChatMessage = {
         id: `error_${Date.now()}`,
         role: 'assistant',
-        content: `죄송합니다. 현재 시스템에 일시적인 문제가 발생했습니다.\n\n잠시 후 다시 시도해 주세요.`,
+        content: errorContent,
         timestamp: new Date()
       };
       

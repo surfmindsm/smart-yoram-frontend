@@ -364,41 +364,83 @@ export const chatService = {
     return response.data;
   },
   
-  // sendMessage 함수 제거됨 - 중복 AI 응답 생성 방지
+  // AI 메시지 전송 및 응답 생성
+  sendMessage: async (messageData: {
+    chat_history_id?: number | null;
+    content: string;
+    role: string;
+    agent_id: string | number;
+    messages: Array<{ role: string; content: string }>;
+    optimize_speed?: boolean;
+    create_history_if_needed?: boolean;
+    agent_name?: string;
+  }) => {
+    try {
+      const response = await api.post(getApiUrl('/chat/messages'), messageData);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('Chat messages endpoint not available yet, using fallback');
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      if (error.response?.status === 422) {
+        console.warn('Chat messages endpoint validation error - likely backend needs to handle null chat_history_id');
+        throw new Error('VALIDATION_ERROR');
+      }
+      if (error.response?.status === 500) {
+        console.warn('Chat messages endpoint internal server error');
+        throw new Error('SERVER_ERROR');
+      }
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        console.warn('CORS or network error - backend CORS not properly configured for localhost:3000');
+        throw new Error('CORS_ERROR');
+      }
+      throw error;
+    }
+  },
   
   // 새 채팅 생성
-  createChatHistory: async (agentId?: string, title?: string) => {
-    const payload: any = {
-      title: title || '새 대화'
-    };
-    
-    // 로그인한 사용자 정보 추가
+  createChatHistory: async (agentId?: string | number, title?: string) => {
     try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        if (user.id) {
-          payload.user_id = user.id;
+      const payload: any = {
+        title: title || '새 대화'
+      };
+      
+      // 로그인한 사용자 정보 추가
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.id) {
+            payload.user_id = user.id;
+          }
+          if (user.church_id) {
+            payload.church_id = user.church_id;
+          }
         }
-        if (user.church_id) {
-          payload.church_id = user.church_id;
-        }
+      } catch (error) {
+        console.warn('사용자 정보 파싱 실패:', error);
       }
-    } catch (error) {
-      console.warn('사용자 정보 파싱 실패:', error);
+      
+      // agent_id 추가 (백엔드가 정수를 기대함)
+      if (agentId) {
+        // 숫자 또는 문자열 모두 처리
+        payload.agent_id = typeof agentId === 'string' ? parseInt(agentId) : agentId;
+      } else {
+        // agent_id가 없으면 기본값 1 사용 (또는 필드 자체를 제외)
+        payload.agent_id = 1; // 기본 에이전트 ID
+      }
+      
+      const response = await api.post(getApiUrl('/chat/histories'), payload);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('Chat histories endpoint not available yet, using fallback');
+        // 백엔드 구현 전까지 로컬 ID 생성
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      throw error;
     }
-    
-    // agent_id 추가 (백엔드가 정수를 기대함)
-    if (agentId) {
-      // 숫자 또는 문자열 모두 처리
-      payload.agent_id = typeof agentId === 'string' ? parseInt(agentId) : agentId;
-    } else {
-      // agent_id가 없으면 기본값 1 사용 (또는 필드 자체를 제외)
-      payload.agent_id = 1; // 기본 에이전트 ID
-    }
-    
-    const response = await api.post(getApiUrl('/chat/histories'), payload);
-    return response.data;
   },
   
   // 채팅 제목 수정
