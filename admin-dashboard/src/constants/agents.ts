@@ -2,15 +2,16 @@
  * AI 에이전트 관련 상수 정의
  */
 
-// 공용 기본 에이전트 ID (모든 테넌트에서 사용 가능)
-export const DEFAULT_AGENT_ID = 'system_default';
+// 공용 기본 에이전트 ID (모든 테넌트에서 사용 가능한 특별한 ID)
+// 백엔드에서 0번 ID를 전역 기본 에이전트로 처리하도록 권장
+export const DEFAULT_AGENT_ID = 0;
 
 // 기본 에이전트 정보
 export const DEFAULT_AGENT = {
   id: DEFAULT_AGENT_ID,
   name: '기본 AI 도우미',
   category: '일반',
-  description: '일반적인 질문과 대화를 도와드리는 기본 AI입니다.',
+  description: '모든 교회에서 사용 가능한 공통 AI 도우미입니다. 일반적인 질문과 교회 업무를 도와드립니다.',
   isActive: true
 };
 

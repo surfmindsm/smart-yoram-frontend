@@ -16,7 +16,7 @@ export interface ChatHistory {
 }
 
 export interface Agent {
-  id: string;
+  id: string | number;
   name: string;
   category: string;
   description: string;

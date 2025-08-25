@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
 import { churchConfigService, chatService } from '../services/api';
+import { DEFAULT_AGENT, AGENT_CONFIG } from '../constants/agents';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -108,7 +109,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         // 백엔드 히스토리 생성 (AI 응답 생성 없이)
         try {
           const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-          const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+          const agentId = selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id;
           
           
 
@@ -229,7 +230,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
             content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
             role: 'user',
-            agent_id: selectedAgentForChat?.id || agents?.[0]?.id,
+            agent_id: selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id,
             messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
               role: msg.role,
               content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선

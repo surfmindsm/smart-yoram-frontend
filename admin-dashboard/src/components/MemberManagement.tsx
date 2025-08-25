@@ -38,7 +38,7 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import AddMemberModal from './AddMemberModal';
 
@@ -951,6 +951,9 @@ const MemberManagement: React.FC = () => {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>새 교인 등록</DialogTitle>
+            <DialogDescription>
+              새 교인의 기본 정보를 입력해주세요.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="space-y-4">
             <div>
@@ -1052,6 +1055,9 @@ const MemberManagement: React.FC = () => {
             <DialogTitle>
               {selectedMember?.name}님 프로필 사진 관리
             </DialogTitle>
+            <DialogDescription>
+              프로필 사진을 업로드하거나 삭제할 수 있습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {selectedMember && cleanPhotoUrl(selectedMember.profile_photo_url) && (
@@ -1113,6 +1119,9 @@ const MemberManagement: React.FC = () => {
             <DialogTitle>
               {passwordInfo?.member_name}님 계정 정보
             </DialogTitle>
+            <DialogDescription>
+              교인의 로그인 정보를 확인할 수 있습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {passwordInfo && (
@@ -1185,6 +1194,9 @@ const MemberManagement: React.FC = () => {
                 <User className="w-5 h-5" />
                 {selectedMember?.name}님 상세정보
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                교인의 상세 정보를 보고 수정할 수 있습니다.
+              </DialogDescription>
             </div>
             <div className="flex justify-end gap-2 -mt-2 mb-4">
               {!isEditMode ? (
@@ -1686,6 +1698,9 @@ const MemberManagement: React.FC = () => {
               <Trash2 className="w-5 h-5 text-destructive" />
               교인 정보 삭제
             </DialogTitle>
+            <DialogDescription>
+              교인 정보를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-foreground">
@@ -1724,6 +1739,9 @@ const MemberManagement: React.FC = () => {
               <Upload className="w-5 h-5" />
               엑셀 일괄 등록
             </DialogTitle>
+            <DialogDescription>
+              엑셀 파일을 사용하여 여러 교인을 한번에 등록할 수 있습니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
