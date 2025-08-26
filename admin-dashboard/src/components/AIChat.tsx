@@ -79,7 +79,7 @@ const AIChat: React.FC = () => {
   }, [chatState.agents, chatHandlers]);
 
   return (
-    <div className="h-[calc(100vh-7rem)] bg-slate-50 overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] bg-slate-50 overflow-hidden">
       <div className="flex h-full w-full">
         {/* 사이드바 */}
         <div className="w-72 flex-shrink-0">
@@ -121,6 +121,7 @@ const AIChat: React.FC = () => {
             onSendMessage={chatHandlers.handleSendMessage}
             selectedAgent={chatState.selectedAgent}
             selectedAgentForChat={chatState.selectedAgentForChat}
+            agents={chatState.agents}
             onStartAgentChat={chatHandlers.handleStartAgentChat}
             onKeyPress={chatHandlers.handleKeyPress}
             onDownload={handleDownload}
