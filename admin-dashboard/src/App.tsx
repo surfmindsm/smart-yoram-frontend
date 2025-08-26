@@ -28,6 +28,7 @@ const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestMan
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
+const SermonLibrary = lazy(() => import('./components/SermonLibrary'));
 
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
@@ -90,6 +91,11 @@ function App() {
           <Route path="ai-agent-management" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AIAgentManagement />
+            </Suspense>
+          } />
+          <Route path="sermon-library" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SermonLibrary />
             </Suspense>
           } />
           <Route path="church-settings" element={

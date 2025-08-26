@@ -1072,5 +1072,193 @@ export const financialService = {
   }
 };
 
+// 설교 자료 관리 서비스
+export const sermonLibraryService = {
+  // 설교 자료 조회
+  getSermonMaterials: async (params?: { 
+    q?: string;
+    category?: string;
+    author?: string;
+    file_type?: string;
+    public_only?: boolean;
+    page?: number;
+    size?: number;
+  }) => {
+    try {
+      console.log('🔍 API 호출 시작:', getApiUrl('/sermon_materials/'), params);
+      const response = await api.get(getApiUrl('/sermon_materials/'), { params });
+      console.log('✅ API 응답 받음:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 설교 자료 조회 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: getApiUrl('/sermon_materials/')
+      });
+      throw error;
+    }
+  },
+
+  // 카테고리 조회
+  getCategories: async () => {
+    try {
+      console.log('🔍 카테고리 API 호출:', getApiUrl('/sermon_materials/categories/'));
+      const response = await api.get(getApiUrl('/sermon_materials/categories/'));
+      console.log('✅ 카테고리 API 응답:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 카테고리 조회 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 설교자 목록 조회
+  getAuthors: async () => {
+    try {
+      console.log('🔍 설교자 API 호출:', getApiUrl('/sermon_materials/authors/'));
+      const response = await api.get(getApiUrl('/sermon_materials/authors/'));
+      console.log('✅ 설교자 API 응답:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 설교자 목록 조회 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 태그 목록 조회
+  getTags: async () => {
+    try {
+      console.log('🔍 태그 API 호출:', getApiUrl('/sermon_materials/tags/'));
+      const response = await api.get(getApiUrl('/sermon_materials/tags/'));
+      console.log('✅ 태그 API 응답:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 태그 목록 조회 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 통계 조회
+  getStats: async () => {
+    try {
+      console.log('🔍 통계 API 호출:', getApiUrl('/sermon_materials/stats/'));
+      const response = await api.get(getApiUrl('/sermon_materials/stats/'));
+      console.log('✅ 통계 API 응답:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 통계 조회 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 파일 다운로드
+  downloadFile: async (fileUrl: string) => {
+    try {
+      console.log('🔍 파일 다운로드 API 호출:', getApiUrl(`/sermon_materials/files/${fileUrl}`));
+      const response = await api.get(getApiUrl(`/sermon_materials/files/${fileUrl}`), {
+        responseType: 'blob'
+      });
+      console.log('✅ 파일 다운로드 성공');
+      return response;
+    } catch (error: any) {
+      console.error('❌ 파일 다운로드 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 새 자료 등록
+  createMaterial: async (materialData: any) => {
+    try {
+      console.log('🔍 자료 등록 API 호출:', getApiUrl('/sermon_materials/'), materialData);
+      const response = await api.post(getApiUrl('/sermon_materials/'), materialData);
+      console.log('✅ 자료 등록 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 자료 등록 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 자료 수정
+  updateMaterial: async (materialId: number, materialData: any) => {
+    try {
+      console.log('🔍 자료 수정 API 호출:', getApiUrl(`/sermon_materials/${materialId}`), materialData);
+      const response = await api.put(getApiUrl(`/sermon_materials/${materialId}`), materialData);
+      console.log('✅ 자료 수정 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 자료 수정 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 자료 삭제
+  deleteMaterial: async (materialId: number) => {
+    try {
+      console.log('🔍 자료 삭제 API 호출:', getApiUrl(`/sermon_materials/${materialId}`));
+      const response = await api.delete(getApiUrl(`/sermon_materials/${materialId}`));
+      console.log('✅ 자료 삭제 성공');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 자료 삭제 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // 파일 업로드
+  uploadFile: async (formData: FormData) => {
+    try {
+      console.log('🔍 파일 업로드 API 호출:', getApiUrl('/sermon_materials/upload'));
+      const response = await api.post(getApiUrl('/sermon_materials/upload'), formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log('✅ 파일 업로드 성공:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ 파일 업로드 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  }
+};
+
 export { api };
 export default api;

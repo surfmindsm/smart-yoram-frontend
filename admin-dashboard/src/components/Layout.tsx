@@ -24,7 +24,8 @@ import {
   Heart,
   UserCheck,
   Wrench,
-  DollarSign
+  DollarSign,
+  Library
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -106,7 +107,6 @@ const Layout: React.FC = () => {
       title: '교회 운영',
       items: [
         { path: '/church', name: '교회 정보', Icon: Church },
-        { path: '/church-settings', name: '시스템 설정', Icon: Settings },
         { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
       ],
     },
@@ -120,11 +120,10 @@ const Layout: React.FC = () => {
   ];
 
   const aiMenuItems = [
-    { path: '/analytics', name: 'AI 사용량 분석', Icon: TrendingUp },
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
     { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
+    { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
     { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
-    { path: '/gpt-settings', name: 'GPT 설정', Icon: Settings },
   ];
 
   return (
