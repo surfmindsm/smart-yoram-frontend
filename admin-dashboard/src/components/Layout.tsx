@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import {
@@ -31,8 +31,37 @@ import { Button } from './ui/button';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [userInfo, setUserInfo] = useState<{name?: string, email?: string} | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
+    
+    // API로 현재 사용자 정보 가져오기
+    const fetchUserInfo = async () => {
+      try {
+        console.log('🌐 authService.getCurrentUser() 호출 중...');
+        const user = await authService.getCurrentUser();
+        console.log('✅ API 응답 받음:', user);
+        
+        const processedUser = {
+          name: user.full_name || user.name || user.username || '사용자',
+          email: user.email
+        };
+        console.log('📝 처리된 사용자 정보:', processedUser);
+        
+        setUserInfo(processedUser);
+      } catch (error: unknown) {
+        console.error('❌ 사용자 정보 가져오기 오류:', error);
+        if (error && typeof error === 'object' && 'response' in error) {
+          console.log('🔍 오류 상세:', (error as any).response?.data);
+        }
+      }
+    };
+    
+    fetchUserInfo();
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -114,14 +143,32 @@ const Layout: React.FC = () => {
             </Button>
             <h1 className="text-xl font-semibold text-slate-900">스마트 요람 관리자</h1>
           </div>
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="text-slate-600 hover:text-slate-900"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            로그아웃
-          </Button>
+          <div className="flex items-center space-x-4">
+            {userInfo ? (
+              <div className="text-right">
+                <div className="text-sm font-medium text-slate-900">
+                  {userInfo.name}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {userInfo.email}
+                </div>
+              </div>
+            ) : (
+              <div className="text-right">
+                <div className="text-sm text-slate-400">
+                  로딩 중...
+                </div>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-slate-600 hover:text-slate-900"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
+            </Button>
+          </div>
         </div>
       </header>
 
