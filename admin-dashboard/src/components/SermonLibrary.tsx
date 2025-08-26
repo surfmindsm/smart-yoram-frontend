@@ -3,6 +3,10 @@ import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Switch } from './ui/switch';
 import {
   Library,
   Plus,
@@ -74,6 +78,23 @@ const SermonLibrary: React.FC = () => {
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // 새 자료 등록 상태
+  const [newMaterial, setNewMaterial] = useState({
+    title: '',
+    author: '',
+    content: '',
+    category: '',
+    scripture_reference: '',
+    date_preached: '',
+    tags: '' as string | string[],
+    is_public: true
+  });
+  
+  // 파일 업로드 상태
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   // 데이터 로딩
   useEffect(() => {
@@ -212,6 +233,74 @@ const SermonLibrary: React.FC = () => {
     setSelectedFileType('');
     setShowPublicOnly(false);
     setCurrentPage(1);
+  };
+
+  // 자료 등록 함수
+  const handleCreateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    
+    try {
+      console.log('🚀 새 자료 등록 시작:', newMaterial);
+      
+      await sermonLibraryService.createMaterial({
+        ...newMaterial,
+        tags: typeof newMaterial.tags === 'string' 
+          ? (newMaterial.tags as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) 
+          : newMaterial.tags
+      });
+      
+      console.log('✅ 자료 등록 성공');
+      
+      // 모달 닫기 및 상태 초기화
+      setShowCreateModal(false);
+      setNewMaterial({
+        title: '',
+        author: '',
+        content: '',
+        category: '',
+        scripture_reference: '',
+        date_preached: '',
+        tags: '' as string | string[],
+        is_public: true
+      });
+      
+      // 목록 새로고침
+      fetchMaterials();
+    } catch (error) {
+      console.error('❌ 자료 등록 실패:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // 파일 업로드 함수
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) return;
+    
+    setUploading(true);
+    
+    try {
+      console.log('🚀 파일 업로드 시작:', uploadFile.name);
+      
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      await sermonLibraryService.uploadFile(formData);
+      
+      console.log('✅ 파일 업로드 성공');
+      
+      // 모달 닫기 및 상태 초기화
+      setShowUploadModal(false);
+      setUploadFile(null);
+      
+      // 목록 새로고침
+      fetchMaterials();
+    } catch (error) {
+      console.error('❌ 파일 업로드 실패:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -471,6 +560,160 @@ const SermonLibrary: React.FC = () => {
           </Button>
         </div>
       )}
+      
+      {/* 자료 등록 모달 */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>새 설교 자료 등록</DialogTitle>
+            <DialogDescription>
+              새로운 설교 자료를 등록합니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateMaterial} className="space-y-4">
+            <div>
+              <Label htmlFor="title">제목 *</Label>
+              <Input
+                id="title"
+                value={newMaterial.title}
+                onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                placeholder="설교 제목을 입력하세요"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="author">설교자</Label>
+              <Input
+                id="author"
+                value={newMaterial.author}
+                onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
+                placeholder="설교자 이름"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="category">카테고리</Label>
+              <select
+                id="category"
+                value={newMaterial.category}
+                onChange={(e) => setNewMaterial({...newMaterial, category: e.target.value})}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              >
+                <option value="">카테고리 선택</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.name}>{category.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="scripture_reference">성경 구절</Label>
+              <Input
+                id="scripture_reference"
+                value={newMaterial.scripture_reference}
+                onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
+                placeholder="예: 요한복음 3:16"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="date_preached">설교 날짜</Label>
+              <Input
+                id="date_preached"
+                type="date"
+                value={newMaterial.date_preached}
+                onChange={(e) => setNewMaterial({...newMaterial, date_preached: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="content">내용</Label>
+              <Textarea
+                id="content"
+                value={newMaterial.content}
+                onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
+                placeholder="설교 내용을 입력하세요"
+                rows={6}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="tags">태그</Label>
+              <Input
+                id="tags"
+                value={Array.isArray(newMaterial.tags) ? newMaterial.tags.join(', ') : newMaterial.tags as string}
+                onChange={(e) => setNewMaterial({...newMaterial, tags: e.target.value})}
+                placeholder="태그를 콤마로 구분하여 입력하세요 (예: 말씨, 은혜, 사랑)"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_public"
+                checked={newMaterial.is_public}
+                onCheckedChange={(checked) => setNewMaterial({...newMaterial, is_public: checked})}
+              />
+              <Label htmlFor="is_public">공개 자료로 설정</Label>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? '등록 중...' : '등록'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 파일 업로드 모달 */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>파일 업로드</DialogTitle>
+            <DialogDescription>
+              설교 자료 파일을 업로드합니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleFileUpload} className="space-y-4">
+            <div>
+              <Label htmlFor="file">파일 선택 *</Label>
+              <Input
+                id="file"
+                type="file"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a"
+                required
+              />
+              <p className="text-sm text-slate-500 mt-1">
+                지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A
+              </p>
+            </div>
+            
+            {uploadFile && (
+              <div className="p-3 bg-slate-50 rounded-md">
+                <p className="text-sm font-medium">선택된 파일:</p>
+                <p className="text-sm text-slate-600">{uploadFile.name}</p>
+                <p className="text-xs text-slate-500">크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
+            )}
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowUploadModal(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={uploading || !uploadFile}>
+                {uploading ? '업로드 중...' : '업로드'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
