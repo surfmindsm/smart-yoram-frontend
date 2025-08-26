@@ -133,6 +133,19 @@ const MemberManagement: React.FC = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
+      
+      // 1. 전체 개수를 먼저 조회 (pagination 없이)
+      console.log('🔢 실제 전체 교인 수 조회 중...');
+      const countParams = new URLSearchParams();
+      if (appliedSearchTerm) countParams.append('search', appliedSearchTerm);
+      if (statusFilter !== 'all') countParams.append('member_status', statusFilter);
+      
+      const countResponse = await api.get(`/members/?${countParams.toString()}`);
+      const actualTotalCount = countResponse.data.length;
+      console.log('✅ 실제 전체 교인 수:', actualTotalCount);
+      
+      // 2. 현재 페이지 데이터 조회
+      console.log('📄 현재 페이지 데이터 조회 중...');
       const params = new URLSearchParams();
       if (appliedSearchTerm) params.append('search', appliedSearchTerm);
       if (statusFilter !== 'all') params.append('member_status', statusFilter);
@@ -155,13 +168,13 @@ const MemberManagement: React.FC = () => {
         });
       }
       
+      console.log('📊 최종 데이터 설정:');
+      console.log('- 현재 페이지 데이터 수:', sortedData.length);
+      console.log('- 실제 전체 교인 수:', actualTotalCount);
+      console.log('- 표시될 범위:', `${Math.min((currentPage - 1) * pageSize + 1, actualTotalCount)}-${Math.min(currentPage * pageSize, actualTotalCount)}`);
+      
       setMembers(sortedData);
-      // For now, estimate total count based on returned data
-      // In production, API should return total count
-      setTotalCount(response.data.length < pageSize ? 
-        (currentPage - 1) * pageSize + response.data.length : 
-        currentPage * pageSize + 1
-      );
+      setTotalCount(actualTotalCount);
     } catch (error) {
       console.error('교인 목록 조회 실패:', error);
     } finally {

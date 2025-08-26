@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X } from 'lucide-react';
 
 interface ComboboxOption {
@@ -29,6 +30,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const comboboxRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -56,10 +58,25 @@ export const Combobox: React.FC<ComboboxProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 드롭다운이 열릴 때 검색 입력창에 포커스
+  // 드롭다운 위치 계산
+  const updateDropdownPosition = () => {
+    if (comboboxRef.current) {
+      const rect = comboboxRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
+  // 드롭다운이 열릴 때 위치 계산 및 검색 입력창에 포커스
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (isOpen) {
+      updateDropdownPosition();
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   }, [isOpen]);
 
@@ -149,8 +166,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
       </button>
 
       {/* 드롭다운 목록 */}
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+      {isOpen && createPortal(
+        <div 
+          className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg"
+          style={{
+            top: dropdownPosition.top + 4,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width
+          }}
+        >
           {/* 검색 입력창 */}
           <div className="p-2 border-b border-gray-200">
             <div className="relative">
@@ -198,7 +222,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
