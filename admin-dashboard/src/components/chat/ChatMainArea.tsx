@@ -244,7 +244,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         )}
 
         {/* 메시지 영역 - 헤더와 입력창 높이 제외하고 스크롤 */}
-        <div className={`absolute left-0 right-0 bottom-[5rem] overflow-y-auto ${messages.length > 0 ? 'top-16' : 'top-0'}`}>
+        <div className={`absolute left-0 right-0 bottom-[60px] overflow-y-auto ${messages.length > 0 ? 'top-16' : 'top-0'}`}>
           <MessageList 
             messages={messages}
             isLoading={isLoading}
@@ -253,8 +253,8 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         </div>
 
         {/* 입력창 - 하단 고정 */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200">
-          <div className="p-4">
+        <div className="absolute bottom-0 left-0 right-0 bg-white">
+          <div className="max-w-5xl mx-auto px-1 pt-2 pb-0">
             <div className="flex space-x-2">
               <textarea
                 ref={bottomInputRef}
