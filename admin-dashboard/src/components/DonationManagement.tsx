@@ -1471,8 +1471,8 @@ const DonationManagement: React.FC = () => {
 
       {/* 일괄 입력 모달 */}
       {isBulkModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{overflow: 'visible'}}>
+          <div className="bg-white p-6 w-full max-w-6xl relative flex flex-col" style={{maxHeight: '90vh', borderRadius: '8px', overflow: 'visible'}}>
             <h2 className="text-xl font-bold mb-4">헌금 일괄 입력</h2>
             
             {/* 공통 설정 */}
@@ -1488,8 +1488,8 @@ const DonationManagement: React.FC = () => {
             </div>
 
             {/* 헌금 목록 */}
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-medium">헌금 목록</h3>
                 <Button
                   onClick={addBulkRow}
@@ -1501,8 +1501,9 @@ const DonationManagement: React.FC = () => {
                 </Button>
               </div>
               
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
+              <div className="border rounded-lg flex-1 flex flex-col overflow-hidden">
+                <div className="overflow-y-auto max-h-96">
+                <table className="w-full relative">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="text-center py-2 px-3 border-b w-16">무명</th>
@@ -1529,24 +1530,26 @@ const DonationManagement: React.FC = () => {
                             className="w-4 h-4"
                           />
                         </td>
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-3 relative z-50 overflow-visible">
                           {bulk.isAnonymous ? (
                             <div className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm text-center">
                               무명
                             </div>
                           ) : (
-                            <Combobox
-                              options={members.map(member => ({
-                                value: member.id.toString(),
-                                label: member.name,
-                                description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                              }))}
-                              value={bulk.donorId}
-                              onChange={(value) => updateBulkRow(index, 'donorId', value)}
-                              placeholder="기부자 검색..."
-                              searchPlaceholder="이름, 전화번호로 검색"
-                              className="text-sm"
-                            />
+                            <div style={{position: 'relative', zIndex: 9999}}>
+                              <Combobox
+                                options={members.map(member => ({
+                                  value: member.id.toString(),
+                                  label: member.name,
+                                  description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
+                                }))}
+                                value={bulk.donorId}
+                                onChange={(value) => updateBulkRow(index, 'donorId', value)}
+                                placeholder="기부자 검색..."
+                                searchPlaceholder="이름, 전화번호로 검색"
+                                className="text-sm"
+                              />
+                            </div>
                           )}
                         </td>
                         <td className="py-2 px-3">
@@ -1593,6 +1596,7 @@ const DonationManagement: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
               
               {/* 합계 정보 */}
