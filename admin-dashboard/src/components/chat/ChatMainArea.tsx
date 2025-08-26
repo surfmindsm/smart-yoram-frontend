@@ -254,7 +254,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
 
         {/* 입력창 - 하단 고정 */}
         <div className="absolute bottom-0 left-0 right-0 bg-white">
-          <div className="max-w-5xl mx-auto px-1 pt-2 pb-0">
+          <div className="max-w-5xl mx-auto px-1 pt-2 pb-3">
             <div className="flex space-x-2">
               <textarea
                 ref={bottomInputRef}
