@@ -121,6 +121,7 @@ const AIChat: React.FC = () => {
             onSendMessage={chatHandlers.handleSendMessage}
             selectedAgent={chatState.selectedAgent}
             selectedAgentForChat={chatState.selectedAgentForChat}
+            agents={chatState.agents}
             onStartAgentChat={chatHandlers.handleStartAgentChat}
             onKeyPress={chatHandlers.handleKeyPress}
             onDownload={handleDownload}

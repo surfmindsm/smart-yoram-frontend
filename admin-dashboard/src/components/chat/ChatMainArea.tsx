@@ -10,6 +10,7 @@ interface ChatMainAreaProps {
   isLoading: boolean;
   selectedAgent: Agent | null;
   selectedAgentForChat: Agent | null;
+  agents: Agent[];
   inputValue: string;
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
   onSendMessage: () => void;
@@ -27,6 +28,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   isLoading,
   selectedAgent,
   selectedAgentForChat,
+  agents,
   inputValue,
   setInputValue,
   onSendMessage,
@@ -82,12 +84,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   };
   // 히스토리 탭에서 메시지가 없는 경우 - 첫 화면
   if (activeTab === 'history' && messages.length === 0) {
-    const recommendedAgents = [
-      { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
-      { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true },
-      { id: '3', name: '공지사항 에이전트', category: '정보 전달', description: '교회 소식과 중요한 공지사항을 전달해드립니다.', isActive: true },
-      { id: '4', name: '상담 에이전트', category: '목회 상담', description: '신앙 상담과 개인적인 고민을 함께 나눌 수 있습니다.', isActive: true }
-    ].slice(0, 4);
+    const recommendedAgents = agents.filter(agent => agent.isActive).slice(0, 4);
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
