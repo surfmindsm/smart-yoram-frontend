@@ -21,7 +21,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   
   // 설교 자료 API 호출 시에만 토큰 상태 로깅
   if (config.url?.includes('sermon-materials')) {
@@ -35,7 +35,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   } else if (config.url?.includes('sermon-materials')) {
-    console.warn('⚠️ 토큰이 없습니다! localStorage에 token이 저장되어 있는지 확인하세요.');
+    console.warn('⚠️ 토큰이 없습니다! localStorage에 access_token이 저장되어 있는지 확인하세요.');
   }
   
   // Content-Type 헤더 확실히 설정
@@ -76,7 +76,7 @@ api.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem('access_token');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -99,7 +99,7 @@ export const authService = {
     });
     
     const { access_token, user } = response.data;
-    localStorage.setItem('token', access_token);
+    localStorage.setItem('access_token', access_token);
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     }
@@ -108,7 +108,7 @@ export const authService = {
   },
   
   logout: () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
     localStorage.removeItem('user');
   },
   
@@ -1098,8 +1098,20 @@ export const sermonLibraryService = {
     size?: number;
   }) => {
     try {
-      console.log('🔍 API 호출 시작:', getApiUrl('/sermon-materials/'), params);
-      const response = await api.get(getApiUrl('/sermon-materials/'), { params });
+      // 페이지네이션 변환: page/size → skip/limit
+      const queryParams: any = {};
+      if (params?.page && params?.size) {
+        queryParams.skip = (params.page - 1) * params.size;
+        queryParams.limit = params.size;
+      }
+      if (params?.q) queryParams.q = params.q;
+      if (params?.category) queryParams.category = params.category;
+      if (params?.author) queryParams.author = params.author;
+      if (params?.file_type) queryParams.file_type = params.file_type;
+      if (params?.public_only) queryParams.public_only = params.public_only;
+      
+      console.log('🔍 API 호출 시작:', getApiUrl('/sermon-materials/'), queryParams);
+      const response = await api.get(getApiUrl('/sermon-materials/'), { params: queryParams });
       console.log('✅ API 응답 받음:', response.data);
       return response.data;
     } catch (error: any) {
