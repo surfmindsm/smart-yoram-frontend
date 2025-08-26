@@ -125,7 +125,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             {chatHistory.filter(chat => chat.isBookmarked).length > 0 && (
               <>
                 <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
-                  <Star className="w-3 h-3 mr-1 text-yellow-500" />
+                  <Star className="mr-1 text-yellow-500 fill-current" style={{width: '16px', height: '16px', minWidth: '16px', minHeight: '16px'}} />
                   고정된 대화
                 </h3>
                 
@@ -146,9 +146,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       <div className="flex items-center space-x-2 pr-8">
                         <Star 
                           className={cn(
-                            "w-3 h-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                            "cursor-pointer hover:text-yellow-400 transition-colors",
                             chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
                           )}
+                          style={{width: '16px', height: '16px', minWidth: '16px', minHeight: '16px'}}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleBookmark(chat.id, chat.isBookmarked);
@@ -273,9 +274,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <div className="flex items-center space-x-2 pr-8">
                       <Star 
                         className={cn(
-                          "w-3 h-3 cursor-pointer hover:text-yellow-400 transition-colors",
+                          "cursor-pointer hover:text-yellow-400 transition-colors",
                           chat.isBookmarked ? "text-yellow-500 fill-current" : "text-slate-300"
                         )}
+                        style={{width: '16px', height: '16px', minWidth: '16px', minHeight: '16px'}}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleBookmark(chat.id, chat.isBookmarked);
