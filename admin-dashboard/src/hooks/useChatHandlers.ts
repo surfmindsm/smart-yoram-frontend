@@ -236,6 +236,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         let aiContent = '응답을 생성하지 못했습니다.';
         let tokensUsed = 0;
         let actualChatId = effectiveChatId;
+        let usedModel = 'Unknown';
         
         if (responseData.success && responseData.data) {
           const data = responseData.data;
@@ -261,6 +262,10 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           }
           
           tokensUsed = data.tokens_used || data.tokensUsed || 0;
+          
+          // 사용된 모델명 로깅
+          usedModel = data.model || data.gpt_model || 'Unknown';
+          console.log(`🤖 AI 응답 생성 완료 - 사용 모델: ${usedModel}, 토큰: ${tokensUsed}`);
           
           // 백엔드에서 실제 생성된 chat_history_id 받기
           if (data.chat_history_id) {
@@ -294,7 +299,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         aiResponse = {
           id: `ai_${Date.now()}`,
           role: 'assistant',
-          content: aiContent,
+          content: aiContent + `\n\n---\n*사용 모델: ${usedModel || 'Unknown'}${tokensUsed > 0 ? ` | 토큰: ${tokensUsed}` : ''}*`,
           timestamp: new Date(),
           tokensUsed: tokensUsed
         };
