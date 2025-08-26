@@ -129,11 +129,11 @@ const Layout: React.FC = () => {
         {/* Sidebar */}
         <aside
           className={cn(
-            "bg-white border-r border-slate-200 transition-all duration-300 fixed h-full z-40",
+            "bg-white border-r border-slate-200 transition-all duration-300 fixed h-full z-40 overflow-y-auto",
             isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
           )}
         >
-          <nav className="p-4 space-y-1">
+          <nav className="p-4 space-y-1 pb-20">
             {/* 섹션별 일반 메뉴 */}
             {menuGroups.map((group, idx) => (
               <div key={group.title} className="mb-2">

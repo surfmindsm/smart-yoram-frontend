@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
-import { ArrowLeft, ArrowRight, Check, ContactRound, Briefcase, Church, Heart, Plus, Trash2, UserPlus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ContactRound, Briefcase, Church, Heart, Plus, Trash2, UserPlus, MapPin, Car } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
 
@@ -230,168 +230,202 @@ const AddMemberWizard: React.FC = () => {
         <CardContent className="space-y-6">
           {/* Step 1: 기본 정보 */}
           {currentStep === 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">이름 *</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="홍길동"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">영문명</label>
-                <Input
-                  value={formData.name_eng}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name_eng: e.target.value }))}
-                  placeholder="Hong Gil Dong"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">이메일 *</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="example@email.com"
-                />
-                <p className="text-xs text-muted-foreground mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">전화번호 *</label>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="010-1234-5678"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">성별</label>
-                <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="남">남</SelectItem>
-                    <SelectItem value="여">여</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">생년월일</label>
-                <Input
-                  type="date"
-                  value={formData.birthdate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, birthdate: e.target.value }))}
-                />
+            <div className="bg-muted/30 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <ContactRound className="w-5 h-5" />
+                기본 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">이름 *</label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="홍길동"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">영문명</label>
+                  <Input
+                    value={formData.name_eng}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name_eng: e.target.value }))}
+                    placeholder="Hong Gil Dong"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="example@email.com"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="010-1234-5678"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                  <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="남">남</SelectItem>
+                      <SelectItem value="여">여</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
+                  <Input
+                    type="date"
+                    value={formData.birthdate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, birthdate: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
           )}
 
           {/* Step 2: 사역 정보 */}
           {currentStep === 2 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">부서</label>
-                <Select value={formData.department_code} onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value }))}>
-                  <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
-                  <SelectContent>
-                    {departmentCodes.map(dept => (
-                      <SelectItem key={dept.code} value={dept.code}>{dept.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              {/* 교회 정보 */}
+              <div className="bg-primary/5 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Church className="w-5 h-5" />
+                  교회 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">부서</label>
+                    <Select value={formData.department_code} onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value }))}>
+                      <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
+                      <SelectContent>
+                        {departmentCodes.map(dept => (
+                          <SelectItem key={dept.code} value={dept.code}>{dept.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직분 분류</label>
+                    <Select value={formData.position_code} onValueChange={(value) => setFormData(prev => ({ ...prev, position_code: value }))}>
+                      <SelectTrigger><SelectValue placeholder="직분 선택" /></SelectTrigger>
+                      <SelectContent>
+                        {positionCodes.map(pos => (
+                          <SelectItem key={pos.code} value={pos.code}>{pos.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">구역</label>
+                    <Input value={formData.district} onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))} placeholder="1구역, 2구역 등" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">기타 직분</label>
+                    <Input value={formData.position} onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))} placeholder="권사, 기타 직분" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
+                    <Input type="date" value={formData.appointed_on} onChange={(e) => setFormData(prev => ({ ...prev, appointed_on: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">안수교회</label>
+                    <Input value={formData.ordination_church} onChange={(e) => setFormData(prev => ({ ...prev, ordination_church: e.target.value }))} placeholder="중앙교회" />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">직분</label>
-                <Select value={formData.position_code} onValueChange={(value) => setFormData(prev => ({ ...prev, position_code: value }))}>
-                  <SelectTrigger><SelectValue placeholder="직분 선택" /></SelectTrigger>
-                  <SelectContent>
-                    {positionCodes.map(pos => (
-                      <SelectItem key={pos.code} value={pos.code}>{pos.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">임명일</label>
-                <Input type="date" value={formData.appointed_on} onChange={(e) => setFormData(prev => ({ ...prev, appointed_on: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">안수교회</label>
-                <Input value={formData.ordination_church} onChange={(e) => setFormData(prev => ({ ...prev, ordination_church: e.target.value }))} placeholder="중앙교회" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">직업</label>
-                <Input value={formData.job_title} onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))} placeholder="회사원, 교사 등" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">직장명</label>
-                <Input value={formData.workplace} onChange={(e) => setFormData(prev => ({ ...prev, workplace: e.target.value }))} placeholder="삼성전자" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">직장 전화번호</label>
-                <Input type="tel" value={formData.workplace_phone} onChange={(e) => setFormData(prev => ({ ...prev, workplace_phone: e.target.value }))} placeholder="02-1234-5678" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">구역</label>
-                <Input value={formData.district} onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))} placeholder="1구역, 2구역 등" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">기타 직분</label>
-                <Input value={formData.position} onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))} placeholder="권사, 기타 직분" />
+
+              {/* 사역 및 직업 정보 */}
+              <div className="bg-blue-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5" />
+                  사역 및 직업 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직업</label>
+                    <Input value={formData.job_title} onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))} placeholder="회사원, 교사 등" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직장명</label>
+                    <Input value={formData.workplace} onChange={(e) => setFormData(prev => ({ ...prev, workplace: e.target.value }))} placeholder="삼성전자" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직장 전화번호</label>
+                    <Input type="tel" value={formData.workplace_phone} onChange={(e) => setFormData(prev => ({ ...prev, workplace_phone: e.target.value }))} placeholder="02-1234-5678" />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Step 3: 추가 연락처 */}
           {currentStep === 3 && (
-            <div className="space-y-4">
-              {formData.contacts.map((contact, index) => (
-                <div key={index} className="flex gap-3 items-end p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-2">연락처 유형</label>
-                    <Select value={contact.type} onValueChange={(value) => {
-                      const newContacts = [...formData.contacts];
-                      newContacts[index].type = value;
-                      setFormData(prev => ({ ...prev, contacts: newContacts }));
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="유형 선택" /></SelectTrigger>
-                      <SelectContent>
-                        {contactTypes.map(type => (
-                          <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            <div className="bg-green-50/50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <ContactRound className="w-5 h-5" />
+                추가 연락처 정보
+              </h3>
+              <div className="space-y-4">
+                {formData.contacts.map((contact, index) => (
+                  <div key={index} className="flex gap-3 items-end p-4 bg-white rounded-lg border">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-foreground mb-1">연락처 유형</label>
+                      <Select value={contact.type} onValueChange={(value) => {
+                        const newContacts = [...formData.contacts];
+                        newContacts[index].type = value;
+                        setFormData(prev => ({ ...prev, contacts: newContacts }));
+                      }}>
+                        <SelectTrigger><SelectValue placeholder="유형 선택" /></SelectTrigger>
+                        <SelectContent>
+                          {contactTypes.map(type => (
+                            <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-2">
+                      <label className="block text-sm font-medium text-foreground mb-1">연락처</label>
+                      <Input value={contact.value} onChange={(e) => {
+                        const newContacts = [...formData.contacts];
+                        newContacts[index].value = e.target.value;
+                        setFormData(prev => ({ ...prev, contacts: newContacts }));
+                      }} placeholder="연락처 입력" />
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => removeContact(index)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div className="flex-2">
-                    <label className="block text-sm font-medium mb-2">연락처</label>
-                    <Input value={contact.value} onChange={(e) => {
-                      const newContacts = [...formData.contacts];
-                      newContacts[index].value = e.target.value;
-                      setFormData(prev => ({ ...prev, contacts: newContacts }));
-                    }} placeholder="연락처 입력" />
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeContact(index)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" onClick={addContact} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />연락처 추가
-              </Button>
+                ))}
+                <Button type="button" variant="outline" onClick={addContact} className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />연락처 추가
+                </Button>
+              </div>
             </div>
           )}
 
           {/* Step 4: 성례/이명 기록 */}
           {currentStep === 4 && (
             <div className="space-y-8">
-              <div>
-                <h3 className="text-lg font-medium mb-4">성례 기록</h3>
+              <div className="bg-purple-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Church className="w-5 h-5" />
+                  성례 기록
+                </h3>
                 <div className="space-y-4">
                   {formData.sacraments.map((sacrament, index) => (
-                    <div key={index} className="flex gap-3 items-end p-4 border rounded-lg">
+                    <div key={index} className="flex gap-3 items-end p-4 bg-white rounded-lg border">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">성례 유형</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">성례 유형</label>
                         <Select value={sacrament.type} onValueChange={(value) => {
                           const newSacraments = [...formData.sacraments];
                           newSacraments[index].type = value;
@@ -406,7 +440,7 @@ const AddMemberWizard: React.FC = () => {
                         </Select>
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">날짜</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">날짜</label>
                         <Input type="date" value={sacrament.date} onChange={(e) => {
                           const newSacraments = [...formData.sacraments];
                           newSacraments[index].date = e.target.value;
@@ -414,7 +448,7 @@ const AddMemberWizard: React.FC = () => {
                         }} />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">교회명</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">교회명</label>
                         <Input value={sacrament.church_name} onChange={(e) => {
                           const newSacraments = [...formData.sacraments];
                           newSacraments[index].church_name = e.target.value;
@@ -432,13 +466,16 @@ const AddMemberWizard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium mb-4">이명 기록</h3>
+              <div className="bg-indigo-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Church className="w-5 h-5" />
+                  이명 기록
+                </h3>
                 <div className="space-y-4">
                   {formData.transfers.map((transfer, index) => (
-                    <div key={index} className="flex gap-3 items-end p-4 border rounded-lg">
+                    <div key={index} className="flex gap-3 items-end p-4 bg-white rounded-lg border">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">유형</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">유형</label>
                         <Select value={transfer.type} onValueChange={(value) => {
                           const newTransfers = [...formData.transfers];
                           newTransfers[index].type = value;
@@ -452,7 +489,7 @@ const AddMemberWizard: React.FC = () => {
                         </Select>
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">교회명</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">교회명</label>
                         <Input value={transfer.church_name} onChange={(e) => {
                           const newTransfers = [...formData.transfers];
                           newTransfers[index].church_name = e.target.value;
@@ -460,7 +497,7 @@ const AddMemberWizard: React.FC = () => {
                         }} placeholder="교회명" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">날짜</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">날짜</label>
                         <Input type="date" value={transfer.date} onChange={(e) => {
                           const newTransfers = [...formData.transfers];
                           newTransfers[index].date = e.target.value;
@@ -482,40 +519,59 @@ const AddMemberWizard: React.FC = () => {
 
           {/* Step 5: 기타 정보 */}
           {currentStep === 5 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">주소</label>
+            <div className="space-y-8">
+              {/* 개인 및 가족 정보 */}
+              <div className="bg-green-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Heart className="w-5 h-5" />
+                  개인 및 가족 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">결혼 상태</label>
+                    <Select value={formData.marital_status} onValueChange={(value) => setFormData(prev => ({ ...prev, marital_status: value }))}>
+                      <SelectTrigger><SelectValue placeholder="상태 선택" /></SelectTrigger>
+                      <SelectContent>
+                        {maritalStatuses.map(status => (
+                          <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">배우자 이름</label>
+                    <Input value={formData.spouse_name} onChange={(e) => setFormData(prev => ({ ...prev, spouse_name: e.target.value }))} placeholder="배우자 이름" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">결혼일</label>
+                    <Input type="date" value={formData.married_on} onChange={(e) => setFormData(prev => ({ ...prev, married_on: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 주소 정보 */}
+              <div className="bg-yellow-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  주소 정보
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
                   <Textarea value={formData.address} onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))} placeholder="상세 주소 입력" rows={3} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">결혼 상태</label>
-                  <Select value={formData.marital_status} onValueChange={(value) => setFormData(prev => ({ ...prev, marital_status: value }))}>
-                    <SelectTrigger><SelectValue placeholder="상태 선택" /></SelectTrigger>
-                    <SelectContent>
-                      {maritalStatuses.map(status => (
-                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">배우자 이름</label>
-                  <Input value={formData.spouse_name} onChange={(e) => setFormData(prev => ({ ...prev, spouse_name: e.target.value }))} placeholder="배우자 이름" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">결혼일</label>
-                  <Input type="date" value={formData.married_on} onChange={(e) => setFormData(prev => ({ ...prev, married_on: e.target.value }))} />
                 </div>
               </div>
               
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium mb-4">차량 정보</h3>
+              {/* 차량 정보 */}
+              <div className="bg-orange-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Car className="w-5 h-5" />
+                  차량 정보
+                </h3>
                 <div className="space-y-4">
                   {formData.vehicles.map((vehicle, index) => (
-                    <div key={index} className="flex gap-3 items-end p-4 border rounded-lg">
+                    <div key={index} className="flex gap-3 items-end p-4 bg-white rounded-lg border">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">차종</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">차종</label>
                         <Input value={vehicle.car_type} onChange={(e) => {
                           const newVehicles = [...formData.vehicles];
                           newVehicles[index].car_type = e.target.value;
@@ -523,7 +579,7 @@ const AddMemberWizard: React.FC = () => {
                         }} placeholder="소나타, 아반떼 등" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">번호판</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">번호판</label>
                         <Input value={vehicle.plate_no} onChange={(e) => {
                           const newVehicles = [...formData.vehicles];
                           newVehicles[index].plate_no = e.target.value;

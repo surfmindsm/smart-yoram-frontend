@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/chat';
 import { chatService, agentService } from '../services/api';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
+import { AGENT_CONFIG } from '../constants/agents';
 
 // 🚀 localStorage 캐시 키
 const CACHE_KEYS = {
@@ -319,10 +320,11 @@ export const useChat = () => {
       } else {
         console.warn('❌ AIChat - 에이전트 로딩 실패, Mock 데이터 사용');
         const mockAgents: Agent[] = [
-          { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
-          { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true },
-          { id: '3', name: '공지사항 에이전트', category: '정보 전달', description: '교회 소식과 중요한 공지사항을 전달해드립니다.', isActive: true },
-          { id: '4', name: '상담 에이전트', category: '목회 상담', description: '신앙 상담과 개인적인 고민을 함께 나눌 수 있습니다.', isActive: true }
+          { id: 'default', name: '기본 AI 도우미', category: '일반', description: '일반적인 질문과 교회 업무를 도와드립니다.', isActive: true }, // 기본 에이전트
+          { id: 1, name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
+          { id: 2, name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true },
+          { id: 3, name: '공지사항 에이전트', category: '정보 전달', description: '교회 소식과 중요한 공지사항을 전달해드립니다.', isActive: true },
+          { id: 4, name: '상담 에이전트', category: '목회 상담', description: '신앙 상담과 개인적인 고민을 함께 나눌 수 있습니다.', isActive: true }
         ];
         setAgents(mockAgents);
       }
@@ -347,8 +349,9 @@ export const useChat = () => {
       // 자동 선택 비활성화
       
       const mockAgents: Agent[] = [
-        { id: '1', name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
-        { id: '2', name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true }
+        { id: 'default', name: '기본 AI 도우미', category: '일반', description: '일반적인 질문과 교회 업무를 도와드립니다.', isActive: true }, // 기본 에이전트
+        { id: 1, name: '교인정보 에이전트', category: '교인 관리', description: '교인 등록, 출석 관리, 연락처 관리 등을 도와드립니다.', isActive: true },
+        { id: 2, name: '예배 안내 에이전트', category: '예배 정보', description: '주일예배, 특별예배 시간과 장소를 안내해드립니다.', isActive: true }
       ];
       setAgents(mockAgents);
       
