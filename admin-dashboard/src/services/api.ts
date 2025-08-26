@@ -1085,8 +1085,8 @@ export const sermonLibraryService = {
     size?: number;
   }) => {
     try {
-      console.log('🔍 API 호출 시작:', getApiUrl('/sermon-materials/'), params);
-      const response = await api.get(getApiUrl('/sermon-materials/'), { params });
+      console.log('🔍 API 호출 시작:', getApiUrl('/sermon_materials/'), params);
+      const response = await api.get(getApiUrl('/sermon_materials/'), { params });
       console.log('✅ API 응답 받음:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1094,7 +1094,7 @@ export const sermonLibraryService = {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
-        url: getApiUrl('/sermon-materials/')
+        url: getApiUrl('/sermon_materials/')
       });
       throw error;
     }
@@ -1103,8 +1103,8 @@ export const sermonLibraryService = {
   // 카테고리 조회
   getCategories: async () => {
     try {
-      console.log('🔍 카테고리 API 호출:', getApiUrl('/sermon-materials/categories/'));
-      const response = await api.get(getApiUrl('/sermon-materials/categories/'));
+      console.log('🔍 카테고리 API 호출:', getApiUrl('/sermon_materials/categories/'));
+      const response = await api.get(getApiUrl('/sermon_materials/categories/'));
       console.log('✅ 카테고리 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1120,8 +1120,8 @@ export const sermonLibraryService = {
   // 설교자 목록 조회
   getAuthors: async () => {
     try {
-      console.log('🔍 설교자 API 호출:', getApiUrl('/sermon-materials/authors/'));
-      const response = await api.get(getApiUrl('/sermon-materials/authors/'));
+      console.log('🔍 설교자 API 호출:', getApiUrl('/sermon_materials/authors/'));
+      const response = await api.get(getApiUrl('/sermon_materials/authors/'));
       console.log('✅ 설교자 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1137,8 +1137,8 @@ export const sermonLibraryService = {
   // 태그 목록 조회
   getTags: async () => {
     try {
-      console.log('🔍 태그 API 호출:', getApiUrl('/sermon-materials/tags/'));
-      const response = await api.get(getApiUrl('/sermon-materials/tags/'));
+      console.log('🔍 태그 API 호출:', getApiUrl('/sermon_materials/tags/'));
+      const response = await api.get(getApiUrl('/sermon_materials/tags/'));
       console.log('✅ 태그 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1154,8 +1154,8 @@ export const sermonLibraryService = {
   // 통계 조회
   getStats: async () => {
     try {
-      console.log('🔍 통계 API 호출:', getApiUrl('/sermon-materials/stats/'));
-      const response = await api.get(getApiUrl('/sermon-materials/stats/'));
+      console.log('🔍 통계 API 호출:', getApiUrl('/sermon_materials/stats/'));
+      const response = await api.get(getApiUrl('/sermon_materials/stats/'));
       console.log('✅ 통계 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1171,8 +1171,8 @@ export const sermonLibraryService = {
   // 파일 다운로드
   downloadFile: async (fileUrl: string) => {
     try {
-      console.log('🔍 파일 다운로드 API 호출:', getApiUrl(`/sermon-materials/files/${fileUrl}`));
-      const response = await api.get(getApiUrl(`/sermon-materials/files/${fileUrl}`), {
+      console.log('🔍 파일 다운로드 API 호출:', getApiUrl(`/sermon_materials/files/${fileUrl}`));
+      const response = await api.get(getApiUrl(`/sermon_materials/files/${fileUrl}`), {
         responseType: 'blob'
       });
       console.log('✅ 파일 다운로드 성공');
@@ -1190,8 +1190,8 @@ export const sermonLibraryService = {
   // 새 자료 등록
   createMaterial: async (materialData: any) => {
     try {
-      console.log('🔍 자료 등록 API 호출:', getApiUrl('/sermon-materials/'), materialData);
-      const response = await api.post(getApiUrl('/sermon-materials/'), materialData);
+      console.log('🔍 자료 등록 API 호출:', getApiUrl('/sermon_materials/'), materialData);
+      const response = await api.post(getApiUrl('/sermon_materials/'), materialData);
       console.log('✅ 자료 등록 성공:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1207,8 +1207,8 @@ export const sermonLibraryService = {
   // 자료 수정
   updateMaterial: async (materialId: number, materialData: any) => {
     try {
-      console.log('🔍 자료 수정 API 호출:', getApiUrl(`/sermon-materials/${materialId}`), materialData);
-      const response = await api.put(getApiUrl(`/sermon-materials/${materialId}`), materialData);
+      console.log('🔍 자료 수정 API 호출:', getApiUrl(`/sermon_materials/${materialId}`), materialData);
+      const response = await api.put(getApiUrl(`/sermon_materials/${materialId}`), materialData);
       console.log('✅ 자료 수정 성공:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1224,8 +1224,8 @@ export const sermonLibraryService = {
   // 자료 삭제
   deleteMaterial: async (materialId: number) => {
     try {
-      console.log('🔍 자료 삭제 API 호출:', getApiUrl(`/sermon-materials/${materialId}`));
-      const response = await api.delete(getApiUrl(`/sermon-materials/${materialId}`));
+      console.log('🔍 자료 삭제 API 호출:', getApiUrl(`/sermon_materials/${materialId}`));
+      const response = await api.delete(getApiUrl(`/sermon_materials/${materialId}`));
       console.log('✅ 자료 삭제 성공');
       return response.data;
     } catch (error: any) {
@@ -1241,8 +1241,8 @@ export const sermonLibraryService = {
   // 파일 업로드
   uploadFile: async (formData: FormData) => {
     try {
-      console.log('🔍 파일 업로드 API 호출:', getApiUrl('/sermon-materials/upload'));
-      const response = await api.post(getApiUrl('/sermon-materials/upload'), formData, {
+      console.log('🔍 파일 업로드 API 호출:', getApiUrl('/sermon_materials/upload'));
+      const response = await api.post(getApiUrl('/sermon_materials/upload'), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
