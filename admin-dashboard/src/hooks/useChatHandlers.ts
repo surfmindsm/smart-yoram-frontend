@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
 import { churchConfigService, chatService } from '../services/api';
-import { DEFAULT_AGENT, AGENT_CONFIG } from '../constants/agents';
+import { AGENT_CONFIG } from '../constants/agents';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -108,7 +108,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
 
         // 백엔드 히스토리 생성 (AI 응답 생성 없이)
         try {
-          const agentId = selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id;
+          const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+          
+          if (!agentId) {
+            console.warn('⚠️ 사용 가능한 에이전트가 없습니다. 관리자에게 문의하세요.');
+            setIsLoading(false);
+            return;
+          }
           
           const historyResult = await chatService.createChatHistory(
             agentId, 
@@ -203,12 +209,20 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           };
         }
       } else {
+        // 에이전트 ID 검증
+        const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+        if (!agentId) {
+          console.warn('⚠️ 사용 가능한 에이전트가 없습니다. 관리자에게 문의하세요.');
+          setIsLoading(false);
+          return;
+        }
+
         // 백엔드에서 AI 응답 생성하도록 API 호출
         const responseData = await chatService.sendMessage({
           chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
           content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
           role: 'user',
-          agent_id: selectedAgentForChat?.id || agents?.[0]?.id || DEFAULT_AGENT.id,
+          agent_id: agentId,
           messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
             role: msg.role,
             content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
