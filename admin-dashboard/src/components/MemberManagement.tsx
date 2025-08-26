@@ -141,6 +141,10 @@ const MemberManagement: React.FC = () => {
       
       const response = await api.get(`/members/?${params.toString()}`);
       
+      console.log('🌐 API 응답 전체 구조:', response);
+      console.log('📋 응답 데이터 타입:', typeof response.data);
+      console.log('📋 응답 데이터 키들:', Object.keys(response.data || {}));
+      
       // Sort data on client side for now
       let sortedData = [...response.data];
       if (sortField) {
@@ -155,13 +159,26 @@ const MemberManagement: React.FC = () => {
         });
       }
       
+      console.log('🔍 교인 데이터 분석:');
+      console.log('- API 응답 데이터 길이:', response.data.length);
+      console.log('- 현재 페이지:', currentPage);
+      console.log('- 페이지 크기:', pageSize);
+      console.log('- 정렬된 데이터 길이:', sortedData.length);
+      
       setMembers(sortedData);
-      // For now, estimate total count based on returned data
-      // In production, API should return total count
-      setTotalCount(response.data.length < pageSize ? 
-        (currentPage - 1) * pageSize + response.data.length : 
-        currentPage * pageSize + 1
-      );
+      
+      // totalCount 계산 수정
+      if (response.data.length < pageSize) {
+        // 마지막 페이지인 경우
+        const calculatedTotal = (currentPage - 1) * pageSize + response.data.length;
+        console.log('📊 마지막 페이지 - 계산된 총 개수:', calculatedTotal);
+        setTotalCount(calculatedTotal);
+      } else {
+        // 더 많은 페이지가 있을 수 있는 경우 - API에서 전체 개수를 받아야 함
+        console.log('📊 더 많은 데이터 가능 - 전체 개수 추정 불가');
+        // 임시로 현재까지의 최소 개수만 설정
+        setTotalCount(currentPage * pageSize);
+      }
     } catch (error) {
       console.error('교인 목록 조회 실패:', error);
     } finally {
