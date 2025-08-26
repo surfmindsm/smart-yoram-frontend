@@ -125,7 +125,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             {chatHistory.filter(chat => chat.isBookmarked).length > 0 && (
               <>
                 <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center">
-                  <Star className="mr-1 text-yellow-500 fill-current" style={{width: '16px', height: '16px', minWidth: '16px', minHeight: '16px'}} />
+                  {/* <Star className="mr-1 text-yellow-500 fill-current" style={{width: '16px', height: '16px', minWidth: '16px', minHeight: '16px'}} /> */}
                   고정된 대화
                 </h3>
                 
