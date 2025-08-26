@@ -100,10 +100,12 @@ const SermonLibrary: React.FC = () => {
 
       console.log('📝 API 파라미터:', params);
       
-      const materials = await sermonLibraryService.getSermonMaterials(params);
-      console.log('✅ 설교 자료 조회 성공:', materials);
+      const response = await sermonLibraryService.getSermonMaterials(params);
+      console.log('✅ 설교 자료 조회 성공:', response);
       
-      setMaterials(materials);
+      // 응답이 배열인지 확인하고 안전하게 설정
+      const materialsArray = Array.isArray(response) ? response : (response?.items || []);
+      setMaterials(materialsArray);
       
       // 총 페이지 수는 별도 API로 가져와야 할 수 있음
       if (materials.length < pageSize) {
@@ -111,6 +113,7 @@ const SermonLibrary: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ 설교 자료 조회 실패:', error);
+      setMaterials([]); // 에러 시 빈 배열로 설정
     } finally {
       setLoading(false);
     }
@@ -124,6 +127,7 @@ const SermonLibrary: React.FC = () => {
       setCategories(categories);
     } catch (error) {
       console.error('❌ 카테고리 조회 실패:', error);
+      setCategories([]); // 에러 시 빈 배열로 설정
     }
   };
 
@@ -135,6 +139,7 @@ const SermonLibrary: React.FC = () => {
       setAuthors(authors);
     } catch (error) {
       console.error('❌ 설교자 목록 조회 실패:', error);
+      setAuthors([]); // 에러 시 빈 배열로 설정
     }
   };
 
@@ -146,6 +151,7 @@ const SermonLibrary: React.FC = () => {
       setTags(tags);
     } catch (error) {
       console.error('❌ 태그 목록 조회 실패:', error);
+      setTags([]); // 에러 시 빈 배열로 설정
     }
   };
 
@@ -157,6 +163,7 @@ const SermonLibrary: React.FC = () => {
       setStats(stats);
     } catch (error) {
       console.error('❌ 통계 조회 실패:', error);
+      setStats(null); // 에러 시 null로 설정
     }
   };
 
@@ -339,7 +346,7 @@ const SermonLibrary: React.FC = () => {
           <div className="col-span-2 text-center py-12">
             <div className="text-slate-500">로딩 중...</div>
           </div>
-        ) : materials.length === 0 ? (
+        ) : !Array.isArray(materials) || materials.length === 0 ? (
           <div className="col-span-2 text-center py-12">
             <Library className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <div className="text-slate-500">등록된 설교 자료가 없습니다.</div>
