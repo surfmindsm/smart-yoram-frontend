@@ -299,7 +299,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         aiResponse = {
           id: `ai_${Date.now()}`,
           role: 'assistant',
-          content: aiContent + `\n\n---\n*사용 모델: ${usedModel || 'Unknown'}${tokensUsed > 0 ? ` | 토큰: ${tokensUsed}` : ''}*`,
+          content: aiContent,
           timestamp: new Date(),
           tokensUsed: tokensUsed
         };
