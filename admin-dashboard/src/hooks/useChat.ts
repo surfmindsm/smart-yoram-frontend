@@ -8,13 +8,25 @@ import { AGENT_CONFIG } from '../constants/agents';
 const CACHE_KEYS = {
   CHAT_HISTORY: 'chat_history_cache',
   AGENTS: 'agents_cache',
-  CACHE_TIMESTAMP: 'cache_timestamp'
+  CACHE_TIMESTAMP: 'cache_timestamp',
+  CURRENT_CHAT_STATE: 'current_chat_state'
 };
 
 // 🚀 캐시 유효 시간 (5분)
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export const useChat = () => {
+  // 🚀 현재 채팅 상태 복구
+  const initialChatState = useMemo(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEYS.CURRENT_CHAT_STATE);
+      return saved ? JSON.parse(saved) : { currentChatId: null, selectedAgentForChat: null };
+    } catch (error) {
+      console.error('채팅 상태 복구 실패:', error);
+      return { currentChatId: null, selectedAgentForChat: null };
+    }
+  }, []);
+
   // 🚀 localStorage에서 즉시 캐시된 데이터 로드 (useMemo로 최적화)
   const initialHistory = useMemo((): ChatHistory[] => {
     try {
@@ -59,10 +71,10 @@ export const useChat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialHistory);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null); // 항상 새 대화로 시작
+  const [currentChatId, setCurrentChatId] = useState<string | null>(initialChatState.currentChatId);
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(null);
+  const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(initialChatState.selectedAgentForChat);
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
   const [loadingChats, setLoadingChats] = useState(true);
@@ -97,6 +109,18 @@ export const useChat = () => {
       localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
     } catch (error) {
       console.error('캐시 저장 실패:', error);
+    }
+  };
+
+  // 🚀 현재 채팅 상태 저장
+  const saveChatState = (chatId: string | null, agent: Agent | null) => {
+    try {
+      localStorage.setItem(CACHE_KEYS.CURRENT_CHAT_STATE, JSON.stringify({
+        currentChatId: chatId,
+        selectedAgentForChat: agent
+      }));
+    } catch (error) {
+      console.error('채팅 상태 저장 실패:', error);
     }
   };
   
@@ -445,10 +469,16 @@ export const useChat = () => {
     }
   };
 
+  // useEffect: currentChatId와 selectedAgentForChat 변경 시 상태 저장
+  useEffect(() => {
+    saveChatState(currentChatId, selectedAgentForChat);
+  }, [currentChatId, selectedAgentForChat]);
+
   // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
   useEffect(() => {
-    // 새로고침 시 강제 로드를 위해 캐시 무시
-    loadData(true);
+    // 캐시된 데이터가 있으면 강제 새로고침하지 않음
+    const hasCache = initialHistory.length > 0 && initialAgents.length > 0;
+    loadData(!hasCache);
   }, []); // 빈 의존성 배열로 마운트 시에만 실행
 
   // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)
