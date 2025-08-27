@@ -69,7 +69,7 @@ const SermonLibrary: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
   
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -79,9 +79,7 @@ const SermonLibrary: React.FC = () => {
     title: '',
     author: '',
     content: '',
-    category: '',
-    scripture_reference: '',
-    date_preached: ''
+    scripture_reference: ''
   });
   
   // 파일 업로드 상태
@@ -93,10 +91,7 @@ const SermonLibrary: React.FC = () => {
   const [uploadMetadata, setUploadMetadata] = useState({
     title: '',
     author: '',
-    content: '',
-    category: '',
-    scripture_reference: '',
-    date_preached: ''
+    scripture_reference: ''
   });
 
   // 데이터 로딩
@@ -125,14 +120,12 @@ const SermonLibrary: React.FC = () => {
       const response = await sermonLibraryService.getSermonMaterials(params);
       console.log('✅ 설교 자료 조회 성공:', response);
       
-      // 응답이 배열인지 확인하고 안전하게 설정
-      const materialsArray = Array.isArray(response) ? response : (response?.items || []);
-      setMaterials(materialsArray);
+      // 페이지네이션 응답 구조에서 items 추출
+      const { items = [], total = 0, pages = 1 } = response || {};
+      setMaterials(items);
       
-      // 총 페이지 수는 별도 API로 가져와야 할 수 있음
-      if (materials.length < pageSize) {
-        setTotalPages(currentPage);
-      }
+      // 총 페이지 수 설정
+      setTotalPages(pages);
     } catch (error) {
       console.error('❌ 설교 자료 조회 실패:', error);
       setMaterials([]); // 에러 시 빈 배열로 설정
@@ -143,38 +136,32 @@ const SermonLibrary: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      console.log('🔍 fetchCategories 호출 시작');
       const categories = await sermonLibraryService.getCategories();
-      console.log('✅ 카테고리 조회 성공:', categories);
-      setCategories(categories);
+      setCategories(Array.isArray(categories) ? categories : []);
     } catch (error) {
       console.error('❌ 카테고리 조회 실패:', error);
-      setCategories([]); // 에러 시 빈 배열로 설정
+      setCategories([]);
     }
   };
 
   const fetchAuthors = async () => {
     try {
-      console.log('🔍 fetchAuthors 호출 시작');
       const authors = await sermonLibraryService.getAuthors();
-      console.log('✅ 설교자 목록 조회 성공:', authors);
-      setAuthors(authors);
+      setAuthors(Array.isArray(authors) ? authors : []);
     } catch (error) {
       console.error('❌ 설교자 목록 조회 실패:', error);
-      setAuthors([]); // 에러 시 빈 배열로 설정
+      setAuthors([]);
     }
   };
 
 
   const fetchStats = async () => {
     try {
-      console.log('🔍 fetchStats 호출 시작');
       const stats = await sermonLibraryService.getStats();
-      console.log('✅ 통계 조회 성공:', stats);
       setStats(stats);
     } catch (error) {
       console.error('❌ 통계 조회 실패:', error);
-      setStats(null); // 에러 시 null로 설정
+      setStats(null);
     }
   };
 
@@ -242,9 +229,7 @@ const SermonLibrary: React.FC = () => {
         title: '',
         author: '',
         content: '',
-        category: '',
-        scripture_reference: '',
-        date_preached: ''
+        scripture_reference: ''
       });
       
       // 목록 새로고침
@@ -276,7 +261,21 @@ const SermonLibrary: React.FC = () => {
         }
       });
       
-      await sermonLibraryService.uploadFile(formData);
+      const uploadResult = await sermonLibraryService.uploadFile(formData);
+      console.log('📁 업로드 결과:', uploadResult);
+      
+      // 파일 업로드 후 자료도 생성해야 하는 경우
+      if (uploadResult?.file_url) {
+        console.log('📝 자료 생성 시작 - 업로드된 파일과 연결');
+        const materialData = {
+          ...uploadMetadata,
+          file_url: uploadResult.file_url,
+          file_type: uploadResult.file_type
+        };
+        console.log('📤 자료 생성 데이터:', materialData);
+        const createResult = await sermonLibraryService.createMaterial(materialData);
+        console.log('📥 자료 생성 결과:', createResult);
+      }
       
       console.log('✅ 파일 업로드 성공');
       
@@ -286,10 +285,7 @@ const SermonLibrary: React.FC = () => {
       setUploadMetadata({
         title: '',
         author: '',
-        content: '',
-        category: '',
-        scripture_reference: '',
-        date_preached: ''
+        scripture_reference: ''
       });
       
       // 목록 새로고침
@@ -522,12 +518,11 @@ const SermonLibrary: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
+                    <th className="text-left p-4 font-medium text-slate-700">유형</th>
                     <th className="text-left p-4 font-medium text-slate-700">제목</th>
                     <th className="text-left p-4 font-medium text-slate-700">설교자</th>
-                    <th className="text-left p-4 font-medium text-slate-700">카테고리</th>
                     <th className="text-left p-4 font-medium text-slate-700">성경구절</th>
-                    <th className="text-left p-4 font-medium text-slate-700">설교날짜</th>
-                    <th className="text-left p-4 font-medium text-slate-700">조회/다운로드</th>
+                    <th className="text-left p-4 font-medium text-slate-700">등록일</th>
                     <th className="text-left p-4 font-medium text-slate-700">작업</th>
                   </tr>
                 </thead>
@@ -537,27 +532,21 @@ const SermonLibrary: React.FC = () => {
                       <td className="p-4">
                         <div className="flex items-center space-x-2">
                           {getFileIcon(material.file_type)}
-                          <span className="font-medium text-slate-900">{material.title}</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                            {material.file_url ? '파일' : '자료'}
+                          </span>
                         </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium text-slate-900">{material.title}</div>
                         {material.content && (
                           <p className="text-sm text-slate-600 mt-1 line-clamp-1">{material.content}</p>
                         )}
                       </td>
                       <td className="p-4 text-slate-600">{material.author || '-'}</td>
-                      <td className="p-4 text-slate-600">{material.category || '-'}</td>
                       <td className="p-4 text-slate-600">{material.scripture_reference || '-'}</td>
-                      <td className="p-4 text-slate-600">{material.date_preached || '-'}</td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-3 text-xs text-slate-500">
-                          <span className="flex items-center space-x-1">
-                            <Eye className="w-3 h-3" />
-                            <span>{material.view_count}</span>
-                          </span>
-                          <span className="flex items-center space-x-1">
-                            <Download className="w-3 h-3" />
-                            <span>{material.download_count}</span>
-                          </span>
-                        </div>
+                      <td className="p-4 text-slate-600">
+                        {material.created_at ? new Date(material.created_at).toLocaleDateString('ko-KR') : '-'}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center space-x-1">
@@ -633,49 +622,26 @@ const SermonLibrary: React.FC = () => {
               />
             </div>
             
-            <div>
-              <Label htmlFor="author">설교자</Label>
-              <Input
-                id="author"
-                value={newMaterial.author}
-                onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
-                placeholder="설교자 이름"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="category">카테고리</Label>
-              <select
-                id="category"
-                value={newMaterial.category}
-                onChange={(e) => setNewMaterial({...newMaterial, category: e.target.value})}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-              >
-                <option value="">카테고리 선택</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.name}>{category.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="scripture_reference">성경 구절</Label>
-              <Input
-                id="scripture_reference"
-                value={newMaterial.scripture_reference}
-                onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
-                placeholder="예: 요한복음 3:16"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="date_preached">설교 날짜</Label>
-              <Input
-                id="date_preached"
-                type="date"
-                value={newMaterial.date_preached}
-                onChange={(e) => setNewMaterial({...newMaterial, date_preached: e.target.value})}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="author">설교자</Label>
+                <Input
+                  id="author"
+                  value={newMaterial.author}
+                  onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
+                  placeholder="설교자 이름"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="scripture_reference">성경 구절</Label>
+                <Input
+                  id="scripture_reference"
+                  value={newMaterial.scripture_reference}
+                  onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
+                  placeholder="예: 요한복음 3:16"
+                />
+              </div>
             </div>
             
             <div>
@@ -721,6 +687,12 @@ const SermonLibrary: React.FC = () => {
                 type="file"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
+                  // 파일 크기 체크 (10MB 제한)
+                  if (file && file.size > 10 * 1024 * 1024) {
+                    alert('파일 크기는 10MB 이하로 업로드해주세요.');
+                    e.target.value = '';
+                    return;
+                  }
                   setUploadFile(file);
                   // 파일명에서 제목 자동 설정
                   if (file && !uploadMetadata.title) {
@@ -732,7 +704,7 @@ const SermonLibrary: React.FC = () => {
                 required
               />
               <p className="text-sm text-slate-500 mt-1">
-                지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A
+                지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A (최대 10MB)
               </p>
             </div>
             
@@ -744,18 +716,18 @@ const SermonLibrary: React.FC = () => {
               </div>
             )}
 
+            <div>
+              <Label htmlFor="upload_title">제목 *</Label>
+              <Input
+                id="upload_title"
+                value={uploadMetadata.title}
+                onChange={(e) => setUploadMetadata({...uploadMetadata, title: e.target.value})}
+                placeholder="설교 제목을 입력하세요"
+                required
+              />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="upload_title">제목 *</Label>
-                <Input
-                  id="upload_title"
-                  value={uploadMetadata.title}
-                  onChange={(e) => setUploadMetadata({...uploadMetadata, title: e.target.value})}
-                  placeholder="설교 제목을 입력하세요"
-                  required
-                />
-              </div>
-              
               <div>
                 <Label htmlFor="upload_author">설교자</Label>
                 <Input
@@ -765,54 +737,16 @@ const SermonLibrary: React.FC = () => {
                   placeholder="설교자 이름"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="upload_category">카테고리</Label>
-                <select
-                  id="upload_category"
-                  value={uploadMetadata.category}
-                  onChange={(e) => setUploadMetadata({...uploadMetadata, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                >
-                  <option value="">카테고리 선택</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.name}>{category.name}</option>
-                  ))}
-                </select>
-              </div>
               
               <div>
-                <Label htmlFor="upload_date">설교 날짜</Label>
+                <Label htmlFor="upload_scripture">성경 구절</Label>
                 <Input
-                  id="upload_date"
-                  type="date"
-                  value={uploadMetadata.date_preached}
-                  onChange={(e) => setUploadMetadata({...uploadMetadata, date_preached: e.target.value})}
+                  id="upload_scripture"
+                  value={uploadMetadata.scripture_reference}
+                  onChange={(e) => setUploadMetadata({...uploadMetadata, scripture_reference: e.target.value})}
+                  placeholder="예: 요한복음 3:16"
                 />
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="upload_scripture">성경 구절</Label>
-              <Input
-                id="upload_scripture"
-                value={uploadMetadata.scripture_reference}
-                onChange={(e) => setUploadMetadata({...uploadMetadata, scripture_reference: e.target.value})}
-                placeholder="예: 요한복음 3:16"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="upload_content">내용</Label>
-              <Textarea
-                id="upload_content"
-                value={uploadMetadata.content}
-                onChange={(e) => setUploadMetadata({...uploadMetadata, content: e.target.value})}
-                placeholder="설교 내용을 입력하세요"
-                rows={4}
-              />
             </div>
             
             <div className="flex justify-end space-x-2 pt-4">
@@ -825,10 +759,7 @@ const SermonLibrary: React.FC = () => {
                   setUploadMetadata({
                     title: '',
                     author: '',
-                    content: '',
-                    category: '',
-                    scripture_reference: '',
-                    date_preached: ''
+                    scripture_reference: ''
                   });
                 }}
               >
