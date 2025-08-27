@@ -28,7 +28,7 @@ const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestMan
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
-const SermonLibrary = lazy(() => import('./components/SermonLibrary'));
+import SermonLibrary from './components/SermonLibrary';
 
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
