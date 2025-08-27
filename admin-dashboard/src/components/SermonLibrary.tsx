@@ -479,9 +479,9 @@ const SermonLibrary: React.FC = () => {
 
       {/* 검색 및 필터 */}
       <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[300px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
@@ -496,7 +496,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[120px]"
             >
               <option value="">전체 카테고리</option>
               {categories.map(category => (
@@ -507,7 +507,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedAuthor}
               onChange={(e) => setSelectedAuthor(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[110px]"
             >
               <option value="">전체 설교자</option>
               {authors.map(author => (
@@ -518,7 +518,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedFileType}
               onChange={(e) => setSelectedFileType(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[100px]"
             >
               <option value="">전체 형식</option>
               <option value="pdf">PDF</option>
@@ -527,8 +527,7 @@ const SermonLibrary: React.FC = () => {
               <option value="txt">텍스트</option>
             </select>
 
-
-            <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2">
+            <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2 whitespace-nowrap">
               <Filter className="w-4 h-4" />
               <span>필터 초기화</span>
             </Button>
