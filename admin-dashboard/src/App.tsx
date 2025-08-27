@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import SermonLibrary from './components/SermonLibrary';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -28,7 +29,6 @@ const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestMan
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
-import SermonLibrary from './components/SermonLibrary';
 
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
