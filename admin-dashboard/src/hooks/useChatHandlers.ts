@@ -301,7 +301,11 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           role: 'assistant',
           content: aiContent,
           timestamp: new Date(),
-          tokensUsed: tokensUsed
+          tokensUsed: tokensUsed,
+          // 비서 에이전트 응답 메타데이터 처리
+          is_secretary_agent: responseData.data?.is_secretary_agent || false,
+          query_type: responseData.data?.query_type,
+          data_sources: responseData.data?.data_sources || []
         };
       }
         

@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { ChatMessage } from '../../types/chat';
-import { Copy } from 'lucide-react';
+import { Copy, Database } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { cn } from '../../lib/utils';
 
+// Query type 라벨 변환 함수
+const getQueryTypeLabel = (queryType: string) => {
+  const labels: { [key: string]: string } = {
+    'pastoral_visit_schedule': '심방 일정',
+    'prayer_requests': '중보기도', 
+    'announcements': '공지사항',
+    'visit_reports': '심방 보고서',
+    'member_info': '성도 정보'
+  };
+  return labels[queryType] || '일반 업무';
+};
+
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  selectedAgent?: { category?: string } | null;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messagesEndRef }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messagesEndRef, selectedAgent }) => {
   // 메시지 리스트 변경 시 자동 스크롤
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -32,6 +45,20 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
             "max-w-4xl group mx-auto",
             message.role === 'user' ? "text-right" : "text-left"
           )}>
+            {/* 비서 에이전트 응답 헤더 */}
+            {message.role === 'assistant' && message.is_secretary_agent && (
+              <div className="mb-3 flex items-center space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  👩‍💼 비서 AI
+                </span>
+                {message.query_type && (
+                  <span className="text-xs text-slate-500">
+                    {getQueryTypeLabel(message.query_type)}
+                  </span>
+                )}
+              </div>
+            )}
+            
             {/* 메시지 텍스트 */}
             <div className={cn(
               "prose prose-sm max-w-none",
@@ -83,6 +110,17 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
               </ReactMarkdown>
             </div>
             
+            {/* 비서 에이전트 데이터 소스 표시 */}
+            {message.role === 'assistant' && message.is_secretary_agent && message.data_sources && message.data_sources.length > 0 && (
+              <div className="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2">
+                <div className="flex items-center space-x-1">
+                  <Database className="w-3 h-3" />
+                  <span>조회된 데이터:</span>
+                  <span>{message.data_sources.join(', ')}</span>
+                </div>
+              </div>
+            )}
+            
             {/* 복사 버튼 */}
             <div className={cn(
               "mt-2 opacity-0 group-hover:opacity-100 transition-opacity",
@@ -113,7 +151,12 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
                      transformOrigin: 'center'
                    }}>
               </div>
-              <span className="ml-3 text-sm text-slate-500">생각하는 중...</span>
+              <span className="ml-3 text-sm text-slate-500">
+                {selectedAgent?.category === 'secretary' 
+                  ? '교회 데이터 조회 중...' 
+                  : '생각하는 중...'
+                }
+              </span>
             </div>
           </div>
         </div>
