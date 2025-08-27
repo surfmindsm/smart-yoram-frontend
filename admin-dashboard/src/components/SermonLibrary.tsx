@@ -73,6 +73,8 @@ const SermonLibrary: React.FC = () => {
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<SermonMaterial | null>(null);
   
   // 새 자료 등록 상태
   const [newMaterial, setNewMaterial] = useState({
@@ -211,6 +213,80 @@ const SermonLibrary: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const handleEditMaterial = (material: SermonMaterial) => {
+    setEditingMaterial(material);
+    
+    // 파일이 있는 자료인지 확인
+    if (material.file_url) {
+      // 파일 자료의 경우 파일 업로드 메타데이터만 수정
+      setUploadMetadata({
+        title: material.title || '',
+        author: material.author || '',
+        scripture_reference: material.scripture_reference || ''
+      });
+      setShowUploadModal(true);
+    } else {
+      // 일반 자료의 경우 전체 내용 수정
+      setNewMaterial({
+        title: material.title || '',
+        author: material.author || '',
+        content: material.content || '',
+        scripture_reference: material.scripture_reference || ''
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const handleUpdateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMaterial) return;
+    
+    setCreating(true);
+    
+    try {
+      console.log('🔄 자료 수정 시작:', editingMaterial.id);
+      
+      await sermonLibraryService.updateMaterial(editingMaterial.id, newMaterial);
+      
+      console.log('✅ 자료 수정 성공');
+      
+      // 모달 닫기 및 상태 초기화
+      setShowEditModal(false);
+      setEditingMaterial(null);
+      setNewMaterial({
+        title: '',
+        author: '',
+        content: '',
+        scripture_reference: ''
+      });
+      
+      // 목록 새로고침
+      fetchMaterials();
+    } catch (error) {
+      console.error('❌ 자료 수정 실패:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (material: SermonMaterial) => {
+    if (!window.confirm(`"${material.title}" 자료를 삭제하시겠습니까?`)) return;
+    
+    try {
+      console.log('🗑️ 자료 삭제 시작:', material.id);
+      
+      await sermonLibraryService.deleteMaterial(material.id);
+      
+      console.log('✅ 자료 삭제 성공');
+      
+      // 목록 새로고침
+      fetchMaterials();
+    } catch (error) {
+      console.error('❌ 자료 삭제 실패:', error);
+      alert('자료 삭제에 실패했습니다.');
+    }
+  };
+
   // 자료 등록 함수
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,9 +317,53 @@ const SermonLibrary: React.FC = () => {
     }
   };
 
-  // 파일 업로드 함수
+  // 파일 자료 수정 함수 (파일은 그대로, 메타데이터만 수정)
+  const handleUpdateFileMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMaterial) return;
+    
+    setUploading(true);
+    
+    try {
+      console.log('🔄 파일 자료 메타데이터 수정 시작:', editingMaterial.id);
+      
+      await sermonLibraryService.updateMaterial(editingMaterial.id, {
+        ...uploadMetadata,
+        file_url: editingMaterial.file_url, // 기존 파일 URL 유지
+        file_type: editingMaterial.file_type // 기존 파일 타입 유지
+      });
+      
+      console.log('✅ 파일 자료 수정 성공');
+      
+      // 모달 닫기 및 상태 초기화
+      setShowUploadModal(false);
+      setEditingMaterial(null);
+      setUploadMetadata({
+        title: '',
+        author: '',
+        scripture_reference: ''
+      });
+      
+      // 목록 새로고침
+      fetchMaterials();
+    } catch (error) {
+      console.error('❌ 파일 자료 수정 실패:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 파일 업로드 또는 파일 자료 수정 함수
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 편집 모드인지 확인
+    if (editingMaterial && editingMaterial.file_url) {
+      // 파일 자료 수정
+      return handleUpdateFileMaterial(e);
+    }
+    
+    // 새로운 파일 업로드
     if (!uploadFile) return;
     
     setUploading(true);
@@ -499,10 +619,19 @@ const SermonLibrary: React.FC = () => {
                         <span>다운로드</span>
                       </Button>
                     )}
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleEditMaterial(material)}
+                    >
                       <Edit className="w-3 h-3" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteMaterial(material)}
+                    >
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
@@ -560,10 +689,20 @@ const SermonLibrary: React.FC = () => {
                               <Download className="w-3 h-3" />
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditMaterial(material)}
+                          >
                             <Edit className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteMaterial(material)}
+                          >
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
@@ -673,47 +812,66 @@ const SermonLibrary: React.FC = () => {
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>파일 업로드</DialogTitle>
+            <DialogTitle>
+              {editingMaterial ? '파일 자료 수정' : '파일 업로드'}
+            </DialogTitle>
             <DialogDescription>
-              설교 자료 파일과 메타데이터를 함께 업로드합니다.
+              {editingMaterial 
+                ? '파일 자료의 메타데이터를 수정합니다. (파일은 변경되지 않습니다)'
+                : '설교 자료 파일과 메타데이터를 함께 업로드합니다.'
+              }
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleFileUpload} className="space-y-4">
-            <div>
-              <Label htmlFor="file">파일 선택 *</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  // 파일 크기 체크 (10MB 제한)
-                  if (file && file.size > 10 * 1024 * 1024) {
-                    alert('파일 크기는 10MB 이하로 업로드해주세요.');
-                    e.target.value = '';
-                    return;
-                  }
-                  setUploadFile(file);
-                  // 파일명에서 제목 자동 설정
-                  if (file && !uploadMetadata.title) {
-                    const fileName = file.name.replace(/\.[^/.]+$/, "");
-                    setUploadMetadata(prev => ({...prev, title: fileName}));
-                  }
-                }}
-                accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a"
-                required
-              />
-              <p className="text-sm text-slate-500 mt-1">
-                지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A (최대 10MB)
-              </p>
-            </div>
-            
-            {uploadFile && (
-              <div className="p-3 bg-slate-50 rounded-md">
-                <p className="text-sm font-medium">선택된 파일:</p>
-                <p className="text-sm text-slate-600">{uploadFile.name}</p>
-                <p className="text-xs text-slate-500">크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB</p>
+            {editingMaterial ? (
+              // 편집 모드: 기존 파일 정보 표시
+              <div className="p-3 bg-blue-50 rounded-md">
+                <p className="text-sm font-medium text-blue-800">기존 파일:</p>
+                <p className="text-sm text-blue-600">
+                  {editingMaterial.file_url?.split('/').pop()} ({editingMaterial.file_type?.toUpperCase()})
+                </p>
+                <p className="text-xs text-blue-500">파일은 변경되지 않으며, 메타데이터만 수정됩니다.</p>
               </div>
+            ) : (
+              // 새 업로드 모드: 파일 선택
+              <>
+                <div>
+                  <Label htmlFor="file">파일 선택 *</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      // 파일 크기 체크 (10MB 제한)
+                      if (file && file.size > 10 * 1024 * 1024) {
+                        alert('파일 크기는 10MB 이하로 업로드해주세요.');
+                        e.target.value = '';
+                        return;
+                      }
+                      setUploadFile(file);
+                      // 파일명에서 제목 자동 설정
+                      if (file && !uploadMetadata.title) {
+                        const fileName = file.name.replace(/\.[^/.]+$/, "");
+                        setUploadMetadata(prev => ({...prev, title: fileName}));
+                      }
+                    }}
+                    accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a"
+                    required
+                  />
+                  <p className="text-sm text-slate-500 mt-1">
+                    지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A (최대 10MB)
+                  </p>
+                </div>
+                
+                {uploadFile && (
+                  <div className="p-3 bg-slate-50 rounded-md">
+                    <p className="text-sm font-medium">선택된 파일:</p>
+                    <p className="text-sm text-slate-600">{uploadFile.name}</p>
+                    <p className="text-xs text-slate-500">크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                )}
+              </>
             )}
 
             <div>
@@ -756,6 +914,7 @@ const SermonLibrary: React.FC = () => {
                 onClick={() => {
                   setShowUploadModal(false);
                   setUploadFile(null);
+                  setEditingMaterial(null);
                   setUploadMetadata({
                     title: '',
                     author: '',
@@ -765,8 +924,78 @@ const SermonLibrary: React.FC = () => {
               >
                 취소
               </Button>
-              <Button type="submit" disabled={uploading || !uploadFile}>
-                {uploading ? '업로드 중...' : '업로드'}
+              <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)}>
+                {uploading ? 
+                  (editingMaterial ? '수정 중...' : '업로드 중...') : 
+                  (editingMaterial ? '수정' : '업로드')
+                }
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 자료 수정 모달 */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>설교 자료 수정</DialogTitle>
+            <DialogDescription>
+              설교 자료 정보를 수정합니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleUpdateMaterial} className="space-y-4">
+            <div>
+              <Label htmlFor="edit_title">제목 *</Label>
+              <Input
+                id="edit_title"
+                value={newMaterial.title}
+                onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                placeholder="설교 제목을 입력하세요"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_author">설교자</Label>
+                <Input
+                  id="edit_author"
+                  value={newMaterial.author}
+                  onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
+                  placeholder="설교자 이름"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_scripture_reference">성경 구절</Label>
+                <Input
+                  id="edit_scripture_reference"
+                  value={newMaterial.scripture_reference}
+                  onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
+                  placeholder="예: 요한복음 3:16"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_content">내용</Label>
+              <Textarea
+                id="edit_content"
+                value={newMaterial.content}
+                onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
+                placeholder="설교 내용을 입력하세요"
+                rows={6}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
+                취소
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? '수정 중...' : '수정'}
               </Button>
             </div>
           </form>
