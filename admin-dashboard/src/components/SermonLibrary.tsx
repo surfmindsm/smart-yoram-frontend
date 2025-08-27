@@ -822,7 +822,7 @@ const SermonLibrary: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
                   취소
                 </Button>
-                <Button type="submit" disabled={creating} className="min-w-[100px]">
+                <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -992,7 +992,7 @@ const SermonLibrary: React.FC = () => {
                 >
                   취소
                 </Button>
-                <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)} className="min-w-[100px]">
+                <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)} className="min-w-[120px]">
                   {uploading ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1098,7 +1098,7 @@ const SermonLibrary: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
                   취소
                 </Button>
-                <Button type="submit" disabled={creating} className="min-w-[100px]">
+                <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1222,7 +1222,13 @@ const SermonLibrary: React.FC = () => {
                 </div>
 
                 {/* 액션 버튼 */}
-                <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
+                <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDetailModal(false)}
+                  >
+                    닫기
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => handleEditMaterial(selectedMaterial)}
@@ -1232,17 +1238,16 @@ const SermonLibrary: React.FC = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={() => {
-                      setShowDetailModal(false);
-                      handleDeleteMaterial(selectedMaterial);
+                      if (window.confirm('정말로 이 자료를 삭제하시겠습니까?')) {
+                        setShowDetailModal(false);
+                        handleDeleteMaterial(selectedMaterial);
+                      }
                     }}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
                     삭제
-                  </Button>
-                  <Button onClick={() => setShowDetailModal(false)}>
-                    닫기
                   </Button>
                 </div>
               </div>
