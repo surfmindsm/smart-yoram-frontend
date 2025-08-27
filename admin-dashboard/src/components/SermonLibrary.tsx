@@ -72,7 +72,9 @@ const SermonLibrary: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<SermonMaterial | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<SermonMaterial | null>(null);
   
   // 새 자료 등록 상태
   const [newMaterial, setNewMaterial] = useState({
@@ -278,6 +280,11 @@ const SermonLibrary: React.FC = () => {
     }
   };
 
+  const handleViewDetail = (material: SermonMaterial) => {
+    setSelectedMaterial(material);
+    setShowDetailModal(true);
+  };
+
   // 자료 등록 함수
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -472,9 +479,9 @@ const SermonLibrary: React.FC = () => {
 
       {/* 검색 및 필터 */}
       <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[300px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
@@ -489,7 +496,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[120px]"
             >
               <option value="">전체 카테고리</option>
               {categories.map(category => (
@@ -500,7 +507,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedAuthor}
               onChange={(e) => setSelectedAuthor(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[110px]"
             >
               <option value="">전체 설교자</option>
               {authors.map(author => (
@@ -511,7 +518,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedFileType}
               onChange={(e) => setSelectedFileType(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[100px]"
             >
               <option value="">전체 형식</option>
               <option value="pdf">PDF</option>
@@ -520,8 +527,7 @@ const SermonLibrary: React.FC = () => {
               <option value="txt">텍스트</option>
             </select>
 
-
-            <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2">
+            <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2 whitespace-nowrap">
               <Filter className="w-4 h-4" />
               <span>필터 초기화</span>
             </Button>
@@ -548,7 +554,10 @@ const SermonLibrary: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       {getFileIcon(material.file_type)}
-                      <h3 className="font-semibold text-slate-900 line-clamp-1">
+                      <h3 
+                        className="font-semibold text-slate-900 line-clamp-1 hover:text-blue-600 cursor-pointer transition-colors"
+                        onClick={() => handleViewDetail(material)}
+                      >
                         {material.title}
                       </h3>
                     </div>
@@ -657,7 +666,12 @@ const SermonLibrary: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="font-medium text-slate-900">{material.title}</div>
+                        <div 
+                          className="font-medium text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+                          onClick={() => handleViewDetail(material)}
+                        >
+                          {material.title}
+                        </div>
                         {material.content && (
                           <p className="text-sm text-slate-600 mt-1 line-clamp-1">{material.content}</p>
                         )}
@@ -731,81 +745,119 @@ const SermonLibrary: React.FC = () => {
       
       {/* 자료 등록 모달 */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>새 설교 자료 등록</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="flex items-center space-x-2 text-xl">
+              <Plus className="w-5 h-5 text-blue-600" />
+              <span>새 설교 자료 등록</span>
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 mt-2">
               새로운 설교 자료를 등록합니다.
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleCreateMaterial} className="space-y-4">
-            <div>
-              <Label htmlFor="title">제목 *</Label>
-              <Input
-                id="title"
-                value={newMaterial.title}
-                onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
-                placeholder="설교 제목을 입력하세요"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="author">설교자</Label>
-                <Input
-                  id="author"
-                  value={newMaterial.author}
-                  onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
-                  placeholder="설교자 이름"
-                />
+          <div className="py-6 space-y-6">
+            <form onSubmit={handleCreateMaterial} className="space-y-6">
+              {/* 기본 정보 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">기본 정보</h3>
+                
+                <div>
+                  <Label htmlFor="title" className="text-sm font-medium text-slate-700">제목 *</Label>
+                  <Input
+                    id="title"
+                    value={newMaterial.title}
+                    onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                    placeholder="설교 제목을 입력하세요"
+                    className="mt-1"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="author" className="text-sm font-medium text-slate-700">설교자</Label>
+                    <Input
+                      id="author"
+                      value={newMaterial.author}
+                      onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
+                      placeholder="설교자 이름"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="scripture_reference" className="text-sm font-medium text-slate-700">성경 구절</Label>
+                    <Input
+                      id="scripture_reference"
+                      value={newMaterial.scripture_reference}
+                      onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
+                      placeholder="예: 요한복음 3:16"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 내용 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">설교 내용</h3>
+                
+                <div>
+                  <Label htmlFor="content" className="text-sm font-medium text-slate-700">내용</Label>
+                  <Textarea
+                    id="content"
+                    value={newMaterial.content}
+                    onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
+                    placeholder="설교 내용을 입력하세요"
+                    rows={8}
+                    className="mt-1"
+                  />
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="scripture_reference">성경 구절</Label>
-                <Input
-                  id="scripture_reference"
-                  value={newMaterial.scripture_reference}
-                  onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
-                  placeholder="예: 요한복음 3:16"
-                />
+              {/* 액션 버튼 */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                  취소
+                </Button>
+                <Button type="submit" disabled={creating} className="min-w-[120px]">
+                  {creating ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>등록 중...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <Plus className="w-4 h-4" />
+                      <span>등록</span>
+                    </div>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="content">내용</Label>
-              <Textarea
-                id="content"
-                value={newMaterial.content}
-                onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
-                placeholder="설교 내용을 입력하세요"
-                rows={6}
-              />
-            </div>
-            
-            
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
-                취소
-              </Button>
-              <Button type="submit" disabled={creating}>
-                {creating ? '등록 중...' : '등록'}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
       
       {/* 파일 업로드 모달 */}
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingMaterial ? '파일 자료 수정' : '파일 업로드'}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="flex items-center space-x-2 text-xl">
+              {editingMaterial ? (
+                <>
+                  <Edit className="w-5 h-5 text-blue-600" />
+                  <span>파일 자료 수정</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 text-blue-600" />
+                  <span>파일 업로드</span>
+                </>
+              )}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-600 mt-2">
               {editingMaterial 
                 ? '파일 자료의 메타데이터를 수정합니다. (파일은 변경되지 않습니다)'
                 : '설교 자료 파일과 메타데이터를 함께 업로드합니다.'
@@ -813,182 +865,393 @@ const SermonLibrary: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleFileUpload} className="space-y-4">
-            {editingMaterial ? (
-              // 편집 모드: 기존 파일 정보 표시
-              <div className="p-3 bg-blue-50 rounded-md">
-                <p className="text-sm font-medium text-blue-800">기존 파일:</p>
-                <p className="text-sm text-blue-600">
-                  {editingMaterial.file_url?.split('/').pop()} ({editingMaterial.file_type?.toUpperCase()})
-                </p>
-                <p className="text-xs text-blue-500">파일은 변경되지 않으며, 메타데이터만 수정됩니다.</p>
+          <div className="py-6 space-y-6">
+            <form onSubmit={handleFileUpload} className="space-y-6">
+              {/* 파일 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">파일 정보</h3>
+                
+                {editingMaterial ? (
+                  // 편집 모드: 기존 파일 정보 표시
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      {getFileIcon(editingMaterial.file_type)}
+                      <span className="text-sm font-medium text-blue-800">기존 파일</span>
+                    </div>
+                    <p className="text-blue-700 font-medium">
+                      {editingMaterial.file_url?.split('/').pop()}
+                    </p>
+                    <p className="text-xs text-blue-600 uppercase mt-1">
+                      {editingMaterial.file_type} 파일
+                    </p>
+                    <p className="text-xs text-blue-500 mt-2">파일은 변경되지 않으며, 메타데이터만 수정됩니다.</p>
+                  </div>
+                ) : (
+                  // 새 업로드 모드: 파일 선택
+                  <>
+                    <div>
+                      <Label htmlFor="file" className="text-sm font-medium text-slate-700">파일 선택 *</Label>
+                      <Input
+                        id="file"
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          // 파일 크기 체크 (10MB 제한)
+                          if (file && file.size > 10 * 1024 * 1024) {
+                            alert('파일 크기는 10MB 이하로 업로드해주세요.');
+                            e.target.value = '';
+                            return;
+                          }
+                          setUploadFile(file);
+                          // 파일명에서 제목 자동 설정
+                          if (file && !uploadMetadata.title) {
+                            const fileName = file.name.replace(/\.[^/.]+$/, "");
+                            setUploadMetadata(prev => ({...prev, title: fileName}));
+                          }
+                        }}
+                        accept=".pdf,.doc,.docx,.txt"
+                        className="mt-1"
+                        required
+                      />
+                      <p className="text-sm text-slate-500 mt-2 bg-slate-50 p-2 rounded">
+                        <strong>지원 파일:</strong> PDF, DOC, DOCX, TXT (문서 파일만) | <strong>최대 용량:</strong> 10MB
+                      </p>
+                    </div>
+                    
+                    {uploadFile && (
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-2 mb-2">
+                          {getFileIcon('txt')}
+                          <span className="text-sm font-medium text-green-800">선택된 파일</span>
+                        </div>
+                        <p className="text-green-700 font-medium">{uploadFile.name}</p>
+                        <p className="text-xs text-green-600 mt-1">크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            ) : (
-              // 새 업로드 모드: 파일 선택
-              <>
+
+              {/* 기본 정보 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">기본 정보</h3>
+                
                 <div>
-                  <Label htmlFor="file">파일 선택 *</Label>
+                  <Label htmlFor="upload_title" className="text-sm font-medium text-slate-700">제목 *</Label>
                   <Input
-                    id="file"
-                    type="file"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      // 파일 크기 체크 (10MB 제한)
-                      if (file && file.size > 10 * 1024 * 1024) {
-                        alert('파일 크기는 10MB 이하로 업로드해주세요.');
-                        e.target.value = '';
-                        return;
-                      }
-                      setUploadFile(file);
-                      // 파일명에서 제목 자동 설정
-                      if (file && !uploadMetadata.title) {
-                        const fileName = file.name.replace(/\.[^/.]+$/, "");
-                        setUploadMetadata(prev => ({...prev, title: fileName}));
-                      }
-                    }}
-                    accept=".pdf,.doc,.docx,.txt"
+                    id="upload_title"
+                    value={uploadMetadata.title}
+                    onChange={(e) => setUploadMetadata({...uploadMetadata, title: e.target.value})}
+                    placeholder="설교 제목을 입력하세요"
+                    className="mt-1"
                     required
                   />
-                  <p className="text-sm text-slate-500 mt-1">
-                    <strong>지원 파일:</strong> PDF, DOC, DOCX, TXT (문서 파일만) | <strong>최대 용량:</strong> 10MB
-                  </p>
                 </div>
                 
-                {uploadFile && (
-                  <div className="p-3 bg-slate-50 rounded-md">
-                    <p className="text-sm font-medium">선택된 파일:</p>
-                    <p className="text-sm text-slate-600">{uploadFile.name}</p>
-                    <p className="text-xs text-slate-500">크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="upload_author" className="text-sm font-medium text-slate-700">설교자</Label>
+                    <Input
+                      id="upload_author"
+                      value={uploadMetadata.author}
+                      onChange={(e) => setUploadMetadata({...uploadMetadata, author: e.target.value})}
+                      placeholder="설교자 이름"
+                      className="mt-1"
+                    />
                   </div>
-                )}
-              </>
-            )}
-
-            <div>
-              <Label htmlFor="upload_title">제목 *</Label>
-              <Input
-                id="upload_title"
-                value={uploadMetadata.title}
-                onChange={(e) => setUploadMetadata({...uploadMetadata, title: e.target.value})}
-                placeholder="설교 제목을 입력하세요"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="upload_author">설교자</Label>
-                <Input
-                  id="upload_author"
-                  value={uploadMetadata.author}
-                  onChange={(e) => setUploadMetadata({...uploadMetadata, author: e.target.value})}
-                  placeholder="설교자 이름"
-                />
+                  
+                  <div>
+                    <Label htmlFor="upload_scripture" className="text-sm font-medium text-slate-700">성경 구절</Label>
+                    <Input
+                      id="upload_scripture"
+                      value={uploadMetadata.scripture_reference}
+                      onChange={(e) => setUploadMetadata({...uploadMetadata, scripture_reference: e.target.value})}
+                      placeholder="예: 요한복음 3:16"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="upload_scripture">성경 구절</Label>
-                <Input
-                  id="upload_scripture"
-                  value={uploadMetadata.scripture_reference}
-                  onChange={(e) => setUploadMetadata({...uploadMetadata, scripture_reference: e.target.value})}
-                  placeholder="예: 요한복음 3:16"
-                />
+              {/* 액션 버튼 */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadFile(null);
+                    setEditingMaterial(null);
+                    setUploadMetadata({
+                      title: '',
+                      author: '',
+                      scripture_reference: ''
+                    });
+                  }}
+                >
+                  취소
+                </Button>
+                <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)} className="min-w-[120px]">
+                  {uploading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>{editingMaterial ? '수정 중...' : '업로드 중...'}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      {editingMaterial ? (
+                        <>
+                          <Edit className="w-4 h-4" />
+                          <span>수정</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>업로드</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadFile(null);
-                  setEditingMaterial(null);
-                  setUploadMetadata({
-                    title: '',
-                    author: '',
-                    scripture_reference: ''
-                  });
-                }}
-              >
-                취소
-              </Button>
-              <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)}>
-                {uploading ? 
-                  (editingMaterial ? '수정 중...' : '업로드 중...') : 
-                  (editingMaterial ? '수정' : '업로드')
-                }
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* 자료 수정 모달 */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>설교 자료 수정</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="flex items-center space-x-2 text-xl">
+              <Edit className="w-5 h-5 text-blue-600" />
+              <span>설교 자료 수정</span>
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 mt-2">
               설교 자료 정보를 수정합니다.
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleUpdateMaterial} className="space-y-4">
-            <div>
-              <Label htmlFor="edit_title">제목 *</Label>
-              <Input
-                id="edit_title"
-                value={newMaterial.title}
-                onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
-                placeholder="설교 제목을 입력하세요"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit_author">설교자</Label>
-                <Input
-                  id="edit_author"
-                  value={newMaterial.author}
-                  onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
-                  placeholder="설교자 이름"
-                />
+          <div className="py-6 space-y-6">
+            <form onSubmit={handleUpdateMaterial} className="space-y-6">
+              {/* 기본 정보 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">기본 정보</h3>
+                
+                <div>
+                  <Label htmlFor="edit_title" className="text-sm font-medium text-slate-700">제목 *</Label>
+                  <Input
+                    id="edit_title"
+                    value={newMaterial.title}
+                    onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                    placeholder="설교 제목을 입력하세요"
+                    className="mt-1"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit_author" className="text-sm font-medium text-slate-700">설교자</Label>
+                    <Input
+                      id="edit_author"
+                      value={newMaterial.author}
+                      onChange={(e) => setNewMaterial({...newMaterial, author: e.target.value})}
+                      placeholder="설교자 이름"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit_scripture_reference" className="text-sm font-medium text-slate-700">성경 구절</Label>
+                    <Input
+                      id="edit_scripture_reference"
+                      value={newMaterial.scripture_reference}
+                      onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
+                      placeholder="예: 요한복음 3:16"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 내용 섹션 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-100 pb-2">설교 내용</h3>
+                
+                <div>
+                  <Label htmlFor="edit_content" className="text-sm font-medium text-slate-700">내용</Label>
+                  <Textarea
+                    id="edit_content"
+                    value={newMaterial.content}
+                    onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
+                    placeholder="설교 내용을 입력하세요"
+                    rows={6}
+                    className="mt-1"
+                  />
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="edit_scripture_reference">성경 구절</Label>
-                <Input
-                  id="edit_scripture_reference"
-                  value={newMaterial.scripture_reference}
-                  onChange={(e) => setNewMaterial({...newMaterial, scripture_reference: e.target.value})}
-                  placeholder="예: 요한복음 3:16"
-                />
+              {/* 액션 버튼 */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+                <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
+                  취소
+                </Button>
+                <Button type="submit" disabled={creating} className="min-w-[120px]">
+                  {creating ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>수정 중...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <Edit className="w-4 h-4" />
+                      <span>수정</span>
+                    </div>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="edit_content">내용</Label>
-              <Textarea
-                id="edit_content"
-                value={newMaterial.content}
-                onChange={(e) => setNewMaterial({...newMaterial, content: e.target.value})}
-                placeholder="설교 내용을 입력하세요"
-                rows={6}
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
-                취소
-              </Button>
-              <Button type="submit" disabled={creating}>
-                {creating ? '수정 중...' : '수정'}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 상세 내용 모달 */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedMaterial && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  {getFileIcon(selectedMaterial.file_type)}
+                  <span>{selectedMaterial.title}</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                    {selectedMaterial.file_url ? '파일' : '자료'}
+                  </span>
+                </DialogTitle>
+                <DialogDescription>
+                  설교 자료의 상세 내용입니다.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                {/* 기본 정보 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">설교자</Label>
+                    <div className="mt-1 text-slate-900">{selectedMaterial.author || '-'}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">성경 구절</Label>
+                    <div className="mt-1 text-slate-900">{selectedMaterial.scripture_reference || '-'}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">카테고리</Label>
+                    <div className="mt-1 text-slate-900">{selectedMaterial.category || '-'}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">등록일</Label>
+                    <div className="mt-1 text-slate-900">
+                      {selectedMaterial.created_at ? new Date(selectedMaterial.created_at).toLocaleDateString('ko-KR') : '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 파일 정보 */}
+                {selectedMaterial.file_url && (
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">첨부 파일</Label>
+                    <div className="mt-1 p-3 bg-slate-50 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {getFileIcon(selectedMaterial.file_type)}
+                          <span className="text-sm font-medium">
+                            {selectedMaterial.file_url.split('/').pop()}
+                          </span>
+                          <span className="text-xs text-slate-500 uppercase">
+                            {selectedMaterial.file_type}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(selectedMaterial)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>다운로드</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 설교 내용 */}
+                {selectedMaterial.content && (
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700">설교 내용</Label>
+                    <div className="mt-1 p-4 bg-slate-50 rounded-md">
+                      <div className="whitespace-pre-wrap text-slate-900 text-sm leading-relaxed">
+                        {selectedMaterial.content}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 통계 정보 */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-1 text-slate-500">
+                      <Eye className="w-4 h-4" />
+                      <span className="text-sm">조회수</span>
+                    </div>
+                    <div className="text-lg font-semibold text-slate-900 mt-1">
+                      {selectedMaterial.view_count || 0}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-1 text-slate-500">
+                      <Download className="w-4 h-4" />
+                      <span className="text-sm">다운로드</span>
+                    </div>
+                    <div className="text-lg font-semibold text-slate-900 mt-1">
+                      {selectedMaterial.download_count || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 액션 버튼 */}
+                <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDetailModal(false)}
+                  >
+                    닫기
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleEditMaterial(selectedMaterial)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    수정
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      if (window.confirm('정말로 이 자료를 삭제하시겠습니까?')) {
+                        setShowDetailModal(false);
+                        handleDeleteMaterial(selectedMaterial);
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    삭제
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
