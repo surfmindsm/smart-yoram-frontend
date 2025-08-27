@@ -15,8 +15,6 @@ import {
   Edit,
   Trash2,
   FileText,
-  Music,
-  Video,
   Upload,
   Calendar,
   User,
@@ -168,14 +166,7 @@ const SermonLibrary: React.FC = () => {
   };
 
   const getFileIcon = (fileType?: string) => {
-    if (!fileType) return <FileText className="w-4 h-4" />;
-    
-    if (fileType.includes('audio') || ['mp3', 'm4a', 'wav'].includes(fileType)) {
-      return <Music className="w-4 h-4" />;
-    }
-    if (fileType.includes('video') || ['mp4', 'mov'].includes(fileType)) {
-      return <Video className="w-4 h-4" />;
-    }
+    // 모든 파일 타입에 대해 문서 아이콘 사용 (문서 파일만 지원)
     return <FileText className="w-4 h-4" />;
   };
 
@@ -524,10 +515,9 @@ const SermonLibrary: React.FC = () => {
             >
               <option value="">전체 형식</option>
               <option value="pdf">PDF</option>
+              <option value="doc">DOC</option>
               <option value="docx">DOCX</option>
               <option value="txt">텍스트</option>
-              <option value="mp3">오디오</option>
-              <option value="mp4">비디오</option>
             </select>
 
 
@@ -856,11 +846,11 @@ const SermonLibrary: React.FC = () => {
                         setUploadMetadata(prev => ({...prev, title: fileName}));
                       }
                     }}
-                    accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a"
+                    accept=".pdf,.doc,.docx,.txt"
                     required
                   />
                   <p className="text-sm text-slate-500 mt-1">
-                    지원 파일: PDF, DOC, DOCX, TXT, MP3, MP4, WAV, M4A (최대 10MB)
+                    <strong>지원 파일:</strong> PDF, DOC, DOCX, TXT (문서 파일만) | <strong>최대 용량:</strong> 10MB
                   </p>
                 </div>
                 
