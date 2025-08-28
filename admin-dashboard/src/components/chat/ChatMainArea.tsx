@@ -146,6 +146,31 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
             </Button>
           </div>
 
+          {/* 비서 에이전트 선택 시 추천 질문 */}
+          {selectedAgentForChat && selectedAgentForChat.category === 'secretary' && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">💡 이런 질문을 해보세요:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  "오늘 심방 일정 알려줘",
+                  "새로운 기도 요청 있나?",
+                  "최근 공지사항 정리해줘", 
+                  "이번주 심방 현황은?"
+                ].map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setInputValue(question)}
+                    className="p-4 text-left border border-slate-200 rounded-xl hover:border-sky-300 hover:bg-sky-50 transition-all group"
+                  >
+                    <div className="text-sm text-slate-700 group-hover:text-sky-700">
+                      {question}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 추천 에이전트 카드들 - 에이전트 미선택 시만 표시 */}
           {!selectedAgentForChat && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
@@ -163,7 +188,14 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                       <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-sky-700 transition-colors">
                         {agent.name}
                       </h3>
-                      <p className="text-sm text-sky-600 mb-2">{agent.category}</p>
+                      <p className="text-sm text-sky-600 mb-2">
+                        {agent.category}
+                        {agent.category === 'secretary' && (
+                          <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                            실시간 데이터 조회
+                          </span>
+                        )}
+                      </p>
                       <p className="text-sm text-slate-600 leading-relaxed">
                         {agent.description}
                       </p>
@@ -249,6 +281,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
             messages={messages}
             isLoading={isLoading}
             messagesEndRef={messagesEndRef}
+            selectedAgent={selectedAgentForChat}
           />
         </div>
 

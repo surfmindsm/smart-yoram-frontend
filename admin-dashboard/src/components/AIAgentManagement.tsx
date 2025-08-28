@@ -162,6 +162,7 @@ const AIAgentManagement: React.FC = () => {
             updatedAt: agent.updated_at ? new Date(agent.updated_at) : new Date()
           }));
           
+          
           setAgents(transformedAgents);
         } else if (Array.isArray(response.data)) {
           setAgents(response.data);

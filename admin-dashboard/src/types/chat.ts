@@ -5,6 +5,10 @@ export interface ChatMessage {
   timestamp: Date;
   tokensUsed?: number;
   cost?: number;
+  // 비서 에이전트 응답 관련 필드들
+  is_secretary_agent?: boolean;
+  query_type?: string;
+  data_sources?: string[];
 }
 
 export interface ChatHistory {
