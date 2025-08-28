@@ -1672,7 +1672,10 @@ const DonationManagement: React.FC = () => {
                       description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
                     }))}
                     value={newDonation.donorId}
-                    onChange={(value) => setNewDonation({ ...newDonation, donorId: value })}
+                    onChange={(value) => {
+                      console.log('Donor selected:', value);
+                      setNewDonation({ ...newDonation, donorId: value });
+                    }}
                     placeholder="기부자 검색..."
                     searchPlaceholder="이름, 전화번호, 주소로 검색"
                   />
