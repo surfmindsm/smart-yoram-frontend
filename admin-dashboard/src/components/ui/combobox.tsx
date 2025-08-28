@@ -48,15 +48,21 @@ export const Combobox: React.FC<ComboboxProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (comboboxRef.current && !comboboxRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchTerm('');
-        setSelectedIndex(-1);
+        // 드롭다운 요소도 확인
+        const dropdownElement = document.querySelector('[data-combobox-dropdown]');
+        if (!dropdownElement?.contains(event.target as Node)) {
+          setIsOpen(false);
+          setSearchTerm('');
+          setSelectedIndex(-1);
+        }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
 
   // 드롭다운 위치 계산
   const updateDropdownPosition = () => {
@@ -119,6 +125,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
   // 옵션 선택 처리
   const handleSelect = (option: ComboboxOption) => {
+    console.log('Combobox: Selecting option', option);
     onChange(option.value);
     setIsOpen(false);
     setSearchTerm('');
@@ -168,6 +175,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       {/* 드롭다운 목록 */}
       {isOpen && createPortal(
         <div 
+          data-combobox-dropdown
           className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg"
           style={{
             top: dropdownPosition.top + 4,
@@ -205,7 +213,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleSelect(option)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(option);
+                  }}
                   className={`
                     w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none
                     ${index === selectedIndex ? 'bg-blue-50 text-blue-700' : ''}
