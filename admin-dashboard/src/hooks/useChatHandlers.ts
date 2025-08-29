@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, KeyboardEvent, useCallback } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { queryDatabaseViaMCP } from '../utils/mcpUtils';
 import { chatService } from '../services/api';
+import { formatChurchData } from '../utils/churchDataFormatter';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
