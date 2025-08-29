@@ -261,3 +261,6 @@ function translateKeyToKorean(key: string): string {
   
   return translations[key] || key;
 }
+
+// TypeScript 모듈 시스템을 위한 빈 export
+export {};

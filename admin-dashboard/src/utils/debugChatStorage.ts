@@ -101,3 +101,6 @@ export const debugChatStorage = {
 if (typeof window !== 'undefined') {
   (window as any).debugChatStorage = debugChatStorage;
 }
+
+// TypeScript 모듈 시스템을 위한 빈 export
+export {};

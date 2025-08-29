@@ -167,3 +167,6 @@ if (typeof window !== 'undefined') {
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   (window as any).apiCache = apiCache;
 }
+
+// TypeScript 모듈 시스템을 위한 빈 export
+export {};
