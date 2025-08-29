@@ -267,12 +267,12 @@ export const queryDatabaseViaMCP = async (
     
     // 간단한 로컬 처리 (Edge Functions 대신)
     try {
-      // 교인 수 질문인 경우 간단한 답변 반환
+      // 교인 수 질문은 백엔드에서 실시간 DB 조회로 처리
       if (userQuestion.includes('교인') && (userQuestion.includes('몇') || userQuestion.includes('수'))) {
         return {
-          success: true,
-          data: [{ message: '현재 등록된 교인 수는 100명입니다.' }],
-          error: undefined
+          success: false,
+          data: [],
+          error: '교인 수는 백엔드에서 실시간 조회합니다.'
         };
       }
       

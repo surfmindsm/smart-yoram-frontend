@@ -135,7 +135,8 @@ const AIChat: React.FC = () => {
       {/* 삭제 확인 모달 */}
       <DeleteConfirmModal
         modal={chatState.deleteConfirmModal}
-        onClose={() => chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null })}
+        onClose={() => !chatState.isDeletingAll && chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null })}
+        isDeleting={chatState.isDeletingAll}
         onConfirm={async () => {
           const modalChatId = chatState.deleteConfirmModal.chatId;
           
@@ -148,8 +149,10 @@ const AIChat: React.FC = () => {
             chatHandlers.handleDeleteConfirmModal();
           }
           
-          // 모달 닫기
-          chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null });
+          // 모달 닫기 (로딩 중이 아닐 때만)
+          if (!chatState.isDeletingAll) {
+            chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null });
+          }
         }}
       />
     </div>
