@@ -168,5 +168,9 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   (window as any).apiCache = apiCache;
 }
 
+// ESM 모듈 표시
+export default apiCache;
+export { APICache };
+
 // TypeScript 모듈 시스템을 위한 빈 export
 export {};
