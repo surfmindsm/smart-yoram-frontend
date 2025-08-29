@@ -371,10 +371,27 @@ export const chatService = {
   
   // 특정 채팅의 메시지 목록 조회
   getChatMessages: async (historyId: string) => {
-    // chat_ 접두어 제거하여 정수 ID만 사용
-    const cleanId = historyId.toString().replace('chat_', '');
-    const response = await api.get(getApiUrl(`/chat/histories/${cleanId}/messages`));
-    return response.data;
+    try {
+      // chat_ 접두어 제거하여 정수 ID만 사용
+      const cleanId = historyId.toString().replace('chat_', '');
+      console.log('🔍 메시지 조회 요청:', `/chat/histories/${cleanId}/messages`);
+      
+      const response = await api.get(getApiUrl(`/chat/histories/${cleanId}/messages`));
+      
+      console.log('✅ 메시지 조회 성공:', response.data?.length || 0, '개');
+      return response.data;
+      
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('⚠️ 채팅 히스토리를 찾을 수 없습니다:', historyId);
+        throw new Error(`CHAT_HISTORY_NOT_FOUND: ${historyId}`);
+      }
+      if (error.response?.status === 500) {
+        console.error('❌ 서버 내부 에러:', error.response?.data);
+        throw new Error('SERVER_ERROR');
+      }
+      throw error;
+    }
   },
   
   // AI 메시지 전송 및 응답 생성

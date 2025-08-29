@@ -426,10 +426,46 @@ export const useChat = () => {
     } catch (error) {
       console.error('메시지 로딩 실패:', error);
       
-      // 404 오류인 경우 (히스토리가 아직 생성되지 않은 경우) 빈 메시지로 시작
-      if ((error as any)?.response?.status === 404) {
-        console.warn('🔄 히스토리가 아직 생성되지 않음, 빈 메시지로 시작');
-        setMessages([]);
+      // 404 오류인 경우 - 존재하지 않는 채팅 ID  
+      if ((error as any)?.response?.status === 404 || (error as any)?.message?.includes('CHAT_HISTORY_NOT_FOUND')) {
+        console.warn('⚠️ 채팅 히스토리 ID', currentChatId, '가 서버에 존재하지 않음');
+        
+        // ChatStorageUtils를 사용한 강력한 정리
+        try {
+          const { ChatStorageUtils } = await import('../utils/chatStorageUtils');
+          ChatStorageUtils.removeChat(currentChatId);
+          
+          // React 상태도 즉시 초기화
+          setCurrentChatId(null);
+          setMessages([]);
+          setSelectedAgentForChat(null);
+          setChatHistory(prev => prev.filter(chat => chat.id !== currentChatId));
+          setMessageCache(prev => {
+            const newCache = { ...prev };
+            delete newCache[currentChatId];
+            return newCache;
+          });
+          
+          console.log('🆕 잘못된 채팅 ID 정리 완료, 새 채팅으로 리셋');
+          
+          // 페이지를 강제로 새로고침하여 완전히 초기화
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+          
+        } catch (importError) {
+          console.error('ChatStorageUtils 불러오기 실패:', importError);
+          // 기본 정리 로직
+          setCurrentChatId(null);
+          setMessages([]);
+          setSelectedAgentForChat(null);
+          setChatHistory(prev => prev.filter(chat => chat.id !== currentChatId));
+          setMessageCache(prev => {
+            const newCache = { ...prev };
+            delete newCache[currentChatId];
+            return newCache;
+          });
+        }
         return;
       }
       
@@ -476,9 +512,31 @@ export const useChat = () => {
 
   // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
   useEffect(() => {
-    // 캐시된 데이터가 있으면 강제 새로고침하지 않음
-    const hasCache = initialHistory.length > 0 && initialAgents.length > 0;
-    loadData(!hasCache);
+    // 앱 시작 시 잘못된 채팅 데이터 정리
+    const cleanupAndLoad = async () => {
+      try {
+        const { ChatStorageUtils } = await import('../utils/chatStorageUtils');
+        const { removed } = ChatStorageUtils.cleanupInvalidChats();
+        
+        if (removed.length > 0) {
+          console.log('🧹 앱 시작 시 잘못된 채팅 데이터 정리:', removed);
+          // 정리된 항목이 있으면 상태 초기화
+          setCurrentChatId(null);
+          setMessages([]);
+          setSelectedAgentForChat(null);
+          setChatHistory([]);
+          setMessageCache({});
+        }
+      } catch (error) {
+        console.warn('앱 시작 시 데이터 정리 실패:', error);
+      }
+      
+      // 캐시된 데이터가 있으면 강제 새로고침하지 않음
+      const hasCache = initialHistory.length > 0 && initialAgents.length > 0;
+      loadData(!hasCache);
+    };
+    
+    cleanupAndLoad();
   }, []); // 빈 의존성 배열로 마운트 시에만 실행
 
   // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)

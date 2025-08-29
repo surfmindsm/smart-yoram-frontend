@@ -4,6 +4,11 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// 개발 환경에서 디버깅 유틸리티 로드
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/debugChatStorage');
+}
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
