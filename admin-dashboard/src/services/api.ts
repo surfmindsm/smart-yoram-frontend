@@ -259,8 +259,25 @@ export const announcementService = {
 export const agentService = {
   getAgents: async () => {
     try {
-      const response = await api.get(getApiUrl('/agents/'));
+      const { apiCache } = await import('../utils/apiCache');
+      const url = '/agents/';
+      
+      // 캐시에서 먼저 확인
+      const cached = apiCache.get(url);
+      if (cached) {
+        return cached;
+      }
+      
+      // 중복 요청 방지
+      const response = await apiCache.dedupe(url, async () => {
+        console.log('🌐 에이전트 API 호출:', getApiUrl(url));
+        return await api.get(getApiUrl(url));
+      });
+      
+      // 캐시에 저장
+      apiCache.set(url, response.data);
       return response.data;
+      
     } catch (error: any) {
       console.error('Failed to get agents:', error);
       if (error.response?.status === 422) {
@@ -347,14 +364,29 @@ const SUPABASE_PROJECT_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
 
 // Chat System Service (백엔드 API 완료)
 export const chatService = {
-  // 채팅 히스토리 목록 조회
+  // 채팅 히스토리 목록 조회 (캐싱 및 중복 요청 방지)
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
+      const { apiCache } = await import('../utils/apiCache');
+      const url = '/chat/histories';
+      const cacheKey = `${url}_${JSON.stringify(params || {})}`;
       
-      const response = await api.get(getApiUrl('/chat/histories'), { params });
+      // 캐시에서 먼저 확인
+      const cached = apiCache.get(url, params);
+      if (cached) {
+        return cached;
+      }
       
+      // 중복 요청 방지
+      const response = await apiCache.dedupe(cacheKey, async () => {
+        console.log('🌐 채팅 히스토리 API 호출:', getApiUrl(url));
+        return await api.get(getApiUrl(url), { params });
+      });
       
+      // 캐시에 저장
+      apiCache.set(url, response.data, params);
       return response.data;
+      
     } catch (error: any) {
       console.error('❌ 채팅 히스토리 API 실패:', {
         message: error.message,
@@ -369,16 +401,30 @@ export const chatService = {
     }
   },
   
-  // 특정 채팅의 메시지 목록 조회
+  // 특정 채팅의 메시지 목록 조회 (캐싱 적용)
   getChatMessages: async (historyId: string) => {
     try {
-      // chat_ 접두어 제거하여 정수 ID만 사용
+      const { apiCache } = await import('../utils/apiCache');
       const cleanId = historyId.toString().replace('chat_', '');
-      console.log('🔍 메시지 조회 요청:', `/chat/histories/${cleanId}/messages`);
+      const url = `/chat/histories/${cleanId}/messages`;
       
-      const response = await api.get(getApiUrl(`/chat/histories/${cleanId}/messages`));
+      // 캐시에서 먼저 확인 (메시지는 TTL 짧게)
+      const cached = apiCache.get(url);
+      if (cached) {
+        console.log('🚀 메시지 캐시에서 반환:', historyId);
+        return cached;
+      }
+      
+      // 중복 요청 방지
+      const response = await apiCache.dedupe(url, async () => {
+        console.log('🔍 메시지 조회 요청:', url);
+        return await api.get(getApiUrl(url));
+      });
       
       console.log('✅ 메시지 조회 성공:', response.data?.length || 0, '개');
+      
+      // 캐시에 저장 (짧은 TTL)
+      apiCache.set(url, response.data);
       return response.data;
       
     } catch (error: any) {
@@ -394,7 +440,7 @@ export const chatService = {
     }
   },
   
-  // AI 메시지 전송 및 응답 생성
+  // AI 메시지 전송 및 응답 생성 (캐시 무효화)
   sendMessage: async (messageData: {
     chat_history_id?: number | null;
     content: string;
@@ -407,6 +453,19 @@ export const chatService = {
   }) => {
     try {
       const response = await api.post(getApiUrl('/chat/messages'), messageData);
+      
+      // 메시지 전송 후 관련 캐시 무효화
+      try {
+        const { apiCache } = await import('../utils/apiCache');
+        apiCache.invalidate('/chat/histories'); // 히스토리 목록 갱신
+        if (messageData.chat_history_id) {
+          apiCache.invalidate(`/chat/histories/${messageData.chat_history_id}/messages`); // 해당 채팅 메시지 갱신
+        }
+        console.log('🗑️ 메시지 전송 후 캐시 무효화');
+      } catch (cacheError) {
+        console.warn('캐시 무효화 실패:', cacheError);
+      }
+      
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {

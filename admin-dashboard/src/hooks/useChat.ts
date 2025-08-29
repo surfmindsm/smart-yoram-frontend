@@ -510,15 +510,19 @@ export const useChat = () => {
     saveChatState(currentChatId, selectedAgentForChat);
   }, [currentChatId, selectedAgentForChat]);
 
-  // useEffect: 컴포넌트 마운트 시 데이터 자동 로드
+  // React 18 Strict Mode 중복 실행 방지용 ref
+  const isInitialized = useRef(false);
+
+  // useEffect: 컴포넌트 마운트 시 데이터 자동 로드 (최적화)
   useEffect(() => {
-    // 앱 시작 시 잘못된 채팅 데이터 정리
+    let isMounted = true; // cleanup 플래그
+    
     const cleanupAndLoad = async () => {
       try {
         const { ChatStorageUtils } = await import('../utils/chatStorageUtils');
         const { removed } = ChatStorageUtils.cleanupInvalidChats();
         
-        if (removed.length > 0) {
+        if (removed.length > 0 && isMounted) {
           console.log('🧹 앱 시작 시 잘못된 채팅 데이터 정리:', removed);
           // 정리된 항목이 있으면 상태 초기화
           setCurrentChatId(null);
@@ -531,12 +535,23 @@ export const useChat = () => {
         console.warn('앱 시작 시 데이터 정리 실패:', error);
       }
       
-      // 캐시된 데이터가 있으면 강제 새로고침하지 않음
-      const hasCache = initialHistory.length > 0 && initialAgents.length > 0;
-      loadData(!hasCache);
+      if (isMounted) {
+        // 캐시된 데이터가 있으면 강제 새로고침하지 않음
+        const hasCache = initialHistory.length > 0 && initialAgents.length > 0;
+        console.log('🚀 데이터 로드 시작 (캐시 사용:', hasCache, ')');
+        loadData(!hasCache);
+      }
     };
     
-    cleanupAndLoad();
+    // React 18 Strict Mode에서 중복 실행 방지
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      cleanupAndLoad();
+    }
+    
+    return () => {
+      isMounted = false;
+    };
   }, []); // 빈 의존성 배열로 마운트 시에만 실행
 
   // useEffect: currentChatId 변경 시 메시지 로드 (첫 메시지 전송 중이 아닐 때만)

@@ -98,12 +98,6 @@ export const debugChatStorage = {
 };
 
 // 전역에서 사용할 수 있도록 window 객체에 추가
-declare global {
-  interface Window {
-    debugChatStorage: typeof debugChatStorage;
-  }
-}
-
 if (typeof window !== 'undefined') {
-  window.debugChatStorage = debugChatStorage;
+  (window as any).debugChatStorage = debugChatStorage;
 }
