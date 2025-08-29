@@ -77,6 +77,7 @@ export const useChat = () => {
   const [selectedAgentForChat, setSelectedAgentForChat] = useState<Agent | null>(initialChatState.selectedAgentForChat);
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -153,13 +154,23 @@ export const useChat = () => {
 
   // 실제 전체 채팅 삭제 실행
   const executeDeleteAllChats = async () => {
+    setIsDeletingAll(true);
+    
     try {
       // 일반 채팅만 삭제 (북마크된 채팅은 제외)
       const nonBookmarkedChats = chatHistory.filter(chat => !chat.isBookmarked);
+      
+      console.log(`🗑️ ${nonBookmarkedChats.length}개의 채팅 삭제 시작...`);
+      
       // 각 채팅 삭제 API 호출
-      for (const chat of nonBookmarkedChats) {
+      for (let i = 0; i < nonBookmarkedChats.length; i++) {
+        const chat = nonBookmarkedChats[i];
         try {
+          console.log(`🗑️ 삭제 중... (${i + 1}/${nonBookmarkedChats.length}): ${chat.title}`);
           await chatService.deleteChat(chat.id);
+          
+          // 약간의 지연을 추가하여 시각적 피드백 제공
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (apiError) {
           console.warn('API 삭제 실패 (계속 진행):', chat.id, apiError);
         }
@@ -178,8 +189,16 @@ export const useChat = () => {
         setCurrentChatId(null);
         setMessages([]);
       }
+      
+      console.log('✅ 전체 채팅 삭제 완료');
+      
+      // 모달 자동 닫기
+      setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null });
+      
     } catch (error) {
       console.error('❌ 전체 채팅 삭제 실패:', error);
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -536,6 +555,7 @@ export const useChat = () => {
     setDeleteConfirmModal,
     messageCache,
     setMessageCache,
+    isDeletingAll,
     isDataLoaded,
     isLoadingData,
     
