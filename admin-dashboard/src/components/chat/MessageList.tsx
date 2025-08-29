@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useMemo } from 'react';
 import { ChatMessage } from '../../types/chat';
 import { Copy, Database } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -25,7 +25,7 @@ interface MessageListProps {
   selectedAgent?: { category?: string } | null;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messagesEndRef, selectedAgent }) => {
+const MessageList: React.FC<MessageListProps> = memo(({ messages, isLoading, messagesEndRef, selectedAgent }) => {
   // 메시지 리스트 변경 시 자동 스크롤
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -166,6 +166,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, messages
       <div ref={messagesEndRef} className="h-4" />
     </div>
   );
-};
+});
+
+MessageList.displayName = 'MessageList';
 
 export default MessageList;
