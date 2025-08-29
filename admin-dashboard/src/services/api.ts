@@ -450,6 +450,16 @@ export const chatService = {
     optimize_speed?: boolean;
     create_history_if_needed?: boolean;
     agent_name?: string;
+    // 🎯 비서 에이전트 균형 파라미터들
+    church_data_context?: string;
+    secretary_mode?: boolean;
+    prioritize_church_data?: boolean;
+    fallback_to_general?: boolean;
+    // 호환성을 위해 기존 파라미터 유지 (사용하지 않음)
+    force_church_data_only?: boolean;
+    force_church_context?: boolean;
+    no_external_knowledge?: boolean;
+    church_only_response?: boolean;
   }) => {
     try {
       const response = await api.post(getApiUrl('/chat/messages'), messageData);
