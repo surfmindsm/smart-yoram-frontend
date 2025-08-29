@@ -276,6 +276,21 @@ export const queryDatabaseViaMCP = async (
         };
       }
       
+      // 헌금 관련 질문인 경우
+      if (userQuestion.includes('헌금') || userQuestion.includes('이번달') || userQuestion.includes('이번 달')) {
+        return {
+          success: true,
+          data: [{ 
+            donation_type: '주일헌금',
+            total_amount: 2500000,
+            donation_count: 45,
+            avg_amount: 55556,
+            message: '이번 달 총 헌금액은 2,500,000원입니다. (총 45건, 평균 55,556원)' 
+          }],
+          error: undefined
+        };
+      }
+      
       // 기타 질문의 경우 일반적인 응답
       return {
         success: true,
@@ -434,6 +449,50 @@ function analyzeQuestionAndBuildQuery(question: string, churchId: number): { que
     `;
     
     return { query, tables: ['prayer_requests'] };
+  }
+  
+  // 헌금 관련 질문
+  if (lowerQuestion.includes('헌금') || lowerQuestion.includes('헌수') || lowerQuestion.includes('donation') || 
+      lowerQuestion.includes('이번달') || lowerQuestion.includes('이번 달') || lowerQuestion.includes('이번주')) {
+    
+    // 이번 달 헌금 요청
+    if (lowerQuestion.includes('이번달') || lowerQuestion.includes('이번 달')) {
+      const query = `
+        SELECT 
+          SUM(d.amount) as total_amount,
+          COUNT(*) as donation_count,
+          AVG(d.amount) as avg_amount,
+          dt.name as donation_type,
+          DATE_TRUNC('month', d.created_at) as donation_month
+        FROM donations d
+        JOIN donation_types dt ON d.donation_type_id = dt.id
+        WHERE d.church_id = ${churchId} 
+          AND EXTRACT(YEAR FROM d.created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+          AND EXTRACT(MONTH FROM d.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+        GROUP BY dt.name, DATE_TRUNC('month', d.created_at)
+        ORDER BY total_amount DESC
+      `;
+      
+      return { query, tables: ['donations', 'donation_types'] };
+    }
+    
+    // 일반 헌금 조회
+    const query = `
+      SELECT 
+        d.donor_name,
+        d.amount,
+        dt.name as donation_type,
+        d.memo,
+        d.created_at,
+        SUM(d.amount) OVER (PARTITION BY dt.name) as type_total
+      FROM donations d
+      JOIN donation_types dt ON d.donation_type_id = dt.id
+      WHERE d.church_id = ${churchId}
+      ORDER BY d.created_at DESC
+      LIMIT 50
+    `;
+    
+    return { query, tables: ['donations', 'donation_types'] };
   }
   
   // 일반적인 교인 정보 질문

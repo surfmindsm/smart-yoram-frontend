@@ -180,32 +180,129 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       
       let aiResponse: ChatMessage;
       
-      // 교인정보 에이전트만 DB 조회 실행
-      if (selectedAgentForChat?.name === '교인정보 에이전트' || selectedAgentForChat?.name?.includes('교인정보')) {
+      // 비서 에이전트 및 교인정보 에이전트는 교회 데이터 우선 조회
+      if (selectedAgentForChat?.category === 'secretary' || 
+          selectedAgentForChat?.name === '교인정보 에이전트' || 
+          selectedAgentForChat?.name?.includes('교인정보') ||
+          selectedAgentForChat?.name?.includes('비서')) {
         
         const dbResult = await queryDatabaseViaMCP(userMessage.content);
         
         if (dbResult.success && dbResult.data.length > 0) {
-          aiResponse = {
-            id: `ai_${Date.now()}`,
-            role: 'assistant',
-            content: `조회된 데이터를 바탕으로 답변드리겠습니다:\n\n${JSON.stringify(dbResult.data, null, 2)}`,
-            timestamp: new Date()
-          };
-        } else if (dbResult.error) {
-          aiResponse = {
-            id: `ai_${Date.now()}`,
-            role: 'assistant',
-            content: `죄송합니다. 요청하신 정보를 조회하는 중 문제가 발생했습니다.\n\n**오류 내용:** ${dbResult.error}\n\n다시 시도해 주시거나, 다른 방식으로 질문해 주세요.`,
-            timestamp: new Date()
-          };
+          // 교회 DB에서 데이터를 찾은 경우, 백엔드에 컨텍스트와 함께 전달
+          const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+          
+          try {
+            const responseData = await chatService.sendMessage({
+              chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
+              content: userMessage.content.slice(0, 2000),
+              role: 'user',
+              agent_id: agentId,
+              messages: updatedMessages.slice(-4).slice(0, -1).map(msg => ({
+                role: msg.role,
+                content: msg.content.slice(0, 800)
+              })),
+              optimize_speed: true,
+              create_history_if_needed: true,
+              agent_name: selectedAgentForChat?.name || '비서 AI',
+              // 🎯 교회 데이터 컨텍스트 제공 (우선 처리)
+              church_data_context: JSON.stringify(dbResult.data),
+              secretary_mode: true,
+              prioritize_church_data: true // 교회 데이터 우선 처리 (완전 제한 아님)
+            });
+            
+            // 백엔드 응답 처리
+            let aiContent = '교회 데이터를 기반으로 답변드리겠습니다.';
+            if (responseData.success && responseData.data) {
+              const data = responseData.data;
+              let rawContent = data.ai_response || data.content || data.message;
+              
+              if (typeof rawContent === 'object' && rawContent !== null) {
+                aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
+              } else if (typeof rawContent === 'string') {
+                aiContent = rawContent;
+              }
+            }
+            
+            aiResponse = {
+              id: `ai_${Date.now()}`,
+              role: 'assistant',
+              content: aiContent,
+              timestamp: new Date(),
+              is_secretary_agent: true,
+              data_sources: ['교회 데이터베이스'],
+              query_type: 'church_data_query'
+            };
+          } catch (backendError) {
+            console.warn('백엔드 처리 실패, 직접 데이터 표시:', backendError);
+            // 백엔드 실패 시 직접 포맷팅해서 표시
+            aiResponse = {
+              id: `ai_${Date.now()}`,
+              role: 'assistant',
+              content: `교회 데이터를 조회한 결과입니다:\n\n${formatChurchData(dbResult.data)}`,
+              timestamp: new Date(),
+              is_secretary_agent: true,
+              data_sources: ['교회 데이터베이스'],
+              query_type: 'church_data_query'
+            };
+          }
         } else {
-          aiResponse = {
-            id: `ai_${Date.now()}`,
-            role: 'assistant',
-            content: '조회된 데이터가 없습니다. 다른 검색어로 시도해보세요.',
-            timestamp: new Date()
-          };
+          // DB 조회 실패 시에도 백엔드에 교회 컨텍스트 모드로 요청
+          const agentId = selectedAgentForChat?.id || agents?.[0]?.id;
+          
+          try {
+            const responseData = await chatService.sendMessage({
+              chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
+              content: userMessage.content.slice(0, 2000),
+              role: 'user',
+              agent_id: agentId,
+              messages: updatedMessages.slice(-4).slice(0, -1).map(msg => ({
+                role: msg.role,
+                content: msg.content.slice(0, 800)
+              })),
+              optimize_speed: true,
+              create_history_if_needed: true,
+              agent_name: selectedAgentForChat?.name || '비서 AI',
+              // 🎯 교회 컨텍스트 우선 모드
+              secretary_mode: true,
+              prioritize_church_data: true, // 교회 데이터 우선하지만 일반 지식도 허용
+              fallback_to_general: true // 교회 데이터 부족 시 일반 GPT 응답 허용
+            });
+            
+            let aiContent = '교회 데이터베이스에서 관련 정보를 찾지 못했지만, 일반적인 답변을 드리겠습니다.';
+            
+            if (responseData.success && responseData.data) {
+              const data = responseData.data;
+              let rawContent = data.ai_response || data.content || data.message;
+              
+              if (typeof rawContent === 'object' && rawContent !== null) {
+                aiContent = rawContent.content || rawContent.message || rawContent.text || aiContent;
+              } else if (typeof rawContent === 'string') {
+                aiContent = rawContent;
+              }
+            }
+            
+            aiResponse = {
+              id: `ai_${Date.now()}`,
+              role: 'assistant',
+              content: aiContent,
+              timestamp: new Date(),
+              is_secretary_agent: true,
+              data_sources: ['교회 데이터베이스', 'AI 일반 지식'],
+              query_type: 'hybrid_response'
+            };
+          } catch (backendError) {
+            console.warn('백엔드 교회 컨텍스트 모드 실패:', backendError);
+            aiResponse = {
+              id: `ai_${Date.now()}`,
+              role: 'assistant',
+              content: `교회 데이터베이스에서 관련 정보를 찾지 못했지만, 일반적인 답변을 드리겠습니다.\n\n${dbResult.error ? `**참고:** ${dbResult.error}` : ''}\n\n더 정확한 정보를 위해 다음을 시도해보세요:\n- 구체적인 성도명이나 날짜 제공\n- 교회 관련 용어 사용`,
+              timestamp: new Date(),
+              is_secretary_agent: true,
+              data_sources: ['교회 데이터베이스'],
+              query_type: 'church_data_not_found'
+            };
+          }
         }
       } else {
         // 에이전트 ID 검증
