@@ -314,20 +314,41 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           return;
         }
 
-        // 백엔드에서 AI 응답 생성하도록 API 호출
-        const responseData = await chatService.sendMessage({
+        // 비서 에이전트인지 확인
+        const isSecretaryAgent = selectedAgentForChat?.category === 'secretary' || 
+                               selectedAgentForChat?.name?.includes('비서');
+        
+        console.log('🔍 비서 에이전트 체크:', {
+          agentName: selectedAgentForChat?.name,
+          agentCategory: selectedAgentForChat?.category,
+          isSecretaryAgent: isSecretaryAgent
+        });
+        
+        // API 요청 데이터 준비
+        const messageData = {
           chat_history_id: parseInt(effectiveChatId.replace('chat_', '')) || null,
-          content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
+          content: userMessage.content.slice(0, 2000),
           role: 'user',
           agent_id: agentId,
-          messages: updatedMessages.slice(-4).slice(0, -1).map(msg => ({ // 4개로 줄여서 더 빠른 속도
+          messages: updatedMessages.slice(-4).slice(0, -1).map(msg => ({
             role: msg.role,
-            content: msg.content.slice(0, 800) // 800자로 제한으로 더 빠른 전송
+            content: msg.content.slice(0, 800)
           })),
-          optimize_speed: true, // 백엔드에 속도 최적화 요청
-          create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
-          agent_name: selectedAgentForChat?.name || '기본 AI 도우미'
-        });
+          optimize_speed: true,
+          create_history_if_needed: true,
+          agent_name: selectedAgentForChat?.name || '기본 AI 도우미',
+          // 🎯 비서 에이전트인 경우 추가 파라미터
+          ...(isSecretaryAgent && {
+            secretary_mode: true,
+            prioritize_church_data: true,
+            fallback_to_general: true
+          })
+        };
+        
+        console.log('🚀 API 요청 데이터:', messageData);
+        
+        // 백엔드에서 AI 응답 생성하도록 API 호출
+        const responseData = await chatService.sendMessage(messageData);
         
         // 백엔드 응답 데이터 구조 확인 및 파싱
         let aiContent = '응답을 생성하지 못했습니다.';
