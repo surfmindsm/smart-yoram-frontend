@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChatMessage, Agent, ChatHistory } from '../../types/chat';
 import { Button } from '../ui/button';
 import { Bot, Send, Download, FileText, FileCode, FileImage, File } from 'lucide-react';
@@ -43,8 +43,8 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   const mainInputRef = useRef<HTMLTextAreaElement>(null);
   const bottomInputRef = useRef<HTMLTextAreaElement>(null);
   
-  // 메시지 전송 후 입력창 포커스 복원을 위한 함수
-  const handleSendWithFocus = () => {
+  // 메시지 전송 후 입력창 포커스 복원을 위한 함수 (memoized)
+  const handleSendWithFocus = useCallback(() => {
     onSendMessage();
     // 메시지 전송 후 입력창에 포커스 복원
     setTimeout(() => {
@@ -54,7 +54,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         bottomInputRef.current?.focus();
       }
     }, 100);
-  };
+  }, [onSendMessage, messages.length]);
   
   // 컴포넌트 마운트 시와 상태 변경 시 자동 포커스
   useEffect(() => {
@@ -66,8 +66,8 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
       }
     }
   }, [activeTab, messages.length, selectedAgentForChat]);
-  // 현재 채팅의 제목을 가져오는 함수
-  const getCurrentChatTitle = () => {
+  // 현재 채팅의 제목을 가져오는 함수 (memoized)
+  const getCurrentChatTitle = useMemo(() => {
     if (!currentChatId) return '새로운 채팅';
     
     const currentChat = chatHistory.find(chat => chat.id === currentChatId);
@@ -81,10 +81,23 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
     }
     
     return '새로운 채팅';
-  };
+  }, [currentChatId, chatHistory, selectedAgentForChat]);
+  // 추천 에이전트 목록 최적화 (memoized)
+  const recommendedAgents = useMemo(() => 
+    agents.filter(agent => agent.isActive).slice(0, 4),
+    [agents]
+  );
+  
+  // 추천 질문 목록 (memoized)
+  const secretaryQuestions = useMemo(() => [
+    "오늘 심방 일정 알려줘",
+    "새로운 기도 요청 있나?",
+    "최근 공지사항 정리해줘", 
+    "이번주 심방 현황은?"
+  ], []);
+
   // 히스토리 탭에서 메시지가 없는 경우 - 첫 화면
   if (activeTab === 'history' && messages.length === 0) {
-    const recommendedAgents = agents.filter(agent => agent.isActive).slice(0, 4);
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
@@ -151,12 +164,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
             <div className="max-w-4xl mx-auto mb-8">
               <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">💡 이런 질문을 해보세요:</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  "오늘 심방 일정 알려줘",
-                  "새로운 기도 요청 있나?",
-                  "최근 공지사항 정리해줘", 
-                  "이번주 심방 현황은?"
-                ].map((question, index) => (
+                {secretaryQuestions.map((question, index) => (
                   <button
                     key={index}
                     onClick={() => setInputValue(question)}
@@ -219,7 +227,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
           <div className="h-16 border-b border-slate-200 px-6 flex items-center justify-between bg-white z-10">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
-                {getCurrentChatTitle()}
+                {getCurrentChatTitle}
               </h2>
               {selectedAgentForChat && (
                 <p className="text-sm text-slate-500">

@@ -1,8 +1,7 @@
-import { Dispatch, SetStateAction, KeyboardEvent } from 'react';
+import { Dispatch, SetStateAction, KeyboardEvent, useCallback } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
-import { saveMessageViaMCP, queryDatabaseViaMCP } from '../utils/mcpUtils';
-import { churchConfigService, chatService } from '../services/api';
-import { AGENT_CONFIG } from '../constants/agents';
+import { queryDatabaseViaMCP } from '../utils/mcpUtils';
+import { chatService } from '../services/api';
 
 interface UseChatHandlersProps {
   messages: ChatMessage[];
@@ -61,8 +60,8 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     agents
   } = props;
 
-  // 메시지 전송 핸들러
-  const handleSendMessage = async () => {
+  // 메시지 전송 핸들러 (성능 최적화)
+  const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim()) return;
     
     setIsLoading(true);
@@ -223,9 +222,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           content: userMessage.content.slice(0, 2000), // 사용자 메시지 길이 제한
           role: 'user',
           agent_id: agentId,
-          messages: updatedMessages.slice(-6).slice(0, -1).map(msg => ({
+          messages: updatedMessages.slice(-4).slice(0, -1).map(msg => ({ // 4개로 줄여서 더 빠른 속도
             role: msg.role,
-            content: msg.content.slice(0, 1000) // 메시지 길이 제한으로 속도 개선
+            content: msg.content.slice(0, 800) // 800자로 제한으로 더 빠른 전송
           })),
           optimize_speed: true, // 백엔드에 속도 최적화 요청
           create_history_if_needed: true,  // 히스토리가 없으면 자동 생성
@@ -407,7 +406,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [inputValue, messages, currentChatId, selectedAgentForChat, chatHistory, agents, setMessages, setIsLoading, setInputValue, setCurrentChatId, setChatHistory, setMessageCache, scrollToBottom]);
 
   // 새 채팅 시작
   const handleNewChat = async () => {
@@ -568,13 +567,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
     setOpenMenuId(null);
   };
 
-  // 키보드 이벤트 핸들러
-  const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  // 키보드 이벤트 핸들러 (memoized)
+  const handleKeyPress = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
   return {
     handleSendMessage,
