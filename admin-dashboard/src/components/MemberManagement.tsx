@@ -5,8 +5,6 @@ import {
   Search, 
   Plus, 
   RefreshCw, 
-  Grid3X3, 
-  LayoutGrid, 
   Camera,
   QrCode,
   ChevronUp,
@@ -21,12 +19,8 @@ import {
   Edit3,
   Save,
   X,
-  Mail,
-  Phone,
-  Calendar,
   MapPin,
   UserCheck,
-  Users,
   Briefcase,
   Heart,
   Upload,
@@ -105,7 +99,7 @@ const MemberManagement: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   
   // View and pagination states
-  const [viewType, setViewType] = useState<'card' | 'grid'>('card');
+  const [viewType, setViewType] = useState<'grid'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
@@ -571,28 +565,6 @@ const MemberManagement: React.FC = () => {
           <div className="flex justify-between items-center border-t border-border pt-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">보기 형태:</label>
-                <Button
-                  variant={viewType === 'card' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewType('card')}
-                  className="flex items-center gap-1"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  카드
-                </Button>
-                <Button
-                  variant={viewType === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewType('grid')}
-                  className="flex items-center gap-1"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                  그리드
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-foreground">페이지당:</label>
                 <Select
                   value={pageSize.toString()}
@@ -623,287 +595,171 @@ const MemberManagement: React.FC = () => {
       </Card>
 
       {/* Members Display */}
-      {viewType === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {members.map((member) => (
-            <Card key={member.id} className="border-muted overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleMemberClick(member)}>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    {cleanPhotoUrl(member.profile_photo_url) ? (
-                      <>
-                        <img
-                          src={cleanPhotoUrl(member.profile_photo_url)!}
-                          alt={member.name}
-                          className="h-16 w-16 rounded-full object-cover"
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            console.error('Image load error:', {
-                              src: target.src,
-                              error: e,
-                              member: member.name
-                            });
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) {
-                              fallback.classList.remove('hidden');
-                            }
-                          }}
-                        />
-                        <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center hidden">
-                          <span className="text-gray-600 font-medium">
-                            {member.name.charAt(0)}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
-                        <User className="w-8 h-8 text-gray-600" />
-                      </div>
+      <Card className="border-muted overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('name')}
+                >
+                  <span className="flex items-center gap-1">
+                    이름
+                    {sortField === 'name' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                     )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">
-                      {member.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{member.phone}</p>
-                    <div className="mt-1">
-                      <Badge variant={getStatusBadgeVariant(member.member_status)}>
-                        {getStatusText(member.member_status)}
-                      </Badge>
+                  </span>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('gender')}
+                >
+                  <span className="flex items-center gap-1">
+                    성별
+                    {sortField === 'gender' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('phone')}
+                >
+                  <span className="flex items-center gap-1">
+                    전화번호
+                    {sortField === 'phone' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('position')}
+                >
+                  <span className="flex items-center gap-1">
+                    직분
+                    {sortField === 'position' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('district')}
+                >
+                  <span className="flex items-center gap-1">
+                    구역
+                    {sortField === 'district' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('member_status')}
+                >
+                  <span className="flex items-center gap-1">
+                    상태
+                    {sortField === 'member_status' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  작업
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-background divide-y divide-border">
+              {members.map((member) => (
+                <tr key={member.id} className="hover:bg-muted/30 cursor-pointer" 
+                    onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        {cleanPhotoUrl(member.profile_photo_url) ? (
+                          <img
+                            className="h-10 w-10 rounded-full object-cover"
+                            src={cleanPhotoUrl(member.profile_photo_url)!}
+                            alt={member.name}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.classList.remove('hidden');
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className={`h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center ${cleanPhotoUrl(member.profile_photo_url) ? 'hidden' : ''}`}>
+                          <User className="w-5 h-5 text-gray-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-foreground">{member.name}</div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {member.position && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">직분:</span> {member.position}
-                    </p>
-                  )}
-                  {member.district && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">구역:</span> {member.district}
-                    </p>
-                  )}
-                  {member.birthdate && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">생년월일:</span> {member.birthdate}
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-4 flex space-x-2">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedMember(member);
-                      setShowPhotoModal(true);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
-                  >
-                    <Camera className="w-3 h-3 mr-1" />
-                    사진
-                  </Button>
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/qr-management');
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
-                  >
-                    <QrCode className="w-3 h-3 mr-1" />
-                    QR
-                  </Button>
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleGetPassword(member.id);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
-                  >
-                    <Key className="w-3 h-3 mr-1" />
-                    비밀번호
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="border-muted overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('name')}
-                  >
-                    <span className="flex items-center gap-1">
-                      이름
-                      {sortField === 'name' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('gender')}
-                  >
-                    <span className="flex items-center gap-1">
-                      성별
-                      {sortField === 'gender' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('phone')}
-                  >
-                    <span className="flex items-center gap-1">
-                      전화번호
-                      {sortField === 'phone' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('position')}
-                  >
-                    <span className="flex items-center gap-1">
-                      직분
-                      {sortField === 'position' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('district')}
-                  >
-                    <span className="flex items-center gap-1">
-                      구역
-                      {sortField === 'district' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                    onClick={() => handleSort('member_status')}
-                  >
-                    <span className="flex items-center gap-1">
-                      상태
-                      {sortField === 'member_status' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    작업
-                  </th>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {member.gender}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {member.phone}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {member.position || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {member.district || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge variant={getStatusBadgeVariant(member.member_status)}>
+                      {getStatusText(member.member_status)}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <div className="flex justify-center space-x-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMember(member);
+                          setShowPhotoModal(true);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                      >
+                        사진
+                      </Button>
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/qr-management');
+                        }}
+                        variant="ghost"
+                        size="sm"
+                      >
+                        QR
+                      </Button>
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGetPassword(member.id);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                      >
+                        비밀번호
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-background divide-y divide-border">
-                {members.map((member) => (
-                  <tr key={member.id} className="hover:bg-muted/30 cursor-pointer" 
-                      onClick={() => handleMemberClick(member)}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          {cleanPhotoUrl(member.profile_photo_url) ? (
-                            <img
-                              className="h-10 w-10 rounded-full object-cover"
-                              src={cleanPhotoUrl(member.profile_photo_url)!}
-                              alt={member.name}
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                target.style.display = 'none';
-                                const fallback = target.nextElementSibling as HTMLElement;
-                                if (fallback) {
-                                  fallback.classList.remove('hidden');
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div className={`h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center ${cleanPhotoUrl(member.profile_photo_url) ? 'hidden' : ''}`}>
-                            <User className="w-5 h-5 text-gray-600" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-foreground">{member.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {member.gender}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {member.phone}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {member.position || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                      {member.district || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={getStatusBadgeVariant(member.member_status)}>
-                        {getStatusText(member.member_status)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <div className="flex justify-center space-x-2">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMember(member);
-                            setShowPhotoModal(true);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                        >
-                          사진
-                        </Button>
-                        <Button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/qr-management');
-                          }}
-                          variant="ghost"
-                          size="sm"
-                        >
-                          QR
-                        </Button>
-                        <Button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGetPassword(member.id);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                        >
-                          비밀번호
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {members.length === 0 && (
         <div className="text-center py-12">
