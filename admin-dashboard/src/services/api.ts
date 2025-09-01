@@ -350,9 +350,22 @@ export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
+      console.log('🔍 채팅 히스토리 요청 시작:', {
+        url: getApiUrl('/chat/histories'),
+        params,
+        timestamp: new Date().toISOString()
+      });
       
       const response = await api.get(getApiUrl('/chat/histories'), { params });
       
+      console.log('✅ 채팅 히스토리 API 응답:', {
+        status: response.status,
+        dataType: typeof response.data,
+        dataStructure: Array.isArray(response.data) ? 'array' : typeof response.data,
+        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
+        sampleData: Array.isArray(response.data) ? response.data.slice(0, 2) : response.data,
+        fullResponse: response.data
+      });
       
       return response.data;
     } catch (error: any) {
@@ -476,7 +489,9 @@ export const chatService = {
   
   // 채팅 히스토리 삭제
   deleteChat: async (historyId: string) => {
-    const response = await api.delete(getApiUrl(`/chat/histories/${historyId}`));
+    // chat_ 접두어 제거하여 정수 ID만 사용 (백엔드에서 int 파라미터 요구)
+    const cleanId = historyId.replace('chat_', '');
+    const response = await api.delete(getApiUrl(`/chat/histories/${cleanId}`));
     return response.data;
   },
   

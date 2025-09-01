@@ -137,6 +137,7 @@ const AIChat: React.FC = () => {
         modal={chatState.deleteConfirmModal}
         onClose={() => !chatState.isDeletingAll && chatState.setDeleteConfirmModal({ isOpen: false, chatTitle: '', chatId: null })}
         isDeleting={chatState.isDeletingAll}
+        deleteProgress={chatState.deleteProgress}
         onConfirm={async () => {
           const modalChatId = chatState.deleteConfirmModal.chatId;
           
