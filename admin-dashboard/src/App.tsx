@@ -9,7 +9,8 @@ import SermonLibrary from './components/SermonLibrary';
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const Members = lazy(() => import('./components/Members'));
 const MemberManagement = lazy(() => import('./components/MemberManagement'));
-const Announcements = lazy(() => import('./components/Announcements'));
+const SystemAnnouncementManagement = lazy(() => import('./components/SystemAnnouncementManagement'));
+const AnnouncementManagement = lazy(() => import('./components/AnnouncementManagement'));
 const SMSManagement = lazy(() => import('./components/SMSManagement'));
 const QRCodeManagement = lazy(() => import('./components/QRCodeManagement'));
 const StatisticsDashboard = lazy(() => import('./components/StatisticsDashboard'));
@@ -83,6 +84,16 @@ function App() {
               <DonationManagement />
             </Suspense>
           } />
+          <Route path="system-announcements" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SystemAnnouncementManagement />
+            </Suspense>
+          } />
+          <Route path="announcements" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AnnouncementManagement />
+            </Suspense>
+          } />
           <Route path="ai-chat" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AIChat />
@@ -106,11 +117,6 @@ function App() {
           <Route path="analytics" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AnalyticsDashboard />
-            </Suspense>
-          } />
-          <Route path="announcements" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Announcements />
             </Suspense>
           } />
           <Route path="pastoral-care" element={

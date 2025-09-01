@@ -103,12 +103,11 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       {category && CATEGORIES[category as keyof AnnouncementCategories] && (
         <div>
           <Label htmlFor="subcategory">세부 카테고리</Label>
-          <Select value={subcategory || ''} onValueChange={onSubcategoryChange}>
+          <Select value={subcategory || undefined} onValueChange={onSubcategoryChange}>
             <SelectTrigger id="subcategory">
               <SelectValue placeholder="세부 카테고리를 선택하세요 (선택사항)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">선택 안함</SelectItem>
               {Object.entries(
                 CATEGORIES[category as keyof AnnouncementCategories].subcategories
               ).map(([key, label]) => (

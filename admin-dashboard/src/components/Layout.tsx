@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
+import AnnouncementModal from './AnnouncementModal';
 import {
   BarChart3,
   ChartLine,
@@ -32,7 +33,7 @@ import { Button } from './ui/button';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [userInfo, setUserInfo] = useState<{name?: string, email?: string} | null>(null);
+  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number} | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,7 +49,8 @@ const Layout: React.FC = () => {
         
         const processedUser = {
           name: user.full_name || user.name || user.username || '사용자',
-          email: user.email
+          email: user.email,
+          church_id: user.church_id
         };
         console.log('📝 처리된 사용자 정보:', processedUser);
         
@@ -69,6 +71,9 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
+  // 시스템 관리자 여부 확인
+  const isSystemAdmin = userInfo?.church_id === 0;
+
   // Sidebar menu grouped by sections
   const menuGroups = [
     {
@@ -78,6 +83,12 @@ const Layout: React.FC = () => {
         { path: '/statistics', name: '통계 분석', Icon: ChartLine },
       ],
     },
+    ...(isSystemAdmin ? [{
+      title: '시스템 관리',
+      items: [
+        { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+      ],
+    }] : []),
     {
       title: '교인 관리',
       items: [
@@ -96,11 +107,11 @@ const Layout: React.FC = () => {
     {
       title: '예배 · 소식',
       items: [
-        { path: '/announcements', name: '공지사항', Icon: Megaphone },
         { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
         { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
         { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
         { path: '/bulletins', name: '주보 관리', Icon: FileText },
+        ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
       ],
     },
     {
@@ -258,6 +269,9 @@ const Layout: React.FC = () => {
         )}>
           <div className="p-3">
             <div className="max-w-full mx-auto">
+              {/* 공지사항 모달 */}
+              <AnnouncementModal />
+              
               <Outlet />
             </div>
           </div>
