@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team
 
 // Vercel 프록시를 사용하는 경우 처리
 const isProxyMode = API_BASE_URL.startsWith('/api/proxy');
-const getApiUrl = (path: string) => {
+export const getApiUrl = (path: string) => {
   if (isProxyMode) {
     // 프록시 모드에서는 /api/v1 제거 (프록시에서 추가함)
     return path.startsWith('/') ? path.substring(1) : path;
