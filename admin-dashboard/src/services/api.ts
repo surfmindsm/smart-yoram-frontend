@@ -92,7 +92,7 @@ export const authService = {
     formData.append('username', username);
     formData.append('password', password);
     
-    const response = await api.post(getApiUrl('/auth/member/login'), formData, {
+    const response = await api.post(getApiUrl('/auth/login/access-token'), formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
