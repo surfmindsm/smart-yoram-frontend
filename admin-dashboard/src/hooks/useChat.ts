@@ -78,6 +78,7 @@ export const useChat = () => {
   const [showHistory, setShowHistory] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'agents'>('history');
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0, currentTitle: '' });
   const [loadingChats, setLoadingChats] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -162,22 +163,73 @@ export const useChat = () => {
       
       console.log(`🗑️ ${nonBookmarkedChats.length}개의 채팅 삭제 시작...`);
       
+      // 진행률 초기화
+      setDeleteProgress({ current: 0, total: nonBookmarkedChats.length, currentTitle: '' });
+      
+      // 성공적으로 삭제된 채팅 ID 추적
+      const successfullyDeletedIds = new Set<string>();
+      
       // 각 채팅 삭제 API 호출
       for (let i = 0; i < nonBookmarkedChats.length; i++) {
         const chat = nonBookmarkedChats[i];
+        
+        // 현재 진행 상황 업데이트
+        setDeleteProgress({ 
+          current: i, 
+          total: nonBookmarkedChats.length, 
+          currentTitle: chat.title 
+        });
+        
         try {
           console.log(`🗑️ 삭제 중... (${i + 1}/${nonBookmarkedChats.length}): ${chat.title}`);
-          await chatService.deleteChat(chat.id);
+          
+          // 실제 DB에서 채팅 삭제
+          const deleteResponse = await chatService.deleteChat(chat.id);
+          console.log(`✅ 삭제 API 응답:`, {
+            chatId: chat.id,
+            chatTitle: chat.title,
+            response: deleteResponse,
+            status: 'success'
+          });
+          
+          // 성공적으로 삭제된 채팅 ID 기록
+          successfullyDeletedIds.add(chat.id);
+          
+          // 완료 진행률 업데이트
+          setDeleteProgress({ 
+            current: i + 1, 
+            total: nonBookmarkedChats.length, 
+            currentTitle: chat.title 
+          });
           
           // 약간의 지연을 추가하여 시각적 피드백 제공
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (apiError) {
-          console.warn('API 삭제 실패 (계속 진행):', chat.id, apiError);
+          await new Promise(resolve => setTimeout(resolve, 150));
+        } catch (apiError: any) {
+          console.error(`❌ API 삭제 실패 - 채팅 ID: ${chat.id}`, {
+            chatId: chat.id,
+            chatTitle: chat.title,
+            error: apiError,
+            errorMessage: apiError?.message,
+            errorResponse: apiError?.response?.data,
+            errorStatus: apiError?.response?.status
+          });
+          
+          // 삭제 실패한 채팅은 successfullyDeletedIds에 추가하지 않음
+          // 이렇게 하면 실패한 채팅은 UI에서 계속 보임
         }
       }
       
-      // 상태에서 일반 채팅 제거 (북마크된 채팅만 남김)
-      const updatedHistory = chatHistory.filter(chat => chat.isBookmarked);
+      // 실제로 성공적으로 삭제된 채팅만 상태에서 제거
+      const updatedHistory = chatHistory.filter(chat => 
+        chat.isBookmarked || !successfullyDeletedIds.has(chat.id)
+      );
+      
+      console.log(`📊 삭제 결과:`, {
+        totalAttempted: nonBookmarkedChats.length,
+        successfullyDeleted: successfullyDeletedIds.size,
+        failed: nonBookmarkedChats.length - successfullyDeletedIds.size,
+        successfulIds: Array.from(successfullyDeletedIds)
+      });
       setChatHistory(updatedHistory);
       
       // 캐시 업데이트
@@ -199,6 +251,7 @@ export const useChat = () => {
       console.error('❌ 전체 채팅 삭제 실패:', error);
     } finally {
       setIsDeletingAll(false);
+      setDeleteProgress({ current: 0, total: 0, currentTitle: '' });
     }
   };
 
@@ -270,14 +323,26 @@ export const useChat = () => {
       if (chatsResult.status === 'fulfilled') {
         const response = chatsResult.value;
         
+        console.log('🔍 useChat - 채팅 히스토리 응답 분석:', {
+          responseType: typeof response,
+          hasSuccess: 'success' in response,
+          hasData: 'data' in response,
+          isArray: Array.isArray(response),
+          responseStructure: response,
+          keys: Object.keys(response || {})
+        });
+        
         // API 응답 구조 다양성 처리
         let histories = [];
         if (response.success && Array.isArray(response.data)) {
           histories = response.data;
+          console.log('📝 Case 1: response.success && Array.isArray(response.data)', histories.length);
         } else if (Array.isArray(response.data)) {
           histories = response.data;
+          console.log('📝 Case 2: Array.isArray(response.data)', histories.length);
         } else if (Array.isArray(response)) {
           histories = response;
+          console.log('📝 Case 3: Array.isArray(response)', histories.length);
         } else {
           console.warn('⚠️ 예상치 못한 API 응답 구조:', response);
           histories = [];
@@ -286,6 +351,8 @@ export const useChat = () => {
         // 배포용: 과도한 히스토리 로깅 제거
         
         if (Array.isArray(histories) && histories.length > 0) {
+          console.log('✅ 히스토리 배열 처리 시작:', histories.length, '개');
+          
           const formattedHistories = histories.map((history: any) => {
             // ID 형식 통일 (chat_ 접두사 추가)
             const formattedId = history.id?.toString().startsWith('chat_') 
@@ -303,12 +370,21 @@ export const useChat = () => {
           
           // 날짜순으로 정렬 (리좌트 순)
           formattedHistories.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          console.log('🎯 최종 설정할 채팅 히스토리:', {
+            count: formattedHistories.length,
+            first3: formattedHistories.slice(0, 3),
+            allTitles: formattedHistories.map(h => h.title)
+          });
           setChatHistory(formattedHistories);
           saveChatHistoryToCache(formattedHistories); // 🚀 캐시 저장
           
           // 항상 새 대화 상태로 시작 (자동 선택 비활성화)
         } else {
-          console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', histories);
+          console.warn('⚠️ 채팅 히스토리가 비어있거나 배열이 아님:', {
+            historiesType: typeof histories,
+            historiesLength: Array.isArray(histories) ? histories.length : 'N/A',
+            histories
+          });
           setChatHistory([]);
         }
       } else {
@@ -556,6 +632,7 @@ export const useChat = () => {
     messageCache,
     setMessageCache,
     isDeletingAll,
+    deleteProgress,
     isDataLoaded,
     isLoadingData,
     
