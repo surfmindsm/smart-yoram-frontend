@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import axios from 'axios';
 import { 
   Search, 
   Plus, 
@@ -24,7 +25,8 @@ import {
   Briefcase,
   Heart,
   Upload,
-  Download
+  Download,
+  Settings
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -108,6 +110,21 @@ const MemberManagement: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInfo, setPasswordInfo] = useState<{member_id: number, member_name: string, email: string, password: string} | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Advanced search states
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [advancedSearchData, setAdvancedSearchData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    gender: 'all',
+    position: '',
+    district: '',
+    ageFrom: '',
+    ageTo: '',
+    member_type: 'all',
+    spiritual_grade: 'all'
+  });
 
   const [newMember, setNewMember] = useState({
     name: '',
@@ -166,6 +183,19 @@ const MemberManagement: React.FC = () => {
       console.log('- 현재 페이지 데이터 수:', sortedData.length);
       console.log('- 실제 전체 교인 수:', actualTotalCount);
       console.log('- 표시될 범위:', `${Math.min((currentPage - 1) * pageSize + 1, actualTotalCount)}-${Math.min(currentPage * pageSize, actualTotalCount)}`);
+      
+      // Check if member 265 has photo URL in the fetched data
+      const member265 = sortedData.find(m => m.id === 265);
+      if (member265) {
+        console.log('🔍 Member 265 in fetched data:');
+        console.log('- ID:', member265.id);
+        console.log('- Name:', member265.name);
+        console.log('- Photo URL:', member265.profile_photo_url);
+        console.log('- Has Photo:', !!member265.profile_photo_url);
+        console.log('- Photo URL type:', typeof member265.profile_photo_url);
+      } else {
+        console.log('❌ Member 265 not found in current page data');
+      }
       
       setMembers(sortedData);
       setTotalCount(actualTotalCount);
@@ -228,18 +258,89 @@ const MemberManagement: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.post(`/members/${selectedMember.id}/upload-photo`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const token = localStorage.getItem('access_token');
+      console.log('🔍 Photo upload debug:', {
+        memberId: selectedMember.id,
+        hasToken: !!token,
+        tokenLength: token ? token.length : 0,
+        endpoint: `/members/${selectedMember.id}/upload-photo`,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        hasFile: !!file,
+        formDataEntries: Array.from(formData.entries()),
+        tokenFirst10: token ? token.substring(0, 10) + '...' : null
       });
 
+      // Test if token works with a simple API call first
+      try {
+        const testResponse = await axios.get(
+          `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        console.log('✅ Token works - member data retrieved:', testResponse.status);
+      } catch (testError) {
+        console.error('❌ Token test failed:', testError);
+        alert('토큰이 유효하지 않습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      // Try direct axios call without api instance
+      const response = await axios.post(
+        `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}/upload-photo`, 
+        formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log('✅ Photo upload response:', response.data);
+      console.log('🔄 Updating member photo URL:', response.data.profile_photo_url);
+
       // Update member in list
-      setMembers(members.map(m => 
+      const updatedMembers = members.map(m => 
         m.id === selectedMember.id 
           ? { ...m, profile_photo_url: response.data.profile_photo_url }
           : m
-      ));
+      );
+      
+      console.log('📝 Updated members array:', updatedMembers.find(m => m.id === selectedMember.id));
+      setMembers(updatedMembers);
+      
+      // Also update selectedMember for immediate UI feedback
+      setSelectedMember(prev => prev ? { ...prev, profile_photo_url: response.data.profile_photo_url } : prev);
+      
+      // Verify if the photo was actually saved in DB by re-fetching the member
+      setTimeout(async () => {
+        try {
+          const verifyResponse = await axios.get(
+            `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            }
+          );
+          console.log('🔍 DB verification - member data after upload:', verifyResponse.data);
+          console.log('🔍 DB verification - profile_photo_url:', verifyResponse.data.profile_photo_url);
+          
+          if (!verifyResponse.data.profile_photo_url) {
+            console.error('❌ Photo URL not saved to database!');
+            alert('경고: 사진 업로드는 성공했지만 데이터베이스 저장에 실패했을 수 있습니다.');
+          } else {
+            console.log('✅ Photo URL successfully saved to database');
+          }
+        } catch (error) {
+          console.error('DB verification failed:', error);
+        }
+      }, 1000); // 1초 후 검증
       
       setShowPhotoModal(false);
       alert('프로필 사진이 업로드되었습니다.');
@@ -272,6 +373,12 @@ const MemberManagement: React.FC = () => {
       case 'transferred': return 'destructive' as const;
       default: return 'secondary' as const;
     }
+  };
+
+  const getGenderText = (gender: string) => {
+    if (gender === 'M' || gender === 'MALE' || gender === 'male') return '남';
+    if (gender === 'F' || gender === 'FEMALE' || gender === 'female') return '여';
+    return gender; // 이미 '남', '여'로 되어있거나 다른 값인 경우 그대로 표시
   };
 
   const handleGetPassword = async (memberId: number) => {
@@ -312,7 +419,15 @@ const MemberManagement: React.FC = () => {
     if (!selectedMember) return;
     
     try {
-      const response = await api.put(`/members/${selectedMember.id}`, editedMember);
+      // Preserve profile_photo_url from selectedMember to prevent overwriting
+      const memberDataToSave = {
+        ...editedMember,
+        profile_photo_url: selectedMember.profile_photo_url
+      };
+      
+      console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
+      
+      const response = await api.put(`/members/${selectedMember.id}`, memberDataToSave);
       
       // Update member in list
       setMembers(members.map(m => 
@@ -533,6 +648,14 @@ const MemberManagement: React.FC = () => {
                   <Search className="w-4 h-4" />
                   검색
                 </Button>
+                <Button
+                  onClick={() => setShowAdvancedSearch(true)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  상세검색
+                </Button>
               </div>
             </div>
             <div>
@@ -666,9 +789,6 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  작업
-                </th>
               </tr>
             </thead>
             <tbody className="bg-background divide-y divide-border">
@@ -703,7 +823,7 @@ const MemberManagement: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {member.gender}
+                    {getGenderText(member.gender)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {member.phone}
@@ -718,41 +838,6 @@ const MemberManagement: React.FC = () => {
                     <Badge variant={getStatusBadgeVariant(member.member_status)}>
                       {getStatusText(member.member_status)}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                    <div className="flex justify-center space-x-2">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMember(member);
-                          setShowPhotoModal(true);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        사진
-                      </Button>
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/qr-management');
-                        }}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        QR
-                      </Button>
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGetPassword(member.id);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        비밀번호
-                      </Button>
-                    </div>
                   </td>
                 </tr>
               ))}
@@ -1128,6 +1213,30 @@ const MemberManagement: React.FC = () => {
                   ) : (
                     <div className="h-32 w-32 rounded-full bg-muted flex items-center justify-center mx-auto border-4 border-border">
                       <User className="w-16 h-16 text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  {/* Photo upload button in edit mode */}
+                  {isEditMode && (
+                    <div className="absolute -bottom-2 -right-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && selectedMember) {
+                            handlePhotoUpload(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="profile-photo-upload"
+                      />
+                      <label
+                        htmlFor="profile-photo-upload"
+                        className="bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-lg hover:bg-primary/90 flex items-center justify-center"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </label>
                     </div>
                   )}
                 </div>
@@ -1673,6 +1782,182 @@ const MemberManagement: React.FC = () => {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advanced Search Modal */}
+      <Dialog open={showAdvancedSearch} onOpenChange={setShowAdvancedSearch}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              상세 검색
+            </DialogTitle>
+            <DialogDescription>
+              여러 조건을 조합하여 교인을 검색할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* 기본 정보 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">기본 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">이름</label>
+                  <Input
+                    value={advancedSearchData.name}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="홍길동"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
+                  <Input
+                    value={advancedSearchData.email}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="example@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
+                  <Input
+                    value={advancedSearchData.phone}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="010-1234-5678"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                  <Select value={advancedSearchData.gender} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="남">남</SelectItem>
+                      <SelectItem value="여">여</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* 교회 정보 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">교회 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+                  <Input
+                    value={advancedSearchData.position}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position: e.target.value }))}
+                    placeholder="집사, 권사, 장로 등"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">구역</label>
+                  <Input
+                    value={advancedSearchData.district}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, district: e.target.value }))}
+                    placeholder="1구역, 2구역 등"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">교인구분</label>
+                  <Select value={advancedSearchData.member_type} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, member_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="정교인">정교인</SelectItem>
+                      <SelectItem value="학습교인">학습교인</SelectItem>
+                      <SelectItem value="세례교인">세례교인</SelectItem>
+                      <SelectItem value="방문자">방문자</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">신급</label>
+                  <Select value={advancedSearchData.spiritual_grade} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, spiritual_grade: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="초신자">초신자</SelectItem>
+                      <SelectItem value="B급">B급</SelectItem>
+                      <SelectItem value="A급">A급</SelectItem>
+                      <SelectItem value="리더">리더</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* 나이 범위 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">나이 범위</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">최소 나이</label>
+                  <Input
+                    type="number"
+                    value={advancedSearchData.ageFrom}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageFrom: e.target.value }))}
+                    placeholder="0"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">최대 나이</label>
+                  <Input
+                    type="number"
+                    value={advancedSearchData.ageTo}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageTo: e.target.value }))}
+                    placeholder="120"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              onClick={() => {
+                setAdvancedSearchData({
+                  name: '',
+                  email: '',
+                  phone: '',
+                  gender: 'all',
+                  position: '',
+                  district: '',
+                  ageFrom: '',
+                  ageTo: '',
+                  member_type: 'all',
+                  spiritual_grade: 'all'
+                });
+              }}
+              variant="outline"
+            >
+              초기화
+            </Button>
+            <Button
+              onClick={() => {
+                setShowAdvancedSearch(false);
+                // TODO: 실제 상세 검색 실행 로직 구현
+                console.log('Advanced search with:', advancedSearchData);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Search className="w-4 h-4" />
+              검색 실행
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
