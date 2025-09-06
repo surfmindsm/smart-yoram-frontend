@@ -138,32 +138,59 @@ const MemberManagement: React.FC = () => {
   });
 
   useEffect(() => {
+    console.log('🔥🔥🔥 useEffect 트리거됨!', {
+      appliedSearchTerm,
+      statusFilter,
+      currentPage,
+      pageSize,
+      sortField,
+      sortOrder
+    });
     fetchMembers();
   }, [appliedSearchTerm, statusFilter, currentPage, pageSize, sortField, sortOrder]);
 
   const fetchMembers = async () => {
+    console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
     try {
       setLoading(true);
-      
       // 1. 전체 개수를 먼저 조회 (pagination 없이)
-      console.log('🔢 실제 전체 교인 수 조회 중...');
       const countParams = new URLSearchParams();
-      if (appliedSearchTerm) countParams.append('search', appliedSearchTerm);
+      if (appliedSearchTerm) {
+        countParams.append('search', appliedSearchTerm);
+        console.log('🔍 Count API에 search 파라미터 추가:', appliedSearchTerm);
+      }
       if (statusFilter !== 'all') countParams.append('member_status', statusFilter);
       
-      const countResponse = await api.get(`/members/?${countParams.toString()}`);
+      const countUrl = `/members/?${countParams.toString()}`;
+      console.log('📡 Count API 호출 URL:', countUrl);
+      
+      const countResponse = await api.get(countUrl);
+      // API 응답 확인 완료
       const actualTotalCount = countResponse.data.length;
-      console.log('✅ 실제 전체 교인 수:', actualTotalCount);
       
       // 2. 현재 페이지 데이터 조회
-      console.log('📄 현재 페이지 데이터 조회 중...');
       const params = new URLSearchParams();
-      if (appliedSearchTerm) params.append('search', appliedSearchTerm);
+      if (appliedSearchTerm) {
+        params.append('search', appliedSearchTerm);
+        console.log('🔍 Page API에 search 파라미터 추가:', appliedSearchTerm);
+      }
       if (statusFilter !== 'all') params.append('member_status', statusFilter);
       params.append('skip', ((currentPage - 1) * pageSize).toString());
       params.append('limit', pageSize.toString());
       
-      const response = await api.get(`/members/?${params.toString()}`);
+      const pageUrl = `/members/?${params.toString()}`;
+      console.log('📡 Page API 호출 URL:', pageUrl);
+      
+      const response = await api.get(pageUrl);
+      console.log('📊 Page API 응답:', {
+        status: response.status,
+        dataLength: response.data.length,
+        sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name }))
+      });
+      console.log('🔍 Page API - 실제 반환된 교인들:');
+      response.data.slice(0, 5).forEach((member: any, index: number) => {
+        console.log(`${index + 1}. ID: ${member.id}, Name: ${member.name}, Email: ${member.email}`);
+      });
       
       // Sort data on client side for now
       let sortedData = [...response.data];
@@ -179,24 +206,6 @@ const MemberManagement: React.FC = () => {
         });
       }
       
-      console.log('📊 최종 데이터 설정:');
-      console.log('- 현재 페이지 데이터 수:', sortedData.length);
-      console.log('- 실제 전체 교인 수:', actualTotalCount);
-      console.log('- 표시될 범위:', `${Math.min((currentPage - 1) * pageSize + 1, actualTotalCount)}-${Math.min(currentPage * pageSize, actualTotalCount)}`);
-      
-      // Check if member 265 has photo URL in the fetched data
-      const member265 = sortedData.find(m => m.id === 265);
-      if (member265) {
-        console.log('🔍 Member 265 in fetched data:');
-        console.log('- ID:', member265.id);
-        console.log('- Name:', member265.name);
-        console.log('- Photo URL:', member265.profile_photo_url);
-        console.log('- Has Photo:', !!member265.profile_photo_url);
-        console.log('- Photo URL type:', typeof member265.profile_photo_url);
-      } else {
-        console.log('❌ Member 265 not found in current page data');
-      }
-      
       setMembers(sortedData);
       setTotalCount(actualTotalCount);
     } catch (error) {
@@ -209,6 +218,12 @@ const MemberManagement: React.FC = () => {
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
     setAppliedSearchTerm(searchTerm);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setAppliedSearchTerm('');
+    setCurrentPage(1);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -629,8 +644,8 @@ const MemberManagement: React.FC = () => {
       {/* Search and Filter */}
       <Card className="border-muted">
         <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-3">
               <label className="block text-sm font-medium text-foreground mb-1">검색</label>
               <div className="flex gap-2">
                 <Input
@@ -648,6 +663,16 @@ const MemberManagement: React.FC = () => {
                   <Search className="w-4 h-4" />
                   검색
                 </Button>
+                {appliedSearchTerm && (
+                  <Button
+                    onClick={handleClearSearch}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    전체보기
+                  </Button>
+                )}
                 <Button
                   onClick={() => setShowAdvancedSearch(true)}
                   variant="outline"
