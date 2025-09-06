@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import axios from 'axios';
 import { 
   Search, 
   Plus, 
@@ -183,6 +184,19 @@ const MemberManagement: React.FC = () => {
       console.log('- 실제 전체 교인 수:', actualTotalCount);
       console.log('- 표시될 범위:', `${Math.min((currentPage - 1) * pageSize + 1, actualTotalCount)}-${Math.min(currentPage * pageSize, actualTotalCount)}`);
       
+      // Check if member 265 has photo URL in the fetched data
+      const member265 = sortedData.find(m => m.id === 265);
+      if (member265) {
+        console.log('🔍 Member 265 in fetched data:');
+        console.log('- ID:', member265.id);
+        console.log('- Name:', member265.name);
+        console.log('- Photo URL:', member265.profile_photo_url);
+        console.log('- Has Photo:', !!member265.profile_photo_url);
+        console.log('- Photo URL type:', typeof member265.profile_photo_url);
+      } else {
+        console.log('❌ Member 265 not found in current page data');
+      }
+      
       setMembers(sortedData);
       setTotalCount(actualTotalCount);
     } catch (error) {
@@ -244,18 +258,89 @@ const MemberManagement: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.post(`/members/${selectedMember.id}/upload-photo`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const token = localStorage.getItem('access_token');
+      console.log('🔍 Photo upload debug:', {
+        memberId: selectedMember.id,
+        hasToken: !!token,
+        tokenLength: token ? token.length : 0,
+        endpoint: `/members/${selectedMember.id}/upload-photo`,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        hasFile: !!file,
+        formDataEntries: Array.from(formData.entries()),
+        tokenFirst10: token ? token.substring(0, 10) + '...' : null
       });
 
+      // Test if token works with a simple API call first
+      try {
+        const testResponse = await axios.get(
+          `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        console.log('✅ Token works - member data retrieved:', testResponse.status);
+      } catch (testError) {
+        console.error('❌ Token test failed:', testError);
+        alert('토큰이 유효하지 않습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      // Try direct axios call without api instance
+      const response = await axios.post(
+        `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}/upload-photo`, 
+        formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log('✅ Photo upload response:', response.data);
+      console.log('🔄 Updating member photo URL:', response.data.profile_photo_url);
+
       // Update member in list
-      setMembers(members.map(m => 
+      const updatedMembers = members.map(m => 
         m.id === selectedMember.id 
           ? { ...m, profile_photo_url: response.data.profile_photo_url }
           : m
-      ));
+      );
+      
+      console.log('📝 Updated members array:', updatedMembers.find(m => m.id === selectedMember.id));
+      setMembers(updatedMembers);
+      
+      // Also update selectedMember for immediate UI feedback
+      setSelectedMember(prev => prev ? { ...prev, profile_photo_url: response.data.profile_photo_url } : prev);
+      
+      // Verify if the photo was actually saved in DB by re-fetching the member
+      setTimeout(async () => {
+        try {
+          const verifyResponse = await axios.get(
+            `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            }
+          );
+          console.log('🔍 DB verification - member data after upload:', verifyResponse.data);
+          console.log('🔍 DB verification - profile_photo_url:', verifyResponse.data.profile_photo_url);
+          
+          if (!verifyResponse.data.profile_photo_url) {
+            console.error('❌ Photo URL not saved to database!');
+            alert('경고: 사진 업로드는 성공했지만 데이터베이스 저장에 실패했을 수 있습니다.');
+          } else {
+            console.log('✅ Photo URL successfully saved to database');
+          }
+        } catch (error) {
+          console.error('DB verification failed:', error);
+        }
+      }, 1000); // 1초 후 검증
       
       setShowPhotoModal(false);
       alert('프로필 사진이 업로드되었습니다.');
@@ -334,7 +419,15 @@ const MemberManagement: React.FC = () => {
     if (!selectedMember) return;
     
     try {
-      const response = await api.put(`/members/${selectedMember.id}`, editedMember);
+      // Preserve profile_photo_url from selectedMember to prevent overwriting
+      const memberDataToSave = {
+        ...editedMember,
+        profile_photo_url: selectedMember.profile_photo_url
+      };
+      
+      console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
+      
+      const response = await api.put(`/members/${selectedMember.id}`, memberDataToSave);
       
       // Update member in list
       setMembers(members.map(m => 
@@ -1120,6 +1213,30 @@ const MemberManagement: React.FC = () => {
                   ) : (
                     <div className="h-32 w-32 rounded-full bg-muted flex items-center justify-center mx-auto border-4 border-border">
                       <User className="w-16 h-16 text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  {/* Photo upload button in edit mode */}
+                  {isEditMode && (
+                    <div className="absolute -bottom-2 -right-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && selectedMember) {
+                            handlePhotoUpload(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="profile-photo-upload"
+                      />
+                      <label
+                        htmlFor="profile-photo-upload"
+                        className="bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-lg hover:bg-primary/90 flex items-center justify-center"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </label>
                     </div>
                   )}
                 </div>

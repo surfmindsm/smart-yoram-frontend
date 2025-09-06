@@ -14,7 +14,8 @@ import {
   UserPlus, 
   MapPin, 
   Save,
-  X
+  X,
+  Camera
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -30,6 +31,8 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   onMemberAdded 
 }) => {
   const [loading, setLoading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     // 기본 정보
@@ -124,6 +127,20 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     return formData.name && formData.email && formData.phone;
   };
 
+  const handlePhotoUpload = (file: File) => {
+    setProfilePhoto(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfilePhotoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setProfilePhoto(null);
+    setProfilePhotoPreview(null);
+  };
+
   const handleClose = () => {
     // Reset form when closing
     setFormData({
@@ -142,6 +159,9 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
       custom_field_9: '', custom_field_10: '', custom_field_11: '', custom_field_12: '',
       special_notes: ''
     });
+    // Reset photo states
+    setProfilePhoto(null);
+    setProfilePhotoPreview(null);
     onOpenChange(false);
   };
 
@@ -159,25 +179,25 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         name_eng: formData.name_eng, 
         email: formData.email,
         gender: formData.gender, 
-        birthdate: formData.birthdate, 
+        birthdate: formData.birthdate || null, 
         phone: formData.phone,
         address: formData.address, 
         position: formData.position, 
         district: formData.district,
         department_code: formData.department_code,
         position_code: formData.position_code,
-        appointed_on: formData.appointed_on,
+        appointed_on: formData.appointed_on || null,
         ordination_church: formData.ordination_church,
         workplace: formData.workplace,
         workplace_phone: formData.workplace_phone,
         marital_status: formData.marital_status,
         spouse_name: formData.spouse_name,
-        married_on: formData.married_on,
+        married_on: formData.married_on || null,
         
         // 새로 추가된 25개 필드들
         // 교회 정보 확장
         member_type: formData.member_type,
-        confirmation_date: formData.confirmation_date,
+        confirmation_date: formData.confirmation_date || null,
         sub_district: formData.sub_district,
         age_group: formData.age_group,
         
@@ -191,7 +211,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         inviter3_member_id: formData.inviter3_member_id ? parseInt(formData.inviter3_member_id) : null,
         
         // 연락 정보
-        last_contact_date: formData.last_contact_date,
+        last_contact_date: formData.last_contact_date || null,
         
         // 신앙 정보
         spiritual_grade: formData.spiritual_grade,
@@ -202,7 +222,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         job_position: formData.job_position,
         
         // 사역 정보 확장
-        ministry_start_date: formData.ministry_start_date,
+        ministry_start_date: formData.ministry_start_date || null,
         neighboring_church: formData.neighboring_church,
         position_decision: formData.position_decision,
         daily_activity: formData.daily_activity,
@@ -225,7 +245,24 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         special_notes: formData.special_notes
       };
       
-      await api.post('/members/', memberData);
+      const response = await api.post('/members/', memberData);
+      const newMemberId = response.data.id;
+      
+      // Upload profile photo if selected
+      if (profilePhoto && newMemberId) {
+        try {
+          const formData = new FormData();
+          formData.append('file', profilePhoto);
+          await api.post(`/members/${newMemberId}/upload-photo`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+        } catch (photoError) {
+          console.warn('사진 업로드 실패:', photoError);
+          // 사진 업로드 실패는 경고만 표시하고 교인 등록은 성공으로 처리
+        }
+      }
       
       alert('교인 정보가 성공적으로 등록되었습니다.');
       handleClose();
@@ -271,6 +308,60 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-8">
+          {/* 프로필 사진 */}
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-foreground mb-4">프로필 사진</h3>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                {profilePhotoPreview ? (
+                  <img
+                    src={profilePhotoPreview}
+                    alt="프로필 미리보기"
+                    className="h-32 w-32 rounded-full object-cover border-4 border-border"
+                  />
+                ) : (
+                  <div className="h-32 w-32 rounded-full bg-muted flex items-center justify-center border-4 border-border">
+                    <UserPlus className="w-16 h-16 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handlePhotoUpload(file);
+                    }
+                  }}
+                  className="hidden"
+                  id="add-member-photo-upload"
+                />
+                <label
+                  htmlFor="add-member-photo-upload"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
+                >
+                  <Camera className="w-4 h-4" />
+                  사진 선택
+                </label>
+                
+                {profilePhotoPreview && (
+                  <Button
+                    onClick={handleRemovePhoto}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    제거
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* 기본 정보 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">

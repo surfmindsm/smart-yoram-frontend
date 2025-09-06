@@ -38,8 +38,8 @@ api.interceptors.request.use((config) => {
     console.warn('⚠️ 토큰이 없습니다! localStorage에 access_token이 저장되어 있는지 확인하세요.');
   }
   
-  // Content-Type 헤더 확실히 설정
-  if (!config.headers['Content-Type']) {
+  // Content-Type 헤더 설정 (multipart/form-data는 제외)
+  if (!config.headers['Content-Type'] && !(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
   }
   return config;
@@ -53,7 +53,7 @@ api.interceptors.response.use(
       console.error('🚨 422 Validation Error Details:');
       console.error('URL:', error.config?.url);
       console.error('Method:', error.config?.method);
-      console.error('Request Data:', JSON.parse(error.config?.data || '{}'));
+      console.error('Request Data:', error.config?.data instanceof FormData ? '[FormData object]' : JSON.parse(error.config?.data || '{}'));
       console.error('Response Error:', error.response?.data);
       
       // detail 배열 내용 상세 출력
