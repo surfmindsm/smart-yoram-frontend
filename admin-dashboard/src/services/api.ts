@@ -83,6 +83,63 @@ api.interceptors.response.use(
   }
 );
 
+// 활동 로그 서비스 추가
+export const activityLogService = {
+  // 활동 로그 일괄 전송
+  sendLogs: async (logs: any[]) => {
+    try {
+      const response = await api.post(getApiUrl('/auth/activity-logs'), { logs });
+      return response.data;
+    } catch (error) {
+      console.error('활동 로그 전송 실패:', error);
+      throw error;
+    }
+  },
+
+  // 활동 로그 조회 (관리자용)
+  getActivityLogs: async (params?: {
+    start_date?: string;
+    end_date?: string; 
+    user_id?: string;
+    action?: string;
+    resource?: string;
+    limit?: number;
+  }) => {
+    try {
+      const response = await api.get(getApiUrl('/auth/activity-logs'), { params });
+      return response.data;
+    } catch (error) {
+      console.error('활동 로그 조회 실패:', error);
+      return [];
+    }
+  }
+};
+
+// 로그인 기록 서비스 추가
+export const loginHistoryService = {
+  // 최근 로그인 기록 조회 (간단 버전 - 헤더용)
+  getRecentLogin: async () => {
+    try {
+      const response = await api.get(getApiUrl('/auth/login-history/recent'));
+      return response.data;
+    } catch (error) {
+      console.error('최근 로그인 기록 조회 실패:', error);
+      return null;
+    }
+  },
+
+  // 전체 개인정보 접근 기록 조회 (상세 모달용)
+  getLoginHistory: async (limit = 50) => {
+    try {
+      const response = await api.get(getApiUrl(`/auth/login-history?limit=${limit}`));
+      return response.data;
+    } catch (error) {
+      console.error('개인정보 접근 기록 조회 실패:', error);
+      return [];
+    }
+  }
+};
+
 export const authService = {
   login: async (username: string, password: string) => {
     // 정확한 관리자 로그인 엔드포인트 사용

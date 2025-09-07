@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { activityLogger } from '../services/activityLogger';
 import axios from 'axios';
 import { 
   Search, 
@@ -138,14 +139,10 @@ const MemberManagement: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('🔥🔥🔥 useEffect 트리거됨!', {
-      appliedSearchTerm,
-      statusFilter,
-      currentPage,
-      pageSize,
-      sortField,
-      sortOrder
-    });
+    // 페이지 접근 로그 (최초 마운트 시에만)
+    if (currentPage === 1 && !appliedSearchTerm) {
+      activityLogger.logPageAccess('/member-management', '교인 관리');
+    }
     fetchMembers();
   }, [appliedSearchTerm, statusFilter, currentPage, pageSize, sortField, sortOrder]);
 
@@ -208,6 +205,11 @@ const MemberManagement: React.FC = () => {
       
       setMembers(sortedData);
       setTotalCount(actualTotalCount);
+      
+      // 검색 로그 기록 (실제 결과와 함께)
+      if (appliedSearchTerm) {
+        activityLogger.logMemberSearch(appliedSearchTerm, actualTotalCount);
+      }
     } catch (error) {
       console.error('교인 목록 조회 실패:', error);
     } finally {
@@ -218,6 +220,12 @@ const MemberManagement: React.FC = () => {
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
     setAppliedSearchTerm(searchTerm);
+    
+    // 검색 로그 기록 (실제 검색 수행 후에 결과 개수와 함께 기록)
+    if (searchTerm.trim()) {
+      // 검색 로그는 fetchMembers에서 실제 결과 개수를 알 수 있을 때 기록
+      console.log('🔍 Search initiated for:', searchTerm);
+    }
   };
 
   const handleClearSearch = () => {
@@ -319,6 +327,17 @@ const MemberManagement: React.FC = () => {
       console.log('✅ Photo upload response:', response.data);
       console.log('🔄 Updating member photo URL:', response.data.profile_photo_url);
 
+      // 사진 업로드 로그 기록
+      activityLogger.log({
+        action: 'update',
+        resource: 'member',
+        target_id: selectedMember.id,
+        target_name: selectedMember.name,
+        page_path: window.location.pathname,
+        page_name: '교인 프로필 사진 업로드',
+        details: { photo_uploaded: true, file_name: file.name, file_size: file.size }
+      });
+
       // Update member in list
       const updatedMembers = members.map(m => 
         m.id === selectedMember.id 
@@ -413,6 +432,10 @@ const MemberManagement: React.FC = () => {
   };
 
   const handleMemberClick = (member: Member) => {
+    // 교인 상세 조회 로그 기록
+    const viewedFields = ['name', 'email', 'phone', 'gender', 'birthdate', 'address', 'position', 'district', 'member_status'];
+    activityLogger.logMemberView(member.id, member.name, viewedFields);
+    
     setSelectedMember(member);
     setEditedMember(member);
     setIsEditMode(false);
@@ -444,6 +467,14 @@ const MemberManagement: React.FC = () => {
       
       const response = await api.put(`/members/${selectedMember.id}`, memberDataToSave);
       
+      // 수정된 필드들 확인
+      const updatedFields = Object.keys(editedMember).filter(key => 
+        editedMember[key as keyof Member] !== selectedMember[key as keyof Member]
+      );
+      
+      // 교인 정보 수정 로그 기록
+      activityLogger.logMemberUpdate(selectedMember.id, selectedMember.name, updatedFields);
+      
       // Update member in list
       setMembers(members.map(m => 
         m.id === selectedMember.id 
@@ -466,6 +497,9 @@ const MemberManagement: React.FC = () => {
 
     try {
       await api.delete(`/members/${selectedMember.id}`);
+      
+      // 교인 삭제 로그 기록
+      activityLogger.logMemberDelete(selectedMember.id, selectedMember.name);
       
       // Remove member from list
       setMembers(members.filter(m => m.id !== selectedMember.id));

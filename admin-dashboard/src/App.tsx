@@ -30,6 +30,7 @@ const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestMan
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
+const SecurityLogs = lazy(() => import('./components/SecurityLogs'));
 
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
@@ -182,6 +183,11 @@ function App() {
           <Route path="gpt-settings" element={
             <Suspense fallback={<LoadingSpinner />}>
               <GPTSettings />
+            </Suspense>
+          } />
+          <Route path="security-logs" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SecurityLogs />
             </Suspense>
           } />
           <Route path="ai-tools" element={
