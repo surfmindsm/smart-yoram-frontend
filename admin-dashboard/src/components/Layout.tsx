@@ -188,25 +188,15 @@ const Layout: React.FC = () => {
           <div className="flex items-center space-x-4">
             {/* 최근 접속 기록 버튼 */}
             {recentLogin && (
-              <div className="relative group">
-                <Button
-                  variant="ghost" 
-                  size="sm"
-                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2"
-                  onClick={handleOpenLoginHistory}
-                >
-                  <Clock className="w-4 h-4" />
-                  <div className="text-sm">최근 접속 기록</div>
-                </Button>
-                
-                {/* 호버 툴팁 */}
-                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs rounded py-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                  <div className="font-medium">{new Date(recentLogin.last_login).toLocaleString('ko-KR')}</div>
-                  <div className="text-slate-300">IP: {recentLogin.ip_address}</div>
-                  <div className="text-slate-300">위치: {recentLogin.location}</div>
-                  <div className="text-slate-300 mt-1">클릭하여 전체 기록 보기</div>
-                </div>
-              </div>
+              <Button
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2"
+                onClick={handleOpenLoginHistory}
+              >
+                <Clock className="w-4 h-4" />
+                <div className="text-sm">최근 접속 기록</div>
+              </Button>
             )}
             
             {/* 사용자 정보 */}
@@ -342,17 +332,10 @@ const Layout: React.FC = () => {
           <div className="space-y-4">
             {loginHistory.length > 0 ? (
               <>
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4">
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold text-blue-600">{loginHistory.length}</span>개의 개인정보 접근기록 내역이 검색되었습니다.
+                    <span className="font-semibold text-blue-600">{loginHistory.length}</span>개의 로그인 기록이 검색되었습니다.
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-green-600 border-green-600 hover:bg-green-50"
-                  >
-                    📊 엑셀다운
-                  </Button>
                 </div>
                 
                 {/* 테이블 형태로 변경 */}
