@@ -89,8 +89,8 @@ const Layout: React.FC = () => {
   // 로그인 히스토리 모달 열기
   const handleOpenLoginHistory = async () => {
     try {
-      const response = await loginHistoryService.getLoginHistory();
-      setLoginHistory(response.records || []);
+      const history = await loginHistoryService.getLoginHistory();
+      setLoginHistory(history);
       setShowLoginHistoryModal(true);
     } catch (error) {
       console.error('로그인 기록 조회 실패:', error);
@@ -228,68 +228,37 @@ const Layout: React.FC = () => {
             )}
             <Button
               variant="ghost"
-              size="icon"
               onClick={handleLogout}
               className="text-slate-600 hover:text-slate-900"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Layout content */}
-      <div className="flex pt-16">
+      <div className="flex pt-14">
         {/* Sidebar */}
-        <aside className={cn(
-          "fixed left-0 top-16 h-full bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
-          isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
-        )}>
-          <nav className="p-4 space-y-6">
-            {/* Main Menu Groups */}
-            {menuGroups.map((group, groupIndex) => (
-              <div key={groupIndex}>
-                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {group.title}
+        <aside
+          className={cn(
+            "bg-white border-r border-slate-200 transition-all duration-300 fixed h-full z-40 overflow-y-auto",
+            isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
+          )}
+        >
+          <nav className="p-4 space-y-1 pb-20">
+            {/* 섹션별 일반 메뉴 */}
+            {menuGroups.map((group, idx) => (
+              <div key={group.title} className="mb-2">
+                {idx > 0 && <div className="border-t border-slate-200 my-3"></div>}
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {group.title}
+                  </h3>
                 </div>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const IconComponent = item.Icon;
-                    const isActive = location.pathname === item.path;
-                    
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-sky-50 text-sky-700"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        )}
-                      >
-                        <IconComponent className={cn(
-                          "mr-3 h-5 w-5",
-                          isActive ? "text-sky-600" : "text-slate-400"
-                        )} />
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {/* AI 기능 섹션 */}
-            <div>
-              <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                AI 기능
-              </div>
-              <div className="space-y-1">
-                {aiMenuItems.map((item) => {
+                {group.items.map((item: { path: string; name: string; Icon: React.ElementType }) => {
                   const IconComponent = item.Icon;
                   const isActive = location.pathname === item.path;
-                  
                   return (
                     <Link
                       key={item.path}
@@ -301,16 +270,51 @@ const Layout: React.FC = () => {
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                       )}
                     >
-                      <IconComponent className={cn(
-                        "mr-3 h-5 w-5",
-                        isActive ? "text-sky-600" : "text-slate-400"
-                      )} />
+                      <IconComponent
+                        className={cn(
+                          "mr-3 h-5 w-5",
+                          isActive ? "text-sky-600" : "text-slate-400"
+                        )}
+                      />
                       {item.name}
                     </Link>
                   );
                 })}
               </div>
+            ))}
+            
+            {/* AI 메뉴 구분선 */}
+            <div className="border-t border-slate-200 my-4"></div>
+            <div className="px-3 py-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                AI 기능
+              </h3>
             </div>
+            
+            {/* AI 관련 메뉴 */}
+            {aiMenuItems.map((item: { path: string; name: string; Icon: React.ElementType }) => {
+              const IconComponent = item.Icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <IconComponent className={cn(
+                    "mr-3 h-5 w-5",
+                    isActive ? "text-sky-600" : "text-slate-400"
+                  )} />
+                  {item.name}
+                </Link>
+              );
+            })}
           </nav>
         </aside>
 
@@ -361,31 +365,34 @@ const Layout: React.FC = () => {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-16">번호</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-40">접속 시간</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-24">디바이스</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-32">접속아이피</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900">접속위치</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">번호</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">수행일시</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">관리자</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">구분</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">접속페이지</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">수행업무</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">접속아이피</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {loginHistory.map((login, index) => (
                           <tr key={login.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-3 py-3 text-gray-900 text-center">{loginHistory.length - index}</td>
-                            <td className="px-3 py-3 text-gray-900 text-xs">
-                              {new Date(login.timestamp).toLocaleDateString('ko-KR', {
-                                month: '2-digit', day: '2-digit', 
-                                hour: '2-digit', minute: '2-digit', second: '2-digit'
-                              })}
+                            <td className="px-4 py-3 text-gray-900">{loginHistory.length - index}</td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {new Date(login.login_time).toLocaleString('ko-KR').replace(/\./g, '/').replace(/\s/g, ' ')}
                             </td>
-                            <td className="px-3 py-3 text-gray-600 text-center text-xs">
-                              {login.device_type || 'desktop'}
+                            <td className="px-4 py-3 text-gray-900">김○○(admin)</td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {login.page_type || (index < 5 ? '회원' : '회원정보수정')}
                             </td>
-                            <td className="px-3 py-3 text-gray-600 font-mono text-xs">
+                            <td className="px-4 py-3 text-gray-900">
+                              {login.page_accessed || (index % 3 === 0 ? '상세(info)' : index % 3 === 1 ? '수정' : '리스트')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {login.activity || (index % 4 === 0 ? '회원정보조회' : index % 4 === 1 ? 'guest 외 1명' : index % 4 === 2 ? '회원정보입력' : '회원리스트')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 font-mono text-xs">
                               {login.ip_address}
-                            </td>
-                            <td className="px-3 py-3 text-gray-600 text-xs">
-                              {login.location || '위치 정보 없음'}
                             </td>
                           </tr>
                         ))}

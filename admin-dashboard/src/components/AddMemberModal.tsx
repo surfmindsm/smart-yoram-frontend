@@ -18,6 +18,7 @@ import {
   Camera
 } from 'lucide-react';
 import { api } from '../services/api';
+import { activityLogger } from '../services/activityLogger';
 
 interface AddMemberModalProps {
   open: boolean;
@@ -248,6 +249,9 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
       const response = await api.post('/members/', memberData);
       const newMemberId = response.data.id;
       
+      // 교인 생성 로그 기록
+      activityLogger.logMemberCreate(memberData);
+      
       // Upload profile photo if selected
       if (profilePhoto && newMemberId) {
         try {
@@ -257,6 +261,17 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
             headers: {
               'Content-Type': 'multipart/form-data',
             },
+          });
+          
+          // 사진 업로드 로그 기록
+          activityLogger.log({
+            action: 'create',
+            resource: 'member',
+            target_id: newMemberId,
+            target_name: memberData.name,
+            page_path: '/member-management',
+            page_name: '교인 등록 - 프로필 사진 업로드',
+            details: { photo_uploaded: true, file_name: profilePhoto.name, file_size: profilePhoto.size }
           });
         } catch (photoError) {
           console.warn('사진 업로드 실패:', photoError);
