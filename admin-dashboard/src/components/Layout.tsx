@@ -29,11 +29,45 @@ import {
   Library,
   Shield,
   Monitor,
-  MapPin
+  MapPin,
+  Users2,
+  Share2,
+  Gift,
+  HandHeart,
+  Briefcase,
+  UserPlus,
+  Music,
+  Mic,
+  Calendar,
+  Sparkles,
+  Home,
+  ChevronDown,
+  ChevronRight,
+  UserCheck2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+
+interface MenuSubGroup {
+  title: string;
+  items: Array<{
+    path: string;
+    name: string;
+    Icon: React.ComponentType<any>;
+  }>;
+}
+
+interface MenuGroup {
+  title: string;
+  hasSubGroups?: boolean;
+  subGroups?: MenuSubGroup[];
+  items?: Array<{
+    path: string;
+    name: string;
+    Icon: React.ComponentType<any>;
+  }>;
+}
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,8 +75,26 @@ const Layout: React.FC = () => {
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
+    '커뮤니티': true // 커뮤니티 섹션은 기본으로 열어두기
+  });
+  const [expandedSubGroups, setExpandedSubGroups] = useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
   const location = useLocation();
+
+  const toggleGroup = (groupTitle: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupTitle]: !prev[groupTitle]
+    }));
+  };
+
+  const toggleSubGroup = (subGroupKey: string) => {
+    setExpandedSubGroups(prev => ({
+      ...prev,
+      [subGroupKey]: !prev[subGroupKey]
+    }));
+  };
 
   useEffect(() => {
     console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
@@ -101,7 +153,7 @@ const Layout: React.FC = () => {
   const isSystemAdmin = userInfo?.church_id === 0;
 
   // Sidebar menu grouped by sections
-  const menuGroups = [
+  const menuGroups: MenuGroup[] = [
     {
       title: '분석',
       items: [
@@ -148,11 +200,50 @@ const Layout: React.FC = () => {
       ],
     },
     {
+      title: '커뮤니티',
+      hasSubGroups: true,
+      subGroups: [
+        {
+          title: '물품 나눔',
+          items: [
+            { path: '/community/free-sharing', name: '무료 나눔', Icon: Gift },
+            { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
+            { path: '/community/sharing-offer', name: '나눔 제공', Icon: Share2 },
+          ]
+        },
+        {
+          title: '인력 매칭',
+          items: [
+            { path: '/community/job-posting', name: '사역자 구인', Icon: Briefcase },
+            { path: '/community/job-seeking', name: '사역자 구직', Icon: UserPlus },
+            { path: '/community/music-team-recruit', name: '연주팀 구인', Icon: Music },
+            { path: '/community/music-team-seeking', name: '연주팀 구직', Icon: Mic },
+          ]
+        },
+        {
+          title: '소식 · 기도',
+          items: [
+            { path: '/community/church-events', name: '교회 행사/소식', Icon: Calendar },
+            { path: '/community/prayer-requests', name: '기도 요청', Icon: Sparkles },
+          ]
+        }
+      ],
+      items: [
+        { path: '/community', name: '커뮤니티 홈', Icon: Home },
+      ],
+    },
+    {
       title: '보안 관리',
       items: [
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
       ],
     },
+    ...(isSystemAdmin ? [{
+      title: '시스템 관리',
+      items: [
+        { path: '/community-applications', name: '회원 신청 관리', Icon: UserCheck2 },
+      ],
+    }] : []),
     {
       title: '기타',
       items: [
@@ -239,11 +330,28 @@ const Layout: React.FC = () => {
             {/* Main Menu Groups */}
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
-                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {group.title}
-                </div>
+                {/* Group Header */}
+                {group.hasSubGroups ? (
+                  <button
+                    onClick={() => toggleGroup(group.title)}
+                    className="w-full flex items-center justify-between mb-2 px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors"
+                  >
+                    <span>{group.title}</span>
+                    {expandedGroups[group.title] ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {group.title}
+                  </div>
+                )}
+
+                {/* Regular Items */}
                 <div className="space-y-1">
-                  {group.items.map((item) => {
+                  {group.items && group.items.map((item) => {
                     const IconComponent = item.Icon;
                     const isActive = location.pathname === item.path;
                     
@@ -267,6 +375,58 @@ const Layout: React.FC = () => {
                     );
                   })}
                 </div>
+
+                {/* Sub Groups */}
+                {group.hasSubGroups && expandedGroups[group.title] && group.subGroups && (
+                  <div className="ml-4 space-y-4 mt-2">
+                    {group.subGroups.map((subGroup, subIndex) => {
+                      const subGroupKey = `${group.title}-${subGroup.title}`;
+                      return (
+                        <div key={subIndex}>
+                          <button
+                            onClick={() => toggleSubGroup(subGroupKey)}
+                            className="w-full flex items-center justify-between mb-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                          >
+                            <span>{subGroup.title}</span>
+                            {expandedSubGroups[subGroupKey] ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3" />
+                            )}
+                          </button>
+                          
+                          {expandedSubGroups[subGroupKey] && (
+                            <div className="space-y-1">
+                              {subGroup.items.map((item) => {
+                                const IconComponent = item.Icon;
+                                const isActive = location.pathname === item.path;
+                                
+                                return (
+                                  <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    className={cn(
+                                      "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
+                                      isActive
+                                        ? "bg-sky-50 text-sky-700"
+                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                                    )}
+                                  >
+                                    <IconComponent className={cn(
+                                      "mr-2 h-4 w-4",
+                                      isActive ? "text-sky-600" : "text-slate-400"
+                                    )} />
+                                    {item.name}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
 

@@ -32,12 +32,30 @@ const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
 const SecurityLogs = lazy(() => import('./components/SecurityLogs'));
 
+// Community Components
+const CommunityHome = lazy(() => import('./components/Community/CommunityHome'));
+const FreeSharing = lazy(() => import('./components/Community/FreeSharing'));
+const ItemRequest = lazy(() => import('./components/Community/ItemRequest'));
+const SharingOffer = lazy(() => import('./components/Community/SharingOffer'));
+const JobPosting = lazy(() => import('./components/Community/JobPosting'));
+const JobSeeking = lazy(() => import('./components/Community/JobSeeking'));
+const MusicTeamRecruit = lazy(() => import('./components/Community/MusicTeamRecruit'));
+const MusicTeamSeeking = lazy(() => import('./components/Community/MusicTeamSeeking'));
+const ChurchEvents = lazy(() => import('./components/Community/ChurchEvents'));
+const PrayerRequests = lazy(() => import('./components/Community/PrayerRequests'));
+
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
 const SermonWriter = lazy(() => import('./components/ai-tools/SermonWriter'));
 const PrayerGenerator = lazy(() => import('./components/ai-tools/PrayerGenerator'));
 const AnnouncementWriter = lazy(() => import('./components/ai-tools/AnnouncementWriter'));
 const BulletinContent = lazy(() => import('./components/ai-tools/BulletinContent'));
+
+// Community Signup
+const CommunitySignup = lazy(() => import('./components/CommunitySignup'));
+
+// Community Application Management  
+const CommunityApplicationManagement = lazy(() => import('./components/CommunityApplicationManagement'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -51,6 +69,11 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/community-signup" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <CommunitySignup />
+          </Suspense>
+        } />
         <Route
           path="/"
           element={
@@ -188,6 +211,63 @@ function App() {
           <Route path="security-logs" element={
             <Suspense fallback={<LoadingSpinner />}>
               <SecurityLogs />
+            </Suspense>
+          } />
+          
+          {/* Community Routes */}
+          <Route path="community" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CommunityHome />
+            </Suspense>
+          } />
+          <Route path="community/free-sharing" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <FreeSharing />
+            </Suspense>
+          } />
+          <Route path="community/item-request" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ItemRequest />
+            </Suspense>
+          } />
+          <Route path="community/sharing-offer" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SharingOffer />
+            </Suspense>
+          } />
+          <Route path="community/job-posting" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <JobPosting />
+            </Suspense>
+          } />
+          <Route path="community/job-seeking" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <JobSeeking />
+            </Suspense>
+          } />
+          <Route path="community/music-team-recruit" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MusicTeamRecruit />
+            </Suspense>
+          } />
+          <Route path="community/music-team-seeking" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MusicTeamSeeking />
+            </Suspense>
+          } />
+          <Route path="community/church-events" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchEvents />
+            </Suspense>
+          } />
+          <Route path="community/prayer-requests" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PrayerRequests />
+            </Suspense>
+          } />
+          <Route path="community-applications" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CommunityApplicationManagement />
             </Suspense>
           } />
           <Route path="ai-tools" element={

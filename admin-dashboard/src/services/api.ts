@@ -169,6 +169,10 @@ export const authService = {
     localStorage.removeItem('user');
   },
   
+  getToken: () => {
+    return localStorage.getItem('access_token');
+  },
+  
   getCurrentUser: async () => {
     const response = await api.get(getApiUrl('/users/me'));
     return response.data;
