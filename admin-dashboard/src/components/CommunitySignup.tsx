@@ -109,6 +109,11 @@ const CommunitySignup: React.FC = () => {
         email: formData.email,
         phone: formData.phone,
         description: formData.description,
+        // 기존 폼에는 없는 필수 필드들 - 기본값 설정
+        password: 'temporary_password_123',
+        agree_terms: true,
+        agree_privacy: true,
+        agree_marketing: false
       };
 
       // 선택적 필드 추가

@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
 import { 
@@ -65,8 +65,17 @@ const CommunityApplicationManagement: React.FC = () => {
 
       const response: ApplicationsResponse = await communityApplicationService.getApplications(params);
       
-      setApplications(response.applications);
-      setFilteredApplications(response.applications);
+      // 백엔드에서 오는 데이터 정제
+      const processedApplications = response.applications.map(app => ({
+        ...app,
+        // attachments가 문자열로 오는 경우 JSON 파싱
+        attachments: typeof app.attachments === 'string' 
+          ? JSON.parse(app.attachments || '[]') 
+          : (app.attachments || [])
+      }));
+      
+      setApplications(processedApplications);
+      setFilteredApplications(processedApplications);
       setStatistics(response.statistics);
     } catch (err: any) {
       console.error('신청서 목록 조회 실패:', err);
@@ -83,6 +92,12 @@ const CommunityApplicationManagement: React.FC = () => {
   }, [statusFilter, typeFilter, searchTerm]);
 
   useEffect(() => {
+    // applications이 undefined이거나 배열이 아닌 경우 안전하게 처리
+    if (!applications || !Array.isArray(applications)) {
+      setFilteredApplications([]);
+      return;
+    }
+
     let filtered = applications.filter(app => {
       const matchesSearch = 
         app.organization_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -260,7 +275,7 @@ const CommunityApplicationManagement: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">검토중</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {applications.filter(app => app.status === 'pending').length}
+                  {(applications || []).filter(app => app.status === 'pending').length}
                 </p>
               </div>
             </div>
@@ -276,7 +291,7 @@ const CommunityApplicationManagement: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">승인됨</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {applications.filter(app => app.status === 'approved').length}
+                  {(applications || []).filter(app => app.status === 'approved').length}
                 </p>
               </div>
             </div>
@@ -292,7 +307,7 @@ const CommunityApplicationManagement: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">반려됨</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {applications.filter(app => app.status === 'rejected').length}
+                  {(applications || []).filter(app => app.status === 'rejected').length}
                 </p>
               </div>
             </div>
@@ -307,7 +322,7 @@ const CommunityApplicationManagement: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">전체</p>
-                <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(applications || []).length}</p>
               </div>
             </div>
           </CardContent>
@@ -327,12 +342,12 @@ const CommunityApplicationManagement: React.FC = () => {
         <CardHeader>
           <CardTitle>신청 목록</CardTitle>
           <CardDescription>
-            {filteredApplications.length}개의 신청서가 있습니다
+            {(filteredApplications || []).length}개의 신청서가 있습니다
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredApplications.map((application) => (
+            {(filteredApplications || []).map((application) => (
               <div key={application.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
@@ -370,10 +385,10 @@ const CommunityApplicationManagement: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-gray-500">
-                    {application.attachments.length > 0 && (
+                    {(application.attachments || []).length > 0 && (
                       <span className="flex items-center">
                         <FileText className="w-3 h-3 mr-1" />
-                        첨부파일 {application.attachments.length}개
+                        첨부파일 {(application.attachments || []).length}개
                       </span>
                     )}
                   </div>
@@ -426,14 +441,14 @@ const CommunityApplicationManagement: React.FC = () => {
             ))}
           </div>
 
-          {loading && filteredApplications.length === 0 && (
+          {loading && (filteredApplications || []).length === 0 && (
             <div className="text-center py-12">
               <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">데이터를 불러오는 중...</h3>
             </div>
           )}
 
-          {!loading && filteredApplications.length === 0 && (
+          {!loading && (filteredApplications || []).length === 0 && (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">검색 결과가 없습니다</h3>
@@ -451,6 +466,9 @@ const CommunityApplicationManagement: React.FC = () => {
               <Eye className="w-5 h-5" />
               신청서 상세보기
             </DialogTitle>
+            <DialogDescription>
+              커뮤니티 회원 신청서의 상세 정보를 확인하고 승인 여부를 결정할 수 있습니다.
+            </DialogDescription>
           </DialogHeader>
           
           {selectedApplication && (
@@ -525,11 +543,11 @@ const CommunityApplicationManagement: React.FC = () => {
               </div>
 
               {/* 첨부파일 */}
-              {selectedApplication.attachments.length > 0 && (
-                <div>
-                  <Label>첨부파일</Label>
-                  <div className="mt-1 space-y-2">
-                    {selectedApplication.attachments.map((file, index) => (
+              <div>
+                <Label>첨부파일</Label>
+                <div className="mt-1 space-y-2">
+                  {(selectedApplication.attachments || []).length > 0 ? (
+                    (selectedApplication.attachments || []).map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                         <div className="flex items-center">
                           <FileText className="w-4 h-4 mr-2 text-gray-500" />
@@ -539,15 +557,26 @@ const CommunityApplicationManagement: React.FC = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => communityApplicationService.downloadAttachment(selectedApplication.id, file.filename)}
+                          onClick={async () => {
+                            try {
+                              await communityApplicationService.downloadAttachment(selectedApplication.id, file.filename);
+                            } catch (error) {
+                              alert('파일 다운로드에 실패했습니다. 백엔드 API가 구현되지 않았거나 파일이 존재하지 않습니다.');
+                              console.error('다운로드 에러:', error);
+                            }
+                          }}
                         >
                           <Download className="w-4 h-4" />
                         </Button>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-500">
+                      첨부된 파일이 없습니다.
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* 검토 정보 */}
               {(selectedApplication.reviewed_at || selectedApplication.rejection_reason) && (

@@ -5,12 +5,18 @@ const BASE_URL = 'https://api.surfmind-team.com/api/v1';
 
 export interface CommunityApplicationRequest {
   // 필수 필드
-  applicant_type: 'company' | 'individual' | 'musician' | 'minister' | 'organization' | 'other';
+  applicant_type: 'company' | 'individual' | 'musician' | 'minister' | 'organization' | 'church_admin' | 'other';
   organization_name: string;
   contact_person: string;
   email: string;
   phone: string;
   description: string;
+  
+  // 백엔드가 요구하는 새로운 필수 필드들
+  password: string;
+  agree_terms: boolean;
+  agree_privacy: boolean;
+  agree_marketing: boolean;
   
   // 선택 필드
   business_number?: string;
@@ -88,6 +94,12 @@ class CommunityApplicationService {
     formData.append('phone', data.phone);
     formData.append('description', data.description);
     
+    // 새로운 필수 필드들 추가
+    formData.append('password', data.password);
+    formData.append('agree_terms', data.agree_terms.toString());
+    formData.append('agree_privacy', data.agree_privacy.toString());
+    formData.append('agree_marketing', data.agree_marketing.toString());
+    
     // 선택 필드 추가 (값이 있을 때만)
     if (data.business_number) {
       formData.append('business_number', data.business_number);
@@ -117,7 +129,24 @@ class CommunityApplicationService {
       
       const result = await response.json();
       
+      console.log('🔍 백엔드 응답:', {
+        status: response.status,
+        ok: response.ok,
+        result: result
+      });
+      
       if (!response.ok) {
+        // 413 에러인 경우 (파일 크기 초과)
+        if (response.status === 413) {
+          console.error('❌ 413 Request Entity Too Large:', result);
+          throw new Error('첨부파일 크기가 너무 큽니다. 파일 크기를 줄이거나 개수를 줄여주세요.');
+        }
+        // 422 에러인 경우 상세 정보 포함
+        if (response.status === 422) {
+          console.error('❌ 422 Validation Error:', result);
+          const errorMessage = result.detail || result.message || '입력 데이터 검증에 실패했습니다.';
+          throw new Error(`유효성 검사 실패: ${JSON.stringify(errorMessage)}`);
+        }
         throw new Error(result.message || '신청서 제출에 실패했습니다.');
       }
       
@@ -128,6 +157,17 @@ class CommunityApplicationService {
       }
     } catch (error) {
       console.error('신청서 제출 실패:', error);
+      
+      // Network errors (CORS, connection failures, etc.)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('서버 연결에 실패했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.');
+      }
+      
+      // CORS errors
+      if (error instanceof TypeError && error.message.includes('CORS')) {
+        throw new Error('서버 접근 권한 오류입니다. 관리자에게 문의해주세요.');
+      }
+      
       throw error;
     }
   }
@@ -165,7 +205,7 @@ class CommunityApplicationService {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/admin/community/applications?${query}`, {
+      const response = await fetch(`${BASE_URL}/community/admin/applications?${query}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -199,7 +239,7 @@ class CommunityApplicationService {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/admin/community/applications/${applicationId}`, {
+      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -240,7 +280,7 @@ class CommunityApplicationService {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/admin/community/applications/${applicationId}/approve`, {
+      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -253,8 +293,16 @@ class CommunityApplicationService {
       
       const result = await response.json();
       
+      console.log('🔍 승인 API 응답:', {
+        status: response.status,
+        ok: response.ok,
+        result: result
+      });
+      
       if (!response.ok) {
-        throw new Error(result.message || '승인 처리에 실패했습니다.');
+        console.error('❌ 승인 API 에러 상세:', result);
+        const errorMessage = result.detail || result.message || '승인 처리에 실패했습니다.';
+        throw new Error(`승인 실패 (${response.status}): ${JSON.stringify(errorMessage)}`);
       }
       
       if (result.success) {
@@ -282,7 +330,7 @@ class CommunityApplicationService {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/admin/community/applications/${applicationId}/reject`, {
+      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}/reject`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -322,7 +370,7 @@ class CommunityApplicationService {
       }
 
       const response = await fetch(
-        `${BASE_URL}/admin/community/applications/${applicationId}/attachments/${filename}`,
+        `${BASE_URL}/community/admin/applications/${applicationId}/attachments/${filename}`,
         {
           method: 'GET',
           headers: {
@@ -362,12 +410,12 @@ class CommunityApplicationService {
 
     // 허용된 확장자
     const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFileSize = 5 * 1024 * 1024; // 5MB per file to prevent 413 errors
 
     for (const file of files) {
       // 파일 크기 체크
       if (file.size > maxFileSize) {
-        return { isValid: false, error: `파일 크기는 10MB를 초과할 수 없습니다. (${file.name})` };
+        return { isValid: false, error: `파일 크기는 5MB를 초과할 수 없습니다. (${file.name})` };
       }
 
       // 확장자 체크

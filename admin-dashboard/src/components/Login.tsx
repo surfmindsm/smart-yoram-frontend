@@ -52,13 +52,13 @@ const Login: React.FC = () => {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">사용자명</Label>
+              <Label htmlFor="username">이메일</Label>
               <Input
                 id="username"
                 name="username"
-                type="text"
+                type="email"
                 required
-                placeholder="사용자명"
+                placeholder="이메일을 입력하세요"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />

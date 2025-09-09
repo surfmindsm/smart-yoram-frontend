@@ -51,8 +51,12 @@ const PrayerGenerator = lazy(() => import('./components/ai-tools/PrayerGenerator
 const AnnouncementWriter = lazy(() => import('./components/ai-tools/AnnouncementWriter'));
 const BulletinContent = lazy(() => import('./components/ai-tools/BulletinContent'));
 
-// Community Signup
-const CommunitySignup = lazy(() => import('./components/CommunitySignup'));
+// Community Signup - New Version with Password & Terms
+const CommunitySignupNew = lazy(() => import('./components/CommunitySignupNew'));
+
+// Terms and Privacy
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // Community Application Management  
 const CommunityApplicationManagement = lazy(() => import('./components/CommunityApplicationManagement'));
@@ -69,9 +73,22 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Community Signup - New Enhanced Version */}
         <Route path="/community-signup" element={
           <Suspense fallback={<LoadingSpinner />}>
-            <CommunitySignup />
+            <CommunitySignupNew />
+          </Suspense>
+        } />
+        
+        {/* Terms and Privacy Pages */}
+        <Route path="/terms" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <TermsOfService />
+          </Suspense>
+        } />
+        <Route path="/privacy" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <PrivacyPolicy />
           </Suspense>
         } />
         <Route

@@ -48,6 +48,7 @@ import {
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { isCommunityUser, isSuperAdmin } from '../utils/userPermissions';
 
 interface MenuSubGroup {
   title: string;
@@ -149,11 +150,31 @@ const Layout: React.FC = () => {
     }
   };
 
-  // 시스템 관리자 여부 확인
+  // 사용자 권한 확인
   const isSystemAdmin = userInfo?.church_id === 0;
+  const isCommunityOnlyUser = userInfo ? isCommunityUser(userInfo) : false;
 
-  // Sidebar menu grouped by sections
-  const menuGroups: MenuGroup[] = [
+  // 커뮤니티 전용 메뉴 그룹
+  const communityMenuGroups: MenuGroup[] = [
+    {
+      title: '커뮤니티',
+      items: [
+        { path: '/community', name: '커뮤니티 홈', Icon: Home },
+        { path: '/community/free-sharing', name: '무료 나눔', Icon: Gift },
+        { path: '/community/item-request', name: '물품 요청', Icon: MessageSquare },
+        { path: '/community/sharing-offer', name: '나눔 제공', Icon: HandHeart },
+        { path: '/community/job-posting', name: '구인 공고', Icon: Briefcase },
+        { path: '/community/job-seeking', name: '구직 신청', Icon: UserPlus },
+        { path: '/community/music-team-recruit', name: '음악팀 모집', Icon: Music },
+        { path: '/community/music-team-seeking', name: '음악팀 참여', Icon: Users2 },
+        { path: '/community/church-events', name: '교회 행사', Icon: Calendar },
+        { path: '/community/prayer-requests', name: '기도 요청', Icon: Heart },
+      ],
+    },
+  ];
+
+  // 일반 교회/슈퍼어드민 메뉴 그룹
+  const defaultMenuGroups: MenuGroup[] = [
     {
       title: '분석',
       items: [
@@ -253,6 +274,21 @@ const Layout: React.FC = () => {
     },
   ];
 
+  // 사용자 권한에 따라 메뉴 그룹 선택
+  const menuGroups = isCommunityOnlyUser ? communityMenuGroups : defaultMenuGroups;
+
+  // 슈퍼어드민에게만 커뮤니티 신청 관리 메뉴 추가
+  if (isSystemAdmin) {
+    const systemMenuGroup = menuGroups.find(group => group.title === '시스템 관리');
+    if (systemMenuGroup && systemMenuGroup.items) {
+      systemMenuGroup.items.push({
+        path: '/community-applications',
+        name: '커뮤니티 신청 관리',
+        Icon: UserCheck2
+      });
+    }
+  }
+
   const aiMenuItems = [
     { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
     { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
@@ -274,7 +310,9 @@ const Layout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold text-slate-900">스마트 요람 관리자</h1>
+            <h1 className="text-xl font-semibold text-slate-900">
+              {isCommunityOnlyUser ? '스마트 요람 커뮤니티' : '스마트 요람 관리자'}
+            </h1>
           </div>
           <div className="flex items-center space-x-4">
             {/* 최근 접속 기록 버튼 */}
@@ -430,11 +468,12 @@ const Layout: React.FC = () => {
               </div>
             ))}
 
-            {/* AI 기능 섹션 */}
-            <div>
-              <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                AI 기능
-              </div>
+            {/* AI 기능 섹션 - 커뮤니티 사용자에게는 숨김 */}
+            {!isCommunityOnlyUser && (
+              <div>
+                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  AI 기능
+                </div>
               <div className="space-y-1">
                 {aiMenuItems.map((item) => {
                   const IconComponent = item.Icon;
@@ -460,7 +499,8 @@ const Layout: React.FC = () => {
                   );
                 })}
               </div>
-            </div>
+              </div>
+            )}
           </nav>
         </aside>
 
