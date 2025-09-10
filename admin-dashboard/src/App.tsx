@@ -35,6 +35,8 @@ const SecurityLogs = lazy(() => import('./components/SecurityLogs'));
 // Community Components
 const CommunityHome = lazy(() => import('./components/Community/CommunityHome'));
 const FreeSharing = lazy(() => import('./components/Community/FreeSharing'));
+const CreateSharing = lazy(() => import('./components/Community/CreateSharing'));
+const FreeSharingDetail = lazy(() => import('./components/Community/FreeSharingDetail'));
 const ItemRequest = lazy(() => import('./components/Community/ItemRequest'));
 const SharingOffer = lazy(() => import('./components/Community/SharingOffer'));
 const JobPosting = lazy(() => import('./components/Community/JobPosting'));
@@ -42,7 +44,8 @@ const JobSeeking = lazy(() => import('./components/Community/JobSeeking'));
 const MusicTeamRecruit = lazy(() => import('./components/Community/MusicTeamRecruit'));
 const MusicTeamSeeking = lazy(() => import('./components/Community/MusicTeamSeeking'));
 const ChurchEvents = lazy(() => import('./components/Community/ChurchEvents'));
-const PrayerRequests = lazy(() => import('./components/Community/PrayerRequests'));
+const MyPosts = lazy(() => import('./components/Community/MyPosts'));
+const CommunityAdmin = lazy(() => import('./components/Community/CommunityAdmin'));
 
 // AI Tools
 const AITools = lazy(() => import('./components/AITools'));
@@ -242,6 +245,16 @@ function App() {
               <FreeSharing />
             </Suspense>
           } />
+          <Route path="community/free-sharing/create" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CreateSharing />
+            </Suspense>
+          } />
+          <Route path="community/free-sharing/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <FreeSharingDetail />
+            </Suspense>
+          } />
           <Route path="community/item-request" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ItemRequest />
@@ -277,9 +290,14 @@ function App() {
               <ChurchEvents />
             </Suspense>
           } />
-          <Route path="community/prayer-requests" element={
+          <Route path="community/my-posts" element={
             <Suspense fallback={<LoadingSpinner />}>
-              <PrayerRequests />
+              <MyPosts />
+            </Suspense>
+          } />
+          <Route path="community/admin" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CommunityAdmin />
             </Suspense>
           } />
           <Route path="community-applications" element={
