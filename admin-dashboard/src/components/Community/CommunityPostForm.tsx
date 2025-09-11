@@ -161,7 +161,7 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
           const formDataForUpload = new FormData();
-          formDataForUpload.append('image', file);
+          formDataForUpload.append('images', file);
           
           try {
             const response = await api.post(getApiUrl('/community/upload-image'), formDataForUpload, {
@@ -170,8 +170,13 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               }
             });
             
-            if (response.data && response.data.imageUrl) {
-              uploadedImageUrls.push(response.data.imageUrl);
+            console.log(`🖼️ 이미지 ${i + 1} 업로드 응답:`, response.data);
+            
+            if (response.data && response.data.urls && response.data.urls.length > 0) {
+              console.log(`✅ 이미지 ${i + 1} URL 추가:`, response.data.urls[0]);
+              uploadedImageUrls.push(response.data.urls[0]);
+            } else {
+              console.warn(`⚠️ 이미지 ${i + 1} URL을 찾을 수 없음:`, response.data);
             }
           } catch (error) {
             console.error(`이미지 ${i + 1} 업로드 실패:`, error);
@@ -180,6 +185,8 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
         }
         
         setUploadingImages(false);
+        console.log(`📸 총 업로드된 이미지 개수: ${uploadedImageUrls.length}`);
+        console.log(`📸 업로드된 이미지 URLs:`, uploadedImageUrls);
       }
       
       // 폼 데이터 준비
@@ -192,9 +199,14 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             submitData['main_image_index'] = mainImageIndex;
           }
         } else {
-          submitData[field.key] = formData[field.key];
+          // 백엔드에서 요구하는 snake_case로 변환
+          const backendFieldKey = field.key === 'contactInfo' ? 'contact_info' : field.key;
+          submitData[backendFieldKey] = formData[field.key];
         }
       });
+      
+      console.log(`🚀 최종 제출 데이터:`, submitData);
+      console.log(`🚀 이미지 데이터:`, submitData.images);
       
       // API 요청
       const response = await api.post(getApiUrl(config.submitEndpoint), submitData);

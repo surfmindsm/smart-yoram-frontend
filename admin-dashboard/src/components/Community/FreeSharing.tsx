@@ -16,6 +16,7 @@ import {
 import { Button } from '../ui/button';
 import { communityService, SharingItem } from '../../services/communityService';
 import { api, getApiUrl } from '../../services/api';
+import { formatCreatedAt } from '../../utils/dateUtils';
 
 const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -306,7 +307,7 @@ const FreeSharing: React.FC = () => {
                 <div className="flex items-center space-x-3 text-xs text-gray-500">
                   <span className="flex items-center">
                     <Clock className="h-3 w-3 mr-1" />
-                    {item.createdAt}
+                    {formatCreatedAt(item.createdAt)}
                   </span>
                   <span className="flex items-center">
                     <Eye className="h-3 w-3 mr-1" />
@@ -423,7 +424,7 @@ const FreeSharing: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.createdAt}
+                      {formatCreatedAt(item.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center space-x-3">

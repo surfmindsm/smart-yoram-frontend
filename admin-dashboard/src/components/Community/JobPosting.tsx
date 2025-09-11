@@ -12,11 +12,14 @@ import {
   DollarSign,
   Calendar,
   Building,
-  GraduationCap
+  GraduationCap,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, JobPost } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
+import { formatCreatedAt, formatDeadline } from '../../utils/dateUtils';
 
 
 const JobPosting: React.FC = () => {
@@ -25,6 +28,7 @@ const JobPosting: React.FC = () => {
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // 구인 공고 데이터 (API에서 로드)
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
@@ -150,13 +154,35 @@ const JobPosting: React.FC = () => {
             교회에서 필요한 사역자를 모집해보세요
           </p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={() => navigate(getCreatePagePath('job-posting'))}
-        >
-          <Plus className="h-4 w-4" />
-          사역자 모집 등록
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* 뷰 모드 토글 */}
+          <div className="flex items-center border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="px-3"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="px-3"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => navigate(getCreatePagePath('job-posting'))}
+          >
+            <Plus className="h-4 w-4" />
+            사역자 모집 등록
+          </Button>
+        </div>
       </div>
 
       {/* 검색 및 필터 */}
@@ -215,12 +241,88 @@ const JobPosting: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">사역자 구인 목록을 불러오는 중...</p>
+          <p className="text-gray-600">사역자 모집 목록을 불러오는 중...</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {jobPosts.map((job) => (
-          <div key={job.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+        <>
+          {viewMode === 'list' ? (
+            /* 테이블 뷰 */
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        제목
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        직책
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        사용자명
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        교회명
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        지역
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        마감일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        조회수
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {jobPosts.map((job) => (
+                      <tr key={job.id} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{job.title}</div>
+                          <div className="text-sm text-gray-500">{job.salary}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {job.position}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {job.userName || '익명'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {job.churchName || '협력사'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {job.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                            {getStatusText(job.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDeadline(job.deadline)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                          <Eye className="h-3 w-3 mr-1" />
+                          {job.views}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* 카드 뷰 */
+            <div className="space-y-4">
+              {jobPosts.map((job) => (
+              <div key={job.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getJobTypeColor(job.jobType)}`}>
@@ -266,7 +368,7 @@ const JobPosting: React.FC = () => {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">마감일:</strong> {new Date(job.deadline).toLocaleDateString('ko-KR')}
+                  <strong className="mr-1">마감일:</strong> {formatDeadline(job.deadline)}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <GraduationCap className="h-4 w-4 mr-2" />
@@ -331,7 +433,7 @@ const JobPosting: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {job.createdAt}
+                  {formatCreatedAt(job.createdAt)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
@@ -362,9 +464,11 @@ const JobPosting: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        ))}
-        </div>
+              </div>
+            ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* 빈 상태 */}

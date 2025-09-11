@@ -4,13 +4,12 @@ import {
   ArrowLeft,
   Upload,
   X,
-  Plus,
-  Truck
+  Plus
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService } from '../../services/communityService';
 
-const CreateSharingOffer: React.FC = () => {
+const CreateFreeSharing: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -18,34 +17,27 @@ const CreateSharingOffer: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    itemName: '',
     category: '',
     condition: '',
     quantity: 1,
     location: '',
     contactPhone: '',
     contactEmail: '',
-    deliveryMethod: '',
-    price: '',
     images: [] as string[]
   });
 
   const categories = [
-    '가구', '전자제품', '도서', '의류', '장난감', '생활용품', '스포츠용품', '기타'
+    '가구', '전자제품', '도서', '의류', '장난감', '생활용품', '기타'
   ];
 
   const conditions = [
     '새 상품', '거의 새것', '사용감 있음', '수리 필요'
   ];
 
-  const deliveryMethods = [
-    '직거래', '택배', '직거래/택배 모두 가능'
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.itemName || !formData.category || !formData.condition || !formData.contactPhone) {
+    if (!formData.title || !formData.description || !formData.category || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -53,16 +45,16 @@ const CreateSharingOffer: React.FC = () => {
     try {
       setLoading(true);
       
-      const offerData = {
+      const sharingData = {
         ...formData,
         images: images,
         contactInfo: formData.contactPhone + (formData.contactEmail ? ` | ${formData.contactEmail}` : ''),
         status: 'available' as const
       };
 
-      await communityService.createOfferItem(offerData);
-      alert('나눔 제공이 등록되었습니다.');
-      navigate('/community/sharing-offer');
+      await communityService.createSharingItem(sharingData);
+      alert('무료 나눔 게시글이 등록되었습니다.');
+      navigate('/community/free-sharing');
     } catch (error) {
       console.error('등록 실패:', error);
       alert('등록에 실패했습니다. 다시 시도해주세요.');
@@ -96,20 +88,20 @@ const CreateSharingOffer: React.FC = () => {
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
-          onClick={() => navigate('/community/sharing-offer')}
+          onClick={() => navigate('/community/free-sharing')}
           className="flex items-center gap-2 mr-4"
         >
           <ArrowLeft className="h-4 w-4" />
           목록으로
         </Button>
-        <h1 className="text-2xl font-bold text-gray-900">나눔 제공 등록</h1>
+        <h1 className="text-2xl font-bold text-gray-900">무료 나눔(드림) 등록</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border p-6">
           {/* 기본 정보 */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">제공 정보</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">기본 정보</h2>
             
             {/* 제목 */}
             <div>
@@ -121,27 +113,13 @@ const CreateSharingOffer: React.FC = () => {
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="제공할 물품의 제목을 입력하세요"
+                placeholder="나눔할 물품의 제목을 입력하세요"
                 required
               />
             </div>
 
-            {/* 물품명과 카테고리 */}
+            {/* 카테고리와 상태 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  물품명 *
-                </label>
-                <input
-                  type="text"
-                  value={formData.itemName}
-                  onChange={(e) => setFormData({...formData, itemName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="구체적인 물품명을 입력하세요"
-                  required
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   카테고리 *
@@ -158,10 +136,7 @@ const CreateSharingOffer: React.FC = () => {
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* 상태와 수량 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   상품 상태 *
@@ -178,7 +153,10 @@ const CreateSharingOffer: React.FC = () => {
                   ))}
                 </select>
               </div>
+            </div>
 
+            {/* 수량과 지역 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   수량
@@ -191,52 +169,19 @@ const CreateSharingOffer: React.FC = () => {
                   min="1"
                 />
               </div>
-            </div>
 
-            {/* 희망 가격과 거래 방법 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  희망 가격 (선택)
+                  지역
                 </label>
                 <input
                   type="text"
-                  value={formData.price}
-                  onChange={(e) => setFormData({...formData, price: e.target.value})}
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="예: 50,000원 (무료나눔이면 공란)"
+                  placeholder="거래 가능한 지역을 입력하세요"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  거래 방법
-                </label>
-                <select
-                  value={formData.deliveryMethod}
-                  onChange={(e) => setFormData({...formData, deliveryMethod: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">거래 방법 선택</option>
-                  {deliveryMethods.map(method => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* 지역 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                거래 지역
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="거래 가능한 지역을 입력하세요"
-              />
             </div>
 
             {/* 상세 설명 */}
@@ -249,7 +194,7 @@ const CreateSharingOffer: React.FC = () => {
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="물품에 대한 자세한 설명을 입력하세요 (사용 기간, 구매 시기, 특이사항 등)"
+                placeholder="물품에 대한 자세한 설명을 입력하세요"
                 required
               />
             </div>
@@ -339,23 +284,12 @@ const CreateSharingOffer: React.FC = () => {
           </div>
         </div>
 
-        {/* 안내 사항 */}
-        <div className="bg-green-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-green-900 mb-2">💡 나눔 제공 안내</h3>
-          <ul className="text-sm text-green-800 space-y-1">
-            <li>• 물품의 실제 상태를 정확히 기재해주세요.</li>
-            <li>• 사진을 여러 장 첨부하면 더 많은 관심을 받을 수 있습니다.</li>
-            <li>• 무료 나눔이 아닌 경우 적정한 가격을 책정해주세요.</li>
-            <li>• 거래 방법을 명확히 하여 원활한 거래가 이루어지도록 해주세요.</li>
-          </ul>
-        </div>
-
         {/* 제출 버튼 */}
         <div className="flex justify-end space-x-4">
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/community/sharing-offer')}
+            onClick={() => navigate('/community/free-sharing')}
           >
             취소
           </Button>
@@ -372,7 +306,7 @@ const CreateSharingOffer: React.FC = () => {
             ) : (
               <>
                 <Plus className="h-4 w-4" />
-                제공 등록
+                등록하기
               </>
             )}
           </Button>
@@ -382,4 +316,4 @@ const CreateSharingOffer: React.FC = () => {
   );
 };
 
-export default CreateSharingOffer;
+export default CreateFreeSharing;

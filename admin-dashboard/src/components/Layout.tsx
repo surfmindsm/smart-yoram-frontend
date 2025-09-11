@@ -245,10 +245,10 @@ const Layout: React.FC = () => {
         {
           title: '인력 매칭',
           items: [
-            { path: '/community/job-posting', name: '사역자 구인', Icon: Briefcase },
-            { path: '/community/job-seeking', name: '사역자 구직', Icon: UserPlus },
-            { path: '/community/music-team-recruit', name: '연주팀 구인', Icon: Music },
-            { path: '/community/music-team-seeking', name: '연주팀 구직', Icon: Mic },
+            { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
+            { path: '/community/job-seeking', name: '사역자 지원', Icon: UserPlus },
+            { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
+            { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Mic },
           ]
         },
         {

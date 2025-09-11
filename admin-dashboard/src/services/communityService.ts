@@ -113,6 +113,7 @@ export interface JobSeeker {
   likes: number;
   matches: number;
   userName?: string; // 사용자명 필드 추가
+  church?: string | null; // 교회명 필드 추가
 }
 
 // 음악팀 모집 관련 인터페이스
@@ -151,6 +152,7 @@ export interface MusicSeeker {
   likes: number;
   matches: number;
   userName?: string; // 사용자명 필드 추가
+  church?: string | null; // 교회명 필드 추가
 }
 
 // 교회 행사 관련 인터페이스
@@ -275,7 +277,26 @@ export const communityService = {
             category: item.category,
             condition: item.condition || '양호',
             quantity: item.quantity || 1,
-            images: item.images || [],
+            images: (() => {
+              if (!item.images) return [];
+              
+              let imageArray: string[];
+              if (typeof item.images === 'string') {
+                // 백엔드에서 문자열로 저장된 JSON 배열을 파싱
+                try {
+                  imageArray = JSON.parse(item.images);
+                } catch (e) {
+                  console.warn('이미지 JSON 파싱 실패:', item.images);
+                  return [];
+                }
+              } else {
+                imageArray = Array.isArray(item.images) ? item.images : [];
+              }
+              
+              return imageArray.map((img: string) => 
+                img.startsWith('http') ? img : `https://api.surfmind-team.com/static/community/images/${img}`
+              );
+            })(),
             church: churchName,
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo, // snake_case를 camelCase로 변환
@@ -855,15 +876,6 @@ export const communityService = {
     }
   },
 
-  createChurchEvent: async (eventData: Partial<ChurchEvent>): Promise<ChurchEvent> => {
-    try {
-      const response = await api.post(getApiUrl('/community/church-events'), eventData);
-      return response.data;
-    } catch (error: any) {
-      console.error('교회 행사 등록 실패:', error);
-      throw error;
-    }
-  },
 
   updateChurchEvent: async (eventId: number, eventData: Partial<ChurchEvent>): Promise<ChurchEvent> => {
     try {
@@ -1109,6 +1121,17 @@ export const communityService = {
       return response.data;
     } catch (error: any) {
       console.error('관리자 통계 조회 실패:', error);
+      throw error;
+    }
+  },
+
+  // 행사 소식 등록
+  createChurchEvent: async (eventData: Partial<ChurchEvent>): Promise<ChurchEvent> => {
+    try {
+      const response = await api.post(getApiUrl('/community/church-events'), eventData);
+      return response.data;
+    } catch (error: any) {
+      console.error('행사 등록 실패:', error);
       throw error;
     }
   }

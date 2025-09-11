@@ -15,10 +15,13 @@ import {
   Heart,
   MessageCircle,
   User,
-  GraduationCap
+  GraduationCap,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, MusicSeeker } from '../../services/communityService';
+import { formatCreatedAt } from '../../utils/dateUtils';
 
 
 const MusicTeamSeeking: React.FC = () => {
@@ -26,6 +29,7 @@ const MusicTeamSeeking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstrument, setSelectedInstrument] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const [musicSeekers, setMusicSeekers] = useState<MusicSeeker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,10 +131,32 @@ const MusicTeamSeeking: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">행사팀 지원</h1>
           <p className="text-gray-600">재능있는 연주자분들을 만나보세요</p>
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          행사팀 지원 등록
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* 뷰 모드 토글 */}
+          <div className="flex items-center border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="px-3"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="px-3"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            행사팀 지원 등록
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
@@ -175,12 +201,95 @@ const MusicTeamSeeking: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">연주팀 구직 목록을 불러오는 중...</p>
+          <p className="text-gray-600">행사팀 지원 목록을 불러오는 중...</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {musicSeekers.map((seeker) => (
-          <div key={seeker.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+        <>
+          {viewMode === 'list' ? (
+            /* 테이블 뷰 */
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        제목
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        악기
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        사용자명
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        교회명
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        지역
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        등록일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        조회수
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {musicSeekers.map((seeker) => (
+                      <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
+                          <div className="text-sm text-gray-500 truncate max-w-xs">{seeker.experience}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {(seeker.instruments || []).slice(0, 2).map((instrument, index) => (
+                              <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {getInstrumentIcon(instrument)}
+                                {instrument}
+                              </span>
+                            ))}
+                            {(seeker.instruments || []).length > 2 && (
+                              <span className="text-xs text-gray-500">+{(seeker.instruments || []).length - 2}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {seeker.userName || seeker.name || '익명'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {seeker.church || '협력사'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {(seeker.preferredLocation || []).join(', ') || '정보 없음'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(seeker.status)}`}>
+                            {getStatusText(seeker.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatCreatedAt(seeker.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                          <Eye className="h-3 w-3 mr-1" />
+                          {seeker.views}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* 카드 뷰 */
+            <div className="space-y-4">
+              {musicSeekers.map((seeker) => (
+              <div key={seeker.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 {(seeker.instruments || []).slice(0, 3).map((instrument, index) => (
@@ -267,7 +376,7 @@ const MusicTeamSeeking: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {seeker.createdAt}
+                  {formatCreatedAt(seeker.createdAt)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
@@ -305,9 +414,11 @@ const MusicTeamSeeking: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        ))}
-        </div>
+              </div>
+            ))}
+            </div>
+          )}
+        </>
       )}
 
       {!loading && musicSeekers.length === 0 && (
