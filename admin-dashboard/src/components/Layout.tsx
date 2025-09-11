@@ -48,7 +48,7 @@ import {
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { isCommunityUser, isSuperAdmin } from '../utils/userPermissions';
+import { isCommunityUser, isSuperAdmin, getCommunityMenus } from '../utils/userPermissions';
 
 interface MenuSubGroup {
   title: string;
@@ -154,22 +154,32 @@ const Layout: React.FC = () => {
   const isSystemAdmin = userInfo?.church_id === 0;
   const isCommunityOnlyUser = userInfo ? isCommunityUser(userInfo) : false;
 
+  // 아이콘 매핑
+  const getIconByName = (iconName: string) => {
+    const iconMap: { [key: string]: React.ComponentType<any> } = {
+      'Home': Home,
+      'Gift': Gift,
+      'MessageSquare': MessageSquare,
+      'HandHeart': HandHeart,
+      'Briefcase': Briefcase,
+      'User': UserPlus,
+      'Music': Music,
+      'Users': Users2,
+      'Calendar': Calendar,
+      'UserCheck': UserCheck
+    };
+    return iconMap[iconName] || Home;
+  };
+
   // 커뮤니티 전용 메뉴 그룹
   const communityMenuGroups: MenuGroup[] = [
     {
       title: '커뮤니티',
-      items: [
-        { path: '/community', name: '커뮤니티 홈', Icon: Home },
-        { path: '/community/free-sharing', name: '무료 나눔', Icon: Gift },
-        { path: '/community/item-request', name: '물품 요청', Icon: MessageSquare },
-        { path: '/community/sharing-offer', name: '나눔 제공', Icon: HandHeart },
-        { path: '/community/job-posting', name: '구인 공고', Icon: Briefcase },
-        { path: '/community/job-seeking', name: '구직 신청', Icon: UserPlus },
-        { path: '/community/music-team-recruit', name: '음악팀 모집', Icon: Music },
-        { path: '/community/music-team-seeking', name: '음악팀 참여', Icon: Users2 },
-        { path: '/community/church-events', name: '교회 행사', Icon: Calendar },
-        { path: '/community/prayer-requests', name: '기도 요청', Icon: Heart },
-      ],
+      items: getCommunityMenus().map(menu => ({
+        path: menu.path,
+        name: menu.name,
+        Icon: getIconByName(menu.icon)
+      })),
     },
   ];
 
@@ -242,15 +252,16 @@ const Layout: React.FC = () => {
           ]
         },
         {
-          title: '소식 · 기도',
+          title: '소식 · 관리',
           items: [
             { path: '/community/church-events', name: '교회 행사/소식', Icon: Calendar },
-            { path: '/community/prayer-requests', name: '기도 요청', Icon: Sparkles },
+            { path: '/community/my-posts', name: '내가 올린 글', Icon: UserCheck },
           ]
         }
       ],
       items: [
         { path: '/community', name: '커뮤니티 홈', Icon: Home },
+        ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
       ],
     },
     {

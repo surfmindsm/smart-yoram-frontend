@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -11,87 +12,17 @@ import {
   Share
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, ChurchEvent } from '../../services/communityService';
 
-interface ChurchEvent {
-  id: number;
-  title: string;
-  description: string;
-  eventDate: string;
-  location: string;
-  hostChurch: string;
-  coHosts: string[];
-  participantsLimit: number | null;
-  registeredCount: number;
-  registrationMethod: string;
-  contactInfo: string;
-  status: 'upcoming' | 'ongoing' | 'completed';
-  createdAt: string;
-  views: number;
-  likes: number;
-  category: 'seminar' | 'revival' | 'concert' | 'conference' | 'other';
-}
 
 const ChurchEvents: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const events: ChurchEvent[] = [
-    {
-      id: 1,
-      title: '2025 겨울 청년 수련회',
-      description: '새해를 맞이하여 청년들이 함께 모여 하나님과의 관계를 점검하고 새로운 비전을 나누는 시간입니다.',
-      eventDate: '2025-01-15',
-      location: '양평 청소년 수련원',
-      hostChurch: '새빛교회',
-      coHosts: ['은혜교회', '평강교회'],
-      participantsLimit: 100,
-      registeredCount: 67,
-      registrationMethod: '교회 홈페이지',
-      contactInfo: '010-1234-5678',
-      status: 'upcoming',
-      createdAt: '1주일 전',
-      views: 234,
-      likes: 45,
-      category: 'other'
-    },
-    {
-      id: 2,
-      title: '찬양 세미나 - 예배자의 마음',
-      description: '찬양팀과 예배 인도자들을 위한 특별 세미나입니다. 예배의 본질과 찬양 인도법을 배워보세요.',
-      eventDate: '2025-09-20',
-      location: '온라인 (Zoom)',
-      hostChurch: '중앙교회',
-      coHosts: [],
-      participantsLimit: 200,
-      registeredCount: 156,
-      registrationMethod: '온라인 신청',
-      contactInfo: '010-2345-6789',
-      status: 'upcoming',
-      createdAt: '3일 전',
-      views: 189,
-      likes: 32,
-      category: 'seminar'
-    },
-    {
-      id: 3,
-      title: '지역 교회 연합 부흥회',
-      description: '강남 지역 교회들이 함께하는 연합 부흥회입니다. 특별 강사 김○○ 목사님을 모십니다.',
-      eventDate: '2025-09-25',
-      location: '강남구민회관 대강당',
-      hostChurch: '강남제일교회',
-      coHosts: ['새빛교회', '은혜교회', '평강교회', '소망교회'],
-      participantsLimit: null,
-      registeredCount: 0,
-      registrationMethod: '현장 등록',
-      contactInfo: '02-1234-5678',
-      status: 'upcoming',
-      createdAt: '5일 전',
-      views: 312,
-      likes: 78,
-      category: 'revival'
-    }
-  ];
+  const [events, setEvents] = useState<ChurchEvent[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -137,14 +68,27 @@ const ChurchEvents: React.FC = () => {
     }
   };
 
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || event.status === selectedStatus;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getChurchEvents({
+          eventType: selectedCategory === 'all' ? undefined : selectedCategory,
+          status: selectedStatus === 'all' ? undefined : selectedStatus,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setEvents(data);
+      } catch (error) {
+        console.error('ChurchEvents 데이터 로드 실패:', error);
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedCategory, selectedStatus, searchTerm]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -161,14 +105,14 @@ const ChurchEvents: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">교회 행사/소식</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">행사 소식</h1>
           <p className="text-gray-600">
             다양한 교회 행사와 소식을 확인하고 참여해보세요
           </p>
         </div>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          행사 등록
+          행사 소식 등록
         </Button>
       </div>
 
@@ -213,14 +157,20 @@ const ChurchEvents: React.FC = () => {
       </div>
 
       {/* 행사 목록 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredEvents.map((event) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">교회 행사 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {events.map((event) => (
           <div key={event.id} className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
             <div className="p-6">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.category)}`}>
-                    {categories.find(c => c.value === event.category)?.label || event.category}
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.eventType)}`}>
+                    {categories.find(c => c.value === event.eventType)?.label || event.eventType}
                   </span>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
                     {statusOptions.find(s => s.value === event.status)?.label || event.status}
@@ -239,29 +189,27 @@ const ChurchEvents: React.FC = () => {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2 text-blue-500" />
-                  {formatDate(event.eventDate)}
+                  {formatDate(event.startDate)}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2 text-red-500" />
                   {event.location}
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Users className="h-4 w-4 mr-2 text-green-500" />
-                  주최: {event.hostChurch}
-                  {event.coHosts.length > 0 && (
-                    <span className="ml-1 text-gray-500">
-                      외 {event.coHosts.length}개 교회
-                    </span>
-                  )}
+                <div className="flex items-center text-sm text-gray-600 space-x-4">
+                  <span><strong>담당자:</strong> {event.userName || '익명'}</span>
+                  <span className="flex items-center">
+                    <Users className="h-4 w-4 mr-1 text-green-500" />
+                    <strong>주최:</strong> {event.church || '협력사'}
+                  </span>
                 </div>
-                {event.participantsLimit && (
+                {event.registrationRequired && (
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="h-4 w-4 mr-2 text-purple-500" />
-                    신청: {event.registeredCount}/{event.participantsLimit}명
+                    신청: {event.currentParticipants}/{event.capacity}명
                     <div className="ml-2 w-20 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-purple-500 h-2 rounded-full" 
-                        style={{ width: `${(event.registeredCount / event.participantsLimit) * 100}%` }}
+                        style={{ width: `${(event.currentParticipants / event.capacity) * 100}%` }}
                       />
                     </div>
                   </div>
@@ -289,7 +237,11 @@ const ChurchEvents: React.FC = () => {
                     <Share className="h-3 w-3 mr-1" />
                     공유
                   </button>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => navigate(`/community/church-events/${event.id}`)}
+                  >
                     자세히 보기
                   </Button>
                 </div>
@@ -297,10 +249,11 @@ const ChurchEvents: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredEvents.length === 0 && (
+      {!loading && events.length === 0 && (
         <div className="text-center py-12">
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

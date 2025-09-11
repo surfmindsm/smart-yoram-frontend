@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -17,95 +17,16 @@ import {
   Phone
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, MusicRecruitment } from '../../services/communityService';
 
-interface MusicRecruitment {
-  id: number;
-  title: string;
-  churchName: string;
-  eventType: string;
-  eventDate: string;
-  location: string;
-  neededInstruments: string[];
-  salary: string;
-  requirements: string;
-  description: string;
-  contactInfo: string;
-  deadline: string;
-  status: 'recruiting' | 'closed' | 'urgent';
-  applicants: number;
-  createdAt: string;
-  views: number;
-  likes: number;
-  comments: number;
-}
 
 const MusicTeamRecruit: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstrument, setSelectedInstrument] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
 
-  const musicRecruitments: MusicRecruitment[] = [
-    {
-      id: 1,
-      title: '크리스마스 칸타타를 위한 연주자 모집',
-      churchName: '새빛교회',
-      eventType: '특별예배',
-      eventDate: '2024-12-24',
-      location: '서울 강남구',
-      neededInstruments: ['피아노', '바이올린', '첼로', '플룻'],
-      salary: '회당 15만원',
-      requirements: '클래식 연주 경험 3년 이상, 악보 시창 가능',
-      description: '올해 크리스마스 칸타타 공연을 위한 연주자분들을 모집합니다. 총 6회 연습과 1회 공연이 예정되어 있습니다.',
-      contactInfo: '010-1234-5678 (김○○ 전도사)',
-      deadline: '2024-11-15',
-      status: 'recruiting',
-      applicants: 8,
-      createdAt: '2일 전',
-      views: 156,
-      likes: 23,
-      comments: 12
-    },
-    {
-      id: 2,
-      title: '주일 찬양팀 드러머 급구!',
-      churchName: '은혜교회',
-      eventType: '주일예배',
-      eventDate: '매주 일요일',
-      location: '부산 해운대구',
-      neededInstruments: ['드럼'],
-      salary: '월 80만원',
-      requirements: '드럼 연주 경험 2년 이상, 주일 오전 참석 가능',
-      description: '기존 드러머 이사로 인해 새로운 드러머를 찾고 있습니다. 젊고 활기찬 찬양팀에서 함께하실 분을 기다립니다.',
-      contactInfo: '051-123-4567 (박○○ 목사)',
-      deadline: '2024-10-20',
-      status: 'urgent',
-      applicants: 3,
-      createdAt: '1주일 전',
-      views: 89,
-      likes: 15,
-      comments: 8
-    },
-    {
-      id: 3,
-      title: '결혼식 축가팀 연주자 모집',
-      churchName: '중앙교회',
-      eventType: '결혼식',
-      eventDate: '2024-11-30',
-      location: '대구 중구',
-      neededInstruments: ['기타', '바이올린', '피아노'],
-      salary: '1회 12만원',
-      requirements: '결혼식 연주 경험 우대, 클래식/CCM 연주 가능',
-      description: '교회 성도 결혼식 축가 연주를 위한 연주자를 모집합니다. 리허설 1회, 본 연주 1회 참여하시면 됩니다.',
-      contactInfo: '010-9876-5432 (이○○ 집사)',
-      deadline: '2024-11-10',
-      status: 'recruiting',
-      applicants: 5,
-      createdAt: '3일 전',
-      views: 67,
-      likes: 8,
-      comments: 5
-    }
-  ];
+  const [musicRecruitments, setMusicRecruitments] = useState<MusicRecruitment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const instruments = [
     { value: 'all', label: '전체 악기' },
@@ -170,15 +91,26 @@ const MusicTeamRecruit: React.FC = () => {
     }
   };
 
-  const filteredRecruitments = musicRecruitments.filter(recruitment => {
-    const matchesSearch = recruitment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         recruitment.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesInstrument = selectedInstrument === 'all' || 
-                             recruitment.neededInstruments.includes(selectedInstrument);
-    const matchesEventType = selectedEventType === 'all' || recruitment.eventType === selectedEventType;
-    
-    return matchesSearch && matchesInstrument && matchesEventType;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getMusicRecruitments({
+          instrument: selectedInstrument === 'all' ? undefined : selectedInstrument,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setMusicRecruitments(data);
+      } catch (error) {
+        console.error('MusicTeamRecruit 데이터 로드 실패:', error);
+        setMusicRecruitments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedInstrument, selectedEventType, searchTerm]);
 
   const formatDate = (dateString: string) => {
     if (dateString.includes('매주')) return dateString;
@@ -194,12 +126,12 @@ const MusicTeamRecruit: React.FC = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">연주팀 구인</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">행사팀 모집</h1>
           <p className="text-gray-600">교회 행사나 예배를 위한 연주자를 모집해보세요</p>
         </div>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          모집 등록
+          행사팀 모집 등록
         </Button>
       </div>
 
@@ -242,18 +174,25 @@ const MusicTeamRecruit: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredRecruitments.map((recruitment) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">연주팀 구인 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {musicRecruitments.map((recruitment) => (
           <div key={recruitment.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  {recruitment.eventType}
+                  {recruitment.recruitmentType}
                 </span>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(recruitment.status)}`}>
                   {getStatusText(recruitment.status)}
                 </span>
-                {recruitment.status === 'urgent' && (
+                {/* Show priority badge - since status is only open/closed, we'll show it based on deadline */}
+                {new Date(recruitment.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
                     🔥 급구
                   </span>
@@ -261,8 +200,12 @@ const MusicTeamRecruit: React.FC = () => {
               </div>
               
               <div className="text-right">
-                <div className="text-sm text-gray-600">{recruitment.churchName}</div>
-                <div className="text-xs text-gray-500">지원자 {recruitment.applicants}명</div>
+                <div className="text-sm text-gray-600 space-x-2">
+                  <span>{recruitment.userName || '익명'}</span>
+                  <span>|</span>
+                  <span>{recruitment.churchName || '협력사'}</span>
+                </div>
+                <div className="text-xs text-gray-500">지원자 {recruitment.applications}명</div>
               </div>
             </div>
 
@@ -274,7 +217,7 @@ const MusicTeamRecruit: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2 text-blue-500" />
-                  <strong className="mr-1">공연일:</strong> {formatDate(recruitment.eventDate)}
+                  <strong className="mr-1">일정:</strong> {recruitment.schedule}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2 text-red-500" />
@@ -282,7 +225,7 @@ const MusicTeamRecruit: React.FC = () => {
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Users className="h-4 w-4 mr-2 text-green-500" />
-                  <strong className="mr-1">사례비:</strong> {recruitment.salary}
+                  <strong className="mr-1">요건:</strong> {recruitment.requirements}
                 </div>
               </div>
               <div className="space-y-2">
@@ -291,7 +234,7 @@ const MusicTeamRecruit: React.FC = () => {
                   <div>
                     <strong className="mr-1">모집 악기:</strong>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {recruitment.neededInstruments.map((instrument, index) => (
+                      {(recruitment.instruments || []).map((instrument, index) => (
                         <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-purple-50 text-purple-700">
                           {getInstrumentIcon(instrument)}
                           {instrument}
@@ -302,25 +245,14 @@ const MusicTeamRecruit: React.FC = () => {
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2 text-orange-500" />
-                  <strong className="mr-1">마감:</strong> {formatDate(recruitment.deadline)}
+                  <strong className="mr-1">연락처:</strong> {recruitment.contact}
                 </div>
               </div>
             </div>
 
-            <p className="text-gray-700 mb-3">
-              <strong>모집 요강:</strong> {recruitment.requirements}
-            </p>
-
             <p className="text-gray-700 mb-4">
-              {recruitment.description}
+              <strong>모집 상세:</strong> {recruitment.requirements}
             </p>
-
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <Phone className="h-4 w-4 mr-2" />
-                <strong className="mr-1">연락처:</strong> {recruitment.contactInfo}
-              </div>
-            </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4 text-xs text-gray-500">
@@ -334,7 +266,7 @@ const MusicTeamRecruit: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <MessageCircle className="h-3 w-3 mr-1" />
-                  문의 {recruitment.comments}건
+                  지원 {recruitment.applications}건
                 </span>
               </div>
 
@@ -348,9 +280,9 @@ const MusicTeamRecruit: React.FC = () => {
                   size="sm" 
                   disabled={recruitment.status === 'closed'}
                   className={`flex items-center gap-1 ${
-                    recruitment.status === 'urgent' 
-                      ? 'bg-red-600 hover:bg-red-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
+                    recruitment.status === 'open' 
+                      ? 'bg-blue-600 hover:bg-blue-700' 
+                      : 'bg-gray-500'
                   }`}
                 >
                   <Users className="h-3 w-3" />
@@ -360,9 +292,10 @@ const MusicTeamRecruit: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
-      {filteredRecruitments.length === 0 && (
+      {!loading && musicRecruitments.length === 0 && (
         <div className="text-center py-12">
           <Music className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -11,66 +12,18 @@ import {
   Truck
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, OfferItem } from '../../services/communityService';
+import { getCreatePagePath } from './postConfigs';
 
-interface OfferItem {
-  id: number;
-  title: string;
-  itemName: string;
-  category: string;
-  condition: string;
-  quantity: number;
-  description: string;
-  church: string;
-  location: string;
-  deliveryMethod: string;
-  status: 'available' | 'reserved' | 'completed';
-  createdAt: string;
-  views: number;
-  likes: number;
-  comments: number;
-}
 
 const SharingOffer: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // 임시 데이터
-  const offerItems: OfferItem[] = [
-    {
-      id: 1,
-      title: '교회 행사용 테이블 여러 개 제공합니다',
-      itemName: '접이식 테이블',
-      category: '가구',
-      condition: '양호',
-      quantity: 10,
-      description: '교회 행사에서 사용하던 접이식 테이블들입니다. 상태가 좋아서 바로 사용 가능합니다.',
-      church: '큰빛교회',
-      location: '서울 송파구 잠실동',
-      deliveryMethod: '직접 수령, 근거리 배달 가능',
-      status: 'available',
-      createdAt: '30분 전',
-      views: 8,
-      likes: 2,
-      comments: 0
-    },
-    {
-      id: 2,
-      title: '찬양팀용 악보 폴더 나눔',
-      itemName: '악보 정리 폴더',
-      category: '기타',
-      condition: '새것',
-      quantity: 20,
-      description: '새로 구입했는데 너무 많이 주문해서 남은 악보 폴더들입니다.',
-      church: '소망의교회',
-      location: '경기 성남시 분당구',
-      deliveryMethod: '택배 발송 가능',
-      status: 'available',
-      createdAt: '2시간 전',
-      views: 15,
-      likes: 5,
-      comments: 3
-    }
-  ];
+  // 나눔 제공 데이터 (API에서 로드)
+  const [offerItems, setOfferItems] = useState<OfferItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -107,27 +60,43 @@ const SharingOffer: React.FC = () => {
     }
   };
 
-  const filteredItems = offerItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.itemName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getOfferItems({
+          category: selectedCategory === 'all' ? undefined : selectedCategory,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setOfferItems(data);
+      } catch (error) {
+        console.error('SharingOffer 데이터 로드 실패:', error);
+        setOfferItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedCategory, searchTerm]);
 
   return (
     <div className="p-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">나눔 제공</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">물건 판매</h1>
           <p className="text-gray-600">
-            여분의 물품을 다른 교회에 제공해보세요
+            중고 물품을 다른 교회에 판매해보세요
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => navigate(getCreatePagePath('sharing-offer'))}
+        >
           <Plus className="h-4 w-4" />
-          제공 등록
+          물건 판매 등록
         </Button>
       </div>
 
@@ -160,8 +129,14 @@ const SharingOffer: React.FC = () => {
       </div>
 
       {/* 제공 목록 */}
-      <div className="space-y-4">
-        {filteredItems.map((item) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">나눔 제공 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {offerItems.map((item) => (
           <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
@@ -196,8 +171,9 @@ const SharingOffer: React.FC = () => {
                 </p>
               </div>
               <div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <strong className="mr-1">제공 교회:</strong> {item.church}
+                <div className="flex items-center text-sm text-gray-600 mb-2 space-x-4">
+                  <span><strong className="mr-1">판매자:</strong> {item.userName || '익명'}</span>
+                  <span><strong className="mr-1">교회:</strong> {item.church || '협력사'}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-3 w-3 mr-1" />
@@ -242,10 +218,11 @@ const SharingOffer: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredItems.length === 0 && (
+      {!loading && offerItems.length === 0 && (
         <div className="text-center py-12">
           <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

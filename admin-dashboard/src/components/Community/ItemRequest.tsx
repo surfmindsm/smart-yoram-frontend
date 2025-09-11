@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Filter, 
@@ -12,93 +13,20 @@ import {
   Calendar
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, RequestItem } from '../../services/communityService';
+import { getCreatePagePath } from './postConfigs';
 
-interface RequestItem {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  requestedItem: string;
-  quantity: number;
-  reason: string;
-  neededDate: string;
-  church: string;
-  location: string;
-  contactInfo: string;
-  status: 'requesting' | 'matching' | 'completed';
-  createdAt: string;
-  views: number;
-  likes: number;
-  comments: number;
-  urgency: 'low' | 'medium' | 'high';
-}
 
 const ItemRequest: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedUrgency, setSelectedUrgency] = useState('all');
 
-  // 임시 데이터
-  const requestItems: RequestItem[] = [
-    {
-      id: 1,
-      title: '주일학교 교재 급히 필요합니다',
-      description: '새 학기를 맞아 주일학교에서 사용할 교재가 부족한 상황입니다. 유아부용 교재 위주로 필요합니다.',
-      category: '도서',
-      requestedItem: '주일학교 교재 (유아부용)',
-      quantity: 30,
-      reason: '새 학기 주일학교 수업 준비',
-      neededDate: '2025-09-15',
-      church: '소망교회',
-      location: '인천 부평구 부평동',
-      contactInfo: '010-1234-5678',
-      status: 'requesting',
-      createdAt: '1시간 전',
-      views: 15,
-      likes: 3,
-      comments: 2,
-      urgency: 'high'
-    },
-    {
-      id: 2,
-      title: '어린이 예배용 의자 구합니다',
-      description: '어린이 예배당에서 사용할 작은 의자들이 필요합니다. 중고라도 상태가 양호하면 됩니다.',
-      category: '가구',
-      requestedItem: '어린이용 의자',
-      quantity: 20,
-      reason: '어린이 예배당 리모델링',
-      neededDate: '2025-10-01',
-      church: '새생명교회',
-      location: '경기 수원시 영통구',
-      contactInfo: '010-2345-6789',
-      status: 'matching',
-      createdAt: '3시간 전',
-      views: 28,
-      likes: 7,
-      comments: 5,
-      urgency: 'medium'
-    },
-    {
-      id: 3,
-      title: '찬양팀용 마이크 몇 개 빌려주실 곳 있나요?',
-      description: '특별 찬양 발표회를 위해 무선 마이크가 추가로 필요합니다. 하루만 사용할 예정입니다.',
-      category: '전자제품',
-      requestedItem: '무선 마이크',
-      quantity: 3,
-      reason: '특별 찬양 발표회',
-      neededDate: '2025-09-12',
-      church: '은혜의강교회',
-      location: '서울 마포구 합정동',
-      contactInfo: '010-3456-7890',
-      status: 'requesting',
-      createdAt: '5시간 전',
-      views: 12,
-      likes: 2,
-      comments: 1,
-      urgency: 'medium'
-    }
-  ];
+  // 요청 게시글 데이터 (API에서 로드)
+  const [requestItems, setRequestItems] = useState<RequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -175,16 +103,28 @@ const ItemRequest: React.FC = () => {
     }
   };
 
-  const filteredItems = requestItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.requestedItem.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
-    const matchesUrgency = selectedUrgency === 'all' || item.urgency === selectedUrgency;
-    
-    return matchesSearch && matchesCategory && matchesStatus && matchesUrgency;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getRequestItems({
+          category: selectedCategory === 'all' ? undefined : selectedCategory,
+          status: selectedStatus === 'all' ? undefined : selectedStatus,
+          urgency: selectedUrgency === 'all' ? undefined : selectedUrgency,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setRequestItems(data);
+      } catch (error) {
+        console.error('ItemRequest 데이터 로드 실패:', error);
+        setRequestItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedCategory, selectedStatus, selectedUrgency, searchTerm]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -213,12 +153,15 @@ const ItemRequest: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">물품 요청</h1>
           <p className="text-gray-600">
-            필요한 물품을 다른 교회에 요청해보세요
+            구매하고 싶은 중고 물품을 다른 교회에 요청해보세요
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => navigate(getCreatePagePath('item-request'))}
+        >
           <Plus className="h-4 w-4" />
-          요청 등록
+          물품 요청 등록
         </Button>
       </div>
 
@@ -279,8 +222,14 @@ const ItemRequest: React.FC = () => {
       </div>
 
       {/* 요청 목록 */}
-      <div className="space-y-4">
-        {filteredItems.map((item) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">물품 요청 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {requestItems.map((item) => (
           <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
@@ -323,8 +272,9 @@ const ItemRequest: React.FC = () => {
                 <p className="text-sm text-gray-600 mb-2">
                   <strong>필요일:</strong> {formatDate(item.neededDate)}
                 </p>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <strong className="mr-1">요청 교회:</strong> {item.church}
+                <div className="flex items-center text-sm text-gray-600 mb-2 space-x-4">
+                  <span><strong className="mr-1">요청자:</strong> {item.userName || '익명'}</span>
+                  <span><strong className="mr-1">교회:</strong> {item.church || '협력사'}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-3 w-3 mr-1" />
@@ -369,10 +319,11 @@ const ItemRequest: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredItems.length === 0 && (
+      {!loading && requestItems.length === 0 && (
         <div className="text-center py-12">
           <HandHeart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -14,93 +15,20 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, JobPost } from '../../services/communityService';
+import { getCreatePagePath } from './postConfigs';
 
-interface JobPost {
-  id: number;
-  title: string;
-  churchName: string;
-  churchIntro: string;
-  position: string;
-  jobType: 'full-time' | 'part-time' | 'volunteer';
-  salary: string;
-  benefits: string[];
-  qualifications: string[];
-  requiredDocuments: string[];
-  location: string;
-  deadline: string;
-  status: 'open' | 'closed' | 'filled';
-  createdAt: string;
-  views: number;
-  likes: number;
-  applications: number;
-}
 
 const JobPosting: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  // 임시 데이터
-  const jobPosts: JobPost[] = [
-    {
-      id: 1,
-      title: '주일학교 담당 전도사 모집',
-      churchName: '새빛교회',
-      churchIntro: '1987년 설립된 개척교회로 성도 약 200명의 따뜻한 교회입니다.',
-      position: '전도사',
-      jobType: 'full-time',
-      salary: '월 200만원 ~ 250만원',
-      benefits: ['주거 지원', '식비 지원', '교통비 지원', '건강보험'],
-      qualifications: ['신학 학사 이상', '주일학교 사역 경험 2년 이상', '찬양 인도 가능자 우대'],
-      requiredDocuments: ['이력서', '자기소개서', '추천서 2부', '설교문 3편'],
-      location: '서울 강남구 역삼동',
-      deadline: '2025-09-30',
-      status: 'open',
-      createdAt: '2일 전',
-      views: 45,
-      likes: 8,
-      applications: 3
-    },
-    {
-      id: 2,
-      title: '청년부 담당 목사 채용',
-      churchName: '은혜교회',
-      churchIntro: '청년들이 많은 활기찬 교회로 약 300명의 성도가 있습니다.',
-      position: '목사',
-      jobType: 'full-time',
-      salary: '협의',
-      benefits: ['사택 제공', '차량 지원', '연수비 지원'],
-      qualifications: ['목회학 석사(M.Div) 이상', '청년 사역 경험 3년 이상', '영어 가능자 우대'],
-      requiredDocuments: ['이력서', '자기소개서', '목회철학서', '추천서 3부'],
-      location: '부산 해운대구 우동',
-      deadline: '2025-10-15',
-      status: 'open',
-      createdAt: '1주일 전',
-      views: 78,
-      likes: 15,
-      applications: 7
-    },
-    {
-      id: 3,
-      title: '찬양팀 리더 봉사자 모집',
-      churchName: '평강교회',
-      churchIntro: '소규모 교회로 가족같은 분위기의 따뜻한 공동체입니다.',
-      position: '찬양팀 리더',
-      jobType: 'volunteer',
-      salary: '봉사',
-      benefits: ['교통비 지원', '식비 지원'],
-      qualifications: ['찬양 인도 경험 1년 이상', '기타 또는 키보드 연주 가능', '화성 이해'],
-      requiredDocuments: ['간단한 이력서', '자기소개서'],
-      location: '대구 중구 동성로',
-      deadline: '2025-09-25',
-      status: 'open',
-      createdAt: '3일 전',
-      views: 32,
-      likes: 6,
-      applications: 2
-    }
-  ];
+  // 구인 공고 데이터 (API에서 로드)
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const positions = [
     { value: 'all', label: '전체' },
@@ -177,16 +105,28 @@ const JobPosting: React.FC = () => {
     }
   };
 
-  const filteredJobs = jobPosts.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.churchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPosition = selectedPosition === 'all' || job.position === selectedPosition;
-    const matchesJobType = selectedJobType === 'all' || job.jobType === selectedJobType;
-    const matchesStatus = selectedStatus === 'all' || job.status === selectedStatus;
-    
-    return matchesSearch && matchesPosition && matchesJobType && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getJobPosts({
+          position: selectedPosition === 'all' ? undefined : selectedPosition,
+          jobType: selectedJobType === 'all' ? undefined : selectedJobType,
+          status: selectedStatus === 'all' ? undefined : selectedStatus,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setJobPosts(data);
+      } catch (error) {
+        console.error('JobPosting 데이터 로드 실패:', error);
+        setJobPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedPosition, selectedJobType, selectedStatus, searchTerm]);
 
   const getDaysUntilDeadline = (deadline: string) => {
     const today = new Date();
@@ -205,14 +145,17 @@ const JobPosting: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">사역자 구인</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">사역자 모집</h1>
           <p className="text-gray-600">
             교회에서 필요한 사역자를 모집해보세요
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => navigate(getCreatePagePath('job-posting'))}
+        >
           <Plus className="h-4 w-4" />
-          구인 등록
+          사역자 모집 등록
         </Button>
       </div>
 
@@ -269,8 +212,14 @@ const JobPosting: React.FC = () => {
       </div>
 
       {/* 구인 목록 */}
-      <div className="space-y-4">
-        {filteredJobs.map((job) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">사역자 구인 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {jobPosts.map((job) => (
           <div key={job.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
@@ -294,9 +243,12 @@ const JobPosting: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <Building className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">교회:</strong> {job.churchName}
+                <div className="flex items-center text-sm text-gray-600 mb-2 space-x-4">
+                  <span><strong className="mr-1">담당자:</strong> {job.userName || '익명'}</span>
+                  <span className="flex items-center">
+                    <Building className="h-4 w-4 mr-1" />
+                    <strong className="mr-1">교회:</strong> {job.churchName || '협력사'}
+                  </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <Briefcase className="h-4 w-4 mr-2" />
@@ -331,13 +283,25 @@ const JobPosting: React.FC = () => {
             <div className="mb-4">
               <h4 className="text-sm font-semibold text-gray-900 mb-2">자격요건</h4>
               <div className="flex flex-wrap gap-1">
-                {job.qualifications.slice(0, 3).map((qualification, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
-                    {qualification}
-                  </span>
-                ))}
-                {job.qualifications.length > 3 && (
+                {Array.isArray(job.qualifications) 
+                  ? job.qualifications.slice(0, 3).map((qualification: string, index: number) => (
+                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
+                        {qualification}
+                      </span>
+                    ))
+                  : job.qualifications && typeof job.qualifications === 'string'
+                  ? (job.qualifications as string).split(',').slice(0, 3).map((qualification: string, index: number) => (
+                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
+                        {qualification.trim()}
+                      </span>
+                    ))
+                  : null
+                }
+                {Array.isArray(job.qualifications) && job.qualifications.length > 3 && (
                   <span className="text-xs text-gray-500">+{job.qualifications.length - 3}개 더</span>
+                )}
+                {job.qualifications && typeof job.qualifications === 'string' && (job.qualifications as string).split(',').length > 3 && (
+                  <span className="text-xs text-gray-500">+{(job.qualifications as string).split(',').length - 3}개 더</span>
                 )}
               </div>
             </div>
@@ -346,11 +310,20 @@ const JobPosting: React.FC = () => {
             <div className="mb-4">
               <h4 className="text-sm font-semibold text-gray-900 mb-2">복리후생</h4>
               <div className="flex flex-wrap gap-1">
-                {job.benefits.map((benefit, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
-                    {benefit}
-                  </span>
-                ))}
+                {Array.isArray(job.benefits) 
+                  ? job.benefits.map((benefit: string, index: number) => (
+                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
+                        {benefit}
+                      </span>
+                    ))
+                  : job.benefits && typeof job.benefits === 'string'
+                  ? (job.benefits as string).split(',').map((benefit: string, index: number) => (
+                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
+                        {benefit.trim()}
+                      </span>
+                    ))
+                  : null
+                }
               </div>
             </div>
 
@@ -391,10 +364,11 @@ const JobPosting: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredJobs.length === 0 && (
+      {!loading && jobPosts.length === 0 && (
         <div className="text-center py-12">
           <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

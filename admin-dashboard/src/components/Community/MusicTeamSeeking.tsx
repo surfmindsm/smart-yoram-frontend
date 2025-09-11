@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
   MapPin, 
   Calendar, 
   Clock,
-  Users,
   Music,
   Guitar,
   Mic,
@@ -15,119 +15,20 @@ import {
   Heart,
   MessageCircle,
   User,
-  Award,
   GraduationCap
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, MusicSeeker } from '../../services/communityService';
 
-interface MusicSeeker {
-  id: number;
-  title: string;
-  name: string;
-  age: number;
-  instruments: string[];
-  experience: string;
-  education: string;
-  certifications: string[];
-  introduction: string;
-  availableLocation: string;
-  availableSchedule: string;
-  preferredEventType: string[];
-  status: 'available' | 'interviewing' | 'hired';
-  portfolio: string;
-  createdAt: string;
-  views: number;
-  likes: number;
-  contacts: number;
-}
 
 const MusicTeamSeeking: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstrument, setSelectedInstrument] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
 
-  const musicSeekers: MusicSeeker[] = [
-    {
-      id: 1,
-      title: '피아노와 오르간 연주 가능한 연주자입니다',
-      name: '김○○',
-      age: 28,
-      instruments: ['피아노', '오르간', '키보드'],
-      experience: '피아노 15년, 교회 반주 5년',
-      education: '○○음대 피아노과 졸업',
-      certifications: ['실용음악 피아노 자격증', '교회음악 지휘법 수료'],
-      introduction: '어릴 때부터 교회에서 자란 PKs로서, 하나님을 찬양하는 마음으로 연주하고 있습니다. 클래식부터 CCM, 가스펠까지 다양한 장르의 연주가 가능합니다.',
-      availableLocation: '서울, 경기',
-      availableSchedule: '주일 오전, 평일 저녁',
-      preferredEventType: ['주일예배', '특별예배', '수련회'],
-      status: 'available',
-      portfolio: 'youtube.com/watch?v=example',
-      createdAt: '2일 전',
-      views: 89,
-      likes: 12,
-      contacts: 7
-    },
-    {
-      id: 2,
-      title: '드럼과 퍼커션 전문 연주자',
-      name: '박○○',
-      age: 24,
-      instruments: ['드럼', '퍼커션', '카혼'],
-      experience: '드럼 8년, 밴드 활동 4년',
-      education: '실용음악학과 드럼전공',
-      certifications: ['실용음악 드럼 자격증'],
-      introduction: '역동적이고 안정적인 리듬으로 찬양을 뒷받침하는 드러머입니다. 다양한 스타일의 연주가 가능하며, 팀워크를 중요시합니다.',
-      availableLocation: '전국 (출장 가능)',
-      availableSchedule: '주말, 평일 오후',
-      preferredEventType: ['주일예배', '특별예배', '찬양집회'],
-      status: 'interviewing',
-      portfolio: 'instagram.com/drummer_example',
-      createdAt: '5일 전',
-      views: 156,
-      likes: 28,
-      contacts: 15
-    },
-    {
-      id: 3,
-      title: '바이올린 전공자, 클래식과 CCM 연주',
-      name: '이○○',
-      age: 32,
-      instruments: ['바이올린', '비올라'],
-      experience: '바이올린 20년, 교회 특송 10년',
-      education: '○○예술대학 바이올린과 석사',
-      certifications: ['클래식 바이올린 지도자 자격증', '현악합주 지휘법'],
-      introduction: '클래식 연주자로 시작해서 교회음악에 헌신하고 있습니다. 솔로 연주부터 앙상블까지 다양한 형태의 연주가 가능합니다.',
-      availableLocation: '부산, 경남',
-      availableSchedule: '주일 오후, 평일 저녁',
-      preferredEventType: ['특별예배', '결혼식', '수련회'],
-      status: 'available',
-      portfolio: 'soundcloud.com/violinist_example',
-      createdAt: '1주일 전',
-      views: 78,
-      likes: 9,
-      contacts: 4
-    },
-    {
-      id: 4,
-      title: '기타와 베이스 모두 가능한 다재다능한 연주자',
-      name: '최○○',
-      age: 26,
-      instruments: ['기타', '베이스', '우쿨렐레'],
-      experience: '기타 12년, 교회 찬양팀 6년',
-      education: '실용음악과 기타 전공',
-      certifications: ['기타 지도자 자격증', '음향 기술사 자격증'],
-      introduction: '기타와 베이스를 모두 연주할 수 있어 팀의 필요에 따라 유연하게 대응 가능합니다. 음향 장비 세팅도 가능합니다.',
-      availableLocation: '대구, 경북',
-      availableSchedule: '주말, 평일 야간',
-      preferredEventType: ['주일예배', '청년부 모임', '수련회'],
-      status: 'available',
-      portfolio: 'youtube.com/guitarist_example',
-      createdAt: '3일 전',
-      views: 124,
-      likes: 18,
-      contacts: 9
-    }
-  ];
+  const [musicSeekers, setMusicSeekers] = useState<MusicSeeker[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const instruments = [
     { value: 'all', label: '전체 악기' },
@@ -197,27 +98,38 @@ const MusicTeamSeeking: React.FC = () => {
     }
   };
 
-  const filteredSeekers = musicSeekers.filter(seeker => {
-    const matchesSearch = seeker.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         seeker.introduction.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesInstrument = selectedInstrument === 'all' || 
-                             seeker.instruments.includes(selectedInstrument);
-    const matchesEventType = selectedEventType === 'all' || 
-                            seeker.preferredEventType.includes(selectedEventType);
-    
-    return matchesSearch && matchesInstrument && matchesEventType;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getMusicSeekers({
+          instrument: selectedInstrument === 'all' ? undefined : selectedInstrument,
+          genre: selectedEventType === 'all' ? undefined : selectedEventType,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setMusicSeekers(data);
+      } catch (error) {
+        console.error('MusicTeamSeeking 데이터 로드 실패:', error);
+        setMusicSeekers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedInstrument, selectedEventType, searchTerm]);
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">연주팀 구직</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">행사팀 지원</h1>
           <p className="text-gray-600">재능있는 연주자분들을 만나보세요</p>
         </div>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          프로필 등록
+          행사팀 지원 등록
         </Button>
       </div>
 
@@ -260,19 +172,25 @@ const MusicTeamSeeking: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredSeekers.map((seeker) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">연주팀 구직 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {musicSeekers.map((seeker) => (
           <div key={seeker.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                {seeker.instruments.slice(0, 3).map((instrument, index) => (
+                {(seeker.instruments || []).slice(0, 3).map((instrument, index) => (
                   <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                     {getInstrumentIcon(instrument)}
                     {instrument}
                   </span>
                 ))}
-                {seeker.instruments.length > 3 && (
-                  <span className="text-xs text-gray-500">+{seeker.instruments.length - 3}</span>
+                {(seeker.instruments || []).length > 3 && (
+                  <span className="text-xs text-gray-500">+{(seeker.instruments || []).length - 3}</span>
                 )}
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(seeker.status)}`}>
                   {getStatusText(seeker.status)}
@@ -280,7 +198,7 @@ const MusicTeamSeeking: React.FC = () => {
               </div>
               
               <div className="text-right">
-                <div className="text-xs text-gray-500">연락 {seeker.contacts}건</div>
+                <div className="text-xs text-gray-500">매칭 {seeker.matches}건</div>
               </div>
             </div>
 
@@ -292,11 +210,11 @@ const MusicTeamSeeking: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <User className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">이름:</strong> {seeker.name} ({seeker.age}세)
+                  <strong className="mr-1">이름:</strong> {seeker.name}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <GraduationCap className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">학력:</strong> {seeker.education}
+                  <strong className="mr-1">포트폴리오:</strong> {seeker.portfolio || '없음'}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Music className="h-4 w-4 mr-2" />
@@ -306,18 +224,18 @@ const MusicTeamSeeking: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">활동 지역:</strong> {seeker.availableLocation}
+                  <strong className="mr-1">활동 지역:</strong> {(seeker.preferredLocation || []).join(', ') || '정보 없음'}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">가능 시간:</strong> {seeker.availableSchedule}
+                  <strong className="mr-1">가능 시간:</strong> {seeker.availability}
                 </div>
                 <div className="flex items-start text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2 mt-0.5" />
                   <div>
                     <strong className="mr-1">선호 행사:</strong>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {seeker.preferredEventType.map((type, index) => (
+                      {(seeker.preferredGenre || []).map((type, index) => (
                         <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-50 text-blue-700">
                           {type}
                         </span>
@@ -328,26 +246,9 @@ const MusicTeamSeeking: React.FC = () => {
               </div>
             </div>
 
-            {seeker.certifications.length > 0 && (
-              <div className="mb-4">
-                <div className="flex items-start text-sm text-gray-600">
-                  <Award className="h-4 w-4 mr-2 mt-0.5" />
-                  <div>
-                    <strong className="mr-1">자격증:</strong>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {seeker.certifications.map((cert, index) => (
-                        <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
-                          {cert}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <p className="text-gray-700 mb-4">
-              <strong>자기소개:</strong> {seeker.introduction}
+              <strong>자기소개:</strong> {seeker.experience}
             </p>
 
             {seeker.portfolio && (
@@ -374,7 +275,7 @@ const MusicTeamSeeking: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <MessageCircle className="h-3 w-3 mr-1" />
-                  문의 {seeker.contacts}건
+                  매칭 {seeker.matches}건
                 </span>
               </div>
 
@@ -386,20 +287,30 @@ const MusicTeamSeeking: React.FC = () => {
 
                 <Button 
                   size="sm" 
-                  disabled={seeker.status === 'hired'}
-                  variant={seeker.status === 'available' ? 'default' : 'outline'}
+                  variant="outline"
+                  onClick={() => navigate(`/community/music-team-seeking/${seeker.id}`)}
+                  className="flex items-center gap-1 mr-2"
+                >
+                  자세히 보기
+                </Button>
+                
+                <Button 
+                  size="sm" 
+                  disabled={seeker.status === 'inactive'}
+                  variant={seeker.status === 'active' ? 'default' : 'outline'}
                   className="flex items-center gap-1"
                 >
                   <MessageCircle className="h-3 w-3" />
-                  {seeker.status === 'hired' ? '채용됨' : '연락하기'}
+                  {seeker.status === 'inactive' ? '비활성' : '연락하기'}
                 </Button>
               </div>
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
-      {filteredSeekers.length === 0 && (
+      {!loading && musicSeekers.length === 0 && (
         <div className="text-center py-12">
           <Music className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -13,83 +13,16 @@ import {
   FileText
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, JobSeeker } from '../../services/communityService';
 
-interface JobSeeker {
-  id: number;
-  title: string;
-  name: string;
-  ministryField: string[];
-  career: string;
-  education: string;
-  certifications: string[];
-  introduction: string;
-  desiredLocation: string;
-  availableDate: string;
-  status: 'available' | 'interviewing' | 'hired';
-  createdAt: string;
-  views: number;
-  likes: number;
-  contacts: number;
-}
 
 const JobSeeking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedField, setSelectedField] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const jobSeekers: JobSeeker[] = [
-    {
-      id: 1,
-      title: '청년부 사역에 열정이 있는 전도사입니다',
-      name: '김○○',
-      ministryField: ['청년부', '찬양', '상담'],
-      career: '청년부 사역 3년, 찬양팀 리더 2년',
-      education: '○○신학대학교 신학과 졸업',
-      certifications: ['기독교상담사 2급', '찬양인도자 과정 수료'],
-      introduction: '청년들과 함께 성장하며 하나님의 사랑을 전하고 싶습니다. 특히 찬양과 상담 사역에 은사가 있습니다.',
-      desiredLocation: '서울, 경기',
-      availableDate: '2025-10-01',
-      status: 'available',
-      createdAt: '1일 전',
-      views: 24,
-      likes: 5,
-      contacts: 2
-    },
-    {
-      id: 2,
-      title: '주일학교와 교육 사역 전문 목사',
-      name: '이○○',
-      ministryField: ['주일학교', '교육부', '새신자'],
-      career: '주일학교 담당 목사 5년, 교육부 디렉터 3년',
-      education: '○○신학대학원 목회학 석사(M.Div)',
-      certifications: ['어린이사역 전문가', '교사 교육 과정 수료'],
-      introduction: '어린이와 청소년들에게 복음을 전하는 일에 부르심을 받았습니다. 체계적인 교육 프로그램 개발 경험이 있습니다.',
-      desiredLocation: '부산, 경남',
-      availableDate: '2025-11-01',
-      status: 'interviewing',
-      createdAt: '3일 전',
-      views: 45,
-      likes: 12,
-      contacts: 8
-    },
-    {
-      id: 3,
-      title: '찬양과 예배를 사랑하는 사역자',
-      name: '박○○',
-      ministryField: ['찬양팀', '예배', '음향'],
-      career: '찬양팀 리더 4년, 음향 담당 2년',
-      education: '○○대학교 실용음악과',
-      certifications: ['음향 기술자 자격증', '찬양 인도자 과정'],
-      introduction: '찬양을 통해 성도들이 하나님을 만나는 예배를 만들어가고 싶습니다.',
-      desiredLocation: '전국',
-      availableDate: '즉시 가능',
-      status: 'available',
-      createdAt: '1주일 전',
-      views: 38,
-      likes: 9,
-      contacts: 4
-    }
-  ];
+  const [jobSeekers, setJobSeekers] = useState<JobSeeker[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const ministryFields = [
     { value: 'all', label: '전체' },
@@ -133,28 +66,41 @@ const JobSeeking: React.FC = () => {
     }
   };
 
-  const filteredSeekers = jobSeekers.filter(seeker => {
-    const matchesSearch = seeker.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         seeker.introduction.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesField = selectedField === 'all' || seeker.ministryField.includes(selectedField);
-    const matchesStatus = selectedStatus === 'all' || seeker.status === selectedStatus;
-    
-    return matchesSearch && matchesField && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getJobSeekers({
+          ministryField: selectedField === 'all' ? undefined : selectedField,
+          status: selectedStatus === 'all' ? undefined : selectedStatus,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setJobSeekers(data);
+      } catch (error) {
+        console.error('JobSeeking 데이터 로드 실패:', error);
+        setJobSeekers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedField, selectedStatus, searchTerm]);
 
   return (
     <div className="p-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">사역자 구직</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">사역자 지원</h1>
           <p className="text-gray-600">
             사역자분들의 이력을 확인하고 연락해보세요
           </p>
         </div>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          이력서 등록
+          사역자 지원 등록
         </Button>
       </div>
 
@@ -199,12 +145,18 @@ const JobSeeking: React.FC = () => {
       </div>
 
       {/* 구직자 목록 */}
-      <div className="space-y-4">
-        {filteredSeekers.map((seeker) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">사역자 구직 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {jobSeekers.map((seeker) => (
           <div key={seeker.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                {seeker.ministryField.map((field, index) => (
+                {(seeker.ministryField || []).map((field, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     {field}
                   </span>
@@ -216,7 +168,7 @@ const JobSeeking: React.FC = () => {
               
               <div className="flex items-center text-sm text-gray-600">
                 <Clock className="h-4 w-4 mr-1" />
-                {seeker.availableDate === '즉시 가능' ? '즉시 가능' : `${seeker.availableDate}부터`}
+                {seeker.availability || '정보 없음'}
               </div>
             </div>
 
@@ -228,7 +180,7 @@ const JobSeeking: React.FC = () => {
               <div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <UserPlus className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">이름:</strong> {seeker.name}
+                  <strong className="mr-1">이름:</strong> {seeker.userName || seeker.name || '익명'}
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <GraduationCap className="h-4 w-4 mr-2" />
@@ -242,15 +194,15 @@ const JobSeeking: React.FC = () => {
               <div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <MapPin className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">희망 지역:</strong> {seeker.desiredLocation}
+                  <strong className="mr-1">희망 지역:</strong> {(seeker.preferredLocation || []).join(', ') || '정보 없음'}
                 </div>
-                {seeker.certifications.length > 0 && (
+                {(seeker.certifications || []).length > 0 && (
                   <div className="flex items-start text-sm text-gray-600">
                     <Award className="h-4 w-4 mr-2 mt-0.5" />
                     <div>
                       <strong className="mr-1">자격증:</strong>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {seeker.certifications.map((cert, index) => (
+                        {(seeker.certifications || []).map((cert, index) => (
                           <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
                             {cert}
                           </span>
@@ -278,7 +230,7 @@ const JobSeeking: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <MessageCircle className="h-3 w-3 mr-1" />
-                  문의 {seeker.contacts}건
+                  매칭 {seeker.matches}건
                 </span>
               </div>
 
@@ -289,22 +241,23 @@ const JobSeeking: React.FC = () => {
                 </button>
 
                 <Button 
-                  variant={seeker.status === 'available' ? 'default' : 'outline'} 
+                  variant={seeker.status === 'active' ? 'default' : 'outline'} 
                   size="sm" 
-                  disabled={seeker.status === 'hired'}
+                  disabled={seeker.status === 'inactive'}
                   className="flex items-center gap-1"
                 >
                   <MessageCircle className="h-3 w-3" />
-                  {seeker.status === 'hired' ? '채용됨' : '연락하기'}
+                  {seeker.status === 'inactive' ? '비활성' : '연락하기'}
                 </Button>
               </div>
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredSeekers.length === 0 && (
+      {!loading && jobSeekers.length === 0 && (
         <div className="text-center py-12">
           <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

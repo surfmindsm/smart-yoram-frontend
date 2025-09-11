@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Gift, 
@@ -7,48 +7,53 @@ import {
   Users2, 
   TrendingUp,
   Clock,
-  MapPin
+  MapPin,
+  Briefcase,
+  Music,
+  Calendar,
+  Users
 } from 'lucide-react';
+import { communityService, RecentPost } from '../../services/communityService';
 
 const CommunityHome: React.FC = () => {
-  // 임시 통계 데이터
-  const stats = {
-    totalPosts: 156,
-    activeSharing: 43,
-    completedSharing: 98,
-    activeRequests: 15
-  };
+  // 통계 데이터 (API에서 로드)
+  const [stats, setStats] = React.useState({
+    total_posts: 0,
+    active_sharing: 0,
+    active_requests: 0,
+    job_posts: 0,
+    music_teams: 0,
+    events_this_month: 0,
+    total_members: 0
+  });
 
-  // 최근 게시글 임시 데이터
-  const recentPosts = [
-    {
-      id: 1,
-      type: 'sharing',
-      title: '유아용 의자와 책상 나눔합니다',
-      church: '새빛교회',
-      location: '서울 강남구',
-      createdAt: '2시간 전',
-      status: '나눔중'
-    },
-    {
-      id: 2,
-      type: 'request',
-      title: '주일학교 교재 필요합니다',
-      church: '은혜교회',
-      location: '부산 해운대구',
-      createdAt: '4시간 전',
-      status: '요청중'
-    },
-    {
-      id: 3,
-      type: 'offer',
-      title: '찬양용 기타 3대 제공 가능합니다',
-      church: '평강교회',
-      location: '대구 중구',
-      createdAt: '6시간 전',
-      status: '제공 가능'
-    }
-  ];
+  // 최근 게시글 (API에서 로드)
+  const [recentPosts, setRecentPosts] = React.useState<RecentPost[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // 통계 데이터 로드
+        const statsData = await communityService.getHomeStats();
+        setStats(statsData);
+
+        // 최근 게시글 로드
+        const postsData = await communityService.getRecentPosts(5);
+        setRecentPosts(postsData);
+        
+      } catch (error) {
+        console.error('커뮤니티 홈 데이터 로드 실패:', error);
+        // 에러 발생 시 기본값 유지
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getTypeInfo = (type: string) => {
     switch (type) {
@@ -74,12 +79,12 @@ const CommunityHome: React.FC = () => {
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">전체 게시글</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalPosts}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total_posts}</p>
             </div>
             <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-blue-600" />
@@ -91,7 +96,7 @@ const CommunityHome: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">진행 중인 나눔</p>
-              <p className="text-2xl font-bold text-green-600">{stats.activeSharing}</p>
+              <p className="text-2xl font-bold text-green-600">{stats.active_sharing}</p>
             </div>
             <div className="h-12 w-12 bg-green-50 rounded-lg flex items-center justify-center">
               <Gift className="h-6 w-6 text-green-600" />
@@ -102,8 +107,8 @@ const CommunityHome: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">완료된 나눔</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.completedSharing}</p>
+              <p className="text-sm font-medium text-gray-600">전체 게시글</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total_posts}</p>
             </div>
             <div className="h-12 w-12 bg-gray-50 rounded-lg flex items-center justify-center">
               <Users2 className="h-6 w-6 text-gray-600" />
@@ -115,10 +120,49 @@ const CommunityHome: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">활성 요청</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.activeRequests}</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.active_requests}</p>
             </div>
             <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center">
               <HandHeart className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 추가 통계 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">구인 공고</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.job_posts}</p>
+            </div>
+            <div className="h-12 w-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <Briefcase className="h-6 w-6 text-orange-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">음악팀</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.music_teams}</p>
+            </div>
+            <div className="h-12 w-12 bg-purple-50 rounded-lg flex items-center justify-center">
+              <Music className="h-6 w-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">이달의 행사</p>
+              <p className="text-2xl font-bold text-green-600">{stats.events_this_month}</p>
+            </div>
+            <div className="h-12 w-12 bg-green-50 rounded-lg flex items-center justify-center">
+              <Calendar className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -187,46 +231,59 @@ const CommunityHome: React.FC = () => {
           </div>
           
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="divide-y">
-              {recentPosts.map((post) => {
-                const typeInfo = getTypeInfo(post.type);
-                const IconComponent = typeInfo.icon;
-                
-                return (
-                  <div key={post.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${typeInfo.bg}`}>
-                        <IconComponent className={`h-5 w-5 ${typeInfo.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeInfo.bg} ${typeInfo.color}`}>
-                            {typeInfo.label}
-                          </span>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {post.status}
-                          </span>
+            {recentPosts.length > 0 ? (
+              <div className="divide-y">
+                {recentPosts.map((post: any) => {
+                  const typeInfo = getTypeInfo(post.type);
+                  const IconComponent = typeInfo.icon;
+                  
+                  return (
+                    <div key={post.id} className="p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start space-x-3">
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${typeInfo.bg}`}>
+                          <IconComponent className={`h-5 w-5 ${typeInfo.color}`} />
                         </div>
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {post.title}
-                        </p>
-                        <div className="flex items-center text-xs text-gray-500 mt-1 space-x-4">
-                          <span>{post.church}</span>
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {post.location}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {post.createdAt}
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeInfo.bg} ${typeInfo.color}`}>
+                              {typeInfo.label}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {post.status}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {post.title}
+                          </p>
+                          <div className="flex items-center text-xs text-gray-500 mt-1 space-x-4">
+                            <span>{post.church}</span>
+                            <span className="flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {post.location}
+                            </span>
+                            <span className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {post.createdAt}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">데이터를 불러오는 중...</p>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <Users2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">아직 게시글이 없습니다.</p>
+                <p className="text-sm text-gray-400 mt-1">새로운 나눔이나 요청을 등록해보세요.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

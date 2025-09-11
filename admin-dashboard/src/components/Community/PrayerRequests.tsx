@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
   Clock, 
   Eye,
-  Heart,
   MessageCircle,
   Sparkles,
   User,
@@ -12,85 +11,16 @@ import {
   HandHeart
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { communityService, PrayerRequest } from '../../services/communityService';
 
-interface PrayerRequest {
-  id: number;
-  title: string;
-  prayerContent: string;
-  isAnonymous: boolean;
-  requesterName: string;
-  prayerStatus: 'requesting' | 'answered' | 'ongoing';
-  prayerCount: number;
-  testimony: string | null;
-  createdAt: string;
-  views: number;
-  comments: number;
-  category: 'healing' | 'family' | 'job' | 'church' | 'other';
-}
 
 const PrayerRequests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const prayerRequests: PrayerRequest[] = [
-    {
-      id: 1,
-      title: '어머니의 건강 회복을 위해 기도해주세요',
-      prayerContent: '어머니께서 수술을 받으시게 되었습니다. 수술이 잘 되고 빠른 회복을 위해 기도 부탁드립니다.',
-      isAnonymous: false,
-      requesterName: '김○○',
-      prayerStatus: 'requesting',
-      prayerCount: 47,
-      testimony: null,
-      createdAt: '2시간 전',
-      views: 89,
-      comments: 12,
-      category: 'healing'
-    },
-    {
-      id: 2,
-      title: '새로운 직장을 구할 수 있도록',
-      prayerContent: '하나님의 뜻에 맞는 직장을 만날 수 있도록 기도해주세요. 가족들을 위해서도 좋은 기회가 있기를 바랍니다.',
-      isAnonymous: true,
-      requesterName: '익명',
-      prayerStatus: 'ongoing',
-      prayerCount: 23,
-      testimony: null,
-      createdAt: '1일 전',
-      views: 56,
-      comments: 8,
-      category: 'job'
-    },
-    {
-      id: 3,
-      title: '기도 응답 간증 - 건강 회복',
-      prayerContent: '지난달 기도 요청드렸던 아버지의 건강이 많이 좋아지셨습니다. 기도해주신 모든 분들께 감사드립니다.',
-      isAnonymous: false,
-      requesterName: '이○○',
-      prayerStatus: 'answered',
-      prayerCount: 78,
-      testimony: '검사 결과가 많이 좋아졌고, 의사 선생님도 놀라실 정도로 회복이 빨랐습니다. 하나님의 은혜와 여러분의 기도 덕분입니다.',
-      createdAt: '3일 전',
-      views: 134,
-      comments: 25,
-      category: 'healing'
-    },
-    {
-      id: 4,
-      title: '교회 부흥과 성도들의 신앙성장을 위해',
-      prayerContent: '우리 교회가 더욱 부흥하고 성도들의 신앙이 성장할 수 있도록 기도해주세요. 특히 청년들이 많이 돌아오길 원합니다.',
-      isAnonymous: false,
-      requesterName: '박목사',
-      prayerStatus: 'ongoing',
-      prayerCount: 95,
-      testimony: null,
-      createdAt: '1주일 전',
-      views: 187,
-      comments: 18,
-      category: 'church'
-    }
-  ];
+  const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -149,14 +79,27 @@ const PrayerRequests: React.FC = () => {
     }
   };
 
-  const filteredRequests = prayerRequests.filter(request => {
-    const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.prayerContent.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || request.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || request.prayerStatus === selectedStatus;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await communityService.getPrayerRequests({
+          category: selectedCategory === 'all' ? undefined : selectedCategory,
+          status: selectedStatus === 'all' ? undefined : selectedStatus,
+          search: searchTerm || undefined,
+          limit: 50
+        });
+        setPrayerRequests(data);
+      } catch (error) {
+        console.error('PrayerRequests 데이터 로드 실패:', error);
+        setPrayerRequests([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedCategory, selectedStatus, searchTerm]);
 
   const handlePrayFor = (requestId: number) => {
     // 기도했습니다 버튼 클릭 처리
@@ -220,18 +163,24 @@ const PrayerRequests: React.FC = () => {
       </div>
 
       {/* 기도 요청 목록 */}
-      <div className="space-y-4">
-        {filteredRequests.map((request) => (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">기도 요청 목록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {prayerRequests.map((request) => (
           <div key={request.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(request.category)}`}>
                   {categories.find(c => c.value === request.category)?.label}
                 </span>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.prayerStatus)}`}>
-                  {getStatusText(request.prayerStatus)}
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                  {getStatusText(request.status)}
                 </span>
-                {request.isAnonymous && (
+                {!request.isPublic && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                     익명
                   </span>
@@ -249,17 +198,17 @@ const PrayerRequests: React.FC = () => {
             </h3>
 
             <p className="text-gray-700 mb-4 leading-relaxed">
-              {request.prayerContent}
+              {request.content}
             </p>
 
-            {/* 간증이 있는 경우 */}
-            {request.testimony && (
+            {/* 간증 기능이 없어서 숨김 */}
+            {false && request.content && (
               <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
                 <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-2 mt-0.5" />
                   <div>
                     <h4 className="text-sm font-semibold text-green-800 mb-1">기도 응답 간증</h4>
-                    <p className="text-sm text-green-700">{request.testimony}</p>
+                    <p className="text-sm text-green-700">{request.content}</p>
                   </div>
                 </div>
               </div>
@@ -284,19 +233,19 @@ const PrayerRequests: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button className="flex items-center text-sm text-gray-500 hover:text-blue-500">
                   <MessageCircle className="h-4 w-4 mr-1" />
-                  응원 {request.comments}
+                  조회 {request.views}
                 </button>
 
                 <Button 
                   size="sm" 
                   onClick={() => handlePrayFor(request.id)}
                   className={`flex items-center gap-1 ${
-                    request.prayerStatus === 'answered' 
+                    request.status === 'answered' 
                       ? 'bg-green-600 hover:bg-green-700' 
                       : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
-                  {request.prayerStatus === 'answered' ? (
+                  {request.status === 'answered' ? (
                     <>
                       <CheckCircle className="h-4 w-4" />
                       감사합니다
@@ -312,10 +261,11 @@ const PrayerRequests: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* 빈 상태 */}
-      {filteredRequests.length === 0 && (
+      {!loading && prayerRequests.length === 0 && (
         <div className="text-center py-12">
           <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

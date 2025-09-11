@@ -60,7 +60,7 @@ export const getCommunityMenus = () => [
     icon: 'Home'
   },
   {
-    name: '무료 나눔',
+    name: '무료 나눔(드림)',
     path: '/community/free-sharing',
     icon: 'Gift'
   },
@@ -70,39 +70,39 @@ export const getCommunityMenus = () => [
     icon: 'MessageSquare'
   },
   {
-    name: '나눔 제공',
+    name: '물건 판매',
     path: '/community/sharing-offer',
     icon: 'HandHeart'
   },
   {
-    name: '구인 공고',
+    name: '사역자 모집',
     path: '/community/job-posting',
     icon: 'Briefcase'
   },
   {
-    name: '구직 신청',
+    name: '사역자 지원',
     path: '/community/job-seeking',
     icon: 'User'
   },
   {
-    name: '음악팀 모집',
+    name: '행사팀 모집',
     path: '/community/music-team-recruit',
     icon: 'Music'
   },
   {
-    name: '음악팀 참여',
+    name: '행사팀 지원',
     path: '/community/music-team-seeking',
     icon: 'Users'
   },
   {
-    name: '교회 행사',
+    name: '행사 소식',
     path: '/community/church-events',
     icon: 'Calendar'
   },
   {
-    name: '기도 요청',
-    path: '/community/prayer-requests',
-    icon: 'Heart'
+    name: '내 글 관리',
+    path: '/community/my-posts',
+    icon: 'User'
   }
 ];
 
@@ -166,6 +166,11 @@ export const getSuperAdminMenus = () => [
     name: '커뮤니티 신청 관리',
     path: '/community-applications',
     icon: 'Users'
+  },
+  {
+    name: '커뮤니티 관리',
+    path: '/community/admin',
+    icon: 'Shield'
   },
   {
     name: '시스템 공지사항',
