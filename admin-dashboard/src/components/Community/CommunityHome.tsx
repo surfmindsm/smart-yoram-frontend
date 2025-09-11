@@ -10,8 +10,7 @@ import {
   MapPin,
   Briefcase,
   Music,
-  Calendar,
-  Users
+  Calendar
 } from 'lucide-react';
 import { communityService, RecentPost } from '../../services/communityService';
 

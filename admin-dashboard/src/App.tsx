@@ -275,12 +275,12 @@ function App() {
               <CreateItemRequest />
             </Suspense>
           } />
-          <Route path="community/sharing-offer" element={
+          <Route path="community/item-sale" element={
             <Suspense fallback={<LoadingSpinner />}>
               <SharingOffer />
             </Suspense>
           } />
-          <Route path="community/sharing-offer/create" element={
+          <Route path="community/item-sale/create" element={
             <Suspense fallback={<LoadingSpinner />}>
               <CreateSharingOffer />
             </Suspense>

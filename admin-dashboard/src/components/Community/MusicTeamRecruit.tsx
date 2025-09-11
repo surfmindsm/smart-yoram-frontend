@@ -14,7 +14,6 @@ import {
   Eye,
   Heart,
   MessageCircle,
-  Phone,
   Grid3X3,
   List
 } from 'lucide-react';

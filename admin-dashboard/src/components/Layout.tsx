@@ -43,7 +43,8 @@ import {
   Home,
   ChevronDown,
   ChevronRight,
-  UserCheck2
+  UserCheck2,
+  ShoppingCart
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -235,11 +236,11 @@ const Layout: React.FC = () => {
       hasSubGroups: true,
       subGroups: [
         {
-          title: '물품 나눔',
+          title: '물품 거래',
           items: [
-            { path: '/community/free-sharing', name: '무료 나눔', Icon: Gift },
+            { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
+            { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
             { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
-            { path: '/community/sharing-offer', name: '나눔 제공', Icon: Share2 },
           ]
         },
         {

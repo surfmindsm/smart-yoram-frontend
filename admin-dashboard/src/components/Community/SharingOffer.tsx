@@ -54,11 +54,11 @@ const SharingOffer: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'available':
-        return '제공 가능';
+        return '판매중';
       case 'reserved':
         return '예약중';
       case 'completed':
-        return '제공 완료';
+        return '판매 완료';
       default:
         return '알 수 없음';
     }
@@ -73,6 +73,8 @@ const SharingOffer: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
+        console.log('🎯 SharingOffer 컴포넌트에서 받은 데이터:', data);
+        console.log('🎯 첫 번째 아이템 상세:', data[0]);
         setOfferItems(data);
       } catch (error) {
         console.error('SharingOffer 데이터 로드 실패:', error);
@@ -90,9 +92,9 @@ const SharingOffer: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">나눔 제공</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">물품 판매</h1>
           <p className="text-gray-600">
-            중고 물품을 다른 교회에 나눔해보세요
+            중고 물품을 다른 교회에 판매해보세요
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -118,10 +120,10 @@ const SharingOffer: React.FC = () => {
 
           <Button 
             className="flex items-center gap-2"
-            onClick={() => navigate(getCreatePagePath('sharing-offer'))}
+            onClick={() => navigate(getCreatePagePath('item-sale'))}
           >
             <Plus className="h-4 w-4" />
-            나눔 제공 등록
+            물품 판매 등록
           </Button>
         </div>
       </div>
@@ -158,7 +160,7 @@ const SharingOffer: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">나눔 제공 목록을 불러오는 중...</p>
+          <p className="text-gray-600">물품 판매 목록을 불러오는 중...</p>
         </div>
       ) : (
         <>
@@ -185,6 +187,9 @@ const SharingOffer: React.FC = () => {
                         지역
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        가격
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         상태
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -208,7 +213,7 @@ const SharingOffer: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.userName || '익명'}
+                          {item.userName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.church || '협력사'}
@@ -216,6 +221,9 @@ const SharingOffer: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
                           {item.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.price ? `₩${item.price.toLocaleString()}` : '가격 문의'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
@@ -263,7 +271,10 @@ const SharingOffer: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-gray-600 mb-2">
-                  <strong>제공 물품:</strong> {item.itemName}
+                  <strong>판매 물품:</strong> {item.itemName}
+                </p>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>판매가격:</strong> {item.price ? `₩${item.price.toLocaleString()}` : '가격 문의'}
                 </p>
                 <p className="text-sm text-gray-600 mb-2">
                   <strong>수량:</strong> {item.quantity}개
@@ -274,7 +285,7 @@ const SharingOffer: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center text-sm text-gray-600 mb-2 space-x-4">
-                  <span><strong className="mr-1">제공자:</strong> {item.userName || '익명'}</span>
+                  <span><strong className="mr-1">판매자:</strong> {item.userName}</span>
                   <span><strong className="mr-1">교회:</strong> {item.church || '협력사'}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
@@ -314,7 +325,7 @@ const SharingOffer: React.FC = () => {
 
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
                   <Share2 className="h-3 w-3" />
-                  수령 신청
+                  구매 문의
                 </Button>
               </div>
             </div>

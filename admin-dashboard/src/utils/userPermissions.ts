@@ -65,14 +65,14 @@ export const getCommunityMenus = () => [
     icon: 'Gift'
   },
   {
+    name: '물품 판매',
+    path: '/community/item-sale',
+    icon: 'HandHeart'
+  },
+  {
     name: '물품 요청',
     path: '/community/item-request',  
     icon: 'MessageSquare'
-  },
-  {
-    name: '물건 판매',
-    path: '/community/sharing-offer',
-    icon: 'HandHeart'
   },
   {
     name: '사역자 모집',

@@ -8,7 +8,7 @@ export const FORM_TYPE_MAPPING = {
   // 공통 폼 사용 (기본 필드로 충분한 타입들)
   'free-sharing': 'common' as FormType,
   'item-request': 'common' as FormType,
-  'sharing-offer': 'common' as FormType,
+  'item-sale': 'common' as FormType,
   'job-posting': 'common' as FormType,
   'job-seeking': 'common' as FormType,
   'music-team-recruit': 'common' as FormType,
@@ -221,13 +221,13 @@ export const itemRequestConfig: PostTypeConfig = {
   ]
 };
 
-// 나눔 제공 설정 (중고 물품 판매)
-export const sharingOfferConfig: PostTypeConfig = {
-  type: 'sharing-offer',
-  title: '중고 물품 판매 등록',
-  submitEndpoint: '/community/offer',
-  successMessage: '중고 물품 판매가 성공적으로 등록되었습니다!',
-  listPath: '/community/sharing-offer',
+// 물품 판매 설정 (구 나눔 제공)
+export const itemSaleConfig: PostTypeConfig = {
+  type: 'item-sale',
+  title: '물품 판매 등록',
+  submitEndpoint: '/community/item-sale',
+  successMessage: '물품 판매가 성공적으로 등록되었습니다!',
+  listPath: '/community/item-sale',
   fields: [
     {
       key: 'images',
@@ -281,10 +281,9 @@ export const sharingOfferConfig: PostTypeConfig = {
     {
       key: 'price',
       label: '판매 가격',
-      type: 'text',
-      placeholder: '예: 50,000원, 5만원, 협의 가능',
-      required: true,
-      maxLength: 50
+      type: 'number',
+      placeholder: '숫자로만 입력 (예: 50000)',
+      required: true
     },
     {
       key: 'purchaseDate',
@@ -855,7 +854,7 @@ export const churchEventsConfig: PostTypeConfig = {
 export const commonFormConfigs = {
   'free-sharing': freeSharingConfig,
   'item-request': itemRequestConfig,
-  'sharing-offer': sharingOfferConfig,
+  'item-sale': itemSaleConfig,
   'job-posting': jobPostingConfig,
   'job-seeking': jobSeekingConfig,
   'music-team-recruit': musicTeamRecruitConfig,

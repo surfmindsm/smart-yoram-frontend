@@ -53,7 +53,7 @@ export interface RequestItem {
   userName?: string; // 사용자명 필드 추가
 }
 
-// 나눔 제공 관련 인터페이스
+// 물품 판매 관련 인터페이스 (구 물품 판매)
 export interface OfferItem {
   id: number;
   title: string;
@@ -61,6 +61,7 @@ export interface OfferItem {
   category: string;
   condition: string;
   quantity: number;
+  price?: number; // 판매가격 필드 추가
   description: string;
   church: string | null;
   location: string;
@@ -458,7 +459,7 @@ export const communityService = {
     }
   },
 
-  // 나눔 제공
+  // 물품 판매
   getOfferItems: async (params?: {
     category?: string;
     search?: string;
@@ -466,13 +467,57 @@ export const communityService = {
     limit?: number;
   }): Promise<OfferItem[]> => {
     try {
-      console.log('🎁 나눔 제공 API 호출 중...', params);
-      const response = await api.get(getApiUrl('/community/sharing-offer'), { params });
-      console.log('✅ 나눔 제공 API 응답:', response.data);
+      console.log('🎁 물품 판매 API 호출 중...', params);
+      const response = await api.get(getApiUrl('/community/item-sale'), { params });
+      console.log('✅ 물품 판매 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        return response.data.data;
+        // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (FreeSharing과 동일)
+        const transformedData = response.data.data.map((item: any) => {
+          // 교회 9998의 경우 null로 처리
+          const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
+          
+          return {
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            condition: item.condition || '양호',
+            price: item.price,
+            images: (() => {
+              if (!item.images) return [];
+              
+              let imageArray: string[];
+              if (typeof item.images === 'string') {
+                // 백엔드에서 문자열로 저장된 JSON 배열을 파싱
+                try {
+                  imageArray = JSON.parse(item.images);
+                } catch (e) {
+                  console.warn('이미지 JSON 파싱 실패:', item.images);
+                  return [];
+                }
+              } else {
+                imageArray = Array.isArray(item.images) ? item.images : [];
+              }
+              
+              return imageArray.map((img: string) => 
+                img.startsWith('http') ? img : `https://api.surfmind-team.com/static/community/images/${img}`
+              );
+            })(),
+            church: churchName,
+            location: item.location,
+            contactInfo: item.contact_info || item.contactInfo,
+            status: item.status,
+            createdAt: item.created_at || item.createdAt,
+            views: item.view_count || item.views || 0,
+            likes: item.likes || 0,
+            comments: item.comments || 0,
+            userName: item.user_name || item.userName || '익명'
+          };
+        });
+        console.log('🔄 물품 판매 변환된 데이터:', transformedData);
+        return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
@@ -481,12 +526,38 @@ export const communityService = {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
           
-          return {
+          const transformedItem = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.user_name || item.userName || `사용자 ${item.user_id}`,
+            createdAt: item.created_at || item.createdAt, // 등록일 추가
+            views: item.view_count || item.views || 0, // 조회수 추가
+            images: (() => {
+              if (!item.images) return [];
+              let imageArray: string[];
+              if (typeof item.images === 'string') {
+                try {
+                  imageArray = JSON.parse(item.images);
+                } catch (e) {
+                  console.warn('이미지 JSON 파싱 실패:', item.images);
+                  return [];
+                }
+              } else {
+                imageArray = Array.isArray(item.images) ? item.images : [];
+              }
+              return imageArray.map((img: string) => 
+                img.startsWith('http') ? img : `https://api.surfmind-team.com/static/community/images/${img}`
+              );
+            })()
           };
+          
+          console.log('🔄 데이터 변환 결과:', { 
+            원본: { created_at: item.created_at, user_name: item.user_name, view_count: item.view_count },
+            변환후: { createdAt: transformedItem.createdAt, userName: transformedItem.userName, views: transformedItem.views }
+          });
+          
+          return transformedItem;
         });
         return transformedData;
       }
@@ -495,7 +566,7 @@ export const communityService = {
       console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 나눔 제공 조회 실패:', error);
+      console.error('❌ 물품 판매 조회 실패:', error);
       console.error('에러 응답:', error.response?.data);
       console.error('상태 코드:', error.response?.status);
       return []; // 에러 발생 시 빈 배열 반환
@@ -504,29 +575,29 @@ export const communityService = {
 
   createOfferItem: async (itemData: Partial<OfferItem>): Promise<OfferItem> => {
     try {
-      const response = await api.post(getApiUrl('/community/sharing-offer'), itemData);
+      const response = await api.post(getApiUrl('/community/item-sale'), itemData);
       return response.data;
     } catch (error: any) {
-      console.error('나눔 제공 등록 실패:', error);
+      console.error('물품 판매 등록 실패:', error);
       throw error;
     }
   },
 
   updateOfferItem: async (itemId: number, itemData: Partial<OfferItem>): Promise<OfferItem> => {
     try {
-      const response = await api.put(getApiUrl(`/community/sharing-offer/${itemId}`), itemData);
+      const response = await api.put(getApiUrl(`/community/item-sale/${itemId}`), itemData);
       return response.data;
     } catch (error: any) {
-      console.error('나눔 제공 수정 실패:', error);
+      console.error('물품 판매 수정 실패:', error);
       throw error;
     }
   },
 
   deleteOfferItem: async (itemId: number): Promise<void> => {
     try {
-      await api.delete(getApiUrl(`/community/sharing-offer/${itemId}`));
+      await api.delete(getApiUrl(`/community/item-sale/${itemId}`));
     } catch (error: any) {
-      console.error('나눔 제공 삭제 실패:', error);
+      console.error('물품 판매 삭제 실패:', error);
       throw error;
     }
   },
