@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -20,6 +21,7 @@ import { formatCreatedAt } from '../../utils/dateUtils';
 
 
 const JobSeeking: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedField, setSelectedField] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -123,7 +125,10 @@ const JobSeeking: React.FC = () => {
             </Button>
           </div>
 
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => navigate('/community/job-seeking/create')}
+          >
             <Plus className="h-4 w-4" />
             사역자 지원 등록
           </Button>

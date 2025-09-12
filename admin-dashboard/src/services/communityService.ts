@@ -928,12 +928,85 @@ export const communityService = {
     }
   },
 
-  createJobSeeker: async (seekerData: Partial<JobSeeker>): Promise<JobSeeker> => {
+  createJobSeeker: async (seekerData: any, resume?: File): Promise<JobSeeker> => {
     try {
-      const response = await api.post(getApiUrl('/community/job-seeking'), seekerData);
-      return response.data;
+      console.log('👤 구직 신청 등록 API 호출 중...', seekerData);
+      
+      // 파일이 있는 경우 FormData 사용, 없으면 JSON 전송
+      if (resume) {
+        const formData = new FormData();
+        
+        // 백엔드 API 스키마에 맞게 데이터 변환 후 FormData에 추가
+        const apiData = {
+          title: seekerData.title,
+          desired_position: seekerData.ministryField?.join(', ') || seekerData.desired_position,
+          employment_type: seekerData.availability || 'full-time',
+          desired_location: seekerData.preferredLocation?.join(', ') || seekerData.desired_location,
+          salary_expectation: seekerData.salary_expectation,
+          experience_summary: seekerData.career || seekerData.introduction || '',
+          education_background: seekerData.education,
+          skills: Array.isArray(seekerData.certifications) 
+            ? seekerData.certifications.join(', ') 
+            : seekerData.skills,
+          portfolio_url: seekerData.portfolio_url,
+          contact_method: "기타",
+          contact_info: seekerData.contactInfo || seekerData.contactPhone + (seekerData.contactEmail ? ` | ${seekerData.contactEmail}` : ''),
+          available_start_date: seekerData.available_start_date,
+          status: seekerData.status || "active"
+        };
+        
+        // FormData에 각 필드 추가
+        Object.entries(apiData).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            formData.append(key, value);
+          }
+        });
+        
+        // 이력서 파일 추가
+        formData.append('resume', resume, resume.name);
+        
+        console.log('📄 이력서 파일과 함께 FormData 전송');
+        
+        const response = await api.post(getApiUrl('/community/job-seekers'), formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        console.log('✅ 구직 신청 등록 (파일 포함) API 응답:', response.data);
+        return response.data?.data || response.data;
+        
+      } else {
+        // 파일이 없는 경우 JSON 전송
+        const apiData = {
+          title: seekerData.title,
+          desired_position: seekerData.ministryField?.join(', ') || seekerData.desired_position,
+          employment_type: seekerData.availability || 'full-time',
+          desired_location: seekerData.preferredLocation?.join(', ') || seekerData.desired_location,
+          salary_expectation: seekerData.salary_expectation,
+          experience_summary: seekerData.career || seekerData.introduction || '',
+          education_background: seekerData.education,
+          skills: Array.isArray(seekerData.certifications) 
+            ? seekerData.certifications.join(', ') 
+            : seekerData.skills,
+          portfolio_url: seekerData.portfolio_url,
+          contact_method: "기타",
+          contact_info: seekerData.contactInfo || seekerData.contactPhone + (seekerData.contactEmail ? ` | ${seekerData.contactEmail}` : ''),
+          available_start_date: seekerData.available_start_date,
+          status: seekerData.status || "active"
+        };
+        
+        console.log('🔄 변환된 API 데이터:', apiData);
+        
+        const response = await api.post(getApiUrl('/community/job-seekers'), apiData);
+        console.log('✅ 구직 신청 등록 API 응답:', response.data);
+        
+        return response.data?.data || response.data;
+      }
     } catch (error: any) {
-      console.error('구직 신청 등록 실패:', error);
+      console.error('❌ 구직 신청 등록 실패:', error);
+      console.error('에러 응답:', error.response?.data);
+      console.error('상태 코드:', error.response?.status);
       throw error;
     }
   },

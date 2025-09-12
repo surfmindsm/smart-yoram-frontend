@@ -61,12 +61,15 @@ const CreateJobSeeking: React.FC = () => {
         status: 'active' as const
       };
 
-      await communityService.createJobSeeker(seekerData);
-      alert('사역자 지원서가 등록되었습니다.');
+      // 이력서 파일이 있으면 함께 전송, 없으면 null
+      await communityService.createJobSeeker(seekerData, resume || undefined);
+      
+      alert('사역자 지원서가 등록되었습니다.' + (resume ? ' 이력서도 함께 업로드되었습니다.' : ''));
       navigate('/community/job-seeking');
-    } catch (error) {
+    } catch (error: any) {
       console.error('등록 실패:', error);
-      alert('등록에 실패했습니다. 다시 시도해주세요.');
+      const errorMessage = error.response?.data?.message || '등록에 실패했습니다. 다시 시도해주세요.';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -131,12 +134,28 @@ const CreateJobSeeking: React.FC = () => {
         alert('파일 크기는 5MB 이하여야 합니다.');
         return;
       }
+      
+      // 파일 타입 체크
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('PDF, DOC, DOCX 파일만 업로드 가능합니다.');
+        return;
+      }
+      
       setResume(file);
     }
   };
 
   const removeResume = () => {
     setResume(null);
+  };
+
+  // 필수 필드 검증
+  const isFormValid = () => {
+    return formData.title.trim() !== '' && 
+           formData.name.trim() !== '' && 
+           formData.ministryField.length > 0 && 
+           formData.contactPhone.trim() !== '';
   };
 
   return (
@@ -164,7 +183,7 @@ const CreateJobSeeking: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  지원서 제목 *
+                  지원서 제목 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -178,7 +197,7 @@ const CreateJobSeeking: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  성명 *
+                  성명 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -194,7 +213,7 @@ const CreateJobSeeking: React.FC = () => {
             {/* 사역 분야 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                사역 분야 *
+                사역 분야 <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2 mb-2">
                 <select
@@ -395,25 +414,28 @@ const CreateJobSeeking: React.FC = () => {
                   </label>
                 </div>
               ) : (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                      📄
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                      <span className="text-lg">📄</span>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{resume.name}</p>
                       <p className="text-xs text-gray-500">
-                        {(resume.size / 1024 / 1024).toFixed(2)}MB
+                        {(resume.size / 1024 / 1024).toFixed(2)}MB · {resume.type.includes('pdf') ? 'PDF' : 'DOC'}
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={removeResume}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-green-600 font-medium">✓ 업로드 준비됨</span>
+                    <button
+                      type="button"
+                      onClick={removeResume}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -457,12 +479,13 @@ const CreateJobSeeking: React.FC = () => {
         </div>
 
         {/* 안내 사항 */}
-        <div className="bg-orange-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-orange-900 mb-2">💡 사역자 지원 안내</h3>
-          <ul className="text-sm text-orange-800 space-y-1">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 사역자 지원 안내</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
             <li>• 정확한 정보를 기재해주시면 더 적합한 사역지를 찾을 수 있습니다.</li>
             <li>• 사역 분야와 희망 지역을 구체적으로 명시해주세요.</li>
             <li>• 자기소개서를 통해 자신의 사역 철학을 잘 표현해주세요.</li>
+            <li>• 이력서는 PDF, DOC, DOCX 형식으로 5MB 이하 파일만 업로드 가능합니다.</li>
             <li>• 이력서 첨부 시 개인정보 보호에 유의해주세요.</li>
           </ul>
         </div>
@@ -476,20 +499,26 @@ const CreateJobSeeking: React.FC = () => {
           >
             취소
           </Button>
+          
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isFormValid()}
             className="flex items-center gap-2"
           >
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                등록 중...
+                {resume ? '지원서와 이력서 업로드 중...' : '지원서 등록 중...'}
+              </>
+            ) : !isFormValid() ? (
+              <>
+                <Plus className="h-4 w-4" />
+                필수 항목을 입력해주세요
               </>
             ) : (
               <>
                 <Plus className="h-4 w-4" />
-                지원서 등록
+                {resume ? '지원서 등록 (이력서 포함)' : '지원서 등록'}
               </>
             )}
           </Button>

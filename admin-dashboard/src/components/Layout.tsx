@@ -247,7 +247,7 @@ const Layout: React.FC = () => {
           title: '인력 매칭',
           items: [
             { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
-            { path: '/community/job-seeking', name: '사역자 지원', Icon: UserPlus },
+            // { path: '/community/job-seeking', name: '사역자 지원', Icon: UserPlus }, // 개인정보 보호를 위해 임시 숨김
             { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
             { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Mic },
           ]
