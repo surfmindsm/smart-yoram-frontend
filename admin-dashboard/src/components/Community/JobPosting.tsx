@@ -144,6 +144,10 @@ const JobPosting: React.FC = () => {
     return `${diffDays}일 남음`;
   };
 
+  const handleJobClick = (jobId: number) => {
+    navigate(`/community/job-posting/${jobId}`);
+  };
+
   return (
     <div className="p-6">
       {/* 헤더 */}
@@ -280,7 +284,11 @@ const JobPosting: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {jobPosts.map((job) => (
-                      <tr key={job.id} className="hover:bg-gray-50 cursor-pointer">
+                      <tr 
+                        key={job.id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleJobClick(job.id)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{job.title}</div>
                           <div className="text-sm text-gray-500">{job.salary}</div>
@@ -322,7 +330,11 @@ const JobPosting: React.FC = () => {
             /* 카드 뷰 */
             <div className="space-y-4">
               {jobPosts.map((job) => (
-              <div key={job.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+              <div 
+                key={job.id} 
+                className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleJobClick(job.id)}
+              >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getJobTypeColor(job.jobType)}`}>
@@ -458,6 +470,11 @@ const JobPosting: React.FC = () => {
                   size="sm" 
                   disabled={job.status !== 'open'}
                   className="flex items-center gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation(); // 카드 클릭 이벤트 방지
+                    // 지원하기 로직 추가 (추후 구현)
+                    console.log('지원하기 클릭:', job.id);
+                  }}
                 >
                   <Briefcase className="h-3 w-3" />
                   {job.status === 'open' ? '지원하기' : '모집마감'}

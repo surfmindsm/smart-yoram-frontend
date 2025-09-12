@@ -50,6 +50,7 @@ const CreateChurchEvents = lazy(() => import('./components/Community/CreateChurc
 const ItemRequest = lazy(() => import('./components/Community/ItemRequest'));
 const SharingOffer = lazy(() => import('./components/Community/SharingOffer'));
 const JobPosting = lazy(() => import('./components/Community/JobPosting'));
+const JobPostingDetail = lazy(() => import('./components/Community/JobPostingDetail'));
 const JobSeeking = lazy(() => import('./components/Community/JobSeeking'));
 const MusicTeamRecruit = lazy(() => import('./components/Community/MusicTeamRecruit'));
 const MusicTeamSeeking = lazy(() => import('./components/Community/MusicTeamSeeking'));
@@ -300,6 +301,11 @@ function App() {
           <Route path="community/job-posting" element={
             <Suspense fallback={<LoadingSpinner />}>
               <JobPosting />
+            </Suspense>
+          } />
+          <Route path="community/job-posting/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <JobPostingDetail />
             </Suspense>
           } />
           <Route path="community/job-posting/create" element={

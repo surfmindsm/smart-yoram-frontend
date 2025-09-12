@@ -80,6 +80,7 @@ export interface OfferItem {
 export interface JobPost {
   id: number;
   title: string;
+  description?: string; // 상세 설명 필드 추가
   churchName: string | null;
   churchIntro: string;
   position: string;
@@ -95,6 +96,7 @@ export interface JobPost {
   views: number;
   likes: number;
   applications: number;
+  contactInfo?: string; // 연락처 정보 필드 추가
   userName?: string; // 사용자명 필드 추가
 }
 
@@ -707,7 +709,27 @@ export const communityService = {
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        return response.data.data;
+        const transformedData = response.data.data.map((item: any) => {
+          // 교회 9998의 경우 null로 처리
+          const churchName = item.church_id === 9998 ? null : (item.church || item.company || `교회 ${item.church_id}`);
+          
+          return {
+            ...item,
+            church: churchName,
+            churchName: churchName, // JobPost의 경우 churchName 필드 사용
+            userName: item.user_name || item.userName || '익명',
+            // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
+            company: item.company || item.company_name,
+            position: item.position || item.job_type,
+            salary: item.salary || item.salary_range,
+            views: item.views || item.view_count || 0,
+            deadline: item.deadline || item.expires_at,
+            createdAt: item.createdAt || item.created_at,
+            description: item.description,
+            contactInfo: item.contact_info || item.contactInfo
+          };
+        });
+        return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
@@ -720,7 +742,16 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.user_name || item.userName || '익명',
+            // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
+            company: item.company || item.company_name,
+            position: item.position || item.job_type,
+            salary: item.salary || item.salary_range,
+            views: item.views || item.view_count || 0,
+            deadline: item.deadline || item.expires_at,
+            createdAt: item.createdAt || item.created_at,
+            description: item.description,
+            contactInfo: item.contact_info || item.contactInfo
           };
         });
         return transformedData;
@@ -737,12 +768,98 @@ export const communityService = {
     }
   },
 
-  createJobPost: async (postData: Partial<JobPost>): Promise<JobPost> => {
+  getJobPost: async (jobId: number): Promise<JobPost | null> => {
     try {
-      const response = await api.post(getApiUrl('/community/job-posting'), postData);
-      return response.data;
+      console.log('💼 구인 공고 상세 조회 API 호출 중...', jobId);
+      const response = await api.get(getApiUrl(`/community/job-posting/${jobId}`));
+      console.log('✅ 구인 공고 상세 조회 API 응답:', response.data);
+      
+      // API 응답 구조가 { success: true, data: {...} } 형태인 경우 처리
+      if (response.data && response.data.success && response.data.data) {
+        const item = response.data.data;
+        // 교회 9998의 경우 null로 처리
+        const churchName = item.church_id === 9998 ? null : (item.church || item.company || `교회 ${item.church_id}`);
+        
+        return {
+          ...item,
+          church: churchName,
+          churchName: churchName,
+          userName: item.user_name || item.userName || '익명',
+          // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
+          company: item.company || item.company_name,
+          position: item.position || item.job_type,
+          salary: item.salary || item.salary_range,
+          views: item.views || item.view_count || 0,
+          deadline: item.deadline || item.expires_at,
+          createdAt: item.createdAt || item.created_at
+        };
+      }
+      
+      // 직접 객체가 반환되는 경우
+      if (response.data && typeof response.data === 'object') {
+        const item = response.data;
+        // 교회 9998의 경우 null로 처리
+        const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+        
+        return {
+          ...item,
+          church: churchName,
+          churchName: churchName,
+          userName: item.user_name || item.userName || '익명',
+          // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
+          company: item.company || item.company_name,
+          position: item.position || item.job_type,
+          salary: item.salary || item.salary_range,
+          views: item.views || item.view_count || 0,
+          deadline: item.deadline || item.expires_at,
+          createdAt: item.createdAt || item.created_at
+        };
+      }
+      
+      return null;
     } catch (error: any) {
-      console.error('구인 공고 등록 실패:', error);
+      console.error('❌ 구인 공고 상세 조회 실패:', error);
+      console.error('에러 응답:', error.response?.data);
+      console.error('상태 코드:', error.response?.status);
+      return null;
+    }
+  },
+
+  createJobPost: async (postData: any): Promise<JobPost> => {
+    try {
+      console.log('💼 구인 공고 등록 API 호출 중...', postData);
+      
+      // 백엔드 API 스키마에 맞게 데이터 변환
+      const apiData = {
+        title: postData.title,
+        company: postData.churchName, // 교회명을 company 필드로 전송
+        position: postData.position,
+        employment_type: postData.jobType,
+        location: postData.location,
+        salary_range: postData.salary,
+        description: postData.description,
+        requirements: Array.isArray(postData.requirements) 
+          ? postData.requirements.join(', ')  // 배열을 쉼표로 구분된 문자열로 변환
+          : postData.requirements,
+        benefits: Array.isArray(postData.benefits)
+          ? postData.benefits.join(', ')      // 배열을 쉼표로 구분된 문자열로 변환
+          : postData.benefits,
+        contact_method: "기타", // 기본값
+        contact_info: postData.contactInfo || postData.contactPhone + (postData.contactEmail ? ` | ${postData.contactEmail}` : ''),
+        expires_at: postData.deadline,
+        status: postData.status || "open"
+      };
+      
+      console.log('🔄 변환된 API 데이터:', apiData);
+      
+      const response = await api.post(getApiUrl('/community/job-posting'), apiData);
+      console.log('✅ 구인 공고 등록 API 응답:', response.data);
+      
+      return response.data?.data || response.data;
+    } catch (error: any) {
+      console.error('❌ 구인 공고 등록 실패:', error);
+      console.error('에러 응답:', error.response?.data);
+      console.error('상태 코드:', error.response?.status);
       throw error;
     }
   },
