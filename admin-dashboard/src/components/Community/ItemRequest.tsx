@@ -20,8 +20,14 @@ import { formatCreatedAt } from '../../utils/dateUtils';
 
 
 const ItemRequest: React.FC = () => {
+  console.log('ItemRequest 컴포넌트 로드됨');
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 상세 페이지로 이동하는 함수
+  const handleItemClick = (item: RequestItem) => {
+    navigate(`/community/item-request/${item.id}`);
+  };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedUrgency, setSelectedUrgency] = useState('all');
@@ -109,19 +115,27 @@ const ItemRequest: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('물품 요청 데이터 로딩 시작');
         setLoading(true);
-        const data = await communityService.getRequestItems({
+        
+        const params = {
           category: selectedCategory === 'all' ? undefined : selectedCategory,
           status: selectedStatus === 'all' ? undefined : selectedStatus,
           urgency: selectedUrgency === 'all' ? undefined : selectedUrgency,
           search: searchTerm || undefined,
           limit: 50
-        });
+        };
+        console.log('🔍 현재 필터 상태:', { selectedCategory, selectedStatus, selectedUrgency, searchTerm });
+        
+        const data = await communityService.getRequestItems(params);
+        console.log('물품 요청 데이터 받음:', data?.length || 0, '개');
+        
         setRequestItems(data);
       } catch (error) {
-        console.error('ItemRequest 데이터 로드 실패:', error);
+        console.error('물품 요청 데이터 로드 실패:', error);
         setRequestItems([]);
       } finally {
+        console.log('물품 요청 데이터 로딩 완료');
         setLoading(false);
       }
     };
@@ -148,6 +162,7 @@ const ItemRequest: React.FC = () => {
     if (diffDays === 1) return '내일까지';
     return `${diffDays}일 남음`;
   };
+
 
   return (
     <div className="p-6">
@@ -292,7 +307,7 @@ const ItemRequest: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {requestItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 cursor-pointer">
+                      <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleItemClick(item)}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{item.title}</div>
                           <div className="text-sm text-gray-500 truncate max-w-xs">{item.description}</div>
@@ -339,7 +354,7 @@ const ItemRequest: React.FC = () => {
             /* 카드 뷰 */
             <div className="space-y-4">
           {requestItems.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+          <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(item.urgency)}`}>

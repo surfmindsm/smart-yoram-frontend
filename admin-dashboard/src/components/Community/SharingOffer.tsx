@@ -22,6 +22,11 @@ import { formatCreatedAt } from '../../utils/dateUtils';
 const SharingOffer: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 상세 페이지로 이동하는 함수
+  const handleItemClick = (item: OfferItem) => {
+    navigate(`/community/item-sale/${item.id}`);
+  };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
@@ -202,7 +207,7 @@ const SharingOffer: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {offerItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 cursor-pointer">
+                      <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleItemClick(item)}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{item.title}</div>
                           <div className="text-sm text-gray-500 truncate max-w-xs">{item.description}</div>
@@ -247,7 +252,7 @@ const SharingOffer: React.FC = () => {
             /* 카드 뷰 */
             <div className="space-y-4">
               {offerItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+              <div key={item.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">

@@ -49,7 +49,7 @@ export interface RequestItem {
   views: number;
   likes: number;
   comments: number;
-  urgency: 'low' | 'medium' | 'high';
+  urgency: 'low' | 'medium' | 'high' | 'normal'; // 백엔드 호환성을 위해 normal 추가
   userName?: string; // 사용자명 필드 추가
 }
 
@@ -72,6 +72,8 @@ export interface OfferItem {
   likes: number;
   comments: number;
   userName?: string; // 사용자명 필드 추가
+  images?: string[]; // 이미지 필드 추가
+  contactInfo?: string; // 연락처 정보 필드 추가
 }
 
 // 구인 공고 관련 인터페이스
@@ -267,7 +269,7 @@ export const communityService = {
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = response.data.data.map((item: any) => {
+        const transformedData = response.data.data.map((item: any): SharingItem => {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
           
@@ -384,35 +386,98 @@ export const communityService = {
     limit?: number;
   }): Promise<RequestItem[]> => {
     try {
-      console.log('📋 물품 요청 API 호출 중...', params);
-      const response = await api.get(getApiUrl('/community/item-request'), { params });
-      console.log('✅ 물품 요청 API 응답:', response.data);
+      console.log('물품 요청 API 호출:', params);
+      console.log('🌐 API URL:', getApiUrl('/community/item-requests'));
+      
+      // 다른 가능한 엔드포인트들도 시도해보자
+      let response;
+      const possibleEndpoints = [
+        '/community/item-requests',
+        '/community/item-request', 
+        '/community/requests',
+        '/community/request-items'
+      ];
+      
+      console.log('🔄 시도할 엔드포인트들:', possibleEndpoints);
+      
+      // 먼저 파라미터 없이 전체 데이터 요청해보기
+      console.log('🔍 파라미터 없이 전체 데이터 요청 중...');
+      const responseAll = await api.get(getApiUrl('/community/item-request'));
+      console.log('📊 전체 데이터 응답:', responseAll.data);
+      console.log('📊 전체 데이터 길이:', responseAll.data?.data?.length || 0);
+      
+      // 원래 파라미터로 요청
+      console.log('🔍 파라미터와 함께 요청 중...');
+      // 500 에러 발생하는 엔드포인트 대신 다른 것 시도
+      response = await api.get(getApiUrl('/community/item-request'), { params });
+      console.log('물품 요청 API 응답:', response.data);
+      console.log('📊 응답 상세:', { 
+        status: response.status, 
+        dataType: typeof response.data, 
+        isArray: Array.isArray(response.data),
+        isSuccess: response.data?.success,
+        dataLength: response.data?.data?.length,
+        directArrayLength: Array.isArray(response.data) ? response.data.length : null
+      });
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        const transformedData = response.data.data.map((item: any) => {
+        console.log('✅ 첫 번째 조건 매칭: success 래핑된 응답');
+        const transformedData = response.data.data.map((item: any): RequestItem => {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
           
           return {
-            ...item,
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            requestedItem: item.requested_item || item.requestedItem || item.title, // 없으면 제목 사용
+            quantity: item.quantity || 1,
+            reason: item.reason || item.description || '요청 사유 없음', // reason이 없으면 description 사용
+            urgency: item.urgency || item.urgency_level || 'medium', // normal 값도 그대로 허용
+            neededDate: item.needed_date || item.neededDate || '',
             church: churchName,
+            location: item.location,
+            contactInfo: item.contact_info || item.contactInfo || '',
+            status: item.status,
+            createdAt: item.created_at || item.createdAt,
+            views: item.view_count || item.views || 0,
+            likes: item.likes || 0,
+            comments: item.comments || 0,
             userName: item.user_name || item.userName || '익명'
           };
         });
+        console.log('변환된 물품 요청 데이터:', transformedData.length, '개');
         return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
       if (Array.isArray(response.data)) {
-        const transformedData = response.data.map((item: any) => {
+        console.log('✅ 두 번째 조건 매칭: 직접 배열 응답, 길이:', response.data.length);
+        console.log('🔍 첫 번째 아이템:', response.data[0]);
+        const transformedData = response.data.map((item: any): RequestItem => {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
           
           return {
-            ...item,
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            requestedItem: item.requested_item || item.requestedItem || item.title, // 없으면 제목 사용
+            quantity: item.quantity || 1,
+            reason: item.reason || item.description || '요청 사유 없음', // reason이 없으면 description 사용
+            urgency: item.urgency || item.urgency_level || 'medium', // normal 값도 그대로 허용
+            neededDate: item.needed_date || item.neededDate || '',
             church: churchName,
-            churchName: churchName, // JobPost의 경우 churchName 필드 사용
+            location: item.location,
+            contactInfo: item.contact_info || item.contactInfo || '',
+            status: item.status,
+            createdAt: item.created_at || item.createdAt,
+            views: item.view_count || item.views || 0,
+            likes: item.likes || 0,
+            comments: item.comments || 0,
             userName: item.user_name || item.userName || '익명'
           };
         });
@@ -423,17 +488,38 @@ export const communityService = {
       console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 물품 요청 조회 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
+      console.error('물품 요청 조회 실패:', error);
       return []; // 에러 발생 시 빈 배열 반환
     }
   },
 
   createRequestItem: async (itemData: Partial<RequestItem>): Promise<RequestItem> => {
     try {
-      const response = await api.post(getApiUrl('/community/item-request'), itemData);
-      return response.data;
+      
+      // 백엔드 필드명에 맞게 변환
+      const transformedData = {
+        ...itemData,
+        urgency_level: (itemData as any).urgency,
+        contact_info: itemData.contactInfo,
+        needed_date: (itemData as any).neededDate,
+        requested_item: (itemData as any).requestedItem,
+        max_budget: (itemData as any).maxBudget,
+        contact_phone: (itemData as any).contactPhone,
+        contact_email: (itemData as any).contactEmail
+      };
+      
+      // 프론트엔드 전용 필드 제거
+      delete (transformedData as any).urgency;
+      delete (transformedData as any).contactInfo;
+      delete (transformedData as any).neededDate;
+      delete (transformedData as any).requestedItem;
+      delete (transformedData as any).maxBudget;
+      delete (transformedData as any).contactPhone;
+      delete (transformedData as any).contactEmail;
+      
+      const response = await api.post(getApiUrl('/community/item-requests'), transformedData);
+      
+      return response.data?.data || response.data;
     } catch (error: any) {
       console.error('물품 요청 등록 실패:', error);
       throw error;
@@ -467,14 +553,12 @@ export const communityService = {
     limit?: number;
   }): Promise<OfferItem[]> => {
     try {
-      console.log('🎁 물품 판매 API 호출 중...', params);
       const response = await api.get(getApiUrl('/community/item-sale'), { params });
-      console.log('✅ 물품 판매 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (FreeSharing과 동일)
-        const transformedData = response.data.data.map((item: any) => {
+        const transformedData = response.data.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
           
@@ -485,6 +569,9 @@ export const communityService = {
             category: item.category,
             condition: item.condition || '양호',
             price: item.price,
+            itemName: item.item_name || item.itemName || item.title,
+            quantity: item.quantity || 1,
+            deliveryMethod: item.delivery_method || item.deliveryMethod || '직거래',
             images: (() => {
               if (!item.images) return [];
               
@@ -516,23 +603,25 @@ export const communityService = {
             userName: item.user_name || item.userName || '익명'
           };
         });
-        console.log('🔄 물품 판매 변환된 데이터:', transformedData);
         return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
       if (Array.isArray(response.data)) {
-        const transformedData = response.data.map((item: any) => {
+        const transformedData = response.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
           
-          const transformedItem = {
-            ...item,
-            church: churchName,
-            churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || `사용자 ${item.user_id}`,
-            createdAt: item.created_at || item.createdAt, // 등록일 추가
-            views: item.view_count || item.views || 0, // 조회수 추가
+          return {
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            condition: item.condition || '양호',
+            price: item.price,
+            itemName: item.item_name || item.itemName || item.title,
+            quantity: item.quantity || 1,
+            deliveryMethod: item.delivery_method || item.deliveryMethod || '직거래',
             images: (() => {
               if (!item.images) return [];
               let imageArray: string[];
@@ -549,15 +638,17 @@ export const communityService = {
               return imageArray.map((img: string) => 
                 img.startsWith('http') ? img : `https://api.surfmind-team.com/static/community/images/${img}`
               );
-            })()
+            })(),
+            church: churchName,
+            location: item.location,
+            contactInfo: item.contact_info || item.contactInfo || '',
+            status: item.status,
+            createdAt: item.created_at || item.createdAt,
+            views: item.view_count || item.views || 0,
+            likes: item.likes || 0,
+            comments: item.comments || 0,
+            userName: item.user_name || item.userName || '익명'
           };
-          
-          console.log('🔄 데이터 변환 결과:', { 
-            원본: { created_at: item.created_at, user_name: item.user_name, view_count: item.view_count },
-            변환후: { createdAt: transformedItem.createdAt, userName: transformedItem.userName, views: transformedItem.views }
-          });
-          
-          return transformedItem;
         });
         return transformedData;
       }
@@ -566,9 +657,7 @@ export const communityService = {
       console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 물품 판매 조회 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
+      console.error('물품 판매 조회 실패:', error);
       return []; // 에러 발생 시 빈 배열 반환
     }
   },

@@ -38,7 +38,9 @@ const FreeSharing = lazy(() => import('./components/Community/FreeSharing'));
 const CreateSharing = lazy(() => import('./components/Community/CreateSharing'));
 const FreeSharingDetail = lazy(() => import('./components/Community/FreeSharingDetail'));
 const CreateItemRequest = lazy(() => import('./components/Community/CreateItemRequest'));
+const ItemRequestDetail = lazy(() => import('./components/Community/ItemRequestDetail'));
 const CreateSharingOffer = lazy(() => import('./components/Community/CreateSharingOffer'));
+const SharingOfferDetail = lazy(() => import('./components/Community/SharingOfferDetail'));
 const CreateCommunityPost = lazy(() => import('./components/Community/CreateCommunityPost'));
 const CreateJobPosting = lazy(() => import('./components/Community/CreateJobPosting'));
 const CreateJobSeeking = lazy(() => import('./components/Community/CreateJobSeeking'));
@@ -266,13 +268,18 @@ function App() {
             </Suspense>
           } />
           <Route path="community/item-request" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<div>Loading ItemRequest...</div>}>
               <ItemRequest />
             </Suspense>
           } />
           <Route path="community/item-request/create" element={
             <Suspense fallback={<LoadingSpinner />}>
               <CreateItemRequest />
+            </Suspense>
+          } />
+          <Route path="community/item-request/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ItemRequestDetail />
             </Suspense>
           } />
           <Route path="community/item-sale" element={
@@ -283,6 +290,11 @@ function App() {
           <Route path="community/item-sale/create" element={
             <Suspense fallback={<LoadingSpinner />}>
               <CreateSharingOffer />
+            </Suspense>
+          } />
+          <Route path="community/item-sale/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SharingOfferDetail />
             </Suspense>
           } />
           <Route path="community/job-posting" element={
