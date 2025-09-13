@@ -125,19 +125,29 @@ export interface JobSeeker {
 export interface MusicRecruitment {
   id: number;
   title: string;
-  churchName: string | null;
-  recruitmentType: string;
+  church_name: string;
+  recruitment_type: string;
   instruments: string[];
-  requirements: string;
-  schedule: string;
-  location: string;
-  contact: string;
-  status: 'open' | 'closed';
-  createdAt: string;
+  schedule?: string;
+  location?: string;
+  description?: string;
+  requirements?: string;
+  compensation?: string;
+  contact_phone: string;
+  contact_email?: string;
+  contact_info?: string; // 백워드 호환성
+  status: string;
+  applications: number;
   views: number;
   likes: number;
-  applications: number;
-  userName?: string; // 사용자명 필드 추가
+  created_at: string;
+  createdAt: string; // camelCase 변환용
+  updated_at?: string;
+  author_id: number;
+  user_name: string;
+  church_id: number;
+  author_name?: string; // 백엔드에서 새로 추가된 작성자 이름 필드
+  userName?: string; // 사용자명 필드 추가 (camelCase 버전)
 }
 
 // 음악팀 참여 관련 인터페이스
@@ -310,7 +320,7 @@ export const communityService = {
             views: item.view_count || item.views || 0, // snake_case를 camelCase로 변환
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.user_name || item.userName || '익명' // 사용자명 추가
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용 // 사용자명 추가
           };
         });
         console.log('🔄 변환된 데이터:', transformedData);
@@ -327,7 +337,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -447,7 +457,7 @@ export const communityService = {
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         console.log('변환된 물품 요청 데이터:', transformedData.length, '개');
@@ -480,7 +490,7 @@ export const communityService = {
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -602,7 +612,7 @@ export const communityService = {
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -649,7 +659,7 @@ export const communityService = {
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -717,7 +727,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명',
+            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: item.company || item.company_name,
             position: item.position || item.job_type,
@@ -742,7 +752,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명',
+            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: item.company || item.company_name,
             position: item.position || item.job_type,
@@ -911,7 +921,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -1032,20 +1042,33 @@ export const communityService = {
 
   // 음악팀 모집
   getMusicRecruitments: async (params?: {
-    instrument?: string;
-    status?: string;
-    search?: string;
-    skip?: number;
-    limit?: number;
+    recruitment_type?: string; // 행사 유형 필터
+    instruments?: string; // 악기 필터
+    status?: string; // 상태 필터
+    search?: string; // 제목/내용 검색
+    page?: number; // 페이지 번호
+    limit?: number; // 페이지당 항목 수
   }): Promise<MusicRecruitment[]> => {
     try {
       console.log('🎵 음악팀 모집 API 호출 중...', params);
-      const response = await api.get(getApiUrl('/community/music-team-recruit'), { params });
+      const response = await api.get(getApiUrl('/community/music-team-recruitments'), { params });
       console.log('✅ 음악팀 모집 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        return response.data.data;
+        const transformedData = response.data.data.map((item: any) => {
+          // 교회 9998의 경우 null로 처리
+          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          
+          return {
+            ...item,
+            church: churchName,
+            churchName: churchName,
+            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
+            createdAt: item.created_at || item.createdAt || new Date().toISOString() // 날짜 필드 변환, null인 경우 현재 시간
+          };
+        });
+        return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
@@ -1058,7 +1081,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -1075,19 +1098,95 @@ export const communityService = {
     }
   },
 
-  createMusicRecruitment: async (recruitmentData: Partial<MusicRecruitment>): Promise<MusicRecruitment> => {
+  createMusicRecruitment: async (recruitmentData: any): Promise<MusicRecruitment> => {
     try {
-      const response = await api.post(getApiUrl('/community/music-team-recruit'), recruitmentData);
-      return response.data;
+      console.log('🎵 행사팀 모집 등록 API 호출 중...', recruitmentData);
+      
+      // 실제 백엔드 SQL 스키마에 정확히 맞게 데이터 변환 (community_music_teams 테이블 기준)
+      const apiData = {
+        // 기본 정보 (필수)
+        title: recruitmentData.title,
+        team_name: recruitmentData.churchName,
+        team_type: recruitmentData.eventType,
+        
+        // 모집 상세 - 백엔드 SQL 필드명에 맞춤
+        instruments_needed: recruitmentData.instruments || [], // JSON 배열로 직접 전송
+        positions_needed: null, // 현재 폼에서 수집하지 않는 필드
+        experience_required: recruitmentData.requirements || "경험 무관",
+        practice_location: recruitmentData.location || "협의",
+        practice_schedule: recruitmentData.schedule || "협의",
+        commitment: null, // 현재 폼에서 수집하지 않는 필드
+        
+        // 상세 내용 - 백엔드 필드명에 맞춤
+        description: recruitmentData.description || null,
+        requirements: null, // 별도 requirements 필드 (experience_required와 다름)
+        benefits: recruitmentData.compensation || null, // compensation → benefits
+        
+        // 연락처 정보 (필수)
+        contact_method: "전화",
+        contact_info: `전화: ${recruitmentData.contactPhone}${recruitmentData.contactEmail ? `, 이메일: ${recruitmentData.contactEmail}` : ''}`,
+        
+        // 상태 및 기타 필드
+        status: recruitmentData.status || "open",
+        current_members: null, // 현재 폼에서 수집하지 않는 필드
+        target_members: null, // 현재 폼에서 수집하지 않는 필드
+        
+        // 통계 필드들 (백엔드에서 자동 설정될 것으로 예상되지만 명시적으로 포함)
+        views: 0,
+        likes: 0,
+        applicants_count: recruitmentData.applications || 0,
+        
+        // 시간 필드들 (백엔드에서 자동 설정될 것으로 예상)
+        created_at: null,
+        updated_at: null
+        
+        // 사용자 정보는 백엔드에서 JWT 토큰을 통해 자동으로 설정됨
+      };
+      
+      console.log('🔄 변환된 API 데이터:', apiData);
+      
+      const response = await api.post(getApiUrl('/community/music-team-recruitments'), apiData);
+      console.log('✅ 행사팀 모집 등록 API 응답:', response);
+      console.log('📊 응답 상태 코드:', response.status);
+      console.log('📋 응답 헤더:', response.headers);
+      console.log('📄 응답 데이터:', response.data);
+      
+      // 성공적인 등록인지 확인
+      if (response.status === 200 || response.status === 201) {
+        console.log('✅ API 호출 성공 - 상태 코드:', response.status);
+        
+        // 응답 데이터 확인
+        const result = response.data?.data || response.data;
+        
+        // success 필드가 false인 경우 (백엔드 에러)
+        if (result && result.success === false) {
+          console.error('🚫 백엔드에서 에러 발생:', result.message);
+          throw new Error(result.message || '서버에서 등록 처리 중 오류가 발생했습니다.');
+        }
+        
+        // ID 확인
+        if (result && result.id) {
+          console.log('🆔 생성된 ID:', result.id);
+          return result;
+        } else {
+          console.warn('⚠️ 응답에 ID가 없습니다. DB 저장 실패 가능성');
+          return result;
+        }
+      } else {
+        console.error('❌ 예상치 못한 응답 코드:', response.status);
+        throw new Error(`예상치 못한 응답 코드: ${response.status}`);
+      }
     } catch (error: any) {
-      console.error('음악팀 모집 등록 실패:', error);
+      console.error('❌ 행사팀 모집 등록 실패:', error);
+      console.error('에러 응답:', error.response?.data);
+      console.error('상태 코드:', error.response?.status);
       throw error;
     }
   },
 
   updateMusicRecruitment: async (recruitmentId: number, recruitmentData: Partial<MusicRecruitment>): Promise<MusicRecruitment> => {
     try {
-      const response = await api.put(getApiUrl(`/community/music-team-recruit/${recruitmentId}`), recruitmentData);
+      const response = await api.put(getApiUrl(`/community/music-team-recruitments/${recruitmentId}`), recruitmentData);
       return response.data;
     } catch (error: any) {
       console.error('음악팀 모집 수정 실패:', error);
@@ -1097,7 +1196,7 @@ export const communityService = {
 
   deleteMusicRecruitment: async (recruitmentId: number): Promise<void> => {
     try {
-      await api.delete(getApiUrl(`/community/music-team-recruit/${recruitmentId}`));
+      await api.delete(getApiUrl(`/community/music-team-recruitments/${recruitmentId}`));
     } catch (error: any) {
       console.error('음악팀 모집 삭제 실패:', error);
       throw error;
@@ -1133,7 +1232,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -1209,7 +1308,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -1275,7 +1374,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;
@@ -1399,7 +1498,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.user_name || item.userName || '익명'
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         return transformedData;

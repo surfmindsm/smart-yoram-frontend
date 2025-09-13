@@ -6,11 +6,16 @@
  * 등록일 표시용 포맷 (년-월-일 시:분)
  */
 export const formatCreatedAt = (dateString: string): string => {
+  // null, undefined, 빈 문자열인 경우 처리
+  if (!dateString || dateString === 'null') {
+    return '등록일 없음';
+  }
+  
   const date = new Date(dateString);
   
   // 유효하지 않은 날짜인 경우 원본 문자열 반환
   if (isNaN(date.getTime())) {
-    return dateString;
+    return '등록일 없음';
   }
   
   return date.toLocaleString('ko-KR', {

@@ -44,8 +44,9 @@ const CreateMusicTeamRecruit: React.FC = () => {
 
   const instrumentOptions = [
     '피아노', '키보드', '오르간', '기타', '일렉기타', '베이스', '드럼', 
-    '바이올린', '첼로', '플룻', '색소폰', '트럼펫', '보컬', '기타'
+    '바이올린', '첼로', '플룻', '색소폰', '트럼펫', '보컬', '기타악기'
   ];
+
 
   const getInstrumentIcon = (instrument: string) => {
     switch (instrument) {
@@ -77,20 +78,28 @@ const CreateMusicTeamRecruit: React.FC = () => {
       setLoading(true);
       
       const recruitData = {
+        // 기본 정보 (필수)
         title: formData.title,
         churchName: formData.churchName,
-        recruitmentType: formData.eventType,
-        instruments: formData.instruments,
-        requirements: formData.requirements.join(', '), // 배열을 문자열로 변환
-        schedule: `${formData.eventDate ? '행사일: ' + formData.eventDate : ''}${formData.rehearsalSchedule ? ', 리허설: ' + formData.rehearsalSchedule : ''}`,
+        eventType: formData.eventType, // 서비스에서 recruitment_type로 매핑됨
+        
+        // 모집 상세 (필수)
+        instruments: formData.instruments, // 배열 그대로 전송
+        schedule: `${formData.eventDate ? '행사일: ' + formData.eventDate : ''}${formData.rehearsalSchedule ? ', 리허설: ' + formData.rehearsalSchedule : ''}`.trim(),
         location: formData.location,
-        contact: formData.contactPhone + (formData.contactEmail ? ` | ${formData.contactEmail}` : ''),
-        status: 'open' as const,
-        applications: 0,
+        
+        // 상세 내용
         description: formData.description,
+        requirements: formData.requirements.join(', '), // 배열을 문자열로 변환
         compensation: formData.compensation,
-        contactInfo: formData.contactPhone + (formData.contactEmail ? ` | ${formData.contactEmail}` : ''),
-        email: formData.contactEmail
+        
+        // 연락처 (분리된 형태)
+        contactPhone: formData.contactPhone,
+        contactEmail: formData.contactEmail,
+        
+        // 시스템 필드
+        status: 'open',
+        applications: 0
       };
 
       await communityService.createMusicRecruitment(recruitData);

@@ -80,11 +80,6 @@ export const getCommunityMenus = () => [
     icon: 'Briefcase'
   },
   {
-    name: '사역자 지원',
-    path: '/community/job-seeking',
-    icon: 'User'
-  },
-  {
     name: '행사팀 모집',
     path: '/community/music-team-recruit',
     icon: 'Music'

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -23,6 +24,7 @@ import { formatCreatedAt } from '../../utils/dateUtils';
 
 
 const MusicTeamRecruit: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstrument, setSelectedInstrument] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
@@ -99,7 +101,7 @@ const MusicTeamRecruit: React.FC = () => {
       try {
         setLoading(true);
         const data = await communityService.getMusicRecruitments({
-          instrument: selectedInstrument === 'all' ? undefined : selectedInstrument,
+          instruments: selectedInstrument === 'all' ? undefined : selectedInstrument,
           search: searchTerm || undefined,
           limit: 50
         });
@@ -144,7 +146,10 @@ const MusicTeamRecruit: React.FC = () => {
             </Button>
           </div>
 
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => navigate('/community/music-team-recruit/create')}
+          >
             <Plus className="h-4 w-4" />
             행사팀 모집 등록
           </Button>
@@ -251,10 +256,10 @@ const MusicTeamRecruit: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {recruitment.userName || '익명'}
+                          {recruitment.author_name || recruitment.userName || recruitment.user_name || '익명'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {recruitment.churchName || '협력사'}
+                          {recruitment.church_name || '협력사'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
@@ -266,7 +271,7 @@ const MusicTeamRecruit: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCreatedAt(recruitment.createdAt)}
+                          {formatCreatedAt(recruitment.createdAt || recruitment.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
@@ -286,13 +291,13 @@ const MusicTeamRecruit: React.FC = () => {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  {recruitment.recruitmentType}
+                  {recruitment.recruitment_type}
                 </span>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(recruitment.status)}`}>
                   {getStatusText(recruitment.status)}
                 </span>
                 {/* Show priority badge - since status is only open/closed, we'll show it based on deadline */}
-                {new Date(recruitment.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
+                {new Date(recruitment.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
                     🔥 급구
                   </span>
@@ -301,9 +306,9 @@ const MusicTeamRecruit: React.FC = () => {
               
               <div className="text-right">
                 <div className="text-sm text-gray-600 space-x-2">
-                  <span>{recruitment.userName || '익명'}</span>
+                  <span>{recruitment.user_name || '익명'}</span>
                   <span>|</span>
-                  <span>{recruitment.churchName || '협력사'}</span>
+                  <span>{recruitment.church_name || '협력사'}</span>
                 </div>
                 <div className="text-xs text-gray-500">지원자 {recruitment.applications}명</div>
               </div>
@@ -345,7 +350,7 @@ const MusicTeamRecruit: React.FC = () => {
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2 text-orange-500" />
-                  <strong className="mr-1">연락처:</strong> {recruitment.contact}
+                  <strong className="mr-1">연락처:</strong> {recruitment.contact_phone}
                 </div>
               </div>
             </div>
@@ -358,7 +363,7 @@ const MusicTeamRecruit: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(recruitment.createdAt)}
+                  {formatCreatedAt(recruitment.createdAt || recruitment.created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
