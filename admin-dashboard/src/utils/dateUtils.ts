@@ -5,7 +5,7 @@
 /**
  * 등록일 표시용 포맷 (년-월-일 시:분)
  */
-export const formatCreatedAt = (dateString: string): string => {
+export const formatCreatedAt = (dateString: string | null | undefined): string => {
   // null, undefined, 빈 문자열인 경우 처리
   if (!dateString || dateString === 'null') {
     return '등록일 없음';
@@ -24,7 +24,8 @@ export const formatCreatedAt = (dateString: string): string => {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Asia/Seoul'
   });
 };
 
@@ -43,7 +44,8 @@ export const formatEventDate = (dateString: string): string => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    weekday: 'short'
+    weekday: 'short',
+    timeZone: 'Asia/Seoul'
   });
 };
 
@@ -61,6 +63,7 @@ export const formatDeadline = (dateString: string): string => {
   return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
+    day: '2-digit',
+    timeZone: 'Asia/Seoul'
   });
 };

@@ -271,7 +271,16 @@ const MusicTeamRecruit: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCreatedAt(recruitment.createdAt || recruitment.created_at)}
+                          {(() => {
+                            if (recruitment.id === 6) {
+                              console.log('🔍 [UI_DEBUG] 테이블에서 ID 6 렌더링:', {
+                                recruitment_createdAt: recruitment.createdAt,
+                                formatCreatedAt_result: formatCreatedAt(recruitment.createdAt),
+                                recruitment_object: recruitment
+                              });
+                            }
+                            return formatCreatedAt(recruitment.createdAt);
+                          })()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
@@ -363,7 +372,7 @@ const MusicTeamRecruit: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(recruitment.createdAt || recruitment.created_at)}
+                  {formatCreatedAt(recruitment.createdAt)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />

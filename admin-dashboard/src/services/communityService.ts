@@ -1,4 +1,5 @@
 import { api, getApiUrl } from './api';
+import { formatCreatedAt } from '../utils/dateUtils';
 
 // 커뮤니티 통계 인터페이스
 export interface CommunityStats {
@@ -368,11 +369,11 @@ export const communityService = {
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo, // snake_case를 camelCase로 변환
             status: item.status,
-            createdAt: item.created_at || item.createdAt, // snake_case를 camelCase로 변환
+            createdAt: item.created_at || item.createdAt || null, // snake_case를 camelCase로 변환, null인 경우 null 유지
             views: item.view_count || item.views || 0, // snake_case를 camelCase로 변환
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용 // 사용자명 추가
+            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
         console.log('🔄 변환된 데이터:', transformedData);
@@ -505,7 +506,7 @@ export const communityService = {
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
-            createdAt: item.created_at || item.createdAt,
+            createdAt: item.created_at || item.createdAt || null,
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
@@ -538,7 +539,7 @@ export const communityService = {
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
-            createdAt: item.created_at || item.createdAt,
+            createdAt: item.created_at || item.createdAt || null,
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
@@ -660,7 +661,7 @@ export const communityService = {
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo,
             status: item.status,
-            createdAt: item.created_at || item.createdAt,
+            createdAt: item.created_at || item.createdAt || null,
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
@@ -707,7 +708,7 @@ export const communityService = {
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
-            createdAt: item.created_at || item.createdAt,
+            createdAt: item.created_at || item.createdAt || null,
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
@@ -1103,8 +1104,32 @@ export const communityService = {
   }): Promise<MusicRecruitment[]> => {
     try {
       console.log('🎵 음악팀 모집 API 호출 중...', params);
-      const response = await api.get(getApiUrl('/community/music-team-recruitments'), { params });
+      const apiUrl = getApiUrl('/community/music-team-recruitments');
+      console.log('🔗 API URL:', apiUrl);
+      const response = await api.get(apiUrl, { params });
       console.log('✅ 음악팀 모집 API 응답:', response.data);
+      
+      // 디버깅: formatCreatedAt 함수 테스트
+      const testDate = '2024-09-13T05:00:00.000Z';
+      const formattedResult = formatCreatedAt(testDate);
+      console.log('🔍 [DEBUG] formatCreatedAt 테스트:', {
+        input: testDate,
+        output: formattedResult,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+      
+      // 첫 번째 아이템의 created_at 값 상세 로그
+      if (response.data?.data?.[0]) {
+        const firstItem = response.data.data[0];
+        console.log('🕐 첫 번째 아이템 created_at 분석:', {
+          created_at: firstItem.created_at,
+          createdAt: firstItem.createdAt,
+          updated_at: firstItem.updated_at,
+          id: firstItem.id,
+          title: firstItem.title,
+          'Object.keys': Object.keys(firstItem)
+        });
+      }
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -1112,13 +1137,34 @@ export const communityService = {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
           
-          return {
+          // spread operator 사용 후 override 방식으로 중복 키 문제 해결
+          const transformed = {
             ...item,
             church: churchName,
             churchName: churchName,
             userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
-            createdAt: item.created_at || item.createdAt || new Date().toISOString() // 날짜 필드 변환, null인 경우 현재 시간
+            views: item.view_count || item.views || 0 // view_count를 views로 통일
           };
+          
+          // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
+          let createdAt = item.created_at || item.createdAt || null;
+          // 백엔드에서 timezone 정보 없이 오는 경우 UTC로 명시
+          if (createdAt && !createdAt.endsWith('Z') && !createdAt.includes('+')) {
+            createdAt = createdAt + 'Z';
+          }
+          transformed.createdAt = createdAt;
+          
+          // 디버깅: 변환 결과 확인
+          if (item.id === 6) {
+            console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
+              original_created_at: item.created_at,
+              fixed_createdAt: createdAt,
+              transformed_createdAt: transformed.createdAt,
+              formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
+            });
+          }
+          
+          return transformed;
         });
         return transformedData;
       }
@@ -1129,12 +1175,34 @@ export const communityService = {
           // 교회 9998의 경우 null로 처리
           const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
           
-          return {
+          // spread operator 사용 후 override 방식으로 중복 키 문제 해결
+          const transformed = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
+            views: item.view_count || item.views || 0 // view_count를 views로 통일
           };
+          
+          // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
+          let createdAt = item.created_at || item.createdAt || null;
+          // 백엔드에서 timezone 정보 없이 오는 경우 UTC로 명시
+          if (createdAt && !createdAt.endsWith('Z') && !createdAt.includes('+')) {
+            createdAt = createdAt + 'Z';
+          }
+          transformed.createdAt = createdAt;
+          
+          // 디버깅: 변환 결과 확인
+          if (item.id === 6) {
+            console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
+              original_created_at: item.created_at,
+              fixed_createdAt: createdAt,
+              transformed_createdAt: transformed.createdAt,
+              formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
+            });
+          }
+          
+          return transformed;
         });
         return transformedData;
       }
@@ -1163,16 +1231,16 @@ export const communityService = {
         
         // 모집 상세 - 백엔드 SQL 필드명에 맞춤
         instruments_needed: recruitmentData.instruments || [], // JSON 배열로 직접 전송
-        positions_needed: null, // 현재 폼에서 수집하지 않는 필드
+        positions_needed: "", // 현재 폼에서 수집하지 않는 필드 (null 대신 빈 문자열)
         experience_required: recruitmentData.requirements || "경험 무관",
         practice_location: recruitmentData.location || "협의",
         practice_schedule: recruitmentData.schedule || "협의",
-        commitment: null, // 현재 폼에서 수집하지 않는 필드
+        commitment: "", // 현재 폼에서 수집하지 않는 필드 (null 대신 빈 문자열)
         
-        // 상세 내용 - 백엔드 필드명에 맞춤
-        description: recruitmentData.description || null,
-        requirements: null, // 별도 requirements 필드 (experience_required와 다름)
-        benefits: recruitmentData.compensation || null, // compensation → benefits
+        // 상세 내용 - 백엔드 필드명에 맞춤 (null 대신 빈 문자열)
+        description: recruitmentData.description || "",
+        requirements: "", // 별도 requirements 필드 (experience_required와 다름, null 대신 빈 문자열)
+        benefits: recruitmentData.compensation || "", // compensation → benefits (null 대신 빈 문자열)
         
         // 연락처 정보 (필수)
         contact_method: "전화",
@@ -1180,18 +1248,15 @@ export const communityService = {
         
         // 상태 및 기타 필드
         status: recruitmentData.status || "open",
-        current_members: null, // 현재 폼에서 수집하지 않는 필드
-        target_members: null, // 현재 폼에서 수집하지 않는 필드
+        current_members: 0, // 현재 폼에서 수집하지 않는 필드 (숫자 필드는 0으로)
+        target_members: 0, // 현재 폼에서 수집하지 않는 필드 (숫자 필드는 0으로)
         
         // 통계 필드들 (백엔드에서 자동 설정될 것으로 예상되지만 명시적으로 포함)
         views: 0,
         likes: 0,
-        applicants_count: recruitmentData.applications || 0,
+        applicants_count: recruitmentData.applications || 0
         
-        // 시간 필드들 (백엔드에서 자동 설정될 것으로 예상)
-        created_at: null,
-        updated_at: null
-        
+        // created_at, updated_at은 백엔드에서 자동 설정되므로 전송하지 않음
         // 사용자 정보는 백엔드에서 JWT 토큰을 통해 자동으로 설정됨
       };
       
