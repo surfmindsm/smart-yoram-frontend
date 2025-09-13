@@ -104,7 +104,7 @@ const ChurchEventsDetail: React.FC = () => {
       post={event ? convertToPostDetail(event) : {} as PostDetailData}
       loading={loading}
       error={error}
-      onBack={() => navigate('/community/church-events')}
+      onBack={() => navigate('/community/church-news')}
       pageTitle="행사 소식 상세"
       fieldMappings={fieldMappings}
     />

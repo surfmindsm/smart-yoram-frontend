@@ -12,6 +12,42 @@ export interface CommunityStats {
   total_members: number;
 }
 
+// 교회 행사 소식 인터페이스
+export interface ChurchNews {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  priority: 'urgent' | 'important' | 'normal';
+  eventDate?: string;
+  eventTime?: string;
+  location?: string;
+  organizer: string;
+  targetAudience?: string;
+  participationFee?: string;
+  registrationMethod?: string;
+  registrationRequired?: boolean;
+  registrationDeadline?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  additionalInfo?: string;
+  status: 'active' | 'completed' | 'cancelled';
+  views: number;
+  likes: number;
+  comments: number;
+  tags?: string[];
+  imageUrls?: string[];
+  images?: string[];
+  userName?: string;
+  author?: string;
+  authorId?: number;
+  churchName?: string;
+  churchId?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 // 무료 나눔 관련 인터페이스
 export interface SharingItem {
   id: number;
@@ -142,7 +178,7 @@ export interface MusicRecruitment {
   views: number;
   likes: number;
   created_at: string;
-  createdAt: string; // camelCase 변환용
+  createdAt: string; // camelCase 변환용 - component compatibility
   updated_at?: string;
   author_id: number;
   user_name: string;
@@ -254,20 +290,21 @@ export const transformMusicSeekerFromBackend = (backendData: any): MusicSeeker =
     contactEmail: backendData.contact_email,
     status: backendData.status || 'available',
     createdAt: backendData.created_at || '',
-    created_at: backendData.created_at,
     views: backendData.views || 0,
     likes: backendData.likes || 0,
     matches: backendData.matches || 0,
     applications: backendData.applications || 0,
     userName: backendData.author_name || '익명',
-    author_name: backendData.author_name,
     authorName: backendData.author_name,
     church: backendData.church_id === 9998 ? null : backendData.church_name,
-    church_name: backendData.church_name,
     churchName: backendData.church_name,
     location: backendData.location,
-    contact_phone: backendData.contact_phone,
-    introduction: backendData.introduction
+    introduction: backendData.introduction,
+    // Compatibility fields for backward compatibility
+    created_at: backendData.created_at,
+    author_name: backendData.author_name,
+    church_name: backendData.church_name,
+    contact_phone: backendData.contact_phone
   };
 };
 
@@ -1805,7 +1842,240 @@ export const communityService = {
       console.error('행사 등록 실패:', error);
       throw error;
     }
+  },
+
+  // ==================== 교회 행사 소식 관련 ====================
+
+  // 교회 행사 소식 목록 조회
+  getChurchNews: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    priority?: string;
+    status?: string;
+    search?: string;
+    event_date_from?: string;
+    event_date_to?: string;
+  }): Promise<ChurchNews[]> => {
+    try {
+      console.log('🔍 [CHURCH_NEWS] API 호출:', params);
+      
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.category && params.category !== 'all') queryParams.append('category', params.category);
+      if (params?.priority && params.priority !== 'all') queryParams.append('priority', params.priority);
+      if (params?.status && params.status !== 'all') queryParams.append('status', params.status);
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.event_date_from) queryParams.append('event_date_from', params.event_date_from);
+      if (params?.event_date_to) queryParams.append('event_date_to', params.event_date_to);
+
+      const url = getApiUrl(`/community/church-news${queryParams.toString() ? '?' + queryParams.toString() : ''}`);
+      console.log('🔍 [CHURCH_NEWS] 요청 URL:', url);
+
+      const response = await api.get(url);
+      console.log('🔍 [CHURCH_NEWS] API 응답:', response.data);
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data.map((item: any) => transformChurchNewsFromBackend(item));
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('교회 소식 목록 조회 실패:', error);
+      return [];
+    }
+  },
+
+  // 교회 행사 소식 상세 조회
+  getChurchNewsDetail: async (id: number): Promise<ChurchNews | null> => {
+    try {
+      const response = await api.get(getApiUrl(`/community/church-news/${id}`));
+      
+      if (response.data.success && response.data.data) {
+        return transformChurchNewsFromBackend(response.data.data);
+      }
+      
+      return null;
+    } catch (error: any) {
+      console.error('교회 소식 상세 조회 실패:', error);
+      return null;
+    }
+  },
+
+  // 교회 행사 소식 등록
+  createChurchNews: async (newsData: Partial<ChurchNews>): Promise<ChurchNews> => {
+    try {
+      console.log('🔍 [CHURCH_NEWS] 등록 데이터:', newsData);
+      
+      // 프론트엔드 → 백엔드 형식 변환
+      const backendData = transformChurchNewsToBackend(newsData);
+      console.log('🔍 [CHURCH_NEWS] 백엔드 전송 데이터:', backendData);
+      
+      console.log('🔍 [CHURCH_NEWS] API 요청 URL:', getApiUrl('/community/church-news'));
+      console.log('🔍 [CHURCH_NEWS] API 요청 전송 시작...');
+
+      const response = await api.post(getApiUrl('/community/church-news'), backendData);
+      console.log('🔍 [CHURCH_NEWS] 등록 응답:', response.data);
+      console.log('🔍 [CHURCH_NEWS] Response Status:', response.status);
+      
+      if (response.data.success) {
+        // 등록 후 상세 조회로 전체 데이터 반환
+        const detailData = await communityService.getChurchNewsDetail(response.data.data.id);
+        if (detailData) {
+          return detailData;
+        }
+      }
+      
+      throw new Error(response.data.message || '등록에 실패했습니다.');
+    } catch (error: any) {
+      console.error('교회 소식 등록 실패:', error);
+      throw error;
+    }
+  },
+
+  // 교회 행사 소식 수정
+  updateChurchNews: async (id: number, newsData: Partial<ChurchNews>): Promise<ChurchNews> => {
+    try {
+      const backendData = transformChurchNewsToBackend(newsData);
+      const response = await api.put(getApiUrl(`/community/church-news/${id}`), backendData);
+      
+      if (response.data.success) {
+        const detailData = await communityService.getChurchNewsDetail(id);
+        if (detailData) {
+          return detailData;
+        }
+      }
+      
+      throw new Error(response.data.message || '수정에 실패했습니다.');
+    } catch (error: any) {
+      console.error('교회 소식 수정 실패:', error);
+      throw error;
+    }
+  },
+
+  // 교회 행사 소식 삭제
+  deleteChurchNews: async (id: number): Promise<boolean> => {
+    try {
+      const response = await api.delete(getApiUrl(`/community/church-news/${id}`));
+      return response.data.success;
+    } catch (error: any) {
+      console.error('교회 소식 삭제 실패:', error);
+      return false;
+    }
+  },
+
+  // 교회 행사 소식 좋아요 토글
+  toggleChurchNewsLike: async (id: number): Promise<{ liked: boolean; likes_count: number }> => {
+    try {
+      const response = await api.post(getApiUrl(`/community/church-news/${id}/like`));
+      
+      if (response.data.success) {
+        return response.data.data;
+      }
+      
+      throw new Error(response.data.message || '좋아요 처리에 실패했습니다.');
+    } catch (error: any) {
+      console.error('교회 소식 좋아요 토글 실패:', error);
+      throw error;
+    }
   }
 };
+
+// ==================== 교회 행사 소식 데이터 변환 함수 ====================
+
+// 백엔드 → 프론트엔드 데이터 변환
+function transformChurchNewsFromBackend(backendData: any): ChurchNews {
+  // 백엔드에서 timezone 정보 없이 오는 경우 UTC로 명시
+  let createdAt = backendData.created_at;
+  if (createdAt && !createdAt.endsWith('Z') && !createdAt.includes('+')) {
+    createdAt = createdAt + 'Z';
+  }
+
+  return {
+    id: backendData.id,
+    title: backendData.title,
+    content: backendData.content,
+    category: backendData.category,
+    priority: backendData.priority,
+    eventDate: backendData.event_date,
+    eventTime: backendData.event_time,
+    location: backendData.location,
+    organizer: backendData.organizer,
+    targetAudience: backendData.target_audience,
+    participationFee: backendData.participation_fee,
+    registrationRequired: backendData.registration_required || false,
+    registrationDeadline: backendData.registration_deadline,
+    contactPerson: backendData.contact_person,
+    contactPhone: backendData.contact_phone,
+    contactEmail: backendData.contact_email,
+    status: backendData.status,
+    views: backendData.view_count || 0,
+    likes: backendData.likes || 0,
+    comments: backendData.comments_count || 0,
+    tags: backendData.tags || [],
+    images: backendData.images || [],
+    createdAt: createdAt,
+    updatedAt: backendData.updated_at,
+    author: backendData.author_name || '익명',
+    authorId: backendData.author_id,
+    churchName: backendData.church_name,
+    churchId: backendData.church_id
+  };
+}
+
+// 프론트엔드 → 백엔드 데이터 변환
+function transformChurchNewsToBackend(frontendData: Partial<ChurchNews>): any {
+  const backendData: any = {
+    title: frontendData.title,
+    content: frontendData.content,
+    category: frontendData.category,
+    organizer: frontendData.organizer,
+    // PostgreSQL 배열 타입을 위해 null 대신 빈 배열 사용
+    tags: Array.isArray(frontendData.tags) ? frontendData.tags : [],
+    images: Array.isArray(frontendData.images) ? frontendData.images : []
+  };
+
+  // 백엔드 API 스키마에 맞게 선택적 필드들 매핑 (null 체크 추가)
+  if (frontendData.priority !== undefined && frontendData.priority !== null) {
+    backendData.priority = frontendData.priority;
+  }
+  if (frontendData.eventDate !== undefined && frontendData.eventDate !== null) {
+    backendData.event_date = frontendData.eventDate;
+  }
+  if (frontendData.eventTime !== undefined && frontendData.eventTime !== null) {
+    backendData.event_time = frontendData.eventTime;
+  }
+  if (frontendData.location !== undefined && frontendData.location !== null) {
+    backendData.location = frontendData.location;
+  }
+  if (frontendData.targetAudience !== undefined && frontendData.targetAudience !== null) {
+    backendData.target_audience = frontendData.targetAudience;
+  }
+  if (frontendData.participationFee !== undefined && frontendData.participationFee !== null) {
+    backendData.participation_fee = frontendData.participationFee;
+  }
+  if (frontendData.registrationRequired !== undefined && frontendData.registrationRequired !== null) {
+    backendData.registration_required = frontendData.registrationRequired;
+  }
+  if (frontendData.registrationDeadline !== undefined && frontendData.registrationDeadline !== null) {
+    backendData.registration_deadline = frontendData.registrationDeadline;
+  }
+  if (frontendData.contactPerson !== undefined && frontendData.contactPerson !== null) {
+    backendData.contact_person = frontendData.contactPerson;
+  }
+  if (frontendData.contactPhone !== undefined && frontendData.contactPhone !== null) {
+    backendData.contact_phone = frontendData.contactPhone;
+  }
+  if (frontendData.contactEmail !== undefined && frontendData.contactEmail !== null) {
+    backendData.contact_email = frontendData.contactEmail;
+  }
+  if (frontendData.status !== undefined && frontendData.status !== null) {
+    backendData.status = frontendData.status;
+  }
+
+  console.log('🔍 [CHURCH_NEWS] 최종 변환된 백엔드 데이터:', backendData);
+  return backendData;
+}
 
 export default communityService;

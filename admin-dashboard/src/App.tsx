@@ -47,6 +47,8 @@ const CreateJobSeeking = lazy(() => import('./components/Community/CreateJobSeek
 const CreateMusicTeamRecruit = lazy(() => import('./components/Community/CreateMusicTeamRecruit'));
 const CreateMusicTeamSeeking = lazy(() => import('./components/Community/CreateMusicTeamSeeking'));
 const CreateChurchEvents = lazy(() => import('./components/Community/CreateChurchEvents'));
+const ChurchNews = lazy(() => import('./components/Community/ChurchNews'));
+const CreateChurchNews = lazy(() => import('./components/Community/CreateChurchNews'));
 const ItemRequest = lazy(() => import('./components/Community/ItemRequest'));
 const SharingOffer = lazy(() => import('./components/Community/SharingOffer'));
 const JobPosting = lazy(() => import('./components/Community/JobPosting'));
@@ -343,17 +345,17 @@ function App() {
               <CreateMusicTeamSeeking />
             </Suspense>
           } />
-          <Route path="community/church-events" element={
+          <Route path="community/church-news" element={
             <Suspense fallback={<LoadingSpinner />}>
-              <ChurchEvents />
+              <ChurchNews />
             </Suspense>
           } />
-          <Route path="community/church-events/create" element={
+          <Route path="community/church-news/create" element={
             <Suspense fallback={<LoadingSpinner />}>
-              <CreateChurchEvents />
+              <CreateChurchNews />
             </Suspense>
           } />
-          <Route path="community/church-events/:id" element={
+          <Route path="community/church-news/:id" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ChurchEventsDetail />
             </Suspense>
