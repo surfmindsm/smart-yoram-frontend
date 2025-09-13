@@ -154,20 +154,35 @@ export interface MusicRecruitment {
 export interface MusicSeeker {
   id: number;
   title: string;
-  name: string;
-  instruments: string[];
+  name: string;                    // author_name 매핑
+  teamName?: string;               // team_name 매핑 (새 필드)
+  instrument: string;              // 팀 형태 (단일 선택으로 변경)
+  instruments?: string[];          // 호환성을 위해 유지
   experience: string;
   portfolio: string;
-  preferredGenre: string[];
-  preferredLocation: string[];
-  availability: string;
-  status: 'active' | 'inactive';
+  preferredGenre?: string[];       // 제거되었지만 호환성을 위해 optional로 유지
+  preferredLocation: string[];     // 배열 타입
+  availability?: string;           // 기존 호환성
+  availableDays: string[];         // 새로 추가된 필드
+  availableTime?: string;          // 새로 추가된 필드
+  contactPhone: string;            // contact_phone 매핑
+  contactEmail?: string;           // contact_email 매핑
+  status: 'available' | 'interviewing' | 'inactive';
   createdAt: string;
+  created_at?: string;             // 백엔드 호환성
   views: number;
   likes: number;
   matches: number;
-  userName?: string; // 사용자명 필드 추가
-  church?: string | null; // 교회명 필드 추가
+  applications?: number;           // 지원/문의 건수
+  userName?: string;               // 사용자명 필드 추가
+  author_name?: string;            // 백엔드 호환성
+  authorName?: string;             // camelCase 버전
+  church?: string | null;          // 교회명 필드 추가
+  church_name?: string | null;     // 백엔드 호환성
+  churchName?: string;             // camelCase 버전
+  location?: string;               // 지역 정보
+  contact_phone?: string;          // 연락처 (snake_case)
+  introduction?: string;           // 자기소개
 }
 
 // 교회 행사 관련 인터페이스
@@ -217,6 +232,43 @@ export interface RecentPost {
   createdAt: string;
   status: string;
 }
+
+// 데이터 변환 함수들
+export const transformMusicSeekerFromBackend = (backendData: any): MusicSeeker => {
+  return {
+    id: backendData.id,
+    title: backendData.title,
+    name: backendData.author_name || '익명',
+    teamName: backendData.team_name,
+    instrument: backendData.instrument,
+    instruments: backendData.instrument ? [backendData.instrument] : [], // 호환성
+    experience: backendData.experience || '',
+    portfolio: backendData.portfolio || '',
+    preferredGenre: [], // 제거된 필드
+    preferredLocation: backendData.preferred_location || [],
+    availability: '', // 호환성
+    availableDays: backendData.available_days || [],
+    availableTime: backendData.available_time,
+    contactPhone: backendData.contact_phone,
+    contactEmail: backendData.contact_email,
+    status: backendData.status || 'available',
+    createdAt: backendData.created_at || '',
+    created_at: backendData.created_at,
+    views: backendData.views || 0,
+    likes: backendData.likes || 0,
+    matches: backendData.matches || 0,
+    applications: backendData.applications || 0,
+    userName: backendData.author_name || '익명',
+    author_name: backendData.author_name,
+    authorName: backendData.author_name,
+    church: backendData.church_id === 9998 ? null : backendData.church_name,
+    church_name: backendData.church_name,
+    churchName: backendData.church_name,
+    location: backendData.location,
+    contact_phone: backendData.contact_phone,
+    introduction: backendData.introduction
+  };
+};
 
 // 커뮤니티 서비스
 export const communityService = {
@@ -1205,75 +1257,180 @@ export const communityService = {
 
   // 음악팀 참여
   getMusicSeekers: async (params?: {
-    instrument?: string;
-    genre?: string;
-    status?: string;
-    search?: string;
-    skip?: number;
+    page?: number;
     limit?: number;
+    status?: string;
+    instrument?: string;
+    location?: string;
+    day?: string;
+    time?: string;
+    search?: string;
   }): Promise<MusicSeeker[]> => {
     try {
-      console.log('🎶 음악팀 참여 API 호출 중...', params);
-      const response = await api.get(getApiUrl('/community/music-team-seeking'), { params });
-      console.log('✅ 음악팀 참여 API 응답:', response.data);
+      console.log('🎶 음악팀 지원자 목록 API 호출 중...', params);
       
-      // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
-      if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
+      // Query parameters 준비
+      const queryParams = {
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+        ...(params?.status && { status: params.status }),
+        ...(params?.instrument && { instrument: params.instrument }),
+        ...(params?.location && { location: params.location }),
+        ...(params?.day && { day: params.day }),
+        ...(params?.time && { time: params.time }),
+        ...(params?.search && { search: params.search })
+      };
       
-      // 직접 배열이 반환되는 경우
-      if (Array.isArray(response.data)) {
-        const transformedData = response.data.map((item: any) => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
-          
+      const response = await api.get(getApiUrl('/music-team-seekers'), { params: queryParams });
+      console.log('✅ 음악팀 지원자 목록 API 응답:', response.data);
+      
+      // API 응답 구조가 { success: true, data: { items: [...] } } 형태
+      if (response.data?.success && response.data?.data?.items) {
+        const items = response.data.data.items;
+        return items.map((item: any) => {
           return {
-            ...item,
-            church: churchName,
-            churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            id: item.id,
+            title: item.title,
+            name: item.author_name || item.name,
+            teamName: item.team_name,
+            instrument: item.instrument,
+            experience: item.experience,
+            portfolio: item.portfolio,
+            preferredLocation: item.preferred_location || [],
+            availableDays: item.available_days || [],
+            availableTime: item.available_time,
+            contactPhone: item.contact_phone,
+            contactEmail: item.contact_email,
+            status: item.status,
+            authorName: item.author_name,
+            churchName: item.church_name,
+            views: item.views || 0,
+            likes: item.likes || 0,
+            matches: item.matches || 0,
+            applications: item.applications || 0,
+            createdAt: item.created_at || '',
+            userName: item.author_name
           };
         });
-        return transformedData;
       }
       
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
       console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 음악팀 참여 조회 실패:', error);
+      console.error('❌ 음악팀 지원자 목록 조회 실패:', error);
       console.error('에러 응답:', error.response?.data);
       console.error('상태 코드:', error.response?.status);
       return []; // 에러 발생 시 빈 배열 반환
     }
   },
 
-  createMusicSeeker: async (seekerData: Partial<MusicSeeker>): Promise<MusicSeeker> => {
+  getMusicSeekerById: async (id: number): Promise<MusicSeeker | null> => {
     try {
-      const response = await api.post(getApiUrl('/community/music-team-seeking'), seekerData);
+      console.log('🎶 음악팀 지원자 상세 API 호출 중...', id);
+      const response = await api.get(getApiUrl(`/music-team-seekers/${id}`));
+      console.log('✅ 음악팀 지원자 상세 API 응답:', response.data);
+      
+      if (response.data?.success && response.data?.data) {
+        return {
+          id: response.data.data.id,
+          title: response.data.data.title,
+          name: response.data.data.author_name || response.data.data.name,
+          teamName: response.data.data.team_name,
+          instrument: response.data.data.instrument,
+          experience: response.data.data.experience,
+          portfolio: response.data.data.portfolio,
+          preferredLocation: response.data.data.preferred_location || [],
+          availableDays: response.data.data.available_days || [],
+          availableTime: response.data.data.available_time,
+          contactPhone: response.data.data.contact_phone,
+          contactEmail: response.data.data.contact_email,
+          status: response.data.data.status,
+          authorName: response.data.data.author_name,
+          churchName: response.data.data.church_name,
+          views: response.data.data.views || 0,
+          likes: response.data.data.likes || 0,
+          matches: response.data.data.matches || 0,
+          applications: response.data.data.applications || 0,
+          createdAt: response.data.data.created_at || '',
+          userName: response.data.data.author_name
+        };
+      }
+      
+      return null;
+    } catch (error: any) {
+      console.error('❌ 음악팀 지원자 상세 조회 실패:', error);
+      return null;
+    }
+  },
+
+  createMusicSeeker: async (seekerData: any): Promise<any> => {
+    try {
+      console.log('🎶 음악팀 지원서 등록 API 호출 중...', seekerData);
+      
+      // Frontend → Backend 데이터 변환
+      // 백엔드 PostgreSQL 스키마에 맞게 배열 처리
+      const backendData = {
+        title: seekerData.title,
+        team_name: seekerData.teamName || null,
+        instrument: seekerData.instrument,
+        experience: seekerData.experience || null,
+        portfolio: seekerData.portfolio || null,
+        preferred_location: seekerData.preferredLocation || [],
+        available_days: seekerData.availableDays || [],
+        available_time: seekerData.availableTime || null,
+        contact_phone: seekerData.contactPhone,
+        contact_email: seekerData.contactEmail || null
+      };
+      
+      console.log('🔍 전송할 백엔드 데이터:', JSON.stringify(backendData, null, 2));
+      
+      const response = await api.post(getApiUrl('/music-team-seekers'), backendData);
+      console.log('✅ 음악팀 지원서 등록 API 응답:', response.data);
+      
       return response.data;
     } catch (error: any) {
-      console.error('음악팀 참여 등록 실패:', error);
+      console.error('❌ 음악팀 지원서 등록 실패:', error);
       throw error;
     }
   },
 
-  updateMusicSeeker: async (seekerId: number, seekerData: Partial<MusicSeeker>): Promise<MusicSeeker> => {
+  updateMusicSeeker: async (seekerId: number, seekerData: any): Promise<any> => {
     try {
-      const response = await api.put(getApiUrl(`/community/music-team-seeking/${seekerId}`), seekerData);
+      console.log('🎶 음악팀 지원서 수정 API 호출 중...', seekerId, seekerData);
+      
+      // Frontend → Backend 데이터 변환
+      const backendData = {
+        ...(seekerData.title && { title: seekerData.title }),
+        ...(seekerData.teamName && { team_name: seekerData.teamName }),
+        ...(seekerData.instrument && { instrument: seekerData.instrument }),
+        ...(seekerData.experience && { experience: seekerData.experience }),
+        ...(seekerData.portfolio && { portfolio: seekerData.portfolio }),
+        ...(seekerData.preferredLocation && { preferred_location: seekerData.preferredLocation }),
+        ...(seekerData.availableDays && { available_days: seekerData.availableDays }),
+        ...(seekerData.availableTime && { available_time: seekerData.availableTime }),
+        ...(seekerData.contactPhone && { contact_phone: seekerData.contactPhone }),
+        ...(seekerData.contactEmail && { contact_email: seekerData.contactEmail }),
+        ...(seekerData.status && { status: seekerData.status })
+      };
+      
+      const response = await api.put(getApiUrl(`/music-team-seekers/${seekerId}`), backendData);
+      console.log('✅ 음악팀 지원서 수정 API 응답:', response.data);
+      
       return response.data;
     } catch (error: any) {
-      console.error('음악팀 참여 수정 실패:', error);
+      console.error('❌ 음악팀 지원서 수정 실패:', error);
       throw error;
     }
   },
 
   deleteMusicSeeker: async (seekerId: number): Promise<void> => {
     try {
-      await api.delete(getApiUrl(`/community/music-team-seeking/${seekerId}`));
+      console.log('🎶 음악팀 지원서 삭제 API 호출 중...', seekerId);
+      const response = await api.delete(getApiUrl(`/music-team-seekers/${seekerId}`));
+      console.log('✅ 음악팀 지원서 삭제 API 응답:', response.data);
     } catch (error: any) {
-      console.error('음악팀 참여 삭제 실패:', error);
+      console.error('❌ 음악팀 지원서 삭제 실패:', error);
       throw error;
     }
   },

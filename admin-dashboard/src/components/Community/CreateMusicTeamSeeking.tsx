@@ -23,34 +23,31 @@ const CreateMusicTeamSeeking: React.FC = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    name: '',
-    instruments: [] as string[],
+    teamName: '',
+    instrument: '',
     experience: '',
     portfolio: '',
-    preferredGenre: [] as string[],
     preferredLocation: [] as string[],
-    availability: '',
+    availableDays: [] as string[],
+    availableTime: '',
     contactPhone: '',
     contactEmail: ''
   });
 
-  const [instrumentInput, setInstrumentInput] = useState('');
-  const [genreInput, setGenreInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
 
-  const instrumentOptions = [
-    '피아노', '키보드', '오르간', '기타', '일렉기타', '베이스', '드럼', 
-    '바이올린', '첼로', '플룻', '색소폰', '트럼펫', '보컬', '기타'
+  const teamTypeOptions = [
+    '현재 솔로 활동', '찬양팀', '워십팀', '어쿠스틱 팀',
+    '밴드', '오케스트라', '합창단', '무용팀', '기타'
   ];
 
-  const genreOptions = [
-    '찬양', '워십', '가스펠', 'CCM', '클래식', '컨템포러리', '어쿠스틱', 
-    '재즈', '블루스', '팝', '기타'
+  const dayOptions = [
+    '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'
   ];
 
-  const availabilityOptions = [
-    '상근 가능', '비상근 가능', '주말만 가능', '평일 오후 가능', 
-    '저녁 시간 가능', '특별 행사만', '협의 가능'
+  const timeOptions = [
+    '오전 (9:00-12:00)', '오후 (13:00-18:00)', '저녁 (18:00-21:00)', 
+    '야간 (21:00-23:00)', '상시 가능', '협의 후 결정'
   ];
 
   const getInstrumentIcon = (instrument: string) => {
@@ -74,7 +71,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.name || formData.instruments.length === 0 || !formData.contactPhone) {
+    if (!formData.title || !formData.instrument || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -84,16 +81,15 @@ const CreateMusicTeamSeeking: React.FC = () => {
       
       const seekerData = {
         title: formData.title,
-        name: formData.name,
-        instruments: formData.instruments,
+        teamName: formData.teamName,
+        instrument: formData.instrument,
         experience: formData.experience,
         portfolio: formData.portfolio,
-        preferredGenre: formData.preferredGenre,
         preferredLocation: formData.preferredLocation,
-        availability: formData.availability,
-        contactInfo: formData.contactPhone + (formData.contactEmail ? ` | ${formData.contactEmail}` : ''),
-        email: formData.contactEmail,
-        status: 'active' as const
+        availableDays: formData.availableDays,
+        availableTime: formData.availableTime,
+        contactPhone: formData.contactPhone,
+        contactEmail: formData.contactEmail
       };
 
       await communityService.createMusicSeeker(seekerData);
@@ -107,37 +103,13 @@ const CreateMusicTeamSeeking: React.FC = () => {
     }
   };
 
-  const addInstrument = () => {
-    if (instrumentInput.trim() && !formData.instruments.includes(instrumentInput.trim())) {
-      setFormData({
-        ...formData,
-        instruments: [...formData.instruments, instrumentInput.trim()]
-      });
-      setInstrumentInput('');
-    }
-  };
 
-  const removeInstrument = (index: number) => {
+  const toggleDay = (day: string) => {
     setFormData({
       ...formData,
-      instruments: formData.instruments.filter((_, i) => i !== index)
-    });
-  };
-
-  const addGenre = () => {
-    if (genreInput.trim() && !formData.preferredGenre.includes(genreInput.trim())) {
-      setFormData({
-        ...formData,
-        preferredGenre: [...formData.preferredGenre, genreInput.trim()]
-      });
-      setGenreInput('');
-    }
-  };
-
-  const removeGenre = (index: number) => {
-    setFormData({
-      ...formData,
-      preferredGenre: formData.preferredGenre.filter((_, i) => i !== index)
+      availableDays: formData.availableDays.includes(day)
+        ? formData.availableDays.filter(d => d !== day)
+        : [...formData.availableDays, day]
     });
   };
 
@@ -195,7 +167,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">기본 정보</h2>
             
-            {/* 제목과 이름 */}
+            {/* 제목과 팀명 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -213,54 +185,34 @@ const CreateMusicTeamSeeking: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  성명 *
+                  현재 활동 팀명 (선택)
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  value={formData.teamName}
+                  onChange={(e) => setFormData({...formData, teamName: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="실명을 입력하세요"
-                  required
+                  placeholder="예: 찬양팀, 워십팀, 솔로 활동 등"
                 />
               </div>
             </div>
 
-            {/* 연주 가능 악기 */}
+            {/* 팀 형태 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                연주 가능 악기 *
+                팀 형태 *
               </label>
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={instrumentInput}
-                  onChange={(e) => setInstrumentInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">악기 선택</option>
-                  {instrumentOptions.map(instrument => (
-                    <option key={instrument} value={instrument}>{instrument}</option>
-                  ))}
-                </select>
-                <Button type="button" onClick={addInstrument} disabled={!instrumentInput}>
-                  추가
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.instruments.map((instrument, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-                    {getInstrumentIcon(instrument)}
-                    <span className="ml-1">{instrument}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeInstrument(index)}
-                      className="ml-1 text-purple-600 hover:text-purple-800"
-                    >
-                      ×
-                    </button>
-                  </span>
+              <select
+                value={formData.instrument}
+                onChange={(e) => setFormData({...formData, instrument: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">팀 형태를 선택하세요</option>
+                {teamTypeOptions.map(teamType => (
+                  <option key={teamType} value={teamType}>{teamType}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* 연주 경력 */}
@@ -277,42 +229,6 @@ const CreateMusicTeamSeeking: React.FC = () => {
               />
             </div>
 
-            {/* 선호 장르 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                선호하는 음악 장르
-              </label>
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={genreInput}
-                  onChange={(e) => setGenreInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">장르 선택</option>
-                  {genreOptions.map(genre => (
-                    <option key={genre} value={genre}>{genre}</option>
-                  ))}
-                </select>
-                <Button type="button" onClick={addGenre} disabled={!genreInput}>
-                  추가
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.preferredGenre.map((genre, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                    <Music className="h-3 w-3 mr-1" />
-                    {genre}
-                    <button
-                      type="button"
-                      onClick={() => removeGenre(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
 
             {/* 활동 가능 지역 */}
             <div>
@@ -350,18 +266,50 @@ const CreateMusicTeamSeeking: React.FC = () => {
               </div>
             </div>
 
-            {/* 활동 가능 시간 */}
+            {/* 활동 가능 요일 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                활동 가능 시간
+                활동 가능 요일
+              </label>
+              <div className="grid grid-cols-7 gap-2">
+                {dayOptions.map(day => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`px-3 py-2 text-xs rounded-md border transition-colors ${
+                      formData.availableDays.includes(day)
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {day.slice(0, 1)}
+                  </button>
+                ))}
+              </div>
+              {formData.availableDays.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {formData.availableDays.map(day => (
+                    <span key={day} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                      {day}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 활동 가능 시간대 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                활동 가능 시간대
               </label>
               <select
-                value={formData.availability}
-                onChange={(e) => setFormData({...formData, availability: e.target.value})}
+                value={formData.availableTime}
+                onChange={(e) => setFormData({...formData, availableTime: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">선택하세요</option>
-                {availabilityOptions.map(option => (
+                <option value="">시간대를 선택하세요</option>
+                {timeOptions.map(option => (
                   <option key={option} value={option}>{option}</option>
                 ))}
               </select>

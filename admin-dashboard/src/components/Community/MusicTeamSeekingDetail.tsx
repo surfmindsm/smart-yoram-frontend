@@ -19,8 +19,7 @@ const MusicTeamSeekingDetail: React.FC = () => {
   const fetchSeekerDetail = async (seekerId: number) => {
     try {
       setLoading(true);
-      const seekers = await communityService.getMusicSeekers();
-      const foundSeeker = seekers.find(seeker => seeker.id === seekerId);
+      const foundSeeker = await communityService.getMusicSeekerById(seekerId);
       
       if (foundSeeker) {
         setSeeker(foundSeeker);
@@ -123,7 +122,7 @@ const MusicTeamSeekingDetail: React.FC = () => {
       label: '구직 상태',
       key: 'status',
       type: 'badge' as const,
-      color: seeker?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+      color: seeker?.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
       render: (value: any) => getStatusText(value)
     }
   ];
