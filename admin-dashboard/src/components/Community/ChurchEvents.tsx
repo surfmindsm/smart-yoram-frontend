@@ -333,7 +333,7 @@ const ChurchEvents: React.FC = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => navigate(`/community/church-events/${event.id}`)}
+                    onClick={() => navigate(`/community/church-news/${event.id}`)}
                   >
                     자세히 보기
                   </Button>

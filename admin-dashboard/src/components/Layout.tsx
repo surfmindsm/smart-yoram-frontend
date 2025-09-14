@@ -254,7 +254,7 @@ const Layout: React.FC = () => {
         {
           title: '소식 · 관리',
           items: [
-            { path: '/community/church-events', name: '교회 행사/소식', Icon: Calendar },
+            { path: '/community/church-news', name: '교회 행사/소식', Icon: Calendar },
             { path: '/community/my-posts', name: '내가 올린 글', Icon: UserCheck },
           ]
         }

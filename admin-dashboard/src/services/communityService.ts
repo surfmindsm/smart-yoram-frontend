@@ -1,6 +1,18 @@
 import { api, getApiUrl } from './api';
 import { formatCreatedAt } from '../utils/dateUtils';
 
+// 교회 ID를 교회명으로 매핑하는 함수 (백엔드에서 church_name이 없는 경우 사용)
+const getChurchNameById = (churchId: number): string | null => {
+  if (churchId === 9998) return null; // 협력사
+
+  // 기본 매핑 - 향후 필요시 더 추가 가능
+  const churchMapping: { [key: number]: string } = {
+    6: '성광교회',
+  };
+
+  return churchMapping[churchId] || `교회 ${churchId}`;
+};
+
 // 커뮤니티 통계 인터페이스
 export interface CommunityStats {
   total_posts: number;
@@ -296,7 +308,7 @@ export const transformMusicSeekerFromBackend = (backendData: any): MusicSeeker =
     applications: backendData.applications || 0,
     userName: backendData.author_name || '익명',
     authorName: backendData.author_name,
-    church: backendData.church_id === 9998 ? null : backendData.church_name,
+    church: backendData.church_name || backendData.church || getChurchNameById(backendData.church_id),
     churchName: backendData.church_name,
     location: backendData.location,
     introduction: backendData.introduction,
@@ -373,7 +385,7 @@ export const communityService = {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         const transformedData = response.data.data.map((item: any): SharingItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
           
           return {
             id: item.id,
@@ -421,7 +433,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -527,7 +539,7 @@ export const communityService = {
         console.log('✅ 첫 번째 조건 매칭: success 래핑된 응답');
         const transformedData = response.data.data.map((item: any): RequestItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
           
           return {
             id: item.id,
@@ -560,7 +572,7 @@ export const communityService = {
         console.log('🔍 첫 번째 아이템:', response.data[0]);
         const transformedData = response.data.map((item: any): RequestItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             id: item.id,
@@ -662,7 +674,7 @@ export const communityService = {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (FreeSharing과 동일)
         const transformedData = response.data.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
           
           return {
             id: item.id,
@@ -712,7 +724,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             id: item.id,
@@ -811,7 +823,7 @@ export const communityService = {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.company || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.company || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -836,7 +848,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -878,7 +890,7 @@ export const communityService = {
       if (response.data && response.data.success && response.data.data) {
         const item = response.data.data;
         // 교회 9998의 경우 null로 처리
-        const churchName = item.church_id === 9998 ? null : (item.church || item.company || `교회 ${item.church_id}`);
+        const churchName = item.church || item.company || getChurchNameById(item.church_id);
         
         return {
           ...item,
@@ -899,7 +911,7 @@ export const communityService = {
       if (response.data && typeof response.data === 'object') {
         const item = response.data;
         // 교회 9998의 경우 null로 처리
-        const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+        const churchName = item.church || item.churchName || getChurchNameById(item.church_id);
         
         return {
           ...item,
@@ -1005,7 +1017,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -1172,7 +1184,7 @@ export const communityService = {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1210,7 +1222,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1561,7 +1573,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -1627,7 +1639,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -1732,15 +1744,14 @@ export const communityService = {
   // 내가 올린 글 조회 (모든 타입 통합)
   getMyPosts: async (params?: {
     type?: string;
+    post_type?: string;
     search?: string;
     status?: string;
-    skip?: number;
+    page?: number;
     limit?: number;
   }): Promise<any[]> => {
     try {
-      console.log('📝 내 게시글 API 호출 중...', params);
       const response = await api.get(getApiUrl('/community/my-posts'), { params });
-      console.log('✅ 내 게시글 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -1751,7 +1762,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church || item.churchName || `교회 ${item.church_id}`);
+          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
           
           return {
             ...item,
@@ -1768,8 +1779,29 @@ export const communityService = {
       return [];
     } catch (error: any) {
       console.error('❌ 내 게시글 조회 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
+
+      if (error.response) {
+        console.error('📊 API 응답 에러:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url
+        });
+
+        if (error.response.status === 403) {
+          console.error('🚫 JWT 인증 오류 - abc.md 문서의 "인증 오류 해결 방법" 참고');
+          console.error('💡 해결 방법:');
+          console.error('  1. localStorage에서 access_token 확인');
+          console.error('  2. 토큰 형식 확인: Bearer ${token}');
+          console.error('  3. 토큰 만료 여부 확인');
+          console.error('  4. 재로그인 시도');
+        }
+      } else if (error.request) {
+        console.error('📡 네트워크 요청 실패:', error.request);
+      } else {
+        console.error('⚠️ 기타 오류:', error.message);
+      }
+
       return []; // 에러 발생 시 빈 배열 반환
     }
   },

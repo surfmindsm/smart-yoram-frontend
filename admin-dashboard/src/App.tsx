@@ -49,6 +49,7 @@ const CreateMusicTeamSeeking = lazy(() => import('./components/Community/CreateM
 const CreateChurchEvents = lazy(() => import('./components/Community/CreateChurchEvents'));
 const ChurchNews = lazy(() => import('./components/Community/ChurchNews'));
 const CreateChurchNews = lazy(() => import('./components/Community/CreateChurchNews'));
+const EditChurchNews = lazy(() => import('./components/Community/EditChurchNews'));
 const ItemRequest = lazy(() => import('./components/Community/ItemRequest'));
 const SharingOffer = lazy(() => import('./components/Community/SharingOffer'));
 const JobPosting = lazy(() => import('./components/Community/JobPosting'));
@@ -360,6 +361,15 @@ function App() {
               <ChurchEventsDetail />
             </Suspense>
           } />
+          <Route path="community/church-news/:id/edit" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <EditChurchNews />
+            </Suspense>
+          } />
+
+          {/* Legacy route redirects - church-events → church-news */}
+          <Route path="community/church-events" element={<Navigate to="/community/church-news" replace />} />
+          <Route path="community/church-events/:id" element={<Navigate to="/community/church-news" replace />} />
           <Route path="community/music-team-seeking/:id" element={
             <Suspense fallback={<LoadingSpinner />}>
               <MusicTeamSeekingDetail />

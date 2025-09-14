@@ -155,7 +155,7 @@ const CreateChurchEvents: React.FC = () => {
       
       await communityService.createChurchEvent(submitData);
       alert('행사가 성공적으로 등록되었습니다.');
-      navigate('/community/church-events');
+      navigate('/community/church-news');
     } catch (error) {
       console.error('Failed to create church event:', error);
       alert('행사 등록에 실패했습니다. 다시 시도해주세요.');

@@ -24,15 +24,16 @@ import { communityService } from '../../services/communityService';
 // 사용자의 모든 게시글을 위한 통합 인터페이스
 interface MyPost {
   id: number;
-  type: 'free-sharing' | 'item-request' | 'sharing-offer' | 'job-posting' | 'job-seeking' | 'music-team-recruit' | 'music-team-seeking' | 'church-events';
+  type: 'community-sharing' | 'community-request' | 'job-posts' | 'job-seekers' | 'music-team-recruitment' | 'music-team-seekers' | 'church-news' | 'church-events';
   title: string;
   status: string;
-  createdAt: string;
+  created_at: string;
   views: number;
   likes: number;
   comments?: number;
   church?: string;
   location?: string;
+  author_name?: string; // 백엔드 표준화로 더 안정적으로 제공됨
 }
 
 const MyPosts: React.FC = () => {
@@ -42,15 +43,41 @@ const MyPosts: React.FC = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [editingPost, setEditingPost] = useState<MyPost | null>(null);
 
+  // 날짜 포맷팅 함수
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        return '오늘';
+      } else if (diffDays === 1) {
+        return '어제';
+      } else if (diffDays < 7) {
+        return `${diffDays}일 전`;
+      } else {
+        return date.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   const postTypes = [
     { value: 'all', label: '전체' },
-    { value: 'free-sharing', label: '무료 나눔' },
-    { value: 'item-request', label: '물품 요청' },
-    { value: 'sharing-offer', label: '나눔 제공' },
-    { value: 'job-posting', label: '구인 공고' },
-    { value: 'job-seeking', label: '구직 신청' },
-    { value: 'music-team-recruit', label: '음악팀 모집' },
-    { value: 'music-team-seeking', label: '음악팀 참여' },
+    { value: 'community-sharing', label: '무료 나눔' },
+    { value: 'community-request', label: '물품 요청' },
+    { value: 'job-posts', label: '구인 공고' },
+    { value: 'job-seekers', label: '구직 신청' },
+    { value: 'music-team-recruitment', label: '음악팀 모집' },
+    { value: 'music-team-seekers', label: '음악팀 참여' },
+    { value: 'church-news', label: '교회 소식' },
     { value: 'church-events', label: '교회 행사' }
   ];
 
@@ -62,13 +89,31 @@ const MyPosts: React.FC = () => {
     try {
       setLoading(true);
       const data = await communityService.getMyPosts({
-        type: selectedType === 'all' ? undefined : selectedType,
+        post_type: selectedType === 'all' ? undefined : selectedType,
         search: searchTerm || undefined,
         limit: 50
       });
-      setPosts(data);
+
+      // abc.md 권장: 응답 검증 강화
+      if (Array.isArray(data)) {
+        // 알 수 없는 상태값 체크 (개발 환경에서만)
+        if (process.env.NODE_ENV === 'development') {
+          const unknownStatuses = data
+            .map(post => post.status)
+            .filter(status => !['active', 'completed', 'closed', 'cancelled', 'available', 'requesting', 'open', 'upcoming', 'reserved', 'matching', 'ongoing'].includes(status.toLowerCase()));
+
+          if (unknownStatuses.length > 0) {
+            console.warn('🔍 알 수 없는 상태값 발견:', Array.from(new Set(unknownStatuses)));
+          }
+        }
+
+        setPosts(data);
+      } else {
+        console.error('❌ 예상치 못한 응답 형식:', data);
+        setPosts([]);
+      }
     } catch (error) {
-      console.error('내 게시글 조회 실패:', error);
+      console.error('❌ 내 게시글 조회 실패:', error);
       setPosts([]);
     } finally {
       setLoading(false);
@@ -88,26 +133,26 @@ const MyPosts: React.FC = () => {
     try {
       // API 호출하여 게시글 삭제
       switch (post.type) {
-        case 'free-sharing':
+        case 'community-sharing':
           await communityService.deleteSharingItem(post.id);
           break;
-        case 'item-request':
+        case 'community-request':
           await communityService.deleteRequestItem(post.id);
           break;
-        case 'sharing-offer':
-          await communityService.deleteOfferItem(post.id);
-          break;
-        case 'job-posting':
+        case 'job-posts':
           await communityService.deleteJobPost(post.id);
           break;
-        case 'job-seeking':
+        case 'job-seekers':
           await communityService.deleteJobSeeker(post.id);
           break;
-        case 'music-team-recruit':
+        case 'music-team-recruitment':
           await communityService.deleteMusicRecruitment(post.id);
           break;
-        case 'music-team-seeking':
+        case 'music-team-seekers':
           await communityService.deleteMusicSeeker(post.id);
+          break;
+        case 'church-news':
+          await communityService.deleteChurchNews(post.id);
           break;
         case 'church-events':
           await communityService.deleteChurchEvent(post.id);
@@ -125,45 +170,102 @@ const MyPosts: React.FC = () => {
 
   const getTypeInfo = (type: string) => {
     switch (type) {
-      case 'free-sharing':
-        return { icon: Gift, color: 'text-green-600', bg: 'bg-green-50', label: '무료 나눔' };
-      case 'item-request':
-        return { icon: HandHeart, color: 'text-blue-600', bg: 'bg-blue-50', label: '물품 요청' };
-      case 'sharing-offer':
-        return { icon: Share2, color: 'text-purple-600', bg: 'bg-purple-50', label: '나눔 제공' };
-      case 'job-posting':
-        return { icon: Briefcase, color: 'text-orange-600', bg: 'bg-orange-50', label: '구인 공고' };
-      case 'job-seeking':
-        return { icon: UserIcon, color: 'text-cyan-600', bg: 'bg-cyan-50', label: '구직 신청' };
-      case 'music-team-recruit':
-        return { icon: Music, color: 'text-pink-600', bg: 'bg-pink-50', label: '음악팀 모집' };
-      case 'music-team-seeking':
-        return { icon: Music, color: 'text-indigo-600', bg: 'bg-indigo-50', label: '음악팀 참여' };
+      case 'community-sharing':
+        return {
+          icon: Gift,
+          color: 'text-green-600',
+          bg: 'bg-green-50',
+          label: '무료 나눔',
+          menu: '커뮤니티 > 무료 나눔'
+        };
+      case 'community-request':
+        return {
+          icon: HandHeart,
+          color: 'text-blue-600',
+          bg: 'bg-blue-50',
+          label: '물품 요청',
+          menu: '커뮤니티 > 물품 요청'
+        };
+      case 'job-posts':
+        return {
+          icon: Briefcase,
+          color: 'text-orange-600',
+          bg: 'bg-orange-50',
+          label: '구인 공고',
+          menu: '커뮤니티 > 구인 공고'
+        };
+      case 'job-seekers':
+        return {
+          icon: UserIcon,
+          color: 'text-cyan-600',
+          bg: 'bg-cyan-50',
+          label: '구직 신청',
+          menu: '커뮤니티 > 구직 신청'
+        };
+      case 'music-team-recruitment':
+        return {
+          icon: Music,
+          color: 'text-pink-600',
+          bg: 'bg-pink-50',
+          label: '음악팀 모집',
+          menu: '커뮤니티 > 음악팀 모집'
+        };
+      case 'music-team-seekers':
+        return {
+          icon: Music,
+          color: 'text-indigo-600',
+          bg: 'bg-indigo-50',
+          label: '음악팀 참여',
+          menu: '커뮤니티 > 음악팀 참여'
+        };
       case 'church-events':
-        return { icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-50', label: '교회 행사' };
+        return {
+          icon: Calendar,
+          color: 'text-purple-600',
+          bg: 'bg-purple-50',
+          label: '교회 행사',
+          menu: '커뮤니티 > 교회 행사'
+        };
+      case 'church-news':
+        return {
+          icon: Calendar,
+          color: 'text-yellow-600',
+          bg: 'bg-yellow-50',
+          label: '교회 소식',
+          menu: '커뮤니티 > 교회 소식'
+        };
       default:
-        return { icon: Users, color: 'text-gray-600', bg: 'bg-gray-50', label: '기타' };
+        return {
+          icon: Users,
+          color: 'text-gray-600',
+          bg: 'bg-gray-50',
+          label: '기타',
+          menu: '커뮤니티'
+        };
     }
   };
 
   const getStatusColor = (status: string, type: string) => {
-    // 타입별로 상태에 따른 색상 결정
-    switch (status) {
-      case 'available':
+    // 백엔드 표준화: active, completed, closed, cancelled 통일
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'available': // 기존 호환성 유지
       case 'requesting':
       case 'open':
-      case 'active':
       case 'upcoming':
         return 'bg-green-100 text-green-800';
-      case 'reserved':
-      case 'matching':
-      case 'ongoing':
-        return 'bg-yellow-100 text-yellow-800';
       case 'completed':
+        return 'bg-gray-100 text-gray-800';
       case 'closed':
       case 'inactive':
       case 'answered':
         return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'reserved':
+      case 'matching':
+      case 'ongoing':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-blue-100 text-blue-800';
     }
@@ -174,6 +276,7 @@ const MyPosts: React.FC = () => {
     const matchesType = selectedType === 'all' || post.type === selectedType;
     return matchesSearch && matchesType;
   });
+
 
   return (
     <div className="p-6">
@@ -222,96 +325,107 @@ const MyPosts: React.FC = () => {
       </div>
 
       {/* 게시글 목록 */}
+
       {loading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-gray-500">내 게시글을 불러오는 중...</span>
         </div>
       ) : filteredPosts.length > 0 ? (
-        <div className="space-y-4">
-          {filteredPosts.map((post) => {
-            const typeInfo = getTypeInfo(post.type);
-            const IconComponent = typeInfo.icon;
-            
-            return (
-              <div key={`${post.type}-${post.id}`} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${typeInfo.bg}`}>
-                        <IconComponent className={`h-4 w-4 ${typeInfo.color}`} />
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeInfo.bg} ${typeInfo.color}`}>
-                        {typeInfo.label}
-                      </span>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status, post.type)}`}>
-                        {post.status}
-                      </span>
-                    </div>
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    메뉴
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    제목
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작성일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    조회/좋아요
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    관리
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredPosts.map((post, index) => {
+                  const typeInfo = getTypeInfo(post.type);
+                  const IconComponent = typeInfo.icon;
 
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {post.title}
-                    </h3>
-
-                    <div className="flex items-center text-sm text-gray-500 space-x-4 mb-3">
-                      <span className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {post.createdAt}
-                      </span>
-                      {post.church && (
-                        <span>{post.church}</span>
-                      )}
-                      {post.location && (
-                        <span className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {post.location}
+                  return (
+                    <tr key={`${post.type}-${post.id}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gray-900">
+                          {typeInfo.menu.replace('커뮤니티 > ', '')}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center">
-                        <Eye className="h-4 w-4 mr-1" />
-                        {post.views}
-                      </span>
-                      <span className="flex items-center">
-                        <Heart className="h-4 w-4 mr-1" />
-                        {post.likes}
-                      </span>
-                      {post.comments !== undefined && (
-                        <span className="flex items-center">
-                          <MessageCircle className="h-4 w-4 mr-1" />
-                          {post.comments}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                          {post.title}
+                        </div>
+                        {post.location && (
+                          <div className="text-xs text-gray-500 flex items-center mt-1">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {post.location}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status, post.type)}`}>
+                          {post.status}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 액션 버튼들 */}
-                  <div className="flex items-center space-x-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(post)}
-                      className="flex items-center gap-1"
-                    >
-                      <Edit className="h-4 w-4" />
-                      수정
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(post)}
-                      className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      삭제
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(post.created_at)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <span className="flex items-center">
+                            <Eye className="h-4 w-4 mr-1" />
+                            {post.views}
+                          </span>
+                          <span className="flex items-center">
+                            <Heart className="h-4 w-4 mr-1" />
+                            {post.likes}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => handleEdit(post)}
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(post)}
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
