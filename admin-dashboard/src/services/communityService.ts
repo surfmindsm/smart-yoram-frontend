@@ -1,4 +1,4 @@
-import { api, getApiUrl } from './api';
+import { api, getApiUrl, userService } from './api';
 import { formatCreatedAt } from '../utils/dateUtils';
 
 // 교회 ID를 교회명으로 매핑하는 함수 (백엔드에서 church_name이 없는 경우 사용)
@@ -12,6 +12,36 @@ const getChurchNameById = (churchId: number): string | null => {
 
   return churchMapping[churchId] || `교회 ${churchId}`;
 };
+
+// 사용자 데이터 캐시
+let usersCache: any[] | null = null;
+let usersCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+// 사용자 ID로 사용자명을 조회하는 함수 (API 호출)
+const getUserNameById = async (authorId: number): Promise<string | null> => {
+  try {
+    // 캐시가 있고 유효하면 캐시 사용
+    const now = Date.now();
+    if (usersCache && (now - usersCacheTime) < CACHE_DURATION) {
+      const user = usersCache.find(u => u.id === authorId);
+      return user ? (user.full_name || user.name || user.username || `사용자${authorId}`) : null;
+    }
+
+    // 캐시가 없거나 만료되었으면 API 호출
+    console.log('👥 사용자 목록 API 호출 중...');
+    const users = await userService.getUsers();
+    usersCache = users;
+    usersCacheTime = now;
+
+    const user = users.find((u: any) => u.id === authorId);
+    return user ? (user.full_name || user.name || user.username || `사용자${authorId}`) : null;
+  } catch (error) {
+    console.error('👥 사용자 조회 실패:', error);
+    return null;
+  }
+};
+
 
 // 커뮤니티 통계 인터페이스
 export interface CommunityStats {
@@ -308,7 +338,7 @@ export const transformMusicSeekerFromBackend = (backendData: any): MusicSeeker =
     applications: backendData.applications || 0,
     userName: backendData.author_name || '익명',
     authorName: backendData.author_name,
-    church: backendData.church_name || backendData.church || getChurchNameById(backendData.church_id),
+    church: backendData.church_id === 9998 ? null : (backendData.church_name || backendData.church || getChurchNameById(backendData.church_id)),
     churchName: backendData.church_name,
     location: backendData.location,
     introduction: backendData.introduction,
@@ -385,7 +415,7 @@ export const communityService = {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         const transformedData = response.data.data.map((item: any): SharingItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -433,7 +463,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -500,98 +530,146 @@ export const communityService = {
     limit?: number;
   }): Promise<RequestItem[]> => {
     try {
-      console.log('물품 요청 API 호출:', params);
-      console.log('🌐 API URL:', getApiUrl('/community/item-requests'));
-      
-      // 다른 가능한 엔드포인트들도 시도해보자
-      let response;
-      const possibleEndpoints = [
-        '/community/item-requests',
-        '/community/item-request', 
-        '/community/requests',
-        '/community/request-items'
-      ];
-      
-      console.log('🔄 시도할 엔드포인트들:', possibleEndpoints);
-      
-      // 먼저 파라미터 없이 전체 데이터 요청해보기
-      console.log('🔍 파라미터 없이 전체 데이터 요청 중...');
-      const responseAll = await api.get(getApiUrl('/community/item-request'));
-      console.log('📊 전체 데이터 응답:', responseAll.data);
-      console.log('📊 전체 데이터 길이:', responseAll.data?.data?.length || 0);
-      
-      // 원래 파라미터로 요청
-      console.log('🔍 파라미터와 함께 요청 중...');
-      // 500 에러 발생하는 엔드포인트 대신 다른 것 시도
-      response = await api.get(getApiUrl('/community/item-request'), { params });
-      console.log('물품 요청 API 응답:', response.data);
-      console.log('📊 응답 상세:', { 
-        status: response.status, 
-        dataType: typeof response.data, 
-        isArray: Array.isArray(response.data),
-        isSuccess: response.data?.success,
-        dataLength: response.data?.data?.length,
-        directArrayLength: Array.isArray(response.data) ? response.data.length : null
-      });
-      
+      // 사용자 캐시 로드 (author_id -> 사용자명 매핑용)
+      const now = Date.now();
+      if (!usersCache || (now - usersCacheTime) >= CACHE_DURATION) {
+        try {
+          console.log('👥 사용자 목록 로드 중...');
+          const users = await userService.getUsers();
+          usersCache = users;
+          usersCacheTime = now;
+          console.log('👥 사용자 캐시 로드 완료:', users.length, '명');
+        } catch (error) {
+          console.error('👥 사용자 캐시 로드 실패:', error);
+        }
+      }
+
+      console.log('📝 물품 요청 API 호출:', params);
+      const response = await api.get(getApiUrl('/community/item-request'), { params });
+      console.log('✅ 물품 요청 API 응답:', response.data);
+      console.log('✅ 물품 요청 데이터 상세:', response.data?.data);
+      console.log('✅ 첫 번째 아이템 구조:', response.data?.data?.[0]);
+
+      // DB에서 온 원본 데이터 상세 분석
+      if (response.data?.data?.[0]) {
+        const firstItem = response.data.data[0];
+        console.log('🔍 DB 원본 데이터 분석:');
+        console.log('📊 사용자 관련 필드들:', {
+          author_id: firstItem.author_id,
+          author_name: firstItem.author_name,
+          user_name: firstItem.user_name,
+          userName: firstItem.userName
+        });
+        console.log('🏛️ 교회 관련 필드들:', {
+          church_id: firstItem.church_id,
+          church_name: firstItem.church_name,
+          church: firstItem.church
+        });
+        console.log('📅 날짜 관련 필드들:', {
+          created_at: firstItem.created_at,
+          updated_at: firstItem.updated_at,
+          createdAt: firstItem.createdAt
+        });
+        console.log('📋 전체 필드 목록:', Object.keys(firstItem));
+      }
+
+      // 현재 로그인한 사용자 정보 확인
+      try {
+        const currentUserStr = localStorage.getItem('user');
+        const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+        console.log('👤 현재 로그인한 사용자:', {
+          id: currentUser?.id,
+          name: currentUser?.name || currentUser?.username || currentUser?.full_name,
+          church_id: currentUser?.church_id
+        });
+      } catch (e) {
+        console.log('👤 현재 사용자 정보 없음');
+      }
+
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        console.log('✅ 첫 번째 조건 매칭: success 래핑된 응답');
-        const transformedData = response.data.data.map((item: any): RequestItem => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
-          
+        // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (무료나눔과 동일한 방식)
+        const transformedData = response.data.data.map((item: any, index: number): RequestItem => {
+          // 교회명 처리 과정 로깅
+          console.log(`🔄 아이템 ${index + 1} 변환 과정:`);
+
+          const step1 = item.church_name;
+          const step2 = item.church;
+          const step3 = getChurchNameById(item.church_id);
+          // church_id 9998(협력사)인 경우 백엔드 church_name 무시하고 null 처리
+          const finalChurchName = item.church_id === 9998 ? null : (step1 || step2 || step3);
+
+          console.log('🏛️ 교회명 변환 단계:', {
+            '1단계_church_name': step1,
+            '2단계_church': step2,
+            '3단계_getChurchNameById결과': step3,
+            '최종_churchName': finalChurchName
+          });
+
+          // author_id로 사용자명 조회 (author_name이 없는 경우)
+          let finalUserName = item.author_name || item.user_name || item.userName;
+
+          // author_name이 없으면 사용자 캐시에서 조회
+          if (!finalUserName && item.author_id) {
+            if (usersCache) {
+              const user = usersCache.find(u => u.id === item.author_id);
+              finalUserName = user ? (user.full_name || user.name || user.username || `사용자${item.author_id}`) : null;
+            }
+          }
+
+          finalUserName = finalUserName || '익명';
+          console.log('👤 사용자명 변환:', {
+            'author_id': item.author_id,
+            'author_name': item.author_name,
+            'user_name': item.user_name,
+            'userName': item.userName,
+            '최종_userName': finalUserName
+          });
+
+          const finalCreatedAt = item.created_at || item.createdAt || null;
+          console.log('📅 등록일 변환:', {
+            'created_at': item.created_at,
+            'createdAt': item.createdAt,
+            '최종_createdAt': finalCreatedAt
+          });
+
           return {
             id: item.id,
             title: item.title,
             description: item.description,
             category: item.category,
-            requestedItem: item.requested_item || item.requestedItem || item.title, // 없으면 제목 사용
+            requestedItem: item.requested_item || item.requestedItem || item.title,
             quantity: item.quantity || 1,
-            reason: item.reason || item.description || '요청 사유 없음', // reason이 없으면 description 사용
-            urgency: item.urgency || item.urgency_level || 'medium', // normal 값도 그대로 허용
+            reason: item.reason || item.description || '요청 사유 없음',
+            urgency: item.urgency || item.urgency_level || 'medium',
             neededDate: item.needed_date || item.neededDate || '',
-            church: churchName,
+            church: finalChurchName,
             location: item.location,
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
-            createdAt: item.created_at || item.createdAt || null,
+            createdAt: finalCreatedAt,
             views: item.view_count || item.views || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: finalUserName
           };
         });
-        console.log('변환된 물품 요청 데이터:', transformedData.length, '개');
+
+        console.log('🎯 최종 변환된 데이터:', transformedData);
+        console.log('📤 프론트엔드로 전달되는 첫 번째 아이템:', transformedData[0]);
         return transformedData;
       }
       
       // 직접 배열이 반환되는 경우
       if (Array.isArray(response.data)) {
-        console.log('✅ 두 번째 조건 매칭: 직접 배열 응답, 길이:', response.data.length);
-        console.log('🔍 첫 번째 아이템:', response.data[0]);
-        const transformedData = response.data.map((item: any): RequestItem => {
+        const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
-          
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+
           return {
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            category: item.category,
-            requestedItem: item.requested_item || item.requestedItem || item.title, // 없으면 제목 사용
-            quantity: item.quantity || 1,
-            reason: item.reason || item.description || '요청 사유 없음', // reason이 없으면 description 사용
-            urgency: item.urgency || item.urgency_level || 'medium', // normal 값도 그대로 허용
-            neededDate: item.needed_date || item.neededDate || '',
+            ...item,
             church: churchName,
-            location: item.location,
-            contactInfo: item.contact_info || item.contactInfo || '',
-            status: item.status,
-            createdAt: item.created_at || item.createdAt || null,
-            views: item.view_count || item.views || 0,
-            likes: item.likes || 0,
-            comments: item.comments || 0,
+            churchName: churchName, // JobPost의 경우 churchName 필드 사용
             userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
           };
         });
@@ -631,7 +709,7 @@ export const communityService = {
       delete (transformedData as any).contactPhone;
       delete (transformedData as any).contactEmail;
       
-      const response = await api.post(getApiUrl('/community/item-requests'), transformedData);
+      const response = await api.post(getApiUrl('/community/item-request'), transformedData);
       
       return response.data?.data || response.data;
     } catch (error: any) {
@@ -674,7 +752,7 @@ export const communityService = {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (FreeSharing과 동일)
         const transformedData = response.data.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -724,7 +802,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -848,7 +926,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1017,7 +1095,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1184,7 +1262,7 @@ export const communityService = {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1222,7 +1300,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1573,7 +1651,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1639,7 +1717,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1762,7 +1840,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.churchName || getChurchNameById(item.church_id);
+          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,

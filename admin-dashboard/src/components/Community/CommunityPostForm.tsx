@@ -246,11 +246,17 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
       
       // API 요청
       const response = await api.post(getApiUrl(config.submitEndpoint), submitData);
-      
-      if (response.data && response.data.success) {
+
+      console.log(`🔍 API 응답 전체:`, response);
+      console.log(`🔍 API 응답 데이터:`, response.data);
+      console.log(`🔍 API 응답 상태:`, response.status);
+      console.log(`🔍 success 필드:`, response.data?.success);
+
+      if (response.data && (response.data.success || response.status === 200 || response.status === 201)) {
         alert(config.successMessage);
         window.location.href = config.listPath;
       } else {
+        console.error(`❌ 등록 실패 - 응답 구조가 예상과 다름:`, response.data);
         throw new Error('등록에 실패했습니다.');
       }
       
