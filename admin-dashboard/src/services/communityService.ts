@@ -1,6 +1,23 @@
 import { api, getApiUrl, userService } from './api';
 import { formatCreatedAt } from '../utils/dateUtils';
 
+// 표준 페이지네이션 타입 (마이그레이션 가이드 준수)
+export interface StandardPagination {
+  current_page: number;
+  total_pages: number;
+  total_count: number;
+  per_page: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+// 표준 목록 응답 타입
+export interface StandardListResponse<T> {
+  success: boolean;
+  data: T[];
+  pagination: StandardPagination;
+}
+
 // 교회 ID를 교회명으로 매핑하는 함수 (백엔드에서 church_name이 없는 경우 사용)
 const getChurchNameById = (churchId: number): string | null => {
   if (churchId === 9998) return null; // 협력사
@@ -42,29 +59,53 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
   }
 };
 
-// 공통 API 응답 처리 함수
+// 공통 API 응답 처리 함수 (마이그레이션 가이드 준수)
 const handleApiResponse = (response: any, operation: string) => {
   console.log(`🔍 ${operation} API 응답 전체:`, response);
   console.log(`🔍 ${operation} API 응답 데이터:`, response.data);
   console.log(`🔍 ${operation} API 응답 상태:`, response.status);
   console.log(`🔍 success 필드:`, response.data?.success);
 
-  if (response.data && (response.data.success || response.status === 200 || response.status === 201)) {
-    console.log(`✅ ${operation} 성공`);
+  // 표준 응답 구조 확인: { success: boolean, data: any, pagination?: any }
+  if (response.data?.success === true) {
+    console.log(`✅ ${operation} 성공 (표준 응답)`);
+    return response.data.data || response.data;
+  }
+  // 하위 호환성을 위한 HTTP 상태 코드 체크
+  else if (response.status === 200 || response.status === 201) {
+    console.log(`✅ ${operation} 성공 (HTTP 상태 코드)`);
     return response.data?.data || response.data;
-  } else {
+  }
+  // 명시적 실패 응답
+  else if (response.data?.success === false) {
+    const errorMessage = response.data.message || '알 수 없는 오류가 발생했습니다.';
+    console.error(`❌ ${operation} 실패 (서버 오류):`, response.data);
+    throw new Error(errorMessage);
+  }
+  // 예상치 못한 응답 구조
+  else {
     console.error(`❌ ${operation} 실패 - 응답 구조가 예상과 다름:`, response.data);
     throw new Error(`${operation}에 실패했습니다.`);
   }
 };
 
-// 공통 오류 처리 함수
+// 공통 오류 처리 함수 (마이그레이션 가이드 준수)
 const handleApiError = (error: any, operation: string): never => {
   console.group(`❌ ${operation} 실패`);
   console.error('전체 에러 객체:', error);
   console.error('에러 메시지:', error.message);
   console.error('에러 응답 데이터:', error.response?.data);
   console.error('에러 상태 코드:', error.response?.status);
+
+  // 표준 오류 응답 처리: { success: false, error: string, message: string, details?: any }
+  if (error.response?.data?.success === false) {
+    const errorInfo = error.response.data;
+    console.error(`❌ 서버 오류 (${errorInfo.error || 'UNKNOWN_ERROR'}):`, errorInfo.message);
+    if (errorInfo.details) {
+      console.error('오류 상세 정보:', errorInfo.details);
+    }
+    throw new Error(errorInfo.message || '서버에서 오류가 발생했습니다.');
+  }
   console.error('에러 헤더:', error.response?.headers);
   console.error('요청 URL:', error.config?.url);
   console.error('요청 메서드:', error.config?.method);
@@ -134,7 +175,7 @@ export interface ChurchNews {
   contactEmail?: string;
   additionalInfo?: string;
   status: 'active' | 'completed' | 'cancelled';
-  views: number;
+  view_count: number;
   likes: number;
   comments: number;
   tags?: string[];
@@ -163,7 +204,7 @@ export interface SharingItem {
   contactInfo: string;
   status: 'available' | 'reserved' | 'completed';
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   comments: number;
   userName?: string; // 사용자명 필드 추가
@@ -184,7 +225,7 @@ export interface RequestItem {
   contactInfo: string;
   status: 'requesting' | 'matching' | 'completed';
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   comments: number;
   urgency: 'low' | 'medium' | 'high' | 'normal'; // 백엔드 호환성을 위해 normal 추가
@@ -206,7 +247,7 @@ export interface OfferItem {
   deliveryMethod: string;
   status: 'available' | 'reserved' | 'completed';
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   comments: number;
   userName?: string; // 사용자명 필드 추가
@@ -231,7 +272,7 @@ export interface JobPost {
   deadline: string;
   status: 'open' | 'closed';
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   applications: number;
   contactInfo?: string; // 연락처 정보 필드 추가
@@ -252,7 +293,7 @@ export interface JobSeeker {
   availability: string;
   status: 'active' | 'inactive';
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   matches: number;
   userName?: string; // 사용자명 필드 추가
@@ -276,15 +317,14 @@ export interface MusicRecruitment {
   contact_info?: string; // 백워드 호환성
   status: string;
   applications: number;
-  views: number;
+  view_count: number;
   likes: number;
   created_at: string;
   createdAt: string; // camelCase 변환용 - component compatibility
   updated_at?: string;
   author_id: number;
-  user_name: string;
+  author_name: string;
   church_id: number;
-  author_name?: string; // 백엔드에서 새로 추가된 작성자 이름 필드
   userName?: string; // 사용자명 필드 추가 (camelCase 버전)
 }
 
@@ -308,7 +348,7 @@ export interface MusicSeeker {
   status: 'available' | 'interviewing' | 'inactive';
   createdAt: string;
   created_at?: string;             // 백엔드 호환성
-  views: number;
+  view_count: number;
   likes: number;
   matches: number;
   applications?: number;           // 지원/문의 건수
@@ -339,7 +379,7 @@ export interface ChurchEvent {
   contact: string;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   createdAt: string;
-  views: number;
+  view_count: number;
   userName?: string; // 사용자명 필드 추가
   likes: number;
   registrations: number;
@@ -357,7 +397,7 @@ export interface PrayerRequest {
   status: 'active' | 'answered' | 'closed';
   createdAt: string;
   prayerCount: number;
-  views: number;
+  view_count: number;
 }
 
 // 최근 게시글 인터페이스
@@ -391,7 +431,7 @@ export const transformMusicSeekerFromBackend = (backendData: any): MusicSeeker =
     contactEmail: backendData.contact_email,
     status: backendData.status || 'available',
     createdAt: backendData.created_at || '',
-    views: backendData.views || 0,
+    view_count: backendData.view_count || 0,
     likes: backendData.likes || 0,
     matches: backendData.matches || 0,
     applications: backendData.applications || 0,
@@ -508,10 +548,10 @@ export const communityService = {
             contactInfo: item.contact_info || item.contactInfo, // snake_case를 camelCase로 변환
             status: item.status,
             createdAt: item.created_at || item.createdAt || null, // snake_case를 camelCase로 변환, null인 경우 null 유지
-            views: item.view_count || item.views || 0, // snake_case를 camelCase로 변환
+            view_count: item.view_count || 0, // snake_case를 camelCase로 변환
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         console.log('🔄 변환된 데이터:', transformedData);
@@ -528,7 +568,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -616,7 +656,7 @@ export const communityService = {
         console.log('📊 사용자 관련 필드들:', {
           author_id: firstItem.author_id,
           author_name: firstItem.author_name,
-          user_name: firstItem.user_name,
+          // user_name: firstItem.user_name, // 제거됨 - author_name으로 통일
           userName: firstItem.userName
         });
         console.log('🏛️ 교회 관련 필드들:', {
@@ -666,7 +706,7 @@ export const communityService = {
           });
 
           // author_id로 사용자명 조회 (author_name이 없는 경우)
-          let finalUserName = item.author_name || item.user_name || item.userName;
+          let finalUserName = item.author_name;
 
           // author_name이 없으면 사용자 캐시에서 조회
           if (!finalUserName && item.author_id) {
@@ -680,7 +720,7 @@ export const communityService = {
           console.log('👤 사용자명 변환:', {
             'author_id': item.author_id,
             'author_name': item.author_name,
-            'user_name': item.user_name,
+            // 'user_name': item.user_name, // 제거됨 - author_name으로 통일
             'userName': item.userName,
             '최종_userName': finalUserName
           });
@@ -707,7 +747,7 @@ export const communityService = {
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
             createdAt: finalCreatedAt,
-            views: item.view_count || item.views || 0,
+            view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
             userName: finalUserName
@@ -729,7 +769,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -849,10 +889,10 @@ export const communityService = {
             contactInfo: item.contact_info || item.contactInfo,
             status: item.status,
             createdAt: item.created_at || item.createdAt || null,
-            views: item.view_count || item.views || 0,
+            view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -896,10 +936,10 @@ export const communityService = {
             contactInfo: item.contact_info || item.contactInfo || '',
             status: item.status,
             createdAt: item.created_at || item.createdAt || null,
-            views: item.view_count || item.views || 0,
+            view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -967,12 +1007,12 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
+            userName: item.author_name || '익명', // 통일된 필드명 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: churchName, // company 필드도 교회명으로 설정
             position: item.position || item.job_type,
             salary: item.salary || item.salary_range,
-            views: item.views || item.view_count || 0,
+            view_count: item.view_count || 0,
             deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
             createdAt: item.createdAt || item.created_at,
             description: item.description,
@@ -992,12 +1032,12 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
+            userName: item.author_name || '익명', // 통일된 필드명 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: churchName, // company 필드도 교회명으로 설정
             position: item.position || item.job_type,
             salary: item.salary || item.salary_range,
-            views: item.views || item.view_count || 0,
+            view_count: item.view_count || 0,
             deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
             createdAt: item.createdAt || item.created_at,
             description: item.description,
@@ -1034,12 +1074,12 @@ export const communityService = {
           ...item,
           church: churchName,
           churchName: churchName,
-          userName: item.user_name || item.userName || '익명',
+          userName: item.author_name || '익명',
           // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
           company: item.company || item.company_name,
           position: item.position || item.job_type,
           salary: item.salary || item.salary_range,
-          views: item.views || item.view_count || 0,
+          view_count: item.view_count || 0,
           deadline: item.deadline || item.expires_at,
           createdAt: item.createdAt || item.created_at
         };
@@ -1055,12 +1095,12 @@ export const communityService = {
           ...item,
           church: churchName,
           churchName: churchName,
-          userName: item.user_name || item.userName || '익명',
+          userName: item.author_name || '익명',
           // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
           company: item.company || item.company_name,
           position: item.position || item.job_type,
           salary: item.salary || item.salary_range,
-          views: item.views || item.view_count || 0,
+          view_count: item.view_count || 0,
           deadline: item.deadline || item.expires_at,
           createdAt: item.createdAt || item.created_at
         };
@@ -1163,7 +1203,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -1344,8 +1384,8 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName,
-            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
-            views: item.view_count || item.views || 0 // view_count를 views로 통일
+            userName: item.author_name || '익명', // 통일된 필드명 사용
+            view_count: item.view_count || 0 // 통일된 필드명 사용
           };
           
           // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
@@ -1382,8 +1422,8 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
-            views: item.view_count || item.views || 0 // view_count를 views로 통일
+            userName: item.author_name || '익명', // 통일된 필드명 사용
+            view_count: item.view_count || 0 // 통일된 필드명 사용
           };
           
           // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
@@ -1454,7 +1494,7 @@ export const communityService = {
         target_members: 0, // 현재 폼에서 수집하지 않는 필드 (숫자 필드는 0으로)
         
         // 통계 필드들은 백엔드 테이블에 존재하지 않으므로 제거
-        // views: 0,
+        // view_count: 0,
         // likes: 0,
         // applicants_count: recruitmentData.applications || 0
         
@@ -1582,7 +1622,7 @@ export const communityService = {
             status: item.status,
             authorName: item.author_name,
             churchName: item.church_name,
-            views: item.views || item.view_count || 0, // view_count도 체크
+            view_count: item.view_count || 0, // view_count도 체크
             likes: item.likes || 0,
             matches: item.matches || 0,
             applications: item.applications || 0,
@@ -1638,7 +1678,7 @@ export const communityService = {
           status: response.data.data.status,
           authorName: response.data.data.author_name,
           churchName: response.data.data.church_name,
-          views: response.data.data.views || 0,
+          view_count: response.data.data.view_count || 0,
           likes: response.data.data.likes || 0,
           matches: response.data.data.matches || 0,
           applications: response.data.data.applications || 0,
@@ -1757,7 +1797,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -1823,7 +1863,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -1946,7 +1986,7 @@ export const communityService = {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || item.user_name || item.userName || '익명' // author_name 우선 사용
+            userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
         return transformedData;
@@ -2220,7 +2260,7 @@ function transformChurchNewsFromBackend(backendData: any): ChurchNews {
     contactPhone: backendData.contact_phone,
     contactEmail: backendData.contact_email,
     status: backendData.status,
-    views: backendData.view_count || 0,
+    view_count: backendData.view_count || 0,
     likes: backendData.likes || 0,
     comments: backendData.comments_count || 0,
     tags: backendData.tags || [],

@@ -24,11 +24,11 @@ import { communityService } from '../../services/communityService';
 // 사용자의 모든 게시글을 위한 통합 인터페이스
 interface MyPost {
   id: number;
-  type: 'community-sharing' | 'community-request' | 'job-posts' | 'job-seekers' | 'music-team-recruitment' | 'music-team-seekers' | 'church-news' | 'church-events';
+  type: 'free-sharing' | 'item-request' | 'sharing-offer' | 'job-posting' | 'job-seeking' | 'music-team-recruit' | 'music-team-seeking' | 'church-news' | 'church-events';
   title: string;
   status: string;
   created_at: string;
-  views: number;
+  view_count: number;
   likes: number;
   comments?: number;
   church?: string;
@@ -89,7 +89,7 @@ const MyPosts: React.FC = () => {
     try {
       setLoading(true);
       const data = await communityService.getMyPosts({
-        post_type: selectedType === 'all' ? undefined : selectedType,
+        type: selectedType === 'all' ? undefined : selectedType,
         search: searchTerm || undefined,
         limit: 50
       });
@@ -392,7 +392,7 @@ const MyPosts: React.FC = () => {
                         <div className="flex items-center space-x-4">
                           <span className="flex items-center">
                             <Eye className="h-4 w-4 mr-1" />
-                            {post.views}
+                            {post.view_count}
                           </span>
                           <span className="flex items-center">
                             <Heart className="h-4 w-4 mr-1" />

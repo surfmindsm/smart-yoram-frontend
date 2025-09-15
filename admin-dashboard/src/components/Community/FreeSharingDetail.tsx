@@ -46,7 +46,7 @@ const FreeSharingDetail: React.FC = () => {
       title: item.title,
       description: item.description,
       images: item.images,
-      views: item.views,
+      views: item.view_count,
       likes: item.likes,
       createdAt: item.createdAt,
       status: item.status,

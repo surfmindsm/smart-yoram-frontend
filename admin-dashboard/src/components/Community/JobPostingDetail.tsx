@@ -64,7 +64,7 @@ const JobPostingDetail: React.FC = () => {
       type: 'job-posting',
       title: job.title,
       description: (job as any).description || '상세 설명이 없습니다.',
-      views: job.views,
+      views: job.view_count,
       likes: job.likes,
       createdAt: job.createdAt,
       status: job.status,

@@ -254,7 +254,7 @@ const JobSeeking: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
-                          {seeker.views}
+                          {seeker.view_count}
                         </td>
                       </tr>
                     ))}
@@ -339,7 +339,7 @@ const JobSeeking: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
-                  {seeker.views}
+                  {seeker.view_count}
                 </span>
                 <span className="flex items-center">
                   <MessageCircle className="h-3 w-3 mr-1" />

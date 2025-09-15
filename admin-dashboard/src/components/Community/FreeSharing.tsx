@@ -311,7 +311,7 @@ const FreeSharing: React.FC = () => {
                   </span>
                   <span className="flex items-center">
                     <Eye className="h-3 w-3 mr-1" />
-                    {item.views}
+                    {item.view_count}
                   </span>
                 </div>
 
@@ -430,7 +430,7 @@ const FreeSharing: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <span className="flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
-                          {item.views}
+                          {item.view_count}
                         </span>
                         <span className="flex items-center text-red-500">
                           <Heart className="h-3 w-3 mr-1" />

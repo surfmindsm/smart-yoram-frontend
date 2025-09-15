@@ -40,7 +40,7 @@ const MusicTeamSeekingDetail: React.FC = () => {
       type: 'music-team-seeking',
       title: seeker.title,
       description: seeker.experience,
-      views: seeker.views,
+      views: seeker.view_count,
       likes: seeker.likes,
       createdAt: seeker.createdAt,
       status: seeker.status,

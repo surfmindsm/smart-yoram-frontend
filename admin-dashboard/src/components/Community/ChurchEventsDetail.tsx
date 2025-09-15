@@ -41,7 +41,7 @@ const ChurchEventsDetail: React.FC = () => {
       type: 'church-events',
       title: event.title,
       description: event.description,
-      views: event.views,
+      views: event.view_count,
       likes: 0,
       createdAt: event.createdAt,
       status: event.status,

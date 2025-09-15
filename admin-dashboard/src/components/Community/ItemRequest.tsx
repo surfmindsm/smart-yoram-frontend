@@ -342,7 +342,7 @@ const ItemRequest: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
-                          {item.views}
+                          {item.view_count}
                         </td>
                       </tr>
                     ))}
@@ -419,7 +419,7 @@ const ItemRequest: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
-                  {item.views}
+                  {item.view_count}
                 </span>
               </div>
 

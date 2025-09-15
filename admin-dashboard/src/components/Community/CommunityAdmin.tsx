@@ -29,7 +29,7 @@ interface AdminPost {
   title: string;
   status: string;
   createdAt: string;
-  views: number;
+  view_count: number;
   likes: number;
   comments?: number;
   church: string;
@@ -370,7 +370,7 @@ const CommunityAdmin: React.FC = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span className="flex items-center">
                         <Eye className="h-4 w-4 mr-1" />
-                        {post.views}
+                        {post.view_count}
                       </span>
                       <span className="flex items-center">
                         <Heart className="h-4 w-4 mr-1" />

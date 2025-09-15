@@ -388,7 +388,7 @@ const ChurchNews: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      <span>{news.views}</span>
+                      <span>{news.view_count}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Heart className="w-4 h-4" />
@@ -495,7 +495,7 @@ const ChurchNews: React.FC = () => {
                       <div className="flex items-center gap-3 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <Eye className="w-4 h-4" />
-                          <span>{news.views}</span>
+                          <span>{news.view_count}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Heart className="w-4 h-4" />
