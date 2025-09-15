@@ -44,7 +44,8 @@ import {
   ChevronDown,
   ChevronRight,
   UserCheck2,
-  ShoppingCart
+  ShoppingCart,
+  User
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -248,14 +249,14 @@ const Layout: React.FC = () => {
           items: [
             { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
             { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
-            { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Mic },
+            { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
           ]
         },
         {
           title: '소식 · 관리',
           items: [
-            { path: '/community/church-news', name: '교회 행사/소식', Icon: Calendar },
-            { path: '/community/my-posts', name: '내가 올린 글', Icon: UserCheck },
+            { path: '/community/church-events', name: '행사 소식', Icon: Calendar },
+            { path: '/community/my-posts', name: '내 글 관리', Icon: User },
           ]
         }
       ],

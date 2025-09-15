@@ -21,8 +21,6 @@ const CreateJobPosting: React.FC = () => {
     salary: '',
     location: '',
     deadline: '',
-    churchName: '',
-    churchIntro: '',
     description: '',
     requirements: [] as string[],
     qualifications: [] as string[],
@@ -48,7 +46,7 @@ const CreateJobPosting: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.position || !formData.deadline || !formData.churchName || !formData.contactPhone) {
+    if (!formData.title || !formData.position || !formData.deadline || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -258,41 +256,6 @@ const CreateJobPosting: React.FC = () => {
           </div>
         </div>
 
-        {/* 교회 정보 */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">교회 정보</h2>
-            
-            {/* 교회명 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                교회명 *
-              </label>
-              <input
-                type="text"
-                value={formData.churchName}
-                onChange={(e) => setFormData({...formData, churchName: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="교회 이름을 입력하세요"
-                required
-              />
-            </div>
-
-            {/* 교회 소개 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                교회 소개
-              </label>
-              <textarea
-                value={formData.churchIntro}
-                onChange={(e) => setFormData({...formData, churchIntro: e.target.value})}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="교회의 특징, 규모, 비전 등을 간단히 소개해주세요"
-              />
-            </div>
-          </div>
-        </div>
 
         {/* 상세 내용 */}
         <div className="bg-white rounded-lg shadow-sm border p-6">

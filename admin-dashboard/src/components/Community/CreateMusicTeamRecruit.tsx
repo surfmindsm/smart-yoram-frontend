@@ -21,7 +21,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
 
   const [formData, setFormData] = useState({
     title: '',
-    churchName: '',
     eventType: '',
     instruments: [] as string[],
     eventDate: '',
@@ -69,7 +68,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.churchName || !formData.eventType || formData.instruments.length === 0 || !formData.contactPhone) {
+    if (!formData.title || !formData.eventType || formData.instruments.length === 0 || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -80,7 +79,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
       const recruitData = {
         // 기본 정보 (필수)
         title: formData.title,
-        churchName: formData.churchName,
         eventType: formData.eventType, // 서비스에서 recruitment_type로 매핑됨
         
         // 모집 상세 (필수)
@@ -189,38 +187,22 @@ const CreateMusicTeamRecruit: React.FC = () => {
               />
             </div>
 
-            {/* 교회명과 행사 유형 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  교회명 *
-                </label>
-                <input
-                  type="text"
-                  value={formData.churchName}
-                  onChange={(e) => setFormData({...formData, churchName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="교회 이름을 입력하세요"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  행사 유형 *
-                </label>
-                <select
-                  value={formData.eventType}
-                  onChange={(e) => setFormData({...formData, eventType: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">행사 유형 선택</option>
-                  {eventTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
+            {/* 행사 유형 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                행사 유형 *
+              </label>
+              <select
+                value={formData.eventType}
+                onChange={(e) => setFormData({...formData, eventType: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">행사 유형 선택</option>
+                {eventTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
 
             {/* 모집 악기 */}

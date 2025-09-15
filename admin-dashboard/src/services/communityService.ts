@@ -42,6 +42,65 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
   }
 };
 
+// 공통 API 응답 처리 함수
+const handleApiResponse = (response: any, operation: string) => {
+  console.log(`🔍 ${operation} API 응답 전체:`, response);
+  console.log(`🔍 ${operation} API 응답 데이터:`, response.data);
+  console.log(`🔍 ${operation} API 응답 상태:`, response.status);
+  console.log(`🔍 success 필드:`, response.data?.success);
+
+  if (response.data && (response.data.success || response.status === 200 || response.status === 201)) {
+    console.log(`✅ ${operation} 성공`);
+    return response.data?.data || response.data;
+  } else {
+    console.error(`❌ ${operation} 실패 - 응답 구조가 예상과 다름:`, response.data);
+    throw new Error(`${operation}에 실패했습니다.`);
+  }
+};
+
+// 공통 오류 처리 함수
+const handleApiError = (error: any, operation: string): never => {
+  console.group(`❌ ${operation} 실패`);
+  console.error('전체 에러 객체:', error);
+  console.error('에러 메시지:', error.message);
+  console.error('에러 응답 데이터:', error.response?.data);
+  console.error('에러 상태 코드:', error.response?.status);
+  console.error('에러 헤더:', error.response?.headers);
+  console.error('요청 URL:', error.config?.url);
+  console.error('요청 메서드:', error.config?.method);
+  console.error('요청 데이터:', error.config?.data);
+
+  // 422 Validation Error의 경우 상세 정보 출력
+  if (error.response?.status === 422) {
+    console.group(`🔍 ${operation} Validation 오류 상세`);
+    console.error('Validation 오류 전체:', error.response.data);
+    if (error.response.data?.detail) {
+      console.error('Validation 오류 필드별 상세:', error.response.data.detail);
+      // 각 필드별 오류를 개별적으로 출력
+      if (Array.isArray(error.response.data.detail)) {
+        error.response.data.detail.forEach((detail: any, index: number) => {
+          console.error(`필드 ${index + 1} 오류:`, detail);
+        });
+      }
+    }
+    console.groupEnd();
+  }
+  console.groupEnd();
+
+  throw error;
+};
+
+// 공통 데이터 정리 함수
+const cleanApiData = (data: any) => {
+  const cleaned = { ...data };
+  Object.keys(cleaned).forEach(key => {
+    if (cleaned[key] === null || cleaned[key] === undefined) {
+      delete cleaned[key];
+    }
+  });
+  return cleaned;
+};
+
 
 // 커뮤니티 통계 인터페이스
 export interface CommunityStats {
@@ -414,8 +473,8 @@ export const communityService = {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         const transformedData = response.data.data.map((item: any): SharingItem => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -463,7 +522,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -596,8 +655,8 @@ export const communityService = {
           const step1 = item.church_name;
           const step2 = item.church;
           const step3 = getChurchNameById(item.church_id);
-          // church_id 9998(협력사)인 경우 백엔드 church_name 무시하고 null 처리
-          const finalChurchName = item.church_id === 9998 ? null : (step1 || step2 || step3);
+          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const finalChurchName = (item.church_id === 9998 || step1 === '스마트요람 커뮤니티') ? null : (step1 || step2 || step3);
 
           console.log('🏛️ 교회명 변환 단계:', {
             '1단계_church_name': step1,
@@ -664,7 +723,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
 
           return {
             ...item,
@@ -685,36 +744,37 @@ export const communityService = {
     }
   },
 
-  createRequestItem: async (itemData: Partial<RequestItem>): Promise<RequestItem> => {
+  createRequestItem: async (itemData: Partial<RequestItem>): Promise<RequestItem | never> => {
     try {
-      
-      // 백엔드 필드명에 맞게 변환
-      const transformedData = {
-        ...itemData,
-        urgency_level: (itemData as any).urgency,
-        contact_info: itemData.contactInfo,
-        needed_date: (itemData as any).neededDate,
-        requested_item: (itemData as any).requestedItem,
-        max_budget: (itemData as any).maxBudget,
-        contact_phone: (itemData as any).contactPhone,
-        contact_email: (itemData as any).contactEmail
+      console.log('📝 물품 요청 등록 API 호출 중...', itemData);
+
+      // 백엔드 필드명에 맞게 변환 (null/undefined 값 처리)
+      const apiData = {
+        title: itemData.title || '',
+        description: itemData.description || '',
+        category: itemData.category || '',
+        urgency_level: (itemData as any).urgency || 'normal',
+        location: itemData.location || '',
+        contact_info: itemData.contactInfo || '',
+        needed_date: (itemData as any).neededDate || null,
+        requested_item: (itemData as any).requestedItem || itemData.title || '',
+        quantity: itemData.quantity || 1,
+        reason: (itemData as any).reason || itemData.description || '',
+        max_budget: (itemData as any).maxBudget || null,
+        contact_phone: (itemData as any).contactPhone || '',
+        contact_email: (itemData as any).contactEmail || '',
+        status: itemData.status || 'requesting'
       };
-      
-      // 프론트엔드 전용 필드 제거
-      delete (transformedData as any).urgency;
-      delete (transformedData as any).contactInfo;
-      delete (transformedData as any).neededDate;
-      delete (transformedData as any).requestedItem;
-      delete (transformedData as any).maxBudget;
-      delete (transformedData as any).contactPhone;
-      delete (transformedData as any).contactEmail;
-      
-      const response = await api.post(getApiUrl('/community/item-request'), transformedData);
-      
-      return response.data?.data || response.data;
+
+      // null이나 undefined 값 제거
+      const cleanedApiData = cleanApiData(apiData);
+
+      console.log('🔄 변환된 API 데이터:', cleanedApiData);
+
+      const response = await api.post(getApiUrl('/community/item-request'), cleanedApiData);
+      return handleApiResponse(response, '물품 요청 등록');
     } catch (error: any) {
-      console.error('물품 요청 등록 실패:', error);
-      throw error;
+      return handleApiError(error, '물품 요청 등록');
     }
   },
 
@@ -751,8 +811,8 @@ export const communityService = {
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환 (FreeSharing과 동일)
         const transformedData = response.data.data.map((item: any): OfferItem => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -802,7 +862,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any): OfferItem => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             id: item.id,
@@ -900,20 +960,20 @@ export const communityService = {
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_name || item.church || item.company || getChurchNameById(item.church_id);
-          
+          // church_id 기반으로 교회명 처리 (9998의 경우 null)
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+
           return {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
             userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
-            company: item.company || item.company_name,
+            company: churchName, // company 필드도 교회명으로 설정
             position: item.position || item.job_type,
             salary: item.salary || item.salary_range,
             views: item.views || item.view_count || 0,
-            deadline: item.deadline || item.expires_at,
+            deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
             createdAt: item.createdAt || item.created_at,
             description: item.description,
             contactInfo: item.contact_info || item.contactInfo
@@ -925,20 +985,20 @@ export const communityService = {
       // 직접 배열이 반환되는 경우
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
-          
+          // church_id 기반으로 교회명 처리 (9998의 경우 null)
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+
           return {
             ...item,
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
             userName: item.author_name || item.user_name || item.userName || '익명', // author_name 우선 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
-            company: item.company || item.company_name,
+            company: churchName, // company 필드도 교회명으로 설정
             position: item.position || item.job_type,
             salary: item.salary || item.salary_range,
             views: item.views || item.view_count || 0,
-            deadline: item.deadline || item.expires_at,
+            deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
             createdAt: item.createdAt || item.created_at,
             description: item.description,
             contactInfo: item.contact_info || item.contactInfo
@@ -1015,42 +1075,44 @@ export const communityService = {
     }
   },
 
-  createJobPost: async (postData: any): Promise<JobPost> => {
+  createJobPost: async (postData: any): Promise<JobPost | never> => {
     try {
-      console.log('💼 구인 공고 등록 API 호출 중...', postData);
-      
-      // 백엔드 API 스키마에 맞게 데이터 변환
+      console.group('💼 구인 공고 등록 API 호출');
+      console.log('원본 폼 데이터:', postData);
+
+      // 백엔드 API 스키마에 맞게 데이터 변환 (교회명은 사용자의 church_id로 자동 처리)
       const apiData = {
-        title: postData.title,
-        company: postData.churchName, // 교회명을 company 필드로 전송
-        position: postData.position,
-        employment_type: postData.jobType,
-        location: postData.location,
-        salary_range: postData.salary,
-        description: postData.description,
-        requirements: Array.isArray(postData.requirements) 
-          ? postData.requirements.join(', ')  // 배열을 쉼표로 구분된 문자열로 변환
-          : postData.requirements,
+        title: postData.title || '',
+        position: postData.position || '',
+        employment_type: postData.jobType || postData.employment_type || 'full_time',
+        location: postData.location || '',
+        salary_range: postData.salary || postData.salary_range || '',
+        description: postData.description || '',
+        requirements: Array.isArray(postData.requirements)
+          ? postData.requirements.filter((req: string) => req && req.trim()).join(', ')
+          : (postData.requirements || ''),
         benefits: Array.isArray(postData.benefits)
-          ? postData.benefits.join(', ')      // 배열을 쉼표로 구분된 문자열로 변환
-          : postData.benefits,
-        contact_method: "기타", // 기본값
-        contact_info: postData.contactInfo || postData.contactPhone + (postData.contactEmail ? ` | ${postData.contactEmail}` : ''),
-        expires_at: postData.deadline,
+          ? postData.benefits.filter((benefit: string) => benefit && benefit.trim()).join(', ')
+          : (postData.benefits || ''),
+        contact_method: postData.contact_method || "기타",
+        contact_info: postData.contactInfo || '',
+        contact_phone: postData.contactPhone || '',
+        contact_email: postData.contactEmail || '',
+        expires_at: postData.deadline || postData.expires_at || null,
         status: postData.status || "open"
       };
-      
-      console.log('🔄 변환된 API 데이터:', apiData);
-      
-      const response = await api.post(getApiUrl('/community/job-posting'), apiData);
-      console.log('✅ 구인 공고 등록 API 응답:', response.data);
-      
-      return response.data?.data || response.data;
+
+      // null이나 undefined 값 제거
+      const cleanedApiData = cleanApiData(apiData);
+
+      console.log('🔄 변환된 API 데이터:', cleanedApiData);
+      console.log('📡 요청 URL:', getApiUrl('/community/job-posting'));
+      console.groupEnd();
+
+      const response = await api.post(getApiUrl('/community/job-posting'), cleanedApiData);
+      return handleApiResponse(response, '구인 공고 등록');
     } catch (error: any) {
-      console.error('❌ 구인 공고 등록 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
-      throw error;
+      return handleApiError(error, '구인 공고 등록');
     }
   },
 
@@ -1095,7 +1157,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1261,8 +1323,21 @@ export const communityService = {
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          // 물품 요청과 동일한 교회명 변환 로직 적용
+          const step1 = item.church_name;
+          const step2 = item.church;
+          const step3 = getChurchNameById(item.church_id);
+
+          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const churchName = (item.church_id === 9998 || step1 === '스마트요람 커뮤니티') ? null : (step1 || step2 || step3);
+
+          console.log('🎵 [행사팀모집] 교회명 변환 단계:', {
+            church_id: item.church_id,
+            '1단계_church_name': step1,
+            '2단계_church': step2,
+            '3단계_getChurchNameById결과': step3,
+            '최종_churchName': churchName
+          });
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1300,7 +1375,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1353,7 +1428,7 @@ export const communityService = {
       const apiData = {
         // 기본 정보 (필수)
         title: recruitmentData.title,
-        team_name: recruitmentData.churchName,
+        team_name: '',
         team_type: recruitmentData.eventType,
         
         // 모집 상세 - 백엔드 SQL 필드명에 맞춤
@@ -1378,10 +1453,10 @@ export const communityService = {
         current_members: 0, // 현재 폼에서 수집하지 않는 필드 (숫자 필드는 0으로)
         target_members: 0, // 현재 폼에서 수집하지 않는 필드 (숫자 필드는 0으로)
         
-        // 통계 필드들 (백엔드에서 자동 설정될 것으로 예상되지만 명시적으로 포함)
-        views: 0,
-        likes: 0,
-        applicants_count: recruitmentData.applications || 0
+        // 통계 필드들은 백엔드 테이블에 존재하지 않으므로 제거
+        // views: 0,
+        // likes: 0,
+        // applicants_count: recruitmentData.applications || 0
         
         // created_at, updated_at은 백엔드에서 자동 설정되므로 전송하지 않음
         // 사용자 정보는 백엔드에서 JWT 토큰을 통해 자동으로 설정됨
@@ -1479,8 +1554,19 @@ export const communityService = {
       // API 응답 구조가 { success: true, data: { items: [...] } } 형태
       if (response.data?.success && response.data?.data?.items) {
         const items = response.data.data.items;
-        return items.map((item: any) => {
-          return {
+        return items.map((item: any, index: number) => {
+          // 디버깅: 첫 번째 아이템의 원본 데이터 로그
+          if (index === 0) {
+            console.log('🔍 [음악팀지원] 원본 API 데이터 (첫 번째 아이템):', {
+              team_name: item.team_name,
+              available_days: item.available_days,
+              contact_phone: item.contact_phone,
+              status: item.status,
+              '전체_키목록': Object.keys(item)
+            });
+          }
+
+          const transformed = {
             id: item.id,
             title: item.title,
             name: item.author_name || item.name,
@@ -1496,13 +1582,25 @@ export const communityService = {
             status: item.status,
             authorName: item.author_name,
             churchName: item.church_name,
-            views: item.views || 0,
+            views: item.views || item.view_count || 0, // view_count도 체크
             likes: item.likes || 0,
             matches: item.matches || 0,
             applications: item.applications || 0,
             createdAt: item.created_at || '',
             userName: item.author_name
           };
+
+          // 디버깅: 변환된 데이터 로그 (첫 번째 아이템만)
+          if (index === 0) {
+            console.log('🔄 [음악팀지원] 변환된 데이터 (첫 번째 아이템):', {
+              teamName: transformed.teamName,
+              availableDays: transformed.availableDays,
+              contactPhone: transformed.contactPhone,
+              status: transformed.status
+            });
+          }
+
+          return transformed;
         });
       }
       
@@ -1562,12 +1660,14 @@ export const communityService = {
       
       // Frontend → Backend 데이터 변환
       // 백엔드 PostgreSQL 스키마에 맞게 배열 처리
+      // DB 스키마에 맞게 데이터 변환 (PostgreSQL text[] 배열 타입 사용)
       const backendData = {
         title: seekerData.title,
         team_name: seekerData.teamName || null,
         instrument: seekerData.instrument,
         experience: seekerData.experience || null,
         portfolio: seekerData.portfolio || null,
+        // PostgreSQL text[] 배열로 전송 (JSON 문자열 아님)
         preferred_location: seekerData.preferredLocation || [],
         available_days: seekerData.availableDays || [],
         available_time: seekerData.availableTime || null,
@@ -1651,7 +1751,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1717,7 +1817,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
@@ -1840,7 +1940,7 @@ export const communityService = {
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
           // 교회 9998의 경우 null로 처리
-          const churchName = item.church_id === 9998 ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
           
           return {
             ...item,
