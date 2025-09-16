@@ -17,6 +17,7 @@ import { Button } from '../ui/button';
 import { communityService, SharingItem } from '../../services/communityService';
 import { api, getApiUrl } from '../../services/api';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
 const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,45 +73,23 @@ const FreeSharing: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const statusOptions = [
-    { value: 'all', label: '전체' },
-    { value: 'available', label: '나눔 가능' },
-    { value: 'reserved', label: '예약중' },
-    { value: 'completed', label: '나눔 완료' }
-  ];
+  // 마이그레이션 가이드: 표준 상태값 사용
+  const statusOptions = getStatusFilterOptions();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'reserved':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return '나눔 가능';
-      case 'reserved':
-        return '예약중';
-      case 'completed':
-        return '나눔 완료';
-      default:
-        return '알 수 없음';
-    }
-  };
+  // 마이그레이션 가이드: 레거시 상태값을 표준 상태값으로 변환
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const filteredItems = sharingItems.filter(item => {
     const matchesSearch = (item.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
-    
+
+    // 마이그레이션 가이드: 레거시 상태값을 표준 상태값으로 변환하여 필터링
+    const standardStatus = getStandardStatus(item.status || 'active');
+    const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
@@ -307,7 +286,7 @@ const FreeSharing: React.FC = () => {
                 <div className="flex items-center space-x-3 text-xs text-gray-500">
                   <span className="flex items-center">
                     <Clock className="h-3 w-3 mr-1" />
-                    {formatCreatedAt(item.createdAt)}
+                    {formatCreatedAt((item as any).created_at)}
                   </span>
                   <span className="flex items-center">
                     <Eye className="h-3 w-3 mr-1" />
@@ -424,7 +403,7 @@ const FreeSharing: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt(item.createdAt)}
+                      {formatCreatedAt((item as any).created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center space-x-3">

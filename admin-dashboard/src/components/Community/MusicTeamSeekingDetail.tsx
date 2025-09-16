@@ -42,7 +42,7 @@ const MusicTeamSeekingDetail: React.FC = () => {
       description: seeker.experience,
       views: seeker.view_count,
       likes: seeker.likes,
-      createdAt: seeker.createdAt,
+      createdAt: (seeker as any).created_at || '',
       status: seeker.status,
       // 연주팀 구직 특화 필드들
       name: seeker.name,

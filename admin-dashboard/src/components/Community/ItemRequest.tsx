@@ -17,6 +17,7 @@ import { Button } from '../ui/button';
 import { communityService, RequestItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
 
 const ItemRequest: React.FC = () => {
@@ -46,12 +47,7 @@ const ItemRequest: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const statusOptions = [
-    { value: 'all', label: '전체' },
-    { value: 'requesting', label: '요청중' },
-    { value: 'matching', label: '매칭중' },
-    { value: 'completed', label: '완료' }
-  ];
+  const statusOptions = getStatusFilterOptions();
 
   const urgencyOptions = [
     { value: 'all', label: '전체 우선순위' },
@@ -60,31 +56,9 @@ const ItemRequest: React.FC = () => {
     { value: 'low', label: '여유' }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'requesting':
-        return 'bg-blue-100 text-blue-800';
-      case 'matching':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'requesting':
-        return '요청중';
-      case 'matching':
-        return '매칭중';
-      case 'completed':
-        return '완료';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -129,8 +103,15 @@ const ItemRequest: React.FC = () => {
         
         const data = await communityService.getRequestItems(params);
         console.log('물품 요청 데이터 받음:', data?.length || 0, '개');
-        
-        setRequestItems(data);
+
+        // 필터링 로직에서 표준 상태값 사용
+        const filteredData = data.filter((item: any) => {
+          const standardStatus = getStandardStatus(item.status || 'active');
+          const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+          return matchesStatus;
+        });
+
+        setRequestItems(filteredData);
       } catch (error) {
         console.error('물품 요청 데이터 로드 실패:', error);
         setRequestItems([]);
@@ -338,7 +319,7 @@ const ItemRequest: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCreatedAt(item.createdAt)}
+                          {formatCreatedAt((item as any).created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
@@ -415,7 +396,7 @@ const ItemRequest: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(item.createdAt)}
+                  {formatCreatedAt((item as any).created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />

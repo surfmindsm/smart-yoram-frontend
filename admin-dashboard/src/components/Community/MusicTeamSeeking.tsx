@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { communityService, MusicSeeker } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 import { Button } from '../ui/button';
 import { 
   Search, 
@@ -65,31 +66,9 @@ const MusicTeamSeeking: React.FC = () => {
     { value: '협의', label: '협의' }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'interviewing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return '구직중';
-      case 'interviewing':
-        return '인터뷰중';
-      case 'inactive':
-        return '비활성';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getTeamTypeIcon = (instrument: string) => {
     switch (instrument) {
@@ -268,10 +247,10 @@ const MusicTeamSeeking: React.FC = () => {
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Users className="w-4 h-4" />
                     <span>{seeker.name}</span>
-                    {seeker.churchName && (
+                    {seeker.church_name && (
                       <>
                         <span>•</span>
-                        <span>{seeker.churchName}</span>
+                        <span>{seeker.church_name}</span>
                       </>
                     )}
                   </div>
@@ -315,7 +294,7 @@ const MusicTeamSeeking: React.FC = () => {
                       <span>{seeker.likes}</span>
                     </div>
                   </div>
-                  <span>{formatCreatedAt(seeker.createdAt || '')}</span>
+                  <span>{formatCreatedAt((seeker as any).created_at || '')}</span>
                 </div>
               </div>
             </div>
@@ -358,8 +337,8 @@ const MusicTeamSeeking: React.FC = () => {
                       <div>
                         <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
                         <div className="text-sm text-gray-500">{seeker.name}</div>
-                        {seeker.churchName && (
-                          <div className="text-xs text-gray-400">{seeker.churchName}</div>
+                        {seeker.church_name && (
+                          <div className="text-xs text-gray-400">{seeker.church_name}</div>
                         )}
                       </div>
                     </td>
@@ -401,7 +380,7 @@ const MusicTeamSeeking: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt(seeker.createdAt || '')}
+                      {formatCreatedAt((seeker as any).created_at || '')}
                     </td>
                   </tr>
                 ))}

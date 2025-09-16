@@ -16,6 +16,7 @@ import {
 import { Button } from '../ui/button';
 import { communityService, ChurchEvent } from '../../services/communityService';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
 
 const ChurchEvents: React.FC = () => {
@@ -37,25 +38,11 @@ const ChurchEvents: React.FC = () => {
     { value: 'other', label: '기타' }
   ];
 
-  const statusOptions = [
-    { value: 'all', label: '전체' },
-    { value: 'upcoming', label: '예정' },
-    { value: 'ongoing', label: '진행중' },
-    { value: 'completed', label: '완료' }
-  ];
+  const statusOptions = getStatusFilterOptions();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-        return 'bg-blue-100 text-blue-800';
-      case 'ongoing':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -82,7 +69,15 @@ const ChurchEvents: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        setEvents(data);
+
+        // 필터링 로직에서 표준 상태값 사용
+        const filteredData = data.filter((item: any) => {
+          const standardStatus = getStandardStatus(item.status || 'active');
+          const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+          return matchesStatus;
+        });
+
+        setEvents(filteredData);
       } catch (error) {
         console.error('ChurchEvents 데이터 로드 실패:', error);
         setEvents([]);
@@ -238,7 +233,7 @@ const ChurchEvents: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
-                            {statusOptions.find(s => s.value === event.status)?.label || event.status}
+                            {getStatusText(event.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -266,7 +261,7 @@ const ChurchEvents: React.FC = () => {
                     {categories.find(c => c.value === event.eventType)?.label || event.eventType}
                   </span>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
-                    {statusOptions.find(s => s.value === event.status)?.label || event.status}
+                    {getStatusText(event.status)}
                   </span>
                 </div>
               </div>
@@ -313,7 +308,7 @@ const ChurchEvents: React.FC = () => {
                 <div className="flex items-center space-x-4 text-xs text-gray-500">
                   <span className="flex items-center">
                     <Clock className="h-3 w-3 mr-1" />
-                    {formatCreatedAt(event.createdAt)}
+                    {formatCreatedAt((event as any).created_at)}
                   </span>
                   <span className="flex items-center">
                     <Eye className="h-3 w-3 mr-1" />

@@ -17,6 +17,7 @@ import { Button } from '../ui/button';
 import { communityService, OfferItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 
 
 const SharingOffer: React.FC = () => {
@@ -43,31 +44,9 @@ const SharingOffer: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'reserved':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return '판매중';
-      case 'reserved':
-        return '예약중';
-      case 'completed':
-        return '판매 완료';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -236,7 +215,7 @@ const SharingOffer: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCreatedAt(item.createdAt)}
+                          {formatCreatedAt((item as any).created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
@@ -308,7 +287,7 @@ const SharingOffer: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(item.createdAt)}
+                  {formatCreatedAt((item as any).created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />

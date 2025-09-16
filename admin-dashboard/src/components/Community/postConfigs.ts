@@ -112,14 +112,14 @@ export const freeSharingConfig: PostTypeConfig = {
       maxLength: 50
     },
     {
-      key: 'contactInfo',
+      key: 'contactPhone',
       label: '연락처',
       type: 'tel',
       placeholder: '연락 가능한 전화번호를 입력해주세요',
       required: true
     },
     {
-      key: 'email',
+      key: 'contactEmail',
       label: '이메일',
       type: 'email',
       placeholder: '이메일 주소를 입력해주세요 (선택사항)',

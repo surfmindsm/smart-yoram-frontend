@@ -24,7 +24,7 @@ import { communityService } from '../../services/communityService';
 // 사용자의 모든 게시글을 위한 통합 인터페이스
 interface MyPost {
   id: number;
-  type: 'free-sharing' | 'item-request' | 'sharing-offer' | 'job-posting' | 'job-seeking' | 'music-team-recruit' | 'music-team-seeking' | 'church-news' | 'church-events';
+  type: string; // API 응답에 따라 다양한 타입이 올 수 있음
   title: string;
   status: string;
   created_at: string;
@@ -103,7 +103,7 @@ const MyPosts: React.FC = () => {
             .filter(status => !['active', 'completed', 'closed', 'cancelled', 'available', 'requesting', 'open', 'upcoming', 'reserved', 'matching', 'ongoing'].includes(status.toLowerCase()));
 
           if (unknownStatuses.length > 0) {
-            console.warn('🔍 알 수 없는 상태값 발견:', Array.from(new Set(unknownStatuses)));
+            console.warn('🔍 알 수 없는 상태값 발견:', unknownStatuses.filter((v, i, a) => a.indexOf(v) === i));
           }
         }
 

@@ -21,6 +21,7 @@ import {
 import { Button } from '../ui/button';
 import { communityService, MusicRecruitment } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 
 
 const MusicTeamRecruit: React.FC = () => {
@@ -53,31 +54,9 @@ const MusicTeamRecruit: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'recruiting':
-        return 'bg-blue-100 text-blue-800';
-      case 'urgent':
-        return 'bg-red-100 text-red-800';
-      case 'closed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'recruiting':
-        return '모집중';
-      case 'urgent':
-        return '급구';
-      case 'closed':
-        return '마감';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getInstrumentIcon = (instrument: string) => {
     switch (instrument) {
@@ -256,7 +235,7 @@ const MusicTeamRecruit: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {recruitment.author_name || recruitment.userName || recruitment.user_name || '익명'}
+                          {recruitment.author_name || '익명'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {recruitment.church_name || '협력사'}
@@ -274,12 +253,12 @@ const MusicTeamRecruit: React.FC = () => {
                           {(() => {
                             if (recruitment.id === 6) {
                               console.log('🔍 [UI_DEBUG] 테이블에서 ID 6 렌더링:', {
-                                recruitment_createdAt: recruitment.createdAt,
-                                formatCreatedAt_result: formatCreatedAt(recruitment.createdAt),
+                                recruitment_createdAt: recruitment.created_at,
+                                formatCreatedAt_result: formatCreatedAt(recruitment.created_at),
                                 recruitment_object: recruitment
                               });
                             }
-                            return formatCreatedAt(recruitment.createdAt);
+                            return formatCreatedAt(recruitment.created_at);
                           })()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
@@ -315,7 +294,7 @@ const MusicTeamRecruit: React.FC = () => {
               
               <div className="text-right">
                 <div className="text-sm text-gray-600 space-x-2">
-                  <span>{recruitment.user_name || '익명'}</span>
+                  <span>{recruitment.author_name || '익명'}</span>
                   <span>|</span>
                   <span>{recruitment.church_name || '협력사'}</span>
                 </div>
@@ -372,7 +351,7 @@ const MusicTeamRecruit: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(recruitment.createdAt)}
+                  {formatCreatedAt(recruitment.created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />

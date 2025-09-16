@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
-import { communityService, type ChurchNews as ChurchNewsType } from '../../services/communityService';
+import { ChurchNewsAPI } from '../../api/church-events-api';
+import { ChurchNews as ChurchNewsType, ChurchNewsListOptions } from '../../types/church-events';
+import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 
 
 const ChurchNews: React.FC = () => {
@@ -115,29 +117,11 @@ const ChurchNews: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return getStatusClass(mapToStandardStatus(status));
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '진행중';
-      case 'completed':
-        return '완료';
-      case 'cancelled':
-        return '취소';
-      default:
-        return '알 수 없음';
-    }
+    return getStatusLabel(mapToStandardStatus(status));
   };
 
   const getCategoryIcon = (category: string) => {
@@ -189,17 +173,39 @@ const ChurchNews: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        const data = await communityService.getChurchNews({
+
+        const options: ChurchNewsListOptions = {
           page: 1,
           limit: 50,
-          category: selectedCategory === 'all' ? undefined : selectedCategory,
-          priority: selectedPriority === 'all' ? undefined : selectedPriority,
-          status: selectedStatus === 'all' ? undefined : selectedStatus,
-          search: searchTerm || undefined
-        });
-        
-        setNewsItems(data);
+          search: searchTerm || undefined,
+          sort_by: 'created_at',
+          sort_order: 'desc'
+        };
+
+        // 카테고리 필터링
+        if (selectedCategory !== 'all') {
+          options.category = selectedCategory as any;
+        }
+
+        // 우선순위 필터링
+        if (selectedPriority !== 'all') {
+          options.priority = selectedPriority as any;
+        }
+
+        // 상태 필터링 (표준 상태값 사용)
+        if (selectedStatus !== 'all') {
+          options.status = mapToStandardStatus(selectedStatus) as any;
+        }
+
+        const response = await ChurchNewsAPI.getList(options);
+
+        // ChurchNewsAPI.getList는 이미 handleApiResponse에서 처리된 데이터 배열을 반환
+        if (Array.isArray(response)) {
+          setNewsItems(response);
+        } else {
+          console.error('행사 소식 응답 실패:', response);
+          setNewsItems([]);
+        }
       } catch (error) {
         console.error('행사 소식 데이터 로드 실패:', error);
         setNewsItems([]);
@@ -352,14 +358,14 @@ const ChurchNews: React.FC = () => {
                     <Users className="w-4 h-4" />
                     <span>{news.organizer}</span>
                     <span>•</span>
-                    <span>{news.churchName}</span>
+                    <span>{news.church_name || news.church_name || '교회명 없음'}</span>
                   </div>
 
-                  {news.eventDate && (
+                  {(news.event_date || news.event_date) && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatEventDate(news.eventDate)}</span>
-                      {news.eventTime && <span>{news.eventTime}</span>}
+                      <span>{formatEventDate(news.event_date || news.event_date)}</span>
+                      {(news.event_time || news.event_time) && <span>{news.event_time || news.event_time}</span>}
                     </div>
                   )}
 
@@ -388,18 +394,18 @@ const ChurchNews: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />
-                      <span>{news.view_count}</span>
+                      <span>{news.view_count || 0}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Heart className="w-4 h-4" />
-                      <span>{news.likes}</span>
+                      <span>{news.likes || 0}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <MessageCircle className="w-4 h-4" />
-                      <span>{news.comments}</span>
+                      <span>{news.comments || 0}</span>
                     </div>
                   </div>
-                  <span>{formatCreatedAt(news.createdAt)}</span>
+                  <span>{formatCreatedAt(news.created_at || news.created_at)}</span>
                 </div>
               </div>
             </div>
@@ -447,8 +453,8 @@ const ChurchNews: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900 line-clamp-1">{news.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{news.content}</div>
-                        <div className="text-xs text-gray-400">{news.author}</div>
+                        <div className="text-sm text-gray-500 line-clamp-1">{news.description || news.content}</div>
+                        <div className="text-xs text-gray-400">{news.author_name || '작성자 없음'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -467,13 +473,13 @@ const ChurchNews: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{news.organizer}</div>
-                      <div className="text-sm text-gray-500">{news.churchName}</div>
+                      <div className="text-sm text-gray-500">{news.church_name || news.church_name || '교회명 없음'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {news.eventDate && (
+                      {(news.event_date || news.event_date) && (
                         <div className="text-sm text-gray-900">
-                          {formatEventDate(news.eventDate)}
-                          {news.eventTime && <span className="ml-1">{news.eventTime}</span>}
+                          {formatEventDate(news.event_date || news.event_date)}
+                          {(news.event_time || news.event_time) && <span className="ml-1">{news.event_time || news.event_time}</span>}
                         </div>
                       )}
                       {news.location && (
@@ -489,17 +495,17 @@ const ChurchNews: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt(news.createdAt)}
+                      {formatCreatedAt(news.created_at || news.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <Eye className="w-4 h-4" />
-                          <span>{news.view_count}</span>
+                          <span>{news.view_count || 0}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Heart className="w-4 h-4" />
-                          <span>{news.likes}</span>
+                          <span>{news.likes || 0}</span>
                         </div>
                       </div>
                     </td>

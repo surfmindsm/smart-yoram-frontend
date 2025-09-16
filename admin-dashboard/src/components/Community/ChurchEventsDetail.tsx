@@ -43,7 +43,7 @@ const ChurchEventsDetail: React.FC = () => {
       description: event.description,
       views: event.view_count,
       likes: 0,
-      createdAt: event.createdAt,
+      createdAt: (event as any).created_at,
       status: event.status,
       category: event.eventType,
       church: event.church || undefined,

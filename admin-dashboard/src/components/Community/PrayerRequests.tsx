@@ -222,7 +222,7 @@ const PrayerRequests: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
-                  {request.createdAt}
+                  {(request as any).created_at}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-4 w-4 mr-1" />

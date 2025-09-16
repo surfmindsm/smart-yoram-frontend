@@ -20,6 +20,7 @@ import { Button } from '../ui/button';
 import { communityService, JobPost } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt, formatDeadline } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
 
 const JobPosting: React.FC = () => {
@@ -50,38 +51,11 @@ const JobPosting: React.FC = () => {
     { value: 'volunteer', label: '봉사직' }
   ];
 
-  const statusOptions = [
-    { value: 'all', label: '전체' },
-    { value: 'open', label: '모집중' },
-    { value: 'closed', label: '마감' },
-    { value: 'filled', label: '채용완료' }
-  ];
+  const statusOptions = getStatusFilterOptions();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'bg-green-100 text-green-800';
-      case 'closed':
-        return 'bg-red-100 text-red-800';
-      case 'filled':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'open':
-        return '모집중';
-      case 'closed':
-        return '마감';
-      case 'filled':
-        return '채용완료';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getJobTypeText = (jobType: string) => {
     switch (jobType) {
@@ -120,7 +94,14 @@ const JobPosting: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        setJobPosts(data);
+
+        // 필터링 로직에서 표준 상태값 사용
+        const filteredData = data.filter((item: any) => {
+          const standardStatus = getStandardStatus(item.status || 'active');
+          const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+          return matchesStatus;
+        });
+        setJobPosts(filteredData);
       } catch (error) {
         console.error('JobPosting 데이터 로드 실패:', error);
         setJobPosts([]);
@@ -302,7 +283,7 @@ const JobPosting: React.FC = () => {
                           {job.userName || '익명'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {job.churchName || '협력사'}
+                          {(job as any).church_name || '협력사'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
@@ -361,7 +342,7 @@ const JobPosting: React.FC = () => {
                   <span><strong className="mr-1">담당자:</strong> {job.userName || '익명'}</span>
                   <span className="flex items-center">
                     <Building className="h-4 w-4 mr-1" />
-                    <strong className="mr-1">교회:</strong> {job.churchName || '협력사'}
+                    <strong className="mr-1">교회:</strong> {(job as any).church_name || '협력사'}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mb-2">
@@ -445,7 +426,7 @@ const JobPosting: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(job.createdAt)}
+                  {formatCreatedAt((job as any).created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />

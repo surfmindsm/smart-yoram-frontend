@@ -18,6 +18,7 @@ import {
 import { Button } from '../ui/button';
 import { communityService, JobSeeker } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
+import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
 
 const JobSeeking: React.FC = () => {
@@ -39,38 +40,11 @@ const JobSeeking: React.FC = () => {
     { value: '교육부', label: '교육부' }
   ];
 
-  const statusOptions = [
-    { value: 'all', label: '전체' },
-    { value: 'available', label: '구직중' },
-    { value: 'interviewing', label: '면접중' },
-    { value: 'hired', label: '채용됨' }
-  ];
+  const statusOptions = getStatusFilterOptions();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'interviewing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'hired':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return '구직중';
-      case 'interviewing':
-        return '면접중';
-      case 'hired':
-        return '채용됨';
-      default:
-        return '알 수 없음';
-    }
-  };
+  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
+  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
+  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,7 +56,15 @@ const JobSeeking: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        setJobSeekers(data);
+
+        // 필터링 로직에서 표준 상태값 사용
+        const filteredData = data.filter((item: any) => {
+          const standardStatus = getStandardStatus(item.status || 'active');
+          const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+          return matchesStatus;
+        });
+
+        setJobSeekers(filteredData);
       } catch (error) {
         console.error('JobSeeking 데이터 로드 실패:', error);
         setJobSeekers([]);
@@ -250,7 +232,7 @@ const JobSeeking: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCreatedAt(seeker.createdAt)}
+                          {formatCreatedAt((seeker as any).created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
                           <Eye className="h-3 w-3 mr-1" />
@@ -335,7 +317,7 @@ const JobSeeking: React.FC = () => {
               <div className="flex items-center space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt(seeker.createdAt)}
+                  {formatCreatedAt((seeker as any).created_at)}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-3 w-3 mr-1" />
