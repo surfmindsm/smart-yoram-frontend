@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search,
-  Filter,
   Plus,
   MapPin,
   Eye,
@@ -11,7 +10,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, SharingItem } from '../../services/communityService';
-import { api, getApiUrl } from '../../services/api';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 
@@ -201,7 +199,7 @@ const FreeSharing: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredItems.map((item) => (
-                  <tr 
+                  <tr
                     key={item.id}
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => handleItemClick(item)}
@@ -210,8 +208,8 @@ const FreeSharing: React.FC = () => {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-16 w-16">
                           {(item.images?.length || 0) > 0 ? (
-                            <img 
-                              src={item.images[0]} 
+                            <img
+                              src={item.images[0]}
                               alt={item.title}
                               className="h-16 w-16 rounded-lg object-cover"
                               onError={(e) => {
@@ -230,11 +228,8 @@ const FreeSharing: React.FC = () => {
                           )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 line-clamp-2">
+                          <div className="text-sm font-medium text-gray-900">
                             {item.title}
-                          </div>
-                          <div className="text-sm text-gray-500 line-clamp-1">
-                            {item.description}
                           </div>
                         </div>
                       </div>
@@ -260,7 +255,7 @@ const FreeSharing: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt((item as any).created_at)}
+                      {formatCreatedAt(item.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center space-x-3">
@@ -293,7 +288,7 @@ const FreeSharing: React.FC = () => {
           <p className="text-gray-600 mb-6">
             첫 번째 나눔 물품을 등록해보세요!
           </p>
-          <Button 
+          <Button
             onClick={() => window.location.href = '/community/free-sharing/create'}
             className="flex items-center gap-2 mx-auto"
           >
