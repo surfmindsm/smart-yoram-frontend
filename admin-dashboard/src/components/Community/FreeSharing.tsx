@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  MapPin, 
-  Clock, 
+import {
+  Search,
+  Filter,
+  Plus,
+  MapPin,
   Eye,
   Heart,
-  MessageCircle,
   Image as ImageIcon,
   Gift,
-  Grid3X3,
-  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, SharingItem } from '../../services/communityService';
@@ -23,7 +19,6 @@ const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [showFilters, setShowFilters] = useState(false);
 
   // 나눔 게시글 데이터 (API에서 로드)
@@ -106,42 +101,30 @@ const FreeSharing: React.FC = () => {
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">무료 나눔(드림)</h1>
-          <p className="text-gray-600">
-            사용하지 않는 물품을 다른 교회와 나누어요
-          </p>
+      <div className="flex justify-between items-end p-6 mb-4">
+        <div className="flex-1 max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">무료 나눔(드림)</h1>
+          <p className="text-sm text-gray-600">사용하지 않는 물품을 다른 교회와 나누어요</p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={() => window.location.href = '/community/free-sharing/create'}
-        >
-          <Plus className="h-4 w-4" />
-          무료 나눔 등록
-        </Button>
-      </div>
 
-      {/* 검색 및 필터 */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* 검색창 */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <div className="flex items-center gap-3">
+          {/* 검색바 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="제목이나 내용으로 검색..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
 
-          {/* 카테고리 선택 */}
+          {/* 필터 버튼 */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
           >
             {categories.map(category => (
               <option key={category.value} value={category.value}>
@@ -150,8 +133,20 @@ const FreeSharing: React.FC = () => {
             ))}
           </select>
 
-          {/* 상태 선택 */}
-          <select
+          {/* New 버튼 */}
+          <Button
+            onClick={() => window.location.href = '/community/free-sharing/create'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+
+      {/* 상태 선택 - 별도 필터 */}
+      <div className="mb-4">
+        <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -162,37 +157,6 @@ const FreeSharing: React.FC = () => {
               </option>
             ))}
           </select>
-
-          {/* 뷰 모드 전환 버튼 */}
-          <div className="flex rounded-md border border-gray-300 overflow-hidden">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="rounded-none border-0"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-none border-0"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* 필터 버튼 */}
-          <Button 
-            variant="outline" 
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            필터
-          </Button>
-        </div>
       </div>
 
       {/* 게시글 목록 */}
@@ -201,116 +165,9 @@ const FreeSharing: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-gray-500">데이터를 불러오는 중...</span>
         </div>
-      ) : viewMode === 'grid' ? (
-        // 카드 뷰
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map((item) => (
-          <div 
-            key={item.id} 
-            className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleItemClick(item)}
-          >
-            {/* 이미지 영역 */}
-            <div className="h-48 bg-gray-100 flex items-center justify-center relative">
-              {(item.images?.length || 0) > 0 ? (
-                <>
-                  <img 
-                    src={item.images[0]} 
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('이미지 로딩 실패:', item.images[0]);
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = parent.querySelector('.image-fallback') as HTMLElement;
-                        if (fallback) {
-                          fallback.style.display = 'flex';
-                        }
-                      }
-                    }}
-                    onLoad={() => {
-                      console.log('이미지 로딩 성공:', item.images[0]);
-                    }}
-                  />
-                  <div className="image-fallback absolute inset-0 flex-col items-center justify-center text-gray-400" style={{display: 'none'}}>
-                    <ImageIcon className="h-12 w-12 mb-2" />
-                    <span className="text-sm">이미지 로딩 실패</span>
-                    <span className="text-xs text-gray-500 mt-1">서버 접근 불가</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center text-gray-400">
-                  <ImageIcon className="h-12 w-12 mb-2" />
-                  <span className="text-sm">이미지 없음</span>
-                </div>
-              )}
-              
-              {/* 상태 뱃지 */}
-              <div className="absolute top-2 right-2">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                  {getStatusText(item.status)}
-                </span>
-              </div>
-            </div>
-
-            {/* 콘텐츠 */}
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {item.category}
-                </span>
-                <span className="text-xs text-gray-500">
-                  수량: {item.quantity}개
-                </span>
-              </div>
-
-              <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                {item.title}
-              </h3>
-
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                {item.description}
-              </p>
-
-              <div className="flex items-center text-xs text-gray-500 mb-3 space-x-3">
-                <span>{item.userName}</span>
-                <span>{item.church || '협력사'}</span>
-                <span className="flex items-center">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {item.location}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                  <span className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatCreatedAt((item as any).created_at)}
-                  </span>
-                  <span className="flex items-center">
-                    <Eye className="h-3 w-3 mr-1" />
-                    {item.view_count}
-                  </span>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button className="flex items-center text-xs text-gray-500 hover:text-red-500">
-                    <Heart className="h-3 w-3 mr-1" />
-                    {item.likes}
-                  </button>
-                  <button className="flex items-center text-xs text-gray-500 hover:text-blue-500">
-                    <MessageCircle className="h-3 w-3 mr-1" />
-                    {item.comments}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-        </div>
       ) : (
-        // 테이블/목록 뷰
+        <>
+        {/* 테이블/목록 뷰 */}
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -423,6 +280,7 @@ const FreeSharing: React.FC = () => {
             </table>
           </div>
         </div>
+        </>
       )}
 
       {/* 데이터가 없을 때 */}

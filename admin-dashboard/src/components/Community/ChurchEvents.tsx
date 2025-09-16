@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Plus, 
-  MapPin, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  MapPin,
   Calendar,
   Users,
   Eye,
   Heart,
-  Share,
-  Grid3X3,
-  List
+  Share
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, ChurchEvent } from '../../services/communityService';
@@ -24,7 +21,6 @@ const ChurchEvents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,59 +89,30 @@ const ChurchEvents: React.FC = () => {
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">행사 소식</h1>
-          <p className="text-gray-600">
-            다양한 교회 행사와 소식을 확인하고 참여해보세요
-          </p>
+      <div className="flex justify-between items-end p-6 mb-4">
+        <div className="flex-1 max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">교회 행사</h1>
+          <p className="text-sm text-gray-600">다양한 교회 행사와 소식을 확인하고 참여해보세요</p>
         </div>
+
         <div className="flex items-center gap-3">
-          {/* 뷰 모드 토글 */}
-          <div className="flex items-center border rounded-lg p-1">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="px-3"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="px-3"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            행사 소식 등록
-          </Button>
-        </div>
-      </div>
-
-      {/* 검색 및 필터 */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          {/* 검색바 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="행사명이나 내용으로 검색..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
 
+          {/* 필터 버튼 */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
           >
             {categories.map(category => (
               <option key={category.value} value={category.value}>
@@ -154,7 +121,20 @@ const ChurchEvents: React.FC = () => {
             ))}
           </select>
 
-          <select
+          {/* New 버튼 */}
+          <Button
+            onClick={() => navigate('/community/church-events/create')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+
+      {/* 상태 선택 - 별도 필터 */}
+      <div className="mb-4">
+        <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -165,7 +145,6 @@ const ChurchEvents: React.FC = () => {
               </option>
             ))}
           </select>
-        </div>
       </div>
 
       {/* 행사 목록 */}
@@ -175,171 +154,77 @@ const ChurchEvents: React.FC = () => {
           <p className="text-gray-600">교회 행사 목록을 불러오는 중...</p>
         </div>
       ) : (
-        <>
-          {viewMode === 'list' ? (
-            /* 테이블 뷰 */
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        제목
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        카테고리
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        사용자명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        교회명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        지역
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        상태
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        행사일
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        조회수
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {events.map((event) => (
-                      <tr key={event.id} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{event.description}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.eventType)}`}>
-                            {categories.find(c => c.value === event.eventType)?.label || event.eventType}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {event.userName || '익명'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {event.church || '협력사'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {event.location}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
-                            {getStatusText(event.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatEventDate(event.startDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {event.view_count}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* 카드 뷰 */
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {events.map((event) => (
-              <div key={event.id} className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.eventType)}`}>
-                    {categories.find(c => c.value === event.eventType)?.label || event.eventType}
-                  </span>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
-                    {getStatusText(event.status)}
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {event.title}
-              </h3>
-
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {event.description}
-              </p>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 mr-2 text-blue-500" />
-                  {formatEventDate(event.startDate)}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 mr-2 text-red-500" />
-                  {event.location}
-                </div>
-                <div className="flex items-center text-sm text-gray-600 space-x-4">
-                  <span><strong>담당자:</strong> {event.userName || '익명'}</span>
-                  <span className="flex items-center">
-                    <Users className="h-4 w-4 mr-1 text-green-500" />
-                    <strong>주최:</strong> {event.church || '협력사'}
-                  </span>
-                </div>
-                {event.registrationRequired && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2 text-purple-500" />
-                    신청: {event.currentParticipants}/{event.capacity}명
-                    <div className="ml-2 w-20 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-purple-500 h-2 rounded-full" 
-                        style={{ width: `${(event.currentParticipants / event.capacity) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                  <span className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatCreatedAt((event as any).created_at)}
-                  </span>
-                  <span className="flex items-center">
-                    <Eye className="h-3 w-3 mr-1" />
-                    {event.view_count}
-                  </span>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button className="flex items-center text-xs text-gray-500 hover:text-red-500">
-                    <Heart className="h-3 w-3 mr-1" />
-                    {event.likes}
-                  </button>
-                  <button className="flex items-center text-xs text-gray-500 hover:text-blue-500">
-                    <Share className="h-3 w-3 mr-1" />
-                    공유
-                  </button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => navigate(`/community/church-news/${event.id}`)}
-                  >
-                    자세히 보기
-                  </Button>
-                </div>
-              </div>
-            </div>
-              </div>
-            ))}
-            </div>
-          )}
-        </>
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    제목
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    카테고리
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사용자명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    교회명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    지역
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    행사일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    조회수
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {events.map((event) => (
+                  <tr key={event.id} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{event.title}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-xs">{event.description}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.eventType)}`}>
+                        {categories.find(c => c.value === event.eventType)?.label || event.eventType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {event.userName || '익명'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {event.church || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {event.location}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
+                        {getStatusText(event.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatEventDate(event.startDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                      <Eye className="h-3 w-3 mr-1" />
+                      {event.view_count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* 빈 상태 */}

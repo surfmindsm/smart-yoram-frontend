@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Plus, 
-  MapPin, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  MapPin,
   Eye,
   Heart,
   MessageCircle,
@@ -12,9 +11,7 @@ import {
   DollarSign,
   Calendar,
   Building,
-  GraduationCap,
-  Grid3X3,
-  List
+  GraduationCap
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, JobPost } from '../../services/communityService';
@@ -29,7 +26,6 @@ const JobPosting: React.FC = () => {
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // 구인 공고 데이터 (API에서 로드)
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
@@ -132,62 +128,30 @@ const JobPosting: React.FC = () => {
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">사역자 모집</h1>
-          <p className="text-gray-600">
-            교회에서 필요한 사역자를 모집해보세요
-          </p>
+      <div className="flex justify-between items-end p-6 mb-4">
+        <div className="flex-1 max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">구인 공고</h1>
+          <p className="text-sm text-gray-600">교회에서 필요한 인력을 모집해보세요</p>
         </div>
+
         <div className="flex items-center gap-3">
-          {/* 뷰 모드 토글 */}
-          <div className="flex items-center border rounded-lg p-1">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="px-3"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="px-3"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <Button 
-            className="flex items-center gap-2"
-            onClick={() => navigate(getCreatePagePath('job-posting'))}
-          >
-            <Plus className="h-4 w-4" />
-            사역자 모집 등록
-          </Button>
-        </div>
-      </div>
-
-      {/* 검색 및 필터 */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          {/* 검색바 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="교회명, 직책, 제목으로 검색..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
 
+          {/* 필터 버튼 */}
           <select
             value={selectedPosition}
             onChange={(e) => setSelectedPosition(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
           >
             {positions.map(position => (
               <option key={position.value} value={position.value}>
@@ -196,7 +160,20 @@ const JobPosting: React.FC = () => {
             ))}
           </select>
 
-          <select
+          {/* New 버튼 */}
+          <Button
+            onClick={() => navigate(getCreatePagePath('job-posting'))}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+
+      {/* 추가 필터들 - 별도 필터 */}
+      <div className="mb-4 flex gap-4">
+        <select
             value={selectedJobType}
             onChange={(e) => setSelectedJobType(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -219,7 +196,6 @@ const JobPosting: React.FC = () => {
               </option>
             ))}
           </select>
-        </div>
       </div>
 
       {/* 구인 목록 */}
@@ -229,244 +205,81 @@ const JobPosting: React.FC = () => {
           <p className="text-gray-600">사역자 모집 목록을 불러오는 중...</p>
         </div>
       ) : (
-        <>
-          {viewMode === 'list' ? (
-            /* 테이블 뷰 */
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        제목
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        직책
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        사용자명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        교회명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        지역
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        상태
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        마감일
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        조회수
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {jobPosts.map((job) => (
-                      <tr 
-                        key={job.id} 
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleJobClick(job.id)}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{job.title}</div>
-                          <div className="text-sm text-gray-500">{job.salary}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {job.position}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {job.userName || '익명'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {(job as any).church_name || '협력사'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {job.location}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                            {getStatusText(job.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDeadline(job.deadline)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {job.view_count}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* 카드 뷰 */
-            <div className="space-y-4">
-              {jobPosts.map((job) => (
-              <div 
-                key={job.id} 
-                className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleJobClick(job.id)}
-              >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getJobTypeColor(job.jobType)}`}>
-                  {getJobTypeText(job.jobType)}
-                </span>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                  {getStatusText(job.status)}
-                </span>
-              </div>
-              
-              <div className="flex items-center text-sm text-red-600 font-medium">
-                <Calendar className="h-4 w-4 mr-1" />
-                {getDaysUntilDeadline(job.deadline)}
-              </div>
-            </div>
-
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {job.title}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <div className="flex items-center text-sm text-gray-600 mb-2 space-x-4">
-                  <span><strong className="mr-1">담당자:</strong> {job.userName || '익명'}</span>
-                  <span className="flex items-center">
-                    <Building className="h-4 w-4 mr-1" />
-                    <strong className="mr-1">교회:</strong> {(job as any).church_name || '협력사'}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">직책:</strong> {job.position}
-                </div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">급여:</strong> {job.salary}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">위치:</strong> {job.location}
-                </div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">마감일:</strong> {formatDeadline(job.deadline)}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <GraduationCap className="h-4 w-4 mr-2" />
-                  <strong className="mr-1">지원자:</strong> {job.applications}명
-                </div>
-              </div>
-            </div>
-
-            <p className="text-gray-600 text-sm mb-3">
-              <strong>교회 소개:</strong> {job.churchIntro}
-            </p>
-
-            {/* 자격요건 */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">자격요건</h4>
-              <div className="flex flex-wrap gap-1">
-                {Array.isArray(job.qualifications) 
-                  ? job.qualifications.slice(0, 3).map((qualification: string, index: number) => (
-                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
-                        {qualification}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    제목
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    직책
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사용자명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    교회명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    지역
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    마감일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    조회수
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {jobPosts.map((job) => (
+                  <tr
+                    key={job.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleJobClick(job.id)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{job.title}</div>
+                      <div className="text-sm text-gray-500">{job.salary}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {job.position}
                       </span>
-                    ))
-                  : job.qualifications && typeof job.qualifications === 'string'
-                  ? (job.qualifications as string).split(',').slice(0, 3).map((qualification: string, index: number) => (
-                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
-                        {qualification.trim()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {job.userName || '익명'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {(job as any).church_name || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {job.location}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                        {getStatusText(job.status)}
                       </span>
-                    ))
-                  : null
-                }
-                {Array.isArray(job.qualifications) && job.qualifications.length > 3 && (
-                  <span className="text-xs text-gray-500">+{job.qualifications.length - 3}개 더</span>
-                )}
-                {job.qualifications && typeof job.qualifications === 'string' && (job.qualifications as string).split(',').length > 3 && (
-                  <span className="text-xs text-gray-500">+{(job.qualifications as string).split(',').length - 3}개 더</span>
-                )}
-              </div>
-            </div>
-
-            {/* 복리후생 */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">복리후생</h4>
-              <div className="flex flex-wrap gap-1">
-                {Array.isArray(job.benefits) 
-                  ? job.benefits.map((benefit: string, index: number) => (
-                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
-                        {benefit}
-                      </span>
-                    ))
-                  : job.benefits && typeof job.benefits === 'string'
-                  ? (job.benefits as string).split(',').map((benefit: string, index: number) => (
-                      <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-50 text-green-700">
-                        {benefit.trim()}
-                      </span>
-                    ))
-                  : null
-                }
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                <span className="flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatCreatedAt((job as any).created_at)}
-                </span>
-                <span className="flex items-center">
-                  <Eye className="h-3 w-3 mr-1" />
-                  {job.view_count}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <button className="flex items-center text-xs text-gray-500 hover:text-red-500">
-                    <Heart className="h-3 w-3 mr-1" />
-                    {job.likes}
-                  </button>
-                  <button className="flex items-center text-xs text-gray-500 hover:text-blue-500">
-                    <MessageCircle className="h-3 w-3 mr-1" />
-                    문의하기
-                  </button>
-                </div>
-
-                <Button 
-                  variant={job.status === 'open' ? 'default' : 'outline'} 
-                  size="sm" 
-                  disabled={job.status !== 'open'}
-                  className="flex items-center gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation(); // 카드 클릭 이벤트 방지
-                    // 지원하기 로직 추가 (추후 구현)
-                    console.log('지원하기 클릭:', job.id);
-                  }}
-                >
-                  <Briefcase className="h-3 w-3" />
-                  {job.status === 'open' ? '지원하기' : '모집마감'}
-                </Button>
-              </div>
-            </div>
-              </div>
-            ))}
-            </div>
-          )}
-        </>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDeadline(job.deadline)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                      <Eye className="h-3 w-3 mr-1" />
+                      {job.view_count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* 빈 상태 */}

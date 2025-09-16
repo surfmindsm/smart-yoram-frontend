@@ -7,8 +7,8 @@ import { Button } from '../ui/button';
 import { 
   Search, 
   Plus, 
-  Grid3X3, 
-  List, 
+ 
+ 
   Eye, 
   Heart, 
   Calendar,
@@ -28,7 +28,6 @@ const MusicTeamSeeking: React.FC = () => {
   const [selectedInstrument, setSelectedInstrument] = useState('all');
   const [selectedDay, setSelectedDay] = useState('all');
   const [selectedTime, setSelectedTime] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [musicSeekers, setMusicSeekers] = useState<MusicSeeker[]>([]);
 
@@ -119,38 +118,31 @@ const MusicTeamSeeking: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">행사팀 지원</h1>
-          <p className="text-gray-600 mt-1">교회 행사팀 지원서를 확인하고 관리하세요</p>
+      {/* 헤더 */}
+      <div className="flex justify-between items-end p-6 mb-4">
+        <div className="flex-1 max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">행사팀 지원</h1>
+          <p className="text-sm text-gray-600">교회 행사팀 지원서를 확인하고 관리하세요</p>
         </div>
-        <Button 
-          onClick={() => navigate('/community/music-team-seeking/create')}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          지원서 작성
-        </Button>
-      </div>
 
-      {/* 검색 및 필터 */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          {/* 검색바 */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="제목, 경력으로 검색..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
 
+          {/* 필터 버튼 */}
           <select
             value={selectedInstrument}
             onChange={(e) => setSelectedInstrument(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
           >
             {teamTypes.map(type => (
               <option key={type.value} value={type.value}>
@@ -159,7 +151,20 @@ const MusicTeamSeeking: React.FC = () => {
             ))}
           </select>
 
-          <select
+          {/* New 버튼 */}
+          <Button
+            onClick={() => navigate('/community/music-team-seeking/create')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+
+      {/* 추가 필터들 - 별도 필터 */}
+      <div className="mb-4 flex gap-4">
+        <select
             value={selectedDay}
             onChange={(e) => setSelectedDay(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -182,27 +187,6 @@ const MusicTeamSeeking: React.FC = () => {
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            총 {musicSeekers.length}개의 지원서
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* 컨텐츠 */}
@@ -220,103 +204,26 @@ const MusicTeamSeeking: React.FC = () => {
             지원서 작성
           </Button>
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {musicSeekers.map((seeker) => (
-            <div
-              key={seeker.id}
-              onClick={() => handleSeekerClick(seeker.id)}
-              className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2">
-                    {getTeamTypeIcon(seeker.instrument)}
-                    <span className="text-sm font-medium text-gray-600">{seeker.instrument}</span>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(seeker.status)}`}>
-                    {getStatusText(seeker.status)}
-                  </span>
-                </div>
-                
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {seeker.title}
-                </h3>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4" />
-                    <span>{seeker.name}</span>
-                    {seeker.church_name && (
-                      <>
-                        <span>•</span>
-                        <span>{seeker.church_name}</span>
-                      </>
-                    )}
-                  </div>
-                  
-                  {seeker.preferredLocation && seeker.preferredLocation.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4" />
-                      <span>{seeker.preferredLocation.slice(0, 2).join(', ')}</span>
-                      {seeker.preferredLocation.length > 2 && (
-                        <span>외 {seeker.preferredLocation.length - 2}곳</span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {seeker.availableDays && seeker.availableDays.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{seeker.availableDays.slice(0, 3).join(', ')}</span>
-                      {seeker.availableDays.length > 3 && (
-                        <span>외 {seeker.availableDays.length - 3}일</span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {seeker.availableTime && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>{seeker.availableTime}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-between items-center text-sm text-gray-500">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      <span>{seeker.view_count}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      <span>{seeker.likes}</span>
-                    </div>
-                  </div>
-                  <span>{formatCreatedAt((seeker as any).created_at || '')}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border">
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    지원자 정보
+                    제목
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     팀 형태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    활동 가능
+                    사용자명
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    연락처
+                    교회명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    활동 시간
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
@@ -324,63 +231,49 @@ const MusicTeamSeeking: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    조회수
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {musicSeekers.map((seeker) => (
-                  <tr 
-                    key={seeker.id}
-                    onClick={() => handleSeekerClick(seeker.id)}
-                    className="hover:bg-gray-50 cursor-pointer"
-                  >
+                  <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSeekerClick(seeker.id)}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
-                        <div className="text-sm text-gray-500">{seeker.name}</div>
-                        {seeker.church_name && (
-                          <div className="text-xs text-gray-400">{seeker.church_name}</div>
-                        )}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-xs">{seeker.experience}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center">
                         {getTeamTypeIcon(seeker.instrument)}
-                        <span className="text-sm text-gray-900">{seeker.instrument}</span>
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {seeker.instrument}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {seeker.userName || '익명'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {seeker.church || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {seeker.availableDays?.join(', ')} {seeker.availableTime}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {seeker.availableDays && seeker.availableDays.length > 0 && (
-                          <div>{seeker.availableDays.slice(0, 2).join(', ')}</div>
-                        )}
-                        {seeker.availableTime && (
-                          <div className="text-xs text-gray-500">{seeker.availableTime}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {seeker.contactPhone && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            <span>{seeker.contactPhone}</span>
-                          </div>
-                        )}
-                        {seeker.contactEmail && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <Mail className="w-3 h-3" />
-                            <span>{seeker.contactEmail}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(seeker.status)}`}>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(seeker.status)}`}>
                         {getStatusText(seeker.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt((seeker as any).created_at || '')}
+                      {formatCreatedAt((seeker as any).created_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
+                      <Eye className="h-3 w-3 mr-1" />
+                      {seeker.view_count}
                     </td>
                   </tr>
                 ))}
