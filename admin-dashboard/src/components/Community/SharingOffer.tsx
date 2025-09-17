@@ -19,6 +19,8 @@ import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils
 const SharingOffer: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
   // 조회수 증가 함수 (전용 API 사용)
   const incrementViewCount = async (itemId: number) => {
@@ -48,20 +50,18 @@ const SharingOffer: React.FC = () => {
     // 목록에서 해당 아이템의 조회수 업데이트
     if (newViewCount) {
       setOfferItems(prevItems =>
-        prevItems.map(prevItem =>
+        prevItems?.map(prevItem =>
           prevItem.id === item.id
             ? { ...prevItem, view_count: newViewCount }
             : prevItem
-        )
+        ) || []
       );
     }
 
     // 상세 페이지로 이동
     navigate(`/community/item-sale/${item.id}`);
   };
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-  // 나눔 제공 데이터 (API에서 로드)
+  // 물품 판매 데이터 (API에서 로드)
   const [offerItems, setOfferItems] = useState<OfferItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,9 +74,52 @@ const SharingOffer: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
-  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
-  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
+  // 단순화된 상태 옵션 - 판매중/판매완료만
+  const statusOptions: SelectOption[] = [
+    { value: 'all', label: '전체 상태' },
+    { value: 'sharing', label: '판매중' },
+    { value: 'completed', label: '판매완료' }
+  ];
+
+  // 물품 판매 전용 상태 매핑
+  const getSaleStatusLabel = (status: string): string => {
+    const itemStatus = status as string; // 타입 확장
+    switch (itemStatus) {
+      case 'sharing':
+        return '판매중';
+      case 'completed':
+        return '판매완료';
+      // 기존 상태값 호환성 (점진적 마이그레이션)
+      case 'active':
+      case 'available':
+      case 'open':
+        return '판매중';
+      case 'closed':
+      case 'inactive':
+      case 'reserved':
+        return '판매완료';
+      default:
+        return '판매중'; // 기본값은 판매중으로
+    }
+  };
+
+  const getSaleStatusClass = (status: string): string => {
+    const itemStatus = status as string; // 타입 확장
+    switch (itemStatus) {
+      case 'sharing':
+      case 'active':
+      case 'available':
+      case 'open':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+      case 'closed':
+      case 'inactive':
+      case 'reserved':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-blue-100 text-blue-800'; // 기본값은 판매중 색상으로
+    }
+  };
 
   const columns: TableColumn[] = [
     {
@@ -106,7 +149,10 @@ const SharingOffer: React.FC = () => {
     {
       key: 'status',
       title: '상태',
-      render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
+      render: (value) => TableRenderers.badge(
+        getSaleStatusLabel(value),
+        getSaleStatusClass(value)
+      )
     },
     {
       key: 'church',
@@ -141,7 +187,20 @@ const SharingOffer: React.FC = () => {
         });
         console.log('🎯 SharingOffer 컴포넌트에서 받은 데이터:', data);
         console.log('🎯 첫 번째 아이템 상세:', data[0]);
-        setOfferItems(data);
+
+        // 물품 판매 상태 필터링
+        const filteredData = data.filter((item: any) => {
+          const itemStatus = item.status as string; // 타입 확장
+          const normalizedStatus = itemStatus === 'active' || itemStatus === 'available' || itemStatus === 'open'
+            ? 'sharing'
+            : itemStatus === 'closed' || itemStatus === 'inactive' || itemStatus === 'completed' || itemStatus === 'reserved'
+            ? 'completed'
+            : itemStatus;
+          const matchesStatus = selectedStatus === 'all' || normalizedStatus === selectedStatus;
+          return matchesStatus;
+        });
+
+        setOfferItems(filteredData);
       } catch (error) {
         console.error('SharingOffer 데이터 로드 실패:', error);
         setOfferItems([]);
@@ -151,7 +210,7 @@ const SharingOffer: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedCategory, searchTerm]);
+  }, [selectedCategory, selectedStatus, searchTerm]);
 
   return (
     <div className="p-6">
@@ -175,14 +234,6 @@ const SharingOffer: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <CustomSelect
-            options={categories}
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-            className="w-auto"
-          />
-
           {/* New 버튼 */}
           <Button
             onClick={() => navigate(getCreatePagePath('item-sale'))}
@@ -194,9 +245,28 @@ const SharingOffer: React.FC = () => {
         </div>
       </div>
 
+      {/* 필터들 */}
+      <div className="mb-4 flex gap-4">
+        {/* 카테고리 선택 */}
+        <CustomSelect
+          options={categories}
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          className="w-auto"
+        />
+
+        {/* 상태 선택 */}
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
+      </div>
+
       <CommunityTable
         columns={columns}
-        data={offerItems}
+        data={offerItems || []}
         loading={loading}
         onRowClick={handleItemClick}
         emptyMessage="검색 결과가 없습니다"
