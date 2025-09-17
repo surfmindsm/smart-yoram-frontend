@@ -425,18 +425,6 @@ const CommunityAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* 페이지네이션 */}
-      {filteredPosts.length > 20 && (
-        <div className="flex justify-center mt-8">
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>이전</Button>
-            <Button size="sm">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">다음</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

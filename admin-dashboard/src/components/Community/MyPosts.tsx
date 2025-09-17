@@ -18,7 +18,9 @@ import {
   Users
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { communityService } from '../../services/communityService';
+import { formatCreatedAt } from '../../utils/dateUtils';
 
 // 사용자의 모든 게시글을 위한 통합 인터페이스
 interface MyPost {
@@ -28,6 +30,8 @@ interface MyPost {
   status: string;
   created_at: string;
   view_count: number;
+  views?: number; // 추가 조회수 필드
+  viewCount?: number; // 추가 조회수 필드
   likes: number;
   comments?: number;
   church?: string;
@@ -42,31 +46,6 @@ const MyPosts: React.FC = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [editingPost, setEditingPost] = useState<MyPost | null>(null);
 
-  // 날짜 포맷팅 함수
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) {
-        return '오늘';
-      } else if (diffDays === 1) {
-        return '어제';
-      } else if (diffDays < 7) {
-        return `${diffDays}일 전`;
-      } else {
-        return date.toLocaleDateString('ko-KR', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      }
-    } catch (error) {
-      return dateString;
-    }
-  };
 
   const postTypes = [
     { value: 'all', label: '전체' },
@@ -93,10 +72,23 @@ const MyPosts: React.FC = () => {
         limit: 50
       });
 
+      console.log('🔍 MyPosts API 응답 데이터:', data);
+      console.log('🔍 첫 번째 게시글 상세:', data[0]);
+
       // abc.md 권장: 응답 검증 강화
       if (Array.isArray(data)) {
-        // 알 수 없는 상태값 체크 (개발 환경에서만)
+        // 조회수 필드 체크
         if (process.env.NODE_ENV === 'development') {
+          const viewCountStats = data.map(post => ({
+            id: post.id,
+            type: post.type,
+            title: post.title,
+            view_count: post.view_count,
+            views: post.views,
+            viewCount: post.viewCount
+          }));
+          console.log('🔍 조회수 필드 상태:', viewCountStats);
+
           const unknownStatuses = data
             .map(post => post.status)
             .filter(status => !['active', 'completed', 'closed', 'cancelled', 'available', 'requesting', 'open', 'upcoming', 'reserved', 'matching', 'ongoing'].includes(status.toLowerCase()));
@@ -181,7 +173,8 @@ const MyPosts: React.FC = () => {
           color: 'text-green-600',
           bg: 'bg-green-50',
           label: '무료 나눔',
-          menu: '커뮤니티 > 무료 나눔'
+          menu: '무료 나눔(드림)',
+          chipColor: 'bg-green-100 text-green-800'
         };
       case 'community-request':
         return {
@@ -189,7 +182,8 @@ const MyPosts: React.FC = () => {
           color: 'text-blue-600',
           bg: 'bg-blue-50',
           label: '물품 요청',
-          menu: '커뮤니티 > 물품 요청'
+          menu: '물품 요청',
+          chipColor: 'bg-blue-100 text-blue-800'
         };
       case 'job-posts':
         return {
@@ -197,7 +191,8 @@ const MyPosts: React.FC = () => {
           color: 'text-orange-600',
           bg: 'bg-orange-50',
           label: '구인 공고',
-          menu: '커뮤니티 > 구인 공고'
+          menu: '사역자 모집',
+          chipColor: 'bg-orange-100 text-orange-800'
         };
       case 'job-seekers':
         return {
@@ -205,7 +200,8 @@ const MyPosts: React.FC = () => {
           color: 'text-cyan-600',
           bg: 'bg-cyan-50',
           label: '구직 신청',
-          menu: '커뮤니티 > 구직 신청'
+          menu: '사역자 지원',
+          chipColor: 'bg-cyan-100 text-cyan-800'
         };
       case 'music-team-recruitment':
         return {
@@ -213,7 +209,8 @@ const MyPosts: React.FC = () => {
           color: 'text-pink-600',
           bg: 'bg-pink-50',
           label: '음악팀 모집',
-          menu: '커뮤니티 > 음악팀 모집'
+          menu: '행사팀 모집',
+          chipColor: 'bg-pink-100 text-pink-800'
         };
       case 'music-team-seekers':
         return {
@@ -221,7 +218,8 @@ const MyPosts: React.FC = () => {
           color: 'text-indigo-600',
           bg: 'bg-indigo-50',
           label: '음악팀 참여',
-          menu: '커뮤니티 > 음악팀 참여'
+          menu: '행사팀 지원',
+          chipColor: 'bg-indigo-100 text-indigo-800'
         };
       case 'church-events':
         return {
@@ -229,7 +227,8 @@ const MyPosts: React.FC = () => {
           color: 'text-purple-600',
           bg: 'bg-purple-50',
           label: '교회 행사',
-          menu: '커뮤니티 > 교회 행사'
+          menu: '행사 소식',
+          chipColor: 'bg-purple-100 text-purple-800'
         };
       case 'church-news':
         return {
@@ -237,7 +236,17 @@ const MyPosts: React.FC = () => {
           color: 'text-yellow-600',
           bg: 'bg-yellow-50',
           label: '교회 소식',
-          menu: '커뮤니티 > 교회 소식'
+          menu: '교회 소식',
+          chipColor: 'bg-yellow-100 text-yellow-800'
+        };
+      case 'item-sale':
+        return {
+          icon: Share2,
+          color: 'text-emerald-600',
+          bg: 'bg-emerald-50',
+          label: '물품 판매',
+          menu: '물품 판매',
+          chipColor: 'bg-emerald-100 text-emerald-800'
         };
       default:
         return {
@@ -245,7 +254,8 @@ const MyPosts: React.FC = () => {
           color: 'text-gray-600',
           bg: 'bg-gray-50',
           label: '기타',
-          menu: '커뮤니티'
+          menu: '기타',
+          chipColor: 'bg-gray-100 text-gray-800'
         };
     }
   };
@@ -282,11 +292,77 @@ const MyPosts: React.FC = () => {
     return matchesSearch && matchesType;
   });
 
+  const columns: TableColumn[] = [
+    {
+      key: 'type',
+      title: '메뉴',
+      render: (_, post) => {
+        const typeInfo = getTypeInfo(post.type);
+        return TableRenderers.badge(typeInfo.menu, typeInfo.chipColor);
+      }
+    },
+    {
+      key: 'title',
+      title: '제목',
+      render: (_, post) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+            {post.title}
+          </div>
+          {post.location && (
+            <div className="text-xs text-gray-500 flex items-center mt-1">
+              <MapPin className="h-3 w-3 mr-1" />
+              {post.location}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      title: '상태',
+      render: (_, post) => TableRenderers.badge(post.status, getStatusColor(post.status, post.type))
+    },
+    {
+      key: 'created_at',
+      title: '작성일',
+      render: (value) => TableRenderers.date(formatCreatedAt(value))
+    },
+    {
+      key: 'view_count',
+      title: '조회수',
+      render: (_, post) => TableRenderers.viewCount(post.view_count || post.views || post.viewCount || 0)
+    },
+    {
+      key: 'actions',
+      title: '관리',
+      render: (_, post) => (
+        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+          <Button
+            onClick={() => handleEdit(post)}
+            size="sm"
+            variant="outline"
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => handleDelete(post)}
+            size="sm"
+            variant="outline"
+            className="text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex justify-between items-end p-6 mb-4">
+      <div className="flex justify-between items-end pr-6 mb-4">
         <div className="flex-1 max-w-md">
           <h1 className="text-xl font-semibold text-gray-900 mb-1">내가 올린 글</h1>
           <p className="text-sm text-gray-600">내가 작성한 모든 게시글을 관리할 수 있습니다</p>
@@ -320,135 +396,16 @@ const MyPosts: React.FC = () => {
         </div>
       </div>
 
-      {/* 게시글 목록 */}
+      <CommunityTable
+        columns={columns}
+        data={filteredPosts}
+        loading={loading}
+        onRowClick={handleRead}
+        emptyMessage="작성한 게시글이 없습니다"
+        emptyIcon={<UserIcon className="h-12 w-12 text-gray-400" />}
+        selectable={false}
+      />
 
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-500">내 게시글을 불러오는 중...</span>
-        </div>
-      ) : filteredPosts.length > 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    메뉴
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    제목
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작성일
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    조회수
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    관리
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPosts.map((post, index) => {
-                  const typeInfo = getTypeInfo(post.type);
-                  const IconComponent = typeInfo.icon;
-
-                  return (
-                    <tr key={`${post.type}-${post.id}`} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRead(post)}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {typeInfo.menu.replace('커뮤니티 > ', '')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                          {post.title}
-                        </div>
-                        {post.location && (
-                          <div className="text-xs text-gray-500 flex items-center mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {post.location}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status, post.type)}`}>
-                          {post.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(post.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="flex items-center">
-                          <Eye className="h-4 w-4 mr-1" />
-                          {post.view_count}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => handleEdit(post)}
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(post)}
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            작성한 게시글이 없습니다
-          </h3>
-          <p className="text-gray-600 mb-6">
-            커뮤니티에 첫 번째 게시글을 작성해보세요!
-          </p>
-          <div className="flex justify-center space-x-3">
-            <Button asChild>
-              <a href="/community/free-sharing">무료 나눔 등록</a>
-            </Button>
-            <Button variant="outline" asChild>
-              <a href="/community/item-request">물품 요청 등록</a>
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* 페이지네이션 (필요시 추후 구현) */}
-      {filteredPosts.length > 10 && (
-        <div className="flex justify-center mt-8">
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>이전</Button>
-            <Button size="sm">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">다음</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

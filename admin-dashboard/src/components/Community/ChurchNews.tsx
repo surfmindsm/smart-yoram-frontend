@@ -252,7 +252,7 @@ const ChurchNews: React.FC = () => {
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex justify-between items-end p-6 mb-4">
+      <div className="flex justify-between items-end pr-6 mb-4">
         <div className="flex-1 max-w-md">
           <h1 className="text-xl font-semibold text-gray-900 mb-1">행사 소식</h1>
           <p className="text-sm text-gray-600">교회의 중요한 소식과 공지사항을 확인하세요</p>
