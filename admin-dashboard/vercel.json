@@ -18,25 +18,6 @@
       "GENERATE_SOURCEMAP": "false"
     }
   },
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "https://your-supabase-project.supabase.co/functions/v1/$1",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
   "headers": [
     {
       "source": "/static/(.*)",
@@ -85,7 +66,14 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-supabase-project.supabase.co/functions/v1/$1"
+      "destination": "https://api.surfmind-team.com/api/v1/$1"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/((?!api|static|.*\\.).*)",
+      "destination": "/index.html",
+      "permanent": false
     }
   ],
   "functions": {
