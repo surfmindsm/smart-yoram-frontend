@@ -1,0 +1,46 @@
+# Supabase Configuration for Smart Yoram Frontend
+project_id = "smart-yoram-frontend"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+# Frontend URLs for smart-yoram-frontend
+site_url = "http://localhost:3000"
+additional_redirect_urls = [
+    "http://localhost:3000",
+    "https://admin.smart-yoram.com",
+    "https://staging-admin.smart-yoram.com"
+]
+
+# JWT settings
+jwt_expiry = 3600
+password_min_length = 8
+
+# Email settings
+external_email_enabled = true
+external_phone_enabled = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[db]
+port = 54322
+major_version = 15
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[edge_functions]
+enabled = true
+
+[analytics]
+enabled = false
