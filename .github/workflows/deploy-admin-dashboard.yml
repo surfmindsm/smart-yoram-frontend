@@ -104,9 +104,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: |
-      secrets.VERCEL_TOKEN != '' &&
-      ((github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development'))
+      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     environment: development
     steps:
       - name: Checkout code
@@ -118,7 +117,19 @@ jobs:
           name: admin-dashboard-build
           path: admin-dashboard/build/
 
+      - name: Check Vercel configuration
+        id: vercel-check
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Vercel deployment skipped: VERCEL_TOKEN not configured"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Vercel configuration found"
+          fi
+
       - name: Deploy to Vercel
+        if: steps.vercel-check.outputs.skip == 'false'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -136,9 +147,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: |
-      secrets.VERCEL_TOKEN != '' &&
-      ((github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     environment: staging
     steps:
       - name: Checkout code
@@ -150,7 +160,19 @@ jobs:
           name: admin-dashboard-build
           path: admin-dashboard/build/
 
+      - name: Check Vercel configuration
+        id: vercel-check
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Vercel deployment skipped: VERCEL_TOKEN not configured"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Vercel configuration found"
+          fi
+
       - name: Deploy to Vercel Staging
+        if: steps.vercel-check.outputs.skip == 'false'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -173,7 +195,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, deploy-staging]
     if: |
-      secrets.VERCEL_TOKEN != '' &&
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: production
     steps:
@@ -186,7 +207,19 @@ jobs:
           name: admin-dashboard-build
           path: admin-dashboard/build/
 
+      - name: Check Vercel configuration
+        id: vercel-check
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Vercel deployment skipped: VERCEL_TOKEN not configured"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Vercel configuration found"
+          fi
+
       - name: Deploy to Vercel Production
+        if: steps.vercel-check.outputs.skip == 'false'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
