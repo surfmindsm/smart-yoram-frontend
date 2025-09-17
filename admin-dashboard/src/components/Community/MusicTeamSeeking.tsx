@@ -69,6 +69,26 @@ const MusicTeamSeeking: React.FC = () => {
   const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
   const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (seekerId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/music-team-seeking/${seekerId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 음악팀지원 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('음악팀지원 조회수 증가 실패:', error);
+    }
+  };
+
   const getTeamTypeIcon = (instrument: string) => {
     switch (instrument) {
       case '찬양팀':
@@ -87,8 +107,23 @@ const MusicTeamSeeking: React.FC = () => {
     }
   };
 
-  const handleSeekerClick = (seekerId: number) => {
-    navigate(`/community/music-team-seeking/${seekerId}`);
+  const handleSeekerClick = async (seeker: MusicSeeker) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(seeker.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setMusicSeekers(prevSeekers =>
+        prevSeekers.map(prevSeeker =>
+          prevSeeker.id === seeker.id
+            ? { ...prevSeeker, view_count: newViewCount }
+            : prevSeeker
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
+    navigate(`/community/music-team-seeking/${seeker.id}`);
   };
 
   useEffect(() => {
@@ -238,7 +273,7 @@ const MusicTeamSeeking: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {musicSeekers.map((seeker) => (
-                  <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSeekerClick(seeker.id)}>
+                  <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSeekerClick(seeker)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
                       <div className="text-sm text-gray-500 truncate max-w-xs">{seeker.experience}</div>

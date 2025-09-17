@@ -4,7 +4,6 @@ import {
   Plus,
   MapPin,
   Eye,
-  Heart,
   Image as ImageIcon,
   Gift,
 } from 'lucide-react';
@@ -37,8 +36,7 @@ const FreeSharing: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        console.log('🎯 FreeSharing 컴포넌트에서 받은 데이터:', data);
-        console.log('🎯 데이터 길이:', data.length);
+        console.log('🔢 조회수 데이터 확인:', data.map(item => `${item.title}: ${item.view_count}회`));
         setSharingItems(data);
       } catch (error) {
         console.error('무료 나눔 데이터 로드 실패:', error);
@@ -53,7 +51,42 @@ const FreeSharing: React.FC = () => {
 
   // 제거됨: 등록 기능은 별도 페이지로 이동
 
-  const handleItemClick = (item: SharingItem) => {
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (itemId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/sharing/${itemId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('조회수 증가 실패:', error);
+    }
+  };
+
+  const handleItemClick = async (item: SharingItem) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(item.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setSharingItems(prevItems =>
+        prevItems.map(prevItem =>
+          prevItem.id === item.id
+            ? { ...prevItem, view_count: newViewCount }
+            : prevItem
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
     window.location.href = `/community/free-sharing/${item.id}`;
   };
 
@@ -86,15 +119,6 @@ const FreeSharing: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  console.log('🔍 loading 상태:', loading);
-  console.log('🔍 sharingItems 상태:', sharingItems);
-  console.log('🔍 sharingItems[0]:', sharingItems[0]);
-  console.log('🔍 sharingItems[0]?.images:', sharingItems[0]?.images);
-  console.log('🔍 filteredItems 결과:', filteredItems);
-  console.log('🔍 filteredItems[0]:', filteredItems[0]);
-  console.log('🔍 filteredItems[0]?.images:', filteredItems[0]?.images);
-  console.log('🔍 filteredItems.length:', filteredItems.length);
-  console.log('🔍 현재 필터 - 카테고리:', selectedCategory, '상태:', selectedStatus, '검색어:', searchTerm);
 
   return (
     <div className="p-6">
@@ -172,22 +196,25 @@ const FreeSharing: React.FC = () => {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상품
+                    제목
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     카테고리
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    사용자명
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    교회명
+                    가격
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     지역
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    교회명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작성자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
@@ -235,39 +262,38 @@ const FreeSharing: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {item.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.userName}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                      무료
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.church || '협력사'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {item.location}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {item.location}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                         {getStatusText(item.status)}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.church || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.userName}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatCreatedAt(item.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center space-x-3">
-                        <span className="flex items-center">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {item.view_count}
-                        </span>
-                        <span className="flex items-center text-red-500">
-                          <Heart className="h-3 w-3 mr-1" />
-                          {item.likes}
-                        </span>
-                      </div>
+                      <span className="flex items-center">
+                        <Eye className="h-3 w-3 mr-1" />
+                        {item.view_count}
+                      </span>
                     </td>
                   </tr>
                 ))}

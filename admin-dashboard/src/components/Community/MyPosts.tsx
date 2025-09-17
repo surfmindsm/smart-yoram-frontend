@@ -126,6 +126,12 @@ const MyPosts: React.FC = () => {
     window.location.href = editPath;
   };
 
+  const handleRead = (post: MyPost) => {
+    // 게시글 상세 페이지로 이동
+    const readPath = `/community/${post.type}/${post.id}`;
+    window.location.href = readPath;
+  };
+
   const handleDelete = async (post: MyPost) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     
@@ -340,7 +346,7 @@ const MyPosts: React.FC = () => {
                     작성일
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    조회/좋아요
+                    조회수
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     관리
@@ -353,9 +359,9 @@ const MyPosts: React.FC = () => {
                   const IconComponent = typeInfo.icon;
 
                   return (
-                    <tr key={`${post.type}-${post.id}`} className="hover:bg-gray-50">
+                    <tr key={`${post.type}-${post.id}`} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRead(post)}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           {typeInfo.menu.replace('커뮤니티 > ', '')}
                         </span>
                       </td>
@@ -379,18 +385,12 @@ const MyPosts: React.FC = () => {
                         {formatDate(post.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center space-x-4">
-                          <span className="flex items-center">
-                            <Eye className="h-4 w-4 mr-1" />
-                            {post.view_count}
-                          </span>
-                          <span className="flex items-center">
-                            <Heart className="h-4 w-4 mr-1" />
-                            {post.likes}
-                          </span>
-                        </div>
+                        <span className="flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          {post.view_count}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" onClick={(e) => e.stopPropagation()}>
                         <div className="flex space-x-2">
                           <Button
                             onClick={() => handleEdit(post)}

@@ -162,8 +162,43 @@ const ChurchNews: React.FC = () => {
     }
   };
 
-  const handleNewsClick = (newsId: number) => {
-    navigate(`/community/church-news/${newsId}`);
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (newsId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/church-news/${newsId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 교회소식 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('교회소식 조회수 증가 실패:', error);
+    }
+  };
+
+  const handleNewsClick = async (news: ChurchNewsType) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(news.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setNewsItems(prevItems =>
+        prevItems.map(prevItem =>
+          prevItem.id === news.id
+            ? { ...prevItem, view_count: newViewCount }
+            : prevItem
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
+    navigate(`/community/church-news/${news.id}`);
   };
 
   useEffect(() => {
@@ -336,9 +371,9 @@ const ChurchNews: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {newsItems.map((news) => (
-                  <tr 
+                  <tr
                     key={news.id}
-                    onClick={() => handleNewsClick(news.id)}
+                    onClick={() => handleNewsClick(news)}
                     className="hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">

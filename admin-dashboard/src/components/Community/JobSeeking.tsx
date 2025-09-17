@@ -27,6 +27,45 @@ const JobSeeking: React.FC = () => {
   const [jobSeekers, setJobSeekers] = useState<JobSeeker[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (seekerId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/job-seeking/${seekerId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 구직신청 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('구직신청 조회수 증가 실패:', error);
+    }
+  };
+
+  const handleSeekerClick = async (seeker: JobSeeker) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(seeker.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setJobSeekers(prevSeekers =>
+        prevSeekers.map(prevSeeker =>
+          prevSeeker.id === seeker.id
+            ? { ...prevSeeker, view_count: newViewCount }
+            : prevSeeker
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
+    navigate(`/community/job-seeking/${seeker.id}`);
+  };
+
   const ministryFields = [
     { value: 'all', label: '전체' },
     { value: '청년부', label: '청년부' },
@@ -173,7 +212,7 @@ const JobSeeking: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {jobSeekers.map((seeker) => (
-                  <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer">
+                  <tr key={seeker.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleSeekerClick(seeker)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{seeker.title}</div>
                       <div className="text-sm text-gray-500 truncate max-w-xs">{seeker.introduction}</div>

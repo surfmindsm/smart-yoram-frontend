@@ -30,6 +30,46 @@ const MusicTeamRecruit: React.FC = () => {
   const [musicRecruitments, setMusicRecruitments] = useState<MusicRecruitment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (recruitmentId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/music-team-recruitments/${recruitmentId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 음악팀모집 LIST increment-view API 응답:', data);
+        console.log(`📈 음악팀모집 조회수 증가: ${data.data?.previous_view_count || data.previous_view_count || 'unknown'} → ${data.data?.new_view_count || data.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count || data.new_view_count;
+      }
+    } catch (error) {
+      console.error('음악팀모집 조회수 증가 실패:', error);
+    }
+  };
+
+  const handleRecruitmentClick = async (recruitment: MusicRecruitment) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(recruitment.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setMusicRecruitments(prevRecruitments =>
+        prevRecruitments.map(prevRecruitment =>
+          prevRecruitment.id === recruitment.id
+            ? { ...prevRecruitment, view_count: newViewCount }
+            : prevRecruitment
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
+    navigate(`/community/music-team-recruit/${recruitment.id}`);
+  };
+
   const instruments = [
     { value: 'all', label: '전체 악기' },
     { value: '피아노', label: '피아노' },
@@ -172,16 +212,16 @@ const MusicTeamRecruit: React.FC = () => {
                     악기
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    사용자명
+                    지역
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     교회명
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    지역
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
+                    작성자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
@@ -193,10 +233,9 @@ const MusicTeamRecruit: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {musicRecruitments.map((recruitment) => (
-                  <tr key={recruitment.id} className="hover:bg-gray-50 cursor-pointer">
+                  <tr key={recruitment.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRecruitmentClick(recruitment)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{recruitment.title}</div>
-                      <div className="text-sm text-gray-500">{recruitment.schedule}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
@@ -211,27 +250,31 @@ const MusicTeamRecruit: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {recruitment.author_name || '익명'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {recruitment.church_name || '협력사'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {recruitment.location}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {recruitment.location}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(recruitment.status)}`}>
                         {getStatusText(recruitment.status)}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {recruitment.church_name || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {recruitment.author_name || '익명'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatCreatedAt(recruitment.created_at)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                      <Eye className="h-3 w-3 mr-1" />
-                      {recruitment.view_count}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <Eye className="h-3 w-3 mr-1" />
+                        {recruitment.view_count}
+                      </span>
                     </td>
                   </tr>
                 ))}

@@ -22,8 +22,43 @@ const ItemRequest: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (itemId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/item-request/${itemId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 물품요청 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('물품요청 조회수 증가 실패:', error);
+    }
+  };
+
   // 상세 페이지로 이동하는 함수
-  const handleItemClick = (item: RequestItem) => {
+  const handleItemClick = async (item: RequestItem) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(item.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setRequestItems(prevItems =>
+        prevItems.map(prevItem =>
+          prevItem.id === item.id
+            ? { ...prevItem, view_count: newViewCount }
+            : prevItem
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
     navigate(`/community/item-request/${item.id}`);
   };
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -235,19 +270,16 @@ const ItemRequest: React.FC = () => {
                     카테고리
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    사용자명
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    교회명
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     지역
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    우선순위
+                    교회명
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작성자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
@@ -262,39 +294,37 @@ const ItemRequest: React.FC = () => {
                   <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleItemClick(item)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{item.title}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{item.description}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {item.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.userName || '익명'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.church || '협력사'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {item.location}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {item.location}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
                         {getStatusText(item.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(item.urgency)}`}>
-                        {getUrgencyText(item.urgency)}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.church || '협력사'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.userName || '익명'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt((item as any).created_at)}
+                      {formatCreatedAt(item.createdAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                      <Eye className="h-3 w-3 mr-1" />
-                      {item.view_count}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <Eye className="h-3 w-3 mr-1" />
+                        {item.view_count}
+                      </span>
                     </td>
                   </tr>
                 ))}

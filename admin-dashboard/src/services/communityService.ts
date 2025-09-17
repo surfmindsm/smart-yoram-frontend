@@ -607,19 +607,7 @@ export const communityService = {
     limit?: number;
   }): Promise<SharingItem[]> => {
     try {
-      console.log('📦 무료 나눔 API 호출 중...', params);
-      console.log('🔄 브라우저 캐시 무시를 위한 타임스탬프:', Date.now());
-      const response = await api.get(getApiUrl('/community/sharing'), {
-        params: {
-          ...params,
-          _t: Date.now() // 캐시 무력화
-        }
-      });
-      console.log('✅ 무료 나눔 API 응답:', response.data);
-      console.log('✅ 무료 나눔 데이터 상세:', response.data?.data);
-      console.log('✅ 첫 번째 아이템 구조:', response.data?.data?.[0]);
-      console.log('🖼️ 첫 번째 아이템 images 필드:', response.data?.data?.[0]?.images);
-      console.log('🖼️ 원본 response.data 전체 구조:', JSON.stringify(response.data?.data?.[0], null, 2));
+      const response = await api.get(getApiUrl('/community/sharing'), { params });
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -635,17 +623,10 @@ export const communityService = {
             category: item.category,
             condition: item.condition || '양호',
             quantity: item.quantity || 1,
-            images: (() => {
-              console.log('🖼️ 원본 images 데이터:', item.images, '타입:', typeof item.images);
-              const parsedImages = parseJsonArray(item.images, []);
-              console.log('🖼️ parseJsonArray 결과:', parsedImages);
-              const mappedImages = parsedImages.map((img: string) =>
-                typeof img === 'string' && img.startsWith('http') ? img :
-                `https://api.surfmind-team.com/static/community/images/${img}`
-              );
-              console.log('🖼️ 최종 images 배열:', mappedImages);
-              return mappedImages;
-            })(),
+            images: parseJsonArray(item.images, []).map((img: string) =>
+              typeof img === 'string' && img.startsWith('http') ? img :
+              `https://api.surfmind-team.com/static/community/images/${img}`
+            ),
             church: churchName,
             location: item.location,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
@@ -653,13 +634,16 @@ export const communityService = {
             contactInfo: item.contact_info || item.contactInfo, // 기존 필드 (호환성 유지)
             status: item.status,
             createdAt: item.created_at || item.createdAt || null, // snake_case를 camelCase로 변환, null인 경우 null 유지
-            view_count: item.view_count || 0, // snake_case를 camelCase로 변환
+            view_count: item.view_count || 0, // 조회수
             likes: item.likes || 0,
             comments: item.comments || 0,
             userName: item.author_name || '익명' // 통일된 필드명 사용
           };
         });
-        console.log('🔄 변환된 데이터:', transformedData);
+
+        // 조회수 로그
+        console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));
+
         return transformedData;
       }
       
@@ -1127,7 +1111,7 @@ export const communityService = {
         });
         return transformedData;
       }
-      
+
       // 직접 배열이 반환되는 경우
       if (Array.isArray(response.data)) {
         const transformedData = response.data.map((item: any) => {
