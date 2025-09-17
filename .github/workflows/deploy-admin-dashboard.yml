@@ -52,13 +52,18 @@ jobs:
         with:
           path: |
             ~/.npm
-            admin-dashboard/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('admin-dashboard/package-lock.json') }}
+            ./admin-dashboard/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('./admin-dashboard/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Run type checking
         run: npm run type-check
