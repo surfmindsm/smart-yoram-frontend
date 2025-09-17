@@ -89,6 +89,7 @@ jobs:
           REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
           REACT_APP_ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
           GENERATE_SOURCEMAP: false
+          CI: false
         run: npm run build
 
       - name: Upload build artifacts
