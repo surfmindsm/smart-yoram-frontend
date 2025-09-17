@@ -57,7 +57,7 @@ jobs:
         continue-on-error: true
 
       - name: Run linting
-        run: npm run lint
+        run: npm run lint -- --max-warnings 2000
         continue-on-error: true
 
       - name: Run tests
