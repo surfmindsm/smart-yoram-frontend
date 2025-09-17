@@ -12,7 +12,7 @@ import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, RequestItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
-import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
+import { mapToStandardStatus } from '../../utils/status-mapping';
 
 
 const ItemRequest: React.FC = () => {
@@ -61,7 +61,6 @@ const ItemRequest: React.FC = () => {
   };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedUrgency, setSelectedUrgency] = useState('all');
 
   // 요청 게시글 데이터 (API에서 로드)
   const [requestItems, setRequestItems] = useState<RequestItem[]>([]);
@@ -76,18 +75,44 @@ const ItemRequest: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const statusOptions: SelectOption[] = getStatusFilterOptions();
-
-  const urgencyOptions: SelectOption[] = [
-    { value: 'all', label: '전체 우선순위' },
-    { value: 'high', label: '긴급' },
-    { value: 'medium', label: '보통' },
-    { value: 'low', label: '여유' }
+  // 물품 요청 전용 상태 필터 옵션
+  const statusOptions: SelectOption[] = [
+    { value: 'all', label: '전체 상태' },
+    { value: 'active', label: '요청중' },
+    { value: 'completed', label: '요청완료' }
   ];
 
+
+  // 물품 요청 전용 상태 매핑
+  const getRequestStatusLabel = (status: string): string => {
+    const standardStatus = mapToStandardStatus(status);
+    switch (standardStatus) {
+      case 'active':
+        return '요청중';
+      case 'completed':
+        return '요청완료';
+      case 'cancelled':
+        return '요청취소';
+      default:
+        return '요청중';
+    }
+  };
+
+  const getRequestStatusClass = (status: string): string => {
+    const standardStatus = mapToStandardStatus(status);
+    switch (standardStatus) {
+      case 'active':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
   const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
-  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
-  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -134,7 +159,7 @@ const ItemRequest: React.FC = () => {
     {
       key: 'status',
       title: '상태',
-      render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
+      render: (value) => TableRenderers.badge(getRequestStatusLabel(value), getRequestStatusClass(value))
     },
     {
       key: 'church',
@@ -167,11 +192,10 @@ const ItemRequest: React.FC = () => {
         const params = {
           category: selectedCategory === 'all' ? undefined : selectedCategory,
           status: selectedStatus === 'all' ? undefined : selectedStatus,
-          urgency: selectedUrgency === 'all' ? undefined : selectedUrgency,
           search: searchTerm || undefined,
           limit: 50
         };
-        console.log('🔍 현재 필터 상태:', { selectedCategory, selectedStatus, selectedUrgency, searchTerm });
+        console.log('🔍 현재 필터 상태:', { selectedCategory, selectedStatus, searchTerm });
         
         const data = await communityService.getRequestItems(params);
         console.log('물품 요청 데이터 받음:', data?.length || 0, '개');
@@ -194,7 +218,7 @@ const ItemRequest: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedCategory, selectedStatus, selectedUrgency, searchTerm]);
+  }, [selectedCategory, selectedStatus, searchTerm]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -239,13 +263,6 @@ const ItemRequest: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <CustomSelect
-            options={categories}
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-            className="w-auto"
-          />
 
           {/* New 버튼 */}
           <Button
@@ -258,21 +275,21 @@ const ItemRequest: React.FC = () => {
         </div>
       </div>
 
-      {/* 추가 필터들 - 별도 필터 */}
+      {/* 필터들 */}
       <div className="mb-4 flex gap-4">
+        {/* 카테고리 선택 */}
+        <CustomSelect
+          options={categories}
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          className="w-auto"
+        />
+
         {/* 상태 선택 */}
         <CustomSelect
           options={statusOptions}
           value={selectedStatus}
           onChange={setSelectedStatus}
-          className="w-auto"
-        />
-
-        {/* 우선순위 선택 */}
-        <CustomSelect
-          options={urgencyOptions}
-          value={selectedUrgency}
-          onChange={setSelectedUrgency}
           className="w-auto"
         />
       </div>

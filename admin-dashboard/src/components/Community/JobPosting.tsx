@@ -11,7 +11,7 @@ import { CommunityTable, TableColumn, TableRenderers } from '../common/Community
 import { communityService, JobPost } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatDeadline } from '../../utils/dateUtils';
-import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
+import { mapToStandardStatus } from '../../utils/status-mapping';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
@@ -19,7 +19,6 @@ const JobPosting: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('all');
-  const [selectedJobType, setSelectedJobType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   // 구인 공고 데이터 (API에서 로드)
@@ -35,44 +34,45 @@ const JobPosting: React.FC = () => {
     { value: '행정간사', label: '행정간사' }
   ];
 
-  const jobTypes: SelectOption[] = [
-    { value: 'all', label: '전체' },
-    { value: 'full-time', label: '상근직' },
-    { value: 'part-time', label: '비상근직' },
-    { value: 'volunteer', label: '봉사직' }
+
+  // 사역자 모집 전용 상태 매핑
+  const getJobStatusLabel = (status: string): string => {
+    const standardStatus = mapToStandardStatus(status);
+    switch (standardStatus) {
+      case 'active':
+        return '모집중';
+      case 'completed':
+        return '모집완료';
+      case 'cancelled':
+        return '모집취소';
+      default:
+        return '모집중';
+    }
+  };
+
+  const getJobStatusClass = (status: string): string => {
+    const standardStatus = mapToStandardStatus(status);
+    switch (standardStatus) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
+  // 사역자 모집 전용 상태 필터 옵션
+  const statusOptions: SelectOption[] = [
+    { value: 'all', label: '전체 상태' },
+    { value: 'active', label: '모집중' },
+    { value: 'completed', label: '모집완료' }
   ];
 
-  const statusOptions = getStatusFilterOptions();
-
   const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
-  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
-  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
-  const getJobTypeText = (jobType: string) => {
-    switch (jobType) {
-      case 'full-time':
-        return '상근직';
-      case 'part-time':
-        return '비상근직';
-      case 'volunteer':
-        return '봉사직';
-      default:
-        return jobType;
-    }
-  };
-
-  const getJobTypeColor = (jobType: string) => {
-    switch (jobType) {
-      case 'full-time':
-        return 'bg-blue-100 text-blue-800';
-      case 'part-time':
-        return 'bg-orange-100 text-orange-800';
-      case 'volunteer':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,18 +80,24 @@ const JobPosting: React.FC = () => {
         setLoading(true);
         const data = await communityService.getJobPosts({
           position: selectedPosition === 'all' ? undefined : selectedPosition,
-          jobType: selectedJobType === 'all' ? undefined : selectedJobType,
           status: selectedStatus === 'all' ? undefined : selectedStatus,
           search: searchTerm || undefined,
           limit: 50
         });
 
-        // 필터링 로직에서 표준 상태값 사용
+        // 필터링 로직 - 상태, 직책 확인
         const filteredData = data.filter((item: any) => {
           const standardStatus = getStandardStatus(item.status || 'active');
           const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
-          return matchesStatus;
+
+          const matchesPosition = selectedPosition === 'all' || item.position === selectedPosition;
+
+          return matchesStatus && matchesPosition;
         });
+        console.log('🎯 필터 상태:', { selectedPosition, selectedStatus });
+        console.log('🎯 원본 데이터:', data);
+        console.log('🎯 변환된 JobPosting 데이터:', filteredData);
+        console.log('🎯 첫 번째 게시글 전체:', filteredData[0]);
         setJobPosts(filteredData);
       } catch (error) {
         console.error('JobPosting 데이터 로드 실패:', error);
@@ -102,7 +108,7 @@ const JobPosting: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedPosition, selectedJobType, selectedStatus, searchTerm]);
+  }, [selectedPosition, selectedStatus, searchTerm]);
 
   const getDaysUntilDeadline = (deadline: string) => {
     const today = new Date();
@@ -164,7 +170,7 @@ const JobPosting: React.FC = () => {
     {
       key: 'position',
       title: '직책',
-      render: (value) => TableRenderers.badge(value)
+      render: (value) => TableRenderers.badge(value || '미정', 'bg-purple-100 text-purple-800')
     },
     {
       key: 'location',
@@ -174,7 +180,7 @@ const JobPosting: React.FC = () => {
     {
       key: 'status',
       title: '상태',
-      render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
+      render: (value) => TableRenderers.badge(getJobStatusLabel(value), getJobStatusClass(value))
     },
     {
       key: 'church_name',
@@ -220,13 +226,6 @@ const JobPosting: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <CustomSelect
-            options={positions}
-            value={selectedPosition}
-            onChange={setSelectedPosition}
-            className="w-auto"
-          />
 
           {/* New 버튼 */}
           <Button
@@ -239,15 +238,18 @@ const JobPosting: React.FC = () => {
         </div>
       </div>
 
-      {/* 추가 필터들 - 별도 필터 */}
+      {/* 필터들 */}
       <div className="mb-4 flex gap-4">
+        {/* 사역자 유형 선택 */}
         <CustomSelect
-          options={jobTypes}
-          value={selectedJobType}
-          onChange={setSelectedJobType}
+          options={positions}
+          value={selectedPosition}
+          onChange={setSelectedPosition}
           className="w-auto"
         />
 
+
+        {/* 상태 선택 */}
         <CustomSelect
           options={statusOptions}
           value={selectedStatus}

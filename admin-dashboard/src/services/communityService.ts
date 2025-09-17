@@ -1088,8 +1088,16 @@ export const communityService = {
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedData = response.data.data.map((item: any) => {
+          console.log('🔍 원본 아이템 데이터:', item);
+          console.log('🔍 job_type:', item.job_type);
+          console.log('🔍 position:', item.position);
+
           // church_id 기반으로 교회명 처리 (9998의 경우 null)
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+
+          const rawPosition = item.job_type || item.position || '미정';
+          const transformedPosition = rawPosition === '일반' ? '기타' : rawPosition;
+          console.log('🔍 원본 position:', rawPosition, '→ 변환된 position:', transformedPosition);
 
           return {
             ...item,
@@ -1098,7 +1106,7 @@ export const communityService = {
             userName: item.author_name || '익명', // 통일된 필드명 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: churchName, // company 필드도 교회명으로 설정
-            position: item.position || item.job_type,
+            position: transformedPosition,
             salary: item.salary || item.salary_range,
             view_count: item.view_count || 0,
             deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
@@ -1118,6 +1126,9 @@ export const communityService = {
           // church_id 기반으로 교회명 처리 (9998의 경우 null)
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
 
+          const rawPosition = item.job_type || item.position || '미정';
+          const transformedPosition = rawPosition === '일반' ? '기타' : rawPosition;
+
           return {
             ...item,
             church: churchName,
@@ -1125,7 +1136,7 @@ export const communityService = {
             userName: item.author_name || '익명', // 통일된 필드명 사용
             // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
             company: churchName, // company 필드도 교회명으로 설정
-            position: item.position || item.job_type,
+            position: transformedPosition,
             salary: item.salary || item.salary_range,
             view_count: item.view_count || 0,
             deadline: item.deadline || item.expires_at || item.expiry_date || item.due_date,
