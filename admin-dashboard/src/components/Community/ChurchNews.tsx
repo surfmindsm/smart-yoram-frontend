@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Plus, 
-  MapPin, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  MapPin,
+  Clock,
   Eye,
   Heart,
   MessageCircle,
@@ -19,6 +19,7 @@ import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
 import { ChurchNewsAPI } from '../../api/church-events-api';
 import { ChurchNews as ChurchNewsType, ChurchNewsListOptions } from '../../types/church-events';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const ChurchNews: React.FC = () => {
@@ -30,7 +31,7 @@ const ChurchNews: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [newsItems, setNewsItems] = useState<ChurchNewsType[]>([]);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체 카테고리' },
     // 예배/집회 관련
     { value: '특별예배', label: '특별예배/연합예배' },
@@ -60,14 +61,14 @@ const ChurchNews: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const priorities = [
+  const priorities: SelectOption[] = [
     { value: 'all', label: '전체 우선순위' },
     { value: 'urgent', label: '긴급' },
     { value: 'important', label: '중요' },
     { value: 'normal', label: '일반' }
   ];
 
-  const statusOptions = [
+  const statusOptions: SelectOption[] = [
     { value: 'all', label: '전체 상태' },
     { value: 'active', label: '진행중' },
     { value: 'completed', label: '완료' },
@@ -272,17 +273,12 @@ const ChurchNews: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -297,29 +293,19 @@ const ChurchNews: React.FC = () => {
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
-        <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {priorities.map(priority => (
-              <option key={priority.value} value={priority.value}>
-                {priority.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={priorities}
+          value={selectedPriority}
+          onChange={setSelectedPriority}
+          className="w-auto"
+        />
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       {/* 컨텐츠 */}

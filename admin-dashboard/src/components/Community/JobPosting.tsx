@@ -12,6 +12,7 @@ import { communityService, JobPost } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatDeadline } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const JobPosting: React.FC = () => {
@@ -25,7 +26,7 @@ const JobPosting: React.FC = () => {
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const positions = [
+  const positions: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '목사', label: '목사' },
     { value: '전도사', label: '전도사' },
@@ -34,7 +35,7 @@ const JobPosting: React.FC = () => {
     { value: '행정간사', label: '행정간사' }
   ];
 
-  const jobTypes = [
+  const jobTypes: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: 'full-time', label: '상근직' },
     { value: 'part-time', label: '비상근직' },
@@ -220,17 +221,12 @@ const JobPosting: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={positions}
             value={selectedPosition}
-            onChange={(e) => setSelectedPosition(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {positions.map(position => (
-              <option key={position.value} value={position.value}>
-                {position.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedPosition}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -245,29 +241,19 @@ const JobPosting: React.FC = () => {
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
-        <select
-            value={selectedJobType}
-            onChange={(e) => setSelectedJobType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {jobTypes.map(jobType => (
-              <option key={jobType.value} value={jobType.value}>
-                {jobType.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={jobTypes}
+          value={selectedJobType}
+          onChange={setSelectedJobType}
+          className="w-auto"
+        />
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

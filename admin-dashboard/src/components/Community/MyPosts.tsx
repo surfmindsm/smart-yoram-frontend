@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 
@@ -47,7 +48,7 @@ const MyPosts: React.FC = () => {
   const [editingPost, setEditingPost] = useState<MyPost | null>(null);
 
 
-  const postTypes = [
+  const postTypes: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: 'community-sharing', label: '무료 나눔' },
     { value: 'community-request', label: '물품 요청' },
@@ -382,17 +383,12 @@ const MyPosts: React.FC = () => {
           </div>
 
           {/* 게시글 타입 필터 */}
-          <select
+          <CustomSelect
+            options={postTypes}
             value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {postTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedType}
+            className="w-auto"
+          />
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import { CommunityTable, TableColumn, TableRenderers } from '../common/Community
 import { communityService, SharingItem } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +90,7 @@ const FreeSharing: React.FC = () => {
     window.location.href = `/community/free-sharing/${item.id}`;
   };
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '가구', label: '가구' },
     { value: '전자제품', label: '전자제품' },
@@ -98,22 +99,66 @@ const FreeSharing: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  // 마이그레이션 가이드: 표준 상태값 사용
-  const statusOptions = getStatusFilterOptions();
+  // 단순화된 상태 옵션 - 나눔중/나눔완료만
+  const statusOptions: SelectOption[] = [
+    { value: 'all', label: '전체 상태' },
+    { value: 'sharing', label: '나눔중' },
+    { value: 'completed', label: '나눔완료' }
+  ];
 
-  // 마이그레이션 가이드: 레거시 상태값을 표준 상태값으로 변환
-  const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
-  const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
-  const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
+  // 무료 나눔 전용 상태 매핑
+  const getFreeSharingStatusLabel = (status: string): string => {
+    const itemStatus = status as string; // 타입 확장
+    switch (itemStatus) {
+      case 'sharing':
+        return '나눔중';
+      case 'completed':
+        return '나눔완료';
+      // 기존 상태값 호환성 (점진적 마이그레이션)
+      case 'active':
+      case 'available':
+      case 'open':
+        return '나눔중';
+      case 'closed':
+      case 'inactive':
+      case 'reserved':
+        return '나눔완료';
+      default:
+        return '나눔중'; // 기본값은 나눔중으로
+    }
+  };
+
+  const getFreeSharingStatusClass = (status: string): string => {
+    const itemStatus = status as string; // 타입 확장
+    switch (itemStatus) {
+      case 'sharing':
+      case 'active':
+      case 'available':
+      case 'open':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+      case 'closed':
+      case 'inactive':
+      case 'reserved':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-green-100 text-green-800'; // 기본값은 나눔중 색상으로
+    }
+  };
 
   const filteredItems = sharingItems.filter(item => {
     const matchesSearch = (item.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
 
-    // 마이그레이션 가이드: 레거시 상태값을 표준 상태값으로 변환하여 필터링
-    const standardStatus = getStandardStatus(item.status || 'active');
-    const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
+    // 무료 나눔 상태 필터링
+    const itemStatus = item.status as string; // 타입 확장
+    const normalizedStatus = itemStatus === 'active' || itemStatus === 'available' || itemStatus === 'open'
+      ? 'sharing'
+      : itemStatus === 'closed' || itemStatus === 'inactive' || itemStatus === 'completed'
+      ? 'completed'
+      : itemStatus;
+    const matchesStatus = selectedStatus === 'all' || normalizedStatus === selectedStatus;
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -146,7 +191,10 @@ const FreeSharing: React.FC = () => {
     {
       key: 'status',
       title: '상태',
-      render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
+      render: (value) => TableRenderers.badge(
+        getFreeSharingStatusLabel(value),
+        getFreeSharingStatusClass(value)
+      )
     },
     {
       key: 'church',
@@ -193,19 +241,6 @@ const FreeSharing: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
-
           {/* New 버튼 */}
           <Button
             onClick={() => window.location.href = '/community/free-sharing/create'}
@@ -217,19 +252,23 @@ const FreeSharing: React.FC = () => {
         </div>
       </div>
 
-      {/* 상태 선택 - 별도 필터 */}
-      <div className="mb-4">
-        <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+      {/* 필터들 */}
+      <div className="mb-4 flex gap-4">
+        {/* 카테고리 선택 */}
+        <CustomSelect
+          options={categories}
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          className="w-auto"
+        />
+
+        {/* 상태 선택 */}
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

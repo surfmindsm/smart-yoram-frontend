@@ -11,6 +11,7 @@ import {
   Share
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, ChurchEvent } from '../../services/communityService';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
@@ -25,7 +26,7 @@ const ChurchEvents: React.FC = () => {
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: 'seminar', label: '세미나' },
     { value: 'revival', label: '부흥회' },
@@ -34,7 +35,7 @@ const ChurchEvents: React.FC = () => {
     { value: 'other', label: '기타' }
   ];
 
-  const statusOptions = getStatusFilterOptions();
+  const statusOptions: SelectOption[] = getStatusFilterOptions();
 
   const getStandardStatus = (legacyStatus: string) => mapToStandardStatus(legacyStatus);
   const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
@@ -109,17 +110,12 @@ const ChurchEvents: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -134,17 +130,12 @@ const ChurchEvents: React.FC = () => {
 
       {/* 상태 선택 - 별도 필터 */}
       <div className="mb-4">
-        <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       {/* 행사 목록 */}

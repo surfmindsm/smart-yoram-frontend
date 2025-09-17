@@ -10,6 +10,7 @@ import { CommunityTable, TableColumn, TableRenderers } from '../common/Community
 import { communityService, JobSeeker } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const JobSeeking: React.FC = () => {
@@ -124,7 +125,7 @@ const JobSeeking: React.FC = () => {
     }
   ];
 
-  const ministryFields = [
+  const ministryFields: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '청년부', label: '청년부' },
     { value: '주일학교', label: '주일학교' },
@@ -192,17 +193,12 @@ const JobSeeking: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={ministryFields}
             value={selectedField}
-            onChange={(e) => setSelectedField(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {ministryFields.map(field => (
-              <option key={field.value} value={field.value}>
-                {field.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedField}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -217,17 +213,12 @@ const JobSeeking: React.FC = () => {
 
       {/* 상태 선택 - 별도 필터 */}
       <div className="mb-4">
-        <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

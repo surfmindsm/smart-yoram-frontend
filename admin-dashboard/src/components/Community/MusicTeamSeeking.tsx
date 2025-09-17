@@ -22,6 +22,7 @@ import {
   Mail,
   Award
 } from 'lucide-react';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 const MusicTeamSeeking: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const MusicTeamSeeking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [musicSeekers, setMusicSeekers] = useState<MusicSeeker[]>([]);
 
-  const teamTypes = [
+  const teamTypes: SelectOption[] = [
     { value: 'all', label: '전체 팀 형태' },
     { value: '현재 솔로 활동', label: '현재 솔로 활동' },
     { value: '찬양팀', label: '찬양팀' },
@@ -45,7 +46,7 @@ const MusicTeamSeeking: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const days = [
+  const days: SelectOption[] = [
     { value: 'all', label: '전체 요일' },
     { value: '월요일', label: '월요일' },
     { value: '화요일', label: '화요일' },
@@ -56,7 +57,7 @@ const MusicTeamSeeking: React.FC = () => {
     { value: '일요일', label: '일요일' }
   ];
 
-  const timeSlots = [
+  const timeSlots: SelectOption[] = [
     { value: 'all', label: '전체 시간' },
     { value: '오전', label: '오전' },
     { value: '오후', label: '오후' },
@@ -235,17 +236,12 @@ const MusicTeamSeeking: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={teamTypes}
             value={selectedInstrument}
-            onChange={(e) => setSelectedInstrument(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {teamTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedInstrument}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -260,29 +256,19 @@ const MusicTeamSeeking: React.FC = () => {
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
-        <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {days.map(day => (
-              <option key={day.value} value={day.value}>
-                {day.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={days}
+          value={selectedDay}
+          onChange={setSelectedDay}
+          className="w-auto"
+        />
 
-          <select
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {timeSlots.map(slot => (
-              <option key={slot.value} value={slot.value}>
-                {slot.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={timeSlots}
+          value={selectedTime}
+          onChange={setSelectedTime}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

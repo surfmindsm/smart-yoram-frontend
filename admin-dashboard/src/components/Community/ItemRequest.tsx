@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, RequestItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
@@ -66,7 +67,7 @@ const ItemRequest: React.FC = () => {
   const [requestItems, setRequestItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '가구', label: '가구' },
     { value: '전자제품', label: '전자제품' },
@@ -75,9 +76,9 @@ const ItemRequest: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const statusOptions = getStatusFilterOptions();
+  const statusOptions: SelectOption[] = getStatusFilterOptions();
 
-  const urgencyOptions = [
+  const urgencyOptions: SelectOption[] = [
     { value: 'all', label: '전체 우선순위' },
     { value: 'high', label: '긴급' },
     { value: 'medium', label: '보통' },
@@ -239,17 +240,12 @@ const ItemRequest: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -265,30 +261,20 @@ const ItemRequest: React.FC = () => {
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
         {/* 상태 선택 */}
-        <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
 
-          {/* 우선순위 선택 */}
-          <select
-            value={selectedUrgency}
-            onChange={(e) => setSelectedUrgency(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {urgencyOptions.map(urgency => (
-              <option key={urgency.value} value={urgency.value}>
-                {urgency.label}
-              </option>
-            ))}
-          </select>
+        {/* 우선순위 선택 */}
+        <CustomSelect
+          options={urgencyOptions}
+          value={selectedUrgency}
+          onChange={setSelectedUrgency}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

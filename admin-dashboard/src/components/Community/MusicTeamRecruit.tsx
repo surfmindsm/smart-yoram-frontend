@@ -15,6 +15,7 @@ import { CommunityTable, TableColumn, TableRenderers } from '../common/Community
 import { communityService, MusicRecruitment } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const MusicTeamRecruit: React.FC = () => {
@@ -66,7 +67,7 @@ const MusicTeamRecruit: React.FC = () => {
     navigate(`/community/music-team-recruit/${recruitment.id}`);
   };
 
-  const instruments = [
+  const instruments: SelectOption[] = [
     { value: 'all', label: '전체 악기' },
     { value: '피아노', label: '피아노' },
     { value: '기타', label: '기타' },
@@ -77,7 +78,7 @@ const MusicTeamRecruit: React.FC = () => {
     { value: '플룻', label: '플룻' }
   ];
 
-  const eventTypes = [
+  const eventTypes: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '주일예배', label: '주일예배' },
     { value: '특별예배', label: '특별예배' },
@@ -210,17 +211,12 @@ const MusicTeamRecruit: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={instruments}
             value={selectedInstrument}
-            onChange={(e) => setSelectedInstrument(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {instruments.map(instrument => (
-              <option key={instrument.value} value={instrument.value}>
-                {instrument.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedInstrument}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
@@ -235,17 +231,12 @@ const MusicTeamRecruit: React.FC = () => {
 
       {/* 이벤트 타입 필터 - 별도 필터 */}
       <div className="mb-4">
-        <select
-            value={selectedEventType}
-            onChange={(e) => setSelectedEventType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {eventTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+        <CustomSelect
+          options={eventTypes}
+          value={selectedEventType}
+          onChange={setSelectedEventType}
+          className="w-auto"
+        />
       </div>
 
       <CommunityTable

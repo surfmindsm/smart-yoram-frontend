@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, OfferItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
@@ -64,7 +65,7 @@ const SharingOffer: React.FC = () => {
   const [offerItems, setOfferItems] = useState<OfferItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: '가구', label: '가구' },
     { value: '전자제품', label: '전자제품' },
@@ -175,17 +176,12 @@ const SharingOffer: React.FC = () => {
           </div>
 
           {/* 필터 버튼 */}
-          <select
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
           {/* New 버튼 */}
           <Button
