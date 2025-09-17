@@ -6,15 +6,13 @@
   "outputDirectory": "build",
   "installCommand": "npm ci",
   "env": {
-    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key",
-    "REACT_APP_ENVIRONMENT": "@react_app_environment"
+    "REACT_APP_API_URL": "https://api.surfmind-team.com/api/v1",
+    "REACT_APP_ENVIRONMENT": "production"
   },
   "build": {
     "env": {
-      "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
-      "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key",
-      "REACT_APP_ENVIRONMENT": "@react_app_environment",
+      "REACT_APP_API_URL": "https://api.surfmind-team.com/api/v1",
+      "REACT_APP_ENVIRONMENT": "production",
       "GENERATE_SOURCEMAP": "false"
     }
   },
