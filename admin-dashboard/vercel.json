@@ -80,13 +80,10 @@
     {
       "source": "/api/v1/(.*)",
       "destination": "https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/$1"
-    }
-  ],
-  "redirects": [
+    },
     {
-      "source": "/((?!api|static|manifest.json|.*\\.).*)",
-      "destination": "/",
-      "permanent": false
+      "source": "/((?!api|static|.*\\.).*).*",
+      "destination": "/index.html"
     }
   ],
   "regions": ["icn1"]
