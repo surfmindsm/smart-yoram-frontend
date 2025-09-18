@@ -22,7 +22,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     eventType: '',
-    instruments: [] as string[],
+    teamTypes: [] as string[],
     eventDate: '',
     rehearsalSchedule: '',
     location: '',
@@ -33,7 +33,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
     contactEmail: ''
   });
 
-  const [instrumentInput, setInstrumentInput] = useState('');
   const [requirementInput, setRequirementInput] = useState('');
 
   const eventTypes = [
@@ -41,24 +40,25 @@ const CreateMusicTeamRecruit: React.FC = () => {
     '결혼식', '장례식', '수련회', '콘서트', '기타'
   ];
 
-  const instrumentOptions = [
-    '피아노', '키보드', '오르간', '기타', '일렉기타', '베이스', '드럼', 
-    '바이올린', '첼로', '플룻', '색소폰', '트럼펫', '보컬', '기타악기'
+  const teamTypeOptions = [
+    '현재 솔로 활동', '찬양팀', '워십팀', '어쿠스틱 팀', '밴드', '오케스트라', '합창단', '무용팀', '기타'
   ];
 
 
-  const getInstrumentIcon = (instrument: string) => {
-    switch (instrument) {
-      case '피아노':
-      case '키보드':
-      case '오르간':
-        return <Piano className="h-3 w-3" />;
-      case '기타':
-      case '일렉기타':
+  const getTeamTypeIcon = (teamType: string) => {
+    switch (teamType) {
+      case '현재 솔로 활동':
+        return <Mic className="h-3 w-3" />;
+      case '찬양팀':
+      case '워십팀':
+        return <Music className="h-3 w-3" />;
+      case '밴드':
+      case '어쿠스틱 팀':
         return <Guitar className="h-3 w-3" />;
-      case '드럼':
-        return <Drum className="h-3 w-3" />;
-      case '보컬':
+      case '오케스트라':
+      case '합창단':
+        return <Piano className="h-3 w-3" />;
+      case '무용팀':
         return <Mic className="h-3 w-3" />;
       default:
         return <Music className="h-3 w-3" />;
@@ -68,7 +68,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.eventType || formData.instruments.length === 0 || !formData.contactPhone) {
+    if (!formData.title || !formData.eventType || formData.teamTypes.length === 0 || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -82,7 +82,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
         eventType: formData.eventType, // 서비스에서 recruitment_type로 매핑됨
         
         // 모집 상세 (필수)
-        instruments: formData.instruments, // 배열 그대로 전송
+        teamTypes: formData.teamTypes, // 배열 그대로 전송
         schedule: `${formData.eventDate ? '행사일: ' + formData.eventDate : ''}${formData.rehearsalSchedule ? ', 리허설: ' + formData.rehearsalSchedule : ''}`.trim(),
         location: formData.location,
         
@@ -111,22 +111,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
     }
   };
 
-  const addInstrument = () => {
-    if (instrumentInput.trim() && !formData.instruments.includes(instrumentInput.trim())) {
-      setFormData({
-        ...formData,
-        instruments: [...formData.instruments, instrumentInput.trim()]
-      });
-      setInstrumentInput('');
-    }
-  };
-
-  const removeInstrument = (index: number) => {
-    setFormData({
-      ...formData,
-      instruments: formData.instruments.filter((_, i) => i !== index)
-    });
-  };
 
   const addRequirement = () => {
     if (requirementInput.trim() && !formData.requirements.includes(requirementInput.trim())) {
@@ -205,41 +189,22 @@ const CreateMusicTeamRecruit: React.FC = () => {
               </select>
             </div>
 
-            {/* 모집 악기 */}
+            {/* 모집 팀 형태 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                모집 악기/포지션 *
+                모집 팀 형태 *
               </label>
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={instrumentInput}
-                  onChange={(e) => setInstrumentInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">악기/포지션 선택</option>
-                  {instrumentOptions.map(instrument => (
-                    <option key={instrument} value={instrument}>{instrument}</option>
-                  ))}
-                </select>
-                <Button type="button" onClick={addInstrument} disabled={!instrumentInput}>
-                  추가
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.instruments.map((instrument, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-                    {getInstrumentIcon(instrument)}
-                    <span className="ml-1">{instrument}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeInstrument(index)}
-                      className="ml-1 text-purple-600 hover:text-purple-800"
-                    >
-                      ×
-                    </button>
-                  </span>
+              <select
+                value={formData.teamTypes[0] || ''}
+                onChange={(e) => setFormData({...formData, teamTypes: e.target.value ? [e.target.value] : []})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">팀 형태 선택</option>
+                {teamTypeOptions.map(teamType => (
+                  <option key={teamType} value={teamType}>{teamType}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* 행사 일정 */}
@@ -403,7 +368,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
         <div className="bg-purple-50 rounded-lg p-4">
           <h3 className="text-sm font-medium text-purple-900 mb-2">💡 행사팀 모집 안내</h3>
           <ul className="text-sm text-purple-800 space-y-1">
-            <li>• 필요한 악기와 연주 수준을 구체적으로 명시해주세요.</li>
+            <li>• 필요한 팀 형태와 연주 수준을 구체적으로 명시해주세요.</li>
             <li>• 리허설 일정과 행사 일정을 명확히 안내해주세요.</li>
             <li>• 보상이나 사례비 조건을 미리 협의해두시면 좋습니다.</li>
             <li>• 교회의 음악 스타일이나 선호하는 장르가 있다면 함께 안내해주세요.</li>

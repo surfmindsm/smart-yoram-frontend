@@ -21,8 +21,8 @@ import CustomSelect, { SelectOption } from '../common/CustomSelect';
 const MusicTeamRecruit: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInstrument, setSelectedInstrument] = useState('all');
-  const [selectedEventType, setSelectedEventType] = useState('all');
+  const [selectedTeamType, setSelectedTeamType] = useState('all');
+  const [selectedWorshipType, setSelectedWorshipType] = useState('all');
 
   const [musicRecruitments, setMusicRecruitments] = useState<MusicRecruitment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,6 @@ const MusicTeamRecruit: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 음악팀모집 LIST increment-view API 응답:', data);
-        console.log(`📈 음악팀모집 조회수 증가: ${data.data?.previous_view_count || data.previous_view_count || 'unknown'} → ${data.data?.new_view_count || data.new_view_count || 'unknown'}`);
         return data.data?.new_view_count || data.new_view_count;
       }
     } catch (error) {
@@ -67,23 +65,31 @@ const MusicTeamRecruit: React.FC = () => {
     navigate(`/community/music-team-recruit/${recruitment.id}`);
   };
 
-  const instruments: SelectOption[] = [
-    { value: 'all', label: '전체 악기' },
-    { value: '피아노', label: '피아노' },
-    { value: '기타', label: '기타' },
-    { value: '드럼', label: '드럼' },
-    { value: '베이스', label: '베이스' },
-    { value: '바이올린', label: '바이올린' },
-    { value: '첼로', label: '첼로' },
-    { value: '플룻', label: '플룻' }
+  const teamTypes: SelectOption[] = [
+    { value: 'all', label: '전체 팀 형태' },
+    { value: '현재 솔로 활동', label: '현재 솔로 활동' },
+    { value: '찬양팀', label: '찬양팀' },
+    { value: '워십팀', label: '워십팀' },
+    { value: '어쿠스틱 팀', label: '어쿠스틱 팀' },
+    { value: '밴드', label: '밴드' },
+    { value: '오케스트라', label: '오케스트라' },
+    { value: '합창단', label: '합창단' },
+    { value: '무용팀', label: '무용팀' },
+    { value: '기타', label: '기타' }
   ];
 
-  const eventTypes: SelectOption[] = [
-    { value: 'all', label: '전체' },
+  const worshipTypes: SelectOption[] = [
+    { value: 'all', label: '전체 예배 형태' },
     { value: '주일예배', label: '주일예배' },
+    { value: '수요예배', label: '수요예배' },
+    { value: '새벽예배', label: '새벽예배' },
     { value: '특별예배', label: '특별예배' },
+    { value: '부흥회', label: '부흥회' },
+    { value: '찬양집회', label: '찬양집회' },
     { value: '결혼식', label: '결혼식' },
+    { value: '장례식', label: '장례식' },
     { value: '수련회', label: '수련회' },
+    { value: '콘서트', label: '콘서트' },
     { value: '기타', label: '기타' }
   ];
 
@@ -91,20 +97,23 @@ const MusicTeamRecruit: React.FC = () => {
   const getStatusColor = (status: string) => getStatusClass(getStandardStatus(status));
   const getStatusText = (status: string) => getStatusLabel(getStandardStatus(status));
 
-  const getInstrumentIcon = (instrument: string) => {
-    switch (instrument) {
-      case '피아노':
-        return <Piano className="h-3 w-3" />;
-      case '기타':
-        return <Guitar className="h-3 w-3" />;
-      case '드럼':
-        return <Drum className="h-3 w-3" />;
-      case '바이올린':
-      case '첼로':
-      case '플룻':
-        return <Music className="h-3 w-3" />;
-      default:
+  const getTeamTypeIcon = (teamType: string) => {
+    switch (teamType) {
+      case '현재 솔로 활동':
         return <Mic className="h-3 w-3" />;
+      case '찬양팀':
+      case '워십팀':
+        return <Music className="h-3 w-3" />;
+      case '밴드':
+      case '어쿠스틱 팀':
+        return <Guitar className="h-3 w-3" />;
+      case '오케스트라':
+      case '합창단':
+        return <Piano className="h-3 w-3" />;
+      case '무용팀':
+        return <Mic className="h-3 w-3" />;
+      default:
+        return <Music className="h-3 w-3" />;
     }
   };
 
@@ -115,21 +124,21 @@ const MusicTeamRecruit: React.FC = () => {
       render: (value) => TableRenderers.title(value)
     },
     {
-      key: 'instruments',
-      title: '악기',
+      key: 'team_types',
+      title: '팀 형태',
       render: (value) => {
-        const instruments = value || [];
+        // team_types는 배열이므로 첫 번째 요소만 표시
+        const firstTeamType = Array.isArray(value) ? value[0] : value;
+        const displayValue = firstTeamType || '미정';
         return (
-          <div className="flex flex-wrap gap-1">
-            {instruments.slice(0, 2).map((instrument: string, index: number) => (
-              <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                {getInstrumentIcon(instrument)}
-                {instrument}
-              </span>
-            ))}
-            {instruments.length > 2 && (
-              <span className="text-xs text-gray-500">+{instruments.length - 2}</span>
-            )}
+          <div className="flex items-center">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              {getTeamTypeIcon(displayValue)}
+              {displayValue}
+              {Array.isArray(value) && value.length > 1 && (
+                <span className="text-purple-600">+{value.length - 1}</span>
+              )}
+            </span>
           </div>
         );
       }
@@ -145,7 +154,7 @@ const MusicTeamRecruit: React.FC = () => {
       render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
     },
     {
-      key: 'church_name',
+      key: 'church',
       title: '교회명',
       render: (value) => TableRenderers.church(value)
     },
@@ -171,7 +180,8 @@ const MusicTeamRecruit: React.FC = () => {
       try {
         setLoading(true);
         const data = await communityService.getMusicRecruitments({
-          instruments: selectedInstrument === 'all' ? undefined : selectedInstrument,
+          team_types: selectedTeamType === 'all' ? undefined : selectedTeamType,
+          worship_type: selectedWorshipType === 'all' ? undefined : selectedWorshipType,
           search: searchTerm || undefined,
           limit: 50
         });
@@ -185,7 +195,7 @@ const MusicTeamRecruit: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedInstrument, selectedEventType, searchTerm]);
+  }, [selectedTeamType, selectedWorshipType, searchTerm]);
 
 
   return (
@@ -210,13 +220,6 @@ const MusicTeamRecruit: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <CustomSelect
-            options={instruments}
-            value={selectedInstrument}
-            onChange={setSelectedInstrument}
-            className="w-auto"
-          />
 
           {/* New 버튼 */}
           <Button
@@ -229,12 +232,18 @@ const MusicTeamRecruit: React.FC = () => {
         </div>
       </div>
 
-      {/* 이벤트 타입 필터 - 별도 필터 */}
-      <div className="mb-4">
+      {/* 필터 옵션들 */}
+      <div className="mb-4 flex gap-3">
         <CustomSelect
-          options={eventTypes}
-          value={selectedEventType}
-          onChange={setSelectedEventType}
+          options={teamTypes}
+          value={selectedTeamType}
+          onChange={setSelectedTeamType}
+          className="w-auto"
+        />
+        <CustomSelect
+          options={worshipTypes}
+          value={selectedWorshipType}
+          onChange={setSelectedWorshipType}
           className="w-auto"
         />
       </div>

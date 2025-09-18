@@ -35,8 +35,6 @@ const MusicTeamRecruitDetail: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 음악팀모집 increment-view API 응답:', data);
-        console.log(`📈 음악팀모집 조회수 증가: ${data.data?.previous_view_count || data.previous_view_count || 'unknown'} → ${data.data?.new_view_count || data.new_view_count || 'unknown'}`);
         return data.data?.new_view_count || data.new_view_count;
       }
     } catch (error) {
@@ -110,7 +108,7 @@ const MusicTeamRecruitDetail: React.FC = () => {
 
       // 음악팀 모집 특화 필드
       recruitment_type: recruitment.recruitment_type,
-      instruments: recruitment.instruments,
+      team_types: recruitment.worship_type,
       schedule: recruitment.schedule,
       requirements: recruitment.requirements,
       compensation: recruitment.compensation,
@@ -138,29 +136,26 @@ const MusicTeamRecruitDetail: React.FC = () => {
       )
     },
     {
-      label: '필요 악기',
-      key: 'instruments',
+      label: '팀 형태',
+      key: 'team_types',
       type: 'array' as const,
       render: (value: string[] | string) => {
-        const instruments = Array.isArray(value) ? value :
-          (typeof value === 'string' && value) ? value.split(',').map(i => i.trim()) : [];
+        const worshipType = typeof value === 'string' ? value : '';
 
         return (
           <div>
             <div className="flex items-center mb-2">
               <Music className="h-4 w-4 mr-2 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">필요 악기</span>
+              <span className="text-sm font-medium text-blue-800">팀 형태</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {instruments.length > 0 ? (
-                instruments.map((instrument, index) => (
-                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                    {getInstrumentIcon(instrument)}
-                    {instrument}
+              {worshipType ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                  {getInstrumentIcon(worshipType)}
+                  {worshipType}
                   </span>
-                ))
               ) : (
-                <span className="text-gray-500 text-sm">악기 정보가 없습니다</span>
+                <span className="text-gray-500 text-sm">팀 형태 정보가 없습니다</span>
               )}
             </div>
           </div>

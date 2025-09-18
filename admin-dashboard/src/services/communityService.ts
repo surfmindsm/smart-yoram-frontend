@@ -408,7 +408,8 @@ export interface MusicRecruitment {
   title: string;
   church_name: string;
   recruitment_type: string;
-  instruments: string[];
+  worship_type: string; // 예배 형태 필드 (주일예배, 수요예배 등)
+  team_types: string[]; // 팀 형태 필드 (찬양팀, 워십팀 등) - JSONB 배열
   schedule?: string;
   location?: string;
   description?: string;
@@ -1436,40 +1437,17 @@ export const communityService = {
   // 음악팀 모집
   getMusicRecruitments: async (params?: {
     recruitment_type?: string; // 행사 유형 필터
-    instruments?: string; // 악기 필터
+    team_types?: string; // 팀 형태 필터
+    worship_type?: string; // 예배 형태 필터
     status?: string; // 상태 필터
     search?: string; // 제목/내용 검색
     page?: number; // 페이지 번호
     limit?: number; // 페이지당 항목 수
   }): Promise<MusicRecruitment[]> => {
     try {
-      console.log('🎵 음악팀 모집 API 호출 중...', params);
       const apiUrl = getApiUrl('/community/music-team-recruitments');
-      console.log('🔗 API URL:', apiUrl);
       const response = await api.get(apiUrl, { params });
-      console.log('✅ 음악팀 모집 API 응답:', response.data);
-      
-      // 디버깅: formatCreatedAt 함수 테스트
-      const testDate = '2024-09-13T05:00:00.000Z';
-      const formattedResult = formatCreatedAt(testDate);
-      console.log('🔍 [DEBUG] formatCreatedAt 테스트:', {
-        input: testDate,
-        output: formattedResult,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-      });
-      
-      // 첫 번째 아이템의 created_at 값 상세 로그
-      if (response.data?.data?.[0]) {
-        const firstItem = response.data.data[0];
-        console.log('🕐 첫 번째 아이템 created_at 분석:', {
-          created_at: firstItem.created_at,
-          createdAt: firstItem.createdAt,
-          updated_at: firstItem.updated_at,
-          id: firstItem.id,
-          title: firstItem.title,
-          'Object.keys': Object.keys(firstItem)
-        });
-      }
+
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -1479,16 +1457,11 @@ export const communityService = {
           const step2 = item.church;
           const step3 = getChurchNameById(item.church_id);
 
-          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
-          const churchName = (item.church_id === 9998 || step1 === '스마트요람 커뮤니티') ? null : (step1 || step2 || step3);
+          // church_id 9998(협력사)인 경우 '협력사'로 표시, church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const churchName = item.church_id === 9998 ? '협력사' :
+                            step1 === '스마트요람 커뮤니티' ? null :
+                            (step1 || step2 || step3);
 
-          console.log('🎵 [행사팀모집] 교회명 변환 단계:', {
-            church_id: item.church_id,
-            '1단계_church_name': step1,
-            '2단계_church': step2,
-            '3단계_getChurchNameById결과': step3,
-            '최종_churchName': churchName
-          });
           
           // spread operator 사용 후 override 방식으로 중복 키 문제 해결
           const transformed = {
@@ -1496,7 +1469,32 @@ export const communityService = {
             church: churchName,
             churchName: churchName,
             userName: item.author_name || '익명', // 통일된 필드명 사용
-            view_count: item.view_count || 0 // 통일된 필드명 사용
+            view_count: item.view_count || 0, // 통일된 필드명 사용
+            // 백엔드 스키마 업데이트 후 매핑
+            worship_type: item.worship_type || '미정', // 예배 형태
+            team_types: (() => {
+              console.log('🔍 team_types 파싱 디버그:', {
+                raw_team_types: item.team_types,
+                type: typeof item.team_types,
+                team_name: item.team_name,
+                starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
+              });
+
+              // team_types가 JSON 문자열인 경우 파싱
+              if (typeof item.team_types === 'string' && item.team_types.startsWith('[')) {
+                try {
+                  const parsed = JSON.parse(item.team_types);
+                  console.log('✅ JSON 파싱 성공:', parsed);
+                  return parsed;
+                } catch (e) {
+                  console.log('❌ JSON 파싱 실패:', e);
+                  return [item.team_types];
+                }
+              }
+              return Array.isArray(item.team_types) ? item.team_types :
+                     item.team_types ? [item.team_types] :
+                     item.team_name ? [item.team_name] : ['미정'];
+            })() // 팀 형태 (JSON 파싱 + team_types 우선)
           };
           
           // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
@@ -1534,7 +1532,32 @@ export const communityService = {
             church: churchName,
             churchName: churchName, // JobPost의 경우 churchName 필드 사용
             userName: item.author_name || '익명', // 통일된 필드명 사용
-            view_count: item.view_count || 0 // 통일된 필드명 사용
+            view_count: item.view_count || 0, // 통일된 필드명 사용
+            // 백엔드 스키마 업데이트 후 매핑
+            worship_type: item.worship_type || '미정', // 예배 형태
+            team_types: (() => {
+              console.log('🔍 team_types 파싱 디버그:', {
+                raw_team_types: item.team_types,
+                type: typeof item.team_types,
+                team_name: item.team_name,
+                starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
+              });
+
+              // team_types가 JSON 문자열인 경우 파싱
+              if (typeof item.team_types === 'string' && item.team_types.startsWith('[')) {
+                try {
+                  const parsed = JSON.parse(item.team_types);
+                  console.log('✅ JSON 파싱 성공:', parsed);
+                  return parsed;
+                } catch (e) {
+                  console.log('❌ JSON 파싱 실패:', e);
+                  return [item.team_types];
+                }
+              }
+              return Array.isArray(item.team_types) ? item.team_types :
+                     item.team_types ? [item.team_types] :
+                     item.team_name ? [item.team_name] : ['미정'];
+            })() // 팀 형태 (JSON 파싱 + team_types 우선)
           };
           
           // createdAt 필드 변환 (중복 방지를 위해 마지막에 설정)
@@ -1574,16 +1597,19 @@ export const communityService = {
   createMusicRecruitment: async (recruitmentData: any): Promise<MusicRecruitment> => {
     try {
       console.log('🎵 행사팀 모집 등록 API 호출 중...', recruitmentData);
+      console.log('🔍 teamTypes 확인:', recruitmentData.teamTypes);
+      console.log('🔍 첫 번째 teamType:', recruitmentData.teamTypes?.[0]);
       
       // 실제 백엔드 SQL 스키마에 정확히 맞게 데이터 변환 (community_music_teams 테이블 기준)
       const apiData = {
         // 기본 정보 (필수)
         title: recruitmentData.title,
         team_name: '',
-        team_type: recruitmentData.eventType,
-        
+        worship_type: recruitmentData.eventType, // 예배 형태 (주일예배, 수요예배 등)
+        team_types: recruitmentData.teamTypes || [], // 팀 형태 JSONB 배열 (찬양팀, 워십팀 등)
+
         // 모집 상세 - 백엔드 SQL 필드명에 맞춤
-        instruments_needed: recruitmentData.instruments || [], // JSON 배열로 직접 전송
+        instruments_needed: null, // 기존 필드는 null 처리
         positions_needed: "", // 현재 폼에서 수집하지 않는 필드 (null 대신 빈 문자열)
         experience_required: recruitmentData.requirements || "경험 무관",
         practice_location: recruitmentData.location || "협의",

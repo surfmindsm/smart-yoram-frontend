@@ -15,6 +15,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { StandardPagination } from '../../types';
+import CustomSelect from './CustomSelect';
 
 interface CommunityPaginationProps {
   pagination: StandardPagination;
@@ -190,21 +191,18 @@ export const CommunityPagination: React.FC<CommunityPaginationProps> = ({
       {/* 오른쪽: 페이지당 항목 수 선택 */}
       {showLimitSelector && onLimitChange && (
         <div className="flex items-center space-x-2">
-          <label htmlFor="limit-select" className="text-sm text-gray-600">
+          <label className="text-sm text-gray-600">
             항목 수:
           </label>
-          <select
-            id="limit-select"
-            value={per_page}
-            onChange={(e) => onLimitChange(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {limitOptions.map(option => (
-              <option key={option} value={option}>
-                {option}개
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            options={limitOptions.map(option => ({
+              value: option.toString(),
+              label: `${option}개`
+            }))}
+            value={per_page.toString()}
+            onChange={(value) => onLimitChange(Number(value))}
+            className="min-w-[80px]"
+          />
         </div>
       )}
     </div>
