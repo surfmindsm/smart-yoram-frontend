@@ -10,20 +10,17 @@ export const supabaseAuthService = {
       console.log('🔍 사용자 조회 중...');
       const token = 'temp_system_token'; // 시스템 로그인용 임시 토큰
 
-      const response = await fetch(`https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/users?email=${encodeURIComponent(email)}`, {
+      const { data: user, error } = await supabase.functions.invoke(`users?email=${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
           'X-Custom-Auth': token,
           'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`사용자 조회 실패: ${response.status}`);
+      if (error) {
+        throw new Error(`사용자 조회 실패: ${error.message}`);
       }
-
-      const user = await response.json();
       console.log('📊 쿼리 결과:', { user });
 
       if (!user || (Array.isArray(user) && user.length === 0)) {

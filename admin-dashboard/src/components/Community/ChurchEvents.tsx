@@ -8,7 +8,9 @@ import {
   Users,
   Eye,
   Heart,
-  Share
+  Share,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
@@ -22,6 +24,7 @@ const ChurchEvents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +119,22 @@ const ChurchEvents: React.FC = () => {
             onChange={setSelectedCategory}
             className="w-auto"
           />
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* New 버튼 */}
           <Button

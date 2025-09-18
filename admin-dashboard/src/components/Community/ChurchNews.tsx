@@ -10,7 +10,9 @@ import {
   Users,
   Megaphone,
   Bell,
-  Star
+  Star,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
@@ -28,6 +30,7 @@ const ChurchNews: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [loading, setLoading] = useState(true);
   const [newsItems, setNewsItems] = useState<ChurchNewsType[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const categories: SelectOption[] = [
     { value: 'all', label: '전체 카테고리' },
@@ -277,6 +280,22 @@ const ChurchNews: React.FC = () => {
             onChange={setSelectedCategory}
             className="w-auto"
           />
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* New 버튼 */}
           <Button

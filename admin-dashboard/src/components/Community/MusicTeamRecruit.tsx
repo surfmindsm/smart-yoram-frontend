@@ -8,7 +8,9 @@ import {
   Guitar,
   Mic,
   Drum,
-  Piano
+  Piano,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
@@ -23,6 +25,7 @@ const MusicTeamRecruit: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeamType, setSelectedTeamType] = useState('all');
   const [selectedWorshipType, setSelectedWorshipType] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const [musicRecruitments, setMusicRecruitments] = useState<MusicRecruitment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,6 +223,22 @@ const MusicTeamRecruit: React.FC = () => {
             />
           </div>
 
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* New 버튼 */}
           <Button

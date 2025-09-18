@@ -5,6 +5,8 @@ import {
   MapPin,
   Image as ImageIcon,
   Gift,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
@@ -17,6 +19,7 @@ const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // 나눔 게시글 데이터 (API에서 로드)
   const [sharingItems, setSharingItems] = useState<SharingItem[]>([]);
@@ -239,6 +242,22 @@ const FreeSharing: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
           </div>
 
           {/* New 버튼 */}

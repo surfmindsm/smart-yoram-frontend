@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
-import { cn } from '../lib/utils';
 import { UserPlus } from 'lucide-react';
 
 const Login: React.FC = () => {

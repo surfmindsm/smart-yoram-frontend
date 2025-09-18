@@ -4,7 +4,9 @@ import {
   Search,
   Plus,
   MapPin,
-  HandHeart
+  HandHeart,
+  Grid3X3,
+  List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
@@ -19,6 +21,7 @@ const ItemRequest: React.FC = () => {
   console.log('ItemRequest 컴포넌트 로드됨');
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // 조회수 증가 함수 (전용 API 사용)
   const incrementViewCount = async (itemId: number) => {
@@ -263,6 +266,22 @@ const ItemRequest: React.FC = () => {
             />
           </div>
 
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* New 버튼 */}
           <Button

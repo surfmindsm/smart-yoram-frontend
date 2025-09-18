@@ -9,9 +9,11 @@ import { Switch } from '../ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from '../ui/use-toast';
+import { supabaseApiService } from '../../services/supabaseApiService';
 
 interface WorshipService {
   id: number;
+  church_id: number;
   name: string;
   location?: string;
   day_of_week?: number;
@@ -22,6 +24,8 @@ interface WorshipService {
   is_online: boolean;
   is_active: boolean;
   order_index: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface WorshipCategory {
@@ -32,6 +36,17 @@ interface WorshipCategory {
 }
 
 const DAYS_OF_WEEK = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+
+// Note: Backend uses 0=Monday through 6=Sunday for day_of_week
+const DAY_OF_WEEK_MAPPING = {
+  0: '월요일',
+  1: '화요일',
+  2: '수요일',
+  3: '목요일',
+  4: '금요일',
+  5: '토요일',
+  6: '일요일'
+};
 
 const SERVICE_TYPES = [
   { value: 'sunday_worship', label: '주일예배' },
@@ -74,30 +89,63 @@ export default function WorshipScheduleManagement() {
     order_index: 0,
   });
   
-  // Get church_id from localStorage
-  const churchId = JSON.parse(localStorage.getItem('user') || '{}')?.church_id || 1;
+  // Get church_id from localStorage - user's actual church
+  const getChurchId = () => {
+    try {
+      // First try to get from supabase_session (new authentication)
+      const sessionStr = localStorage.getItem('supabase_session');
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        const churchId = session?.user?.church_id;
+        if (churchId) {
+          console.log('⛪ Church ID from supabase_session:', churchId);
+          return churchId;
+        }
+      }
+
+      // Fallback to old 'user' key
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const churchId = user?.church_id;
+        if (churchId) {
+          console.log('⛪ Church ID from user:', churchId);
+          return churchId;
+        }
+      }
+
+      // Final fallback
+      console.log('⛪ No church_id found in localStorage, using fallback: 6');
+      return 6;
+    } catch (error) {
+      console.error('⛪ Error getting church_id from localStorage:', error);
+      return 6;
+    }
+  };
+
+  const churchId = getChurchId();
 
   useEffect(() => {
     fetchWorshipSchedule();
-    fetchCategories();
+    // fetchCategories(); // Disable categories for now
   }, []);
 
   const fetchWorshipSchedule = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-      const response = await fetch(`${API_BASE_URL}/worship/services`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      console.log('⛪ 예배 서비스 목록 조회 시작, church_id:', churchId);
+
+      const response = await supabaseApiService.worshipServices.getAll({
+        church_id: churchId,
+        page: 1,
+        limit: 100
       });
-      if (response.ok) {
-        const data = await response.json();
-        setServices(data);
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
+
+      const servicesData = response?.data || [];
+      console.log('⛪ 예배 서비스 조회 성공:', servicesData.length, '개');
+      setServices(servicesData);
+
     } catch (error) {
-      console.error('Fetch error:', error);
+      console.error('⛪ 예배 일정 조회 실패:', error);
       toast({
         title: '오류',
         description: '예배 일정을 불러오는데 실패했습니다.',
@@ -125,37 +173,45 @@ export default function WorshipScheduleManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-    const url = editingService
-      ? `${API_BASE_URL}/worship/services/${editingService.id}`
-      : `${API_BASE_URL}/worship/services`;
-    
-    const method = editingService ? 'PATCH' : 'POST';
-    
+
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          day_of_week: formData.day_of_week ? parseInt(formData.day_of_week) : null,
-        }),
+      const serviceData = {
+        church_id: churchId,
+        name: formData.name,
+        location: formData.location || undefined,
+        day_of_week: formData.day_of_week ? parseInt(formData.day_of_week) : undefined,
+        start_time: formData.start_time,
+        end_time: formData.end_time || undefined,
+        service_type: formData.service_type || undefined,
+        target_group: formData.target_group || undefined,
+        is_online: formData.is_online,
+        is_active: formData.is_active,
+        order_index: formData.order_index
+      };
+
+      console.log('⛪ 예배 서비스 저장 시작:', editingService ? '수정' : '생성', serviceData);
+
+      if (editingService) {
+        // 수정
+        await supabaseApiService.worshipServices.update(editingService.id.toString(), serviceData);
+        console.log('✅ 예배 서비스 수정 성공');
+      } else {
+        // 생성
+        await supabaseApiService.worshipServices.create(serviceData as any);
+        console.log('✅ 예배 서비스 생성 성공');
+      }
+
+      toast({
+        title: '성공',
+        description: editingService ? '예배 일정이 수정되었습니다.' : '예배 일정이 추가되었습니다.',
       });
 
-      if (response.ok) {
-        toast({
-          title: '성공',
-          description: editingService ? '예배 일정이 수정되었습니다.' : '예배 일정이 추가되었습니다.',
-        });
-        setIsDialogOpen(false);
-        resetForm();
-        fetchWorshipSchedule();
-      }
+      setIsDialogOpen(false);
+      resetForm();
+      await fetchWorshipSchedule();
+
     } catch (error) {
+      console.error('⛪ 예배 일정 저장 실패:', error);
       toast({
         title: '오류',
         description: '예배 일정 저장에 실패했습니다.',
@@ -168,22 +224,20 @@ export default function WorshipScheduleManagement() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-      const response = await fetch(`${API_BASE_URL}/worship/services/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      console.log('⛪ 예배 서비스 삭제 시작:', id);
+
+      await supabaseApiService.worshipServices.delete(id.toString());
+
+      console.log('✅ 예배 서비스 삭제 성공');
+      toast({
+        title: '성공',
+        description: '예배 일정이 삭제되었습니다.',
       });
 
-      if (response.ok) {
-        toast({
-          title: '성공',
-          description: '예배 일정이 삭제되었습니다.',
-        });
-        fetchWorshipSchedule();
-      }
+      await fetchWorshipSchedule();
+
     } catch (error) {
+      console.error('⛪ 예배 일정 삭제 실패:', error);
       toast({
         title: '오류',
         description: '예배 일정 삭제에 실패했습니다.',
@@ -480,7 +534,7 @@ function ServiceCard({
         <div className="mt-1 space-y-1 text-sm text-gray-600">
           <div className="flex items-center gap-4">
             {service.day_of_week !== undefined && (
-              <span>{DAYS_OF_WEEK[service.day_of_week]}</span>
+              <span>{DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week]}</span>
             )}
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
