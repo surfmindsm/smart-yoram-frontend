@@ -13,6 +13,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
+    "@supabase/supabase-js": "^2.57.4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
@@ -52,7 +53,14 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "supabase:status": "supabase status",
+    "supabase:link": "supabase link --project-ref",
+    "supabase:push": "supabase db push",
+    "supabase:pull": "supabase db pull",
+    "supabase:generate-types": "supabase gen types typescript --linked > src/types/database.types.ts",
+    "supabase:functions:new": "supabase functions new",
+    "supabase:functions:deploy": "supabase functions deploy"
   },
   "eslintConfig": {
     "extends": [

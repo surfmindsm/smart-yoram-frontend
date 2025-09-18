@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -10,7 +10,7 @@ import { cn } from '../lib/utils';
 import { UserPlus } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,10 +22,10 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await authService.login(username, password);
+      await supabaseAuthService.signIn(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || '로그인에 실패했습니다.');
+      setError(err.message || '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -52,15 +52,15 @@ const Login: React.FC = () => {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">이메일</Label>
+              <Label htmlFor="email">이메일</Label>
               <Input
-                id="username"
-                name="username"
+                id="email"
+                name="email"
                 type="email"
                 required
                 placeholder="이메일을 입력하세요"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
