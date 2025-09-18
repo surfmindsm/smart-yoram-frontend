@@ -46,9 +46,9 @@ const SharingOfferDetail: React.FC = () => {
       title: item.title,
       description: item.description,
       images: item.images || [], // OfferItem에 images 필드가 없으므로 any로 캐스팅
-      views: item.views,
+      views: item.view_count,
       likes: item.likes || 0,
-      createdAt: item.createdAt,
+      createdAt: (item as any).created_at,
       status: item.status,
       category: item.category,
       church: item.church,

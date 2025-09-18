@@ -60,6 +60,7 @@ const MusicTeamSeeking = lazy(() => import('./components/Community/MusicTeamSeek
 const ChurchEvents = lazy(() => import('./components/Community/ChurchEvents'));
 const ChurchEventsDetail = lazy(() => import('./components/Community/ChurchEventsDetail'));
 const MusicTeamSeekingDetail = lazy(() => import('./components/Community/MusicTeamSeekingDetail'));
+const MusicTeamRecruitDetail = lazy(() => import('./components/Community/MusicTeamRecruitDetail'));
 const MyPosts = lazy(() => import('./components/Community/MyPosts'));
 const CommunityAdmin = lazy(() => import('./components/Community/CommunityAdmin'));
 
@@ -329,6 +330,11 @@ function App() {
           <Route path="community/music-team-recruit" element={
             <Suspense fallback={<LoadingSpinner />}>
               <MusicTeamRecruit />
+            </Suspense>
+          } />
+          <Route path="community/music-team-recruit/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MusicTeamRecruitDetail />
             </Suspense>
           } />
           <Route path="community/music-team-recruit/create" element={

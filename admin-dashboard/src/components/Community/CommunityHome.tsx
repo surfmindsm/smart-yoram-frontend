@@ -262,7 +262,7 @@ const CommunityHome: React.FC = () => {
                             </span>
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
-                              {post.createdAt}
+                              {post.created_at}
                             </span>
                           </div>
                         </div>

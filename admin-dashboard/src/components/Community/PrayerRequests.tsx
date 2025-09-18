@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  Clock,
   Eye,
   MessageCircle,
   Sparkles,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService, PrayerRequest } from '../../services/communityService';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const PrayerRequests: React.FC = () => {
@@ -22,7 +23,7 @@ const PrayerRequests: React.FC = () => {
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: 'healing', label: '건강/치유' },
     { value: 'family', label: '가정/가족' },
@@ -31,7 +32,7 @@ const PrayerRequests: React.FC = () => {
     { value: 'other', label: '기타' }
   ];
 
-  const statusOptions = [
+  const statusOptions: SelectOption[] = [
     { value: 'all', label: '전체' },
     { value: 'requesting', label: '기도 요청' },
     { value: 'ongoing', label: '기도 중' },
@@ -136,29 +137,19 @@ const PrayerRequests: React.FC = () => {
             />
           </div>
 
-          <select
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
-          <select
+          <CustomSelect
+            options={statusOptions}
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedStatus}
+            className="w-auto"
+          />
         </div>
       </div>
 
@@ -222,18 +213,18 @@ const PrayerRequests: React.FC = () => {
                 </span>
                 <span className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
-                  {request.createdAt}
+                  {(request as any).created_at}
                 </span>
                 <span className="flex items-center">
                   <Eye className="h-4 w-4 mr-1" />
-                  {request.views}
+                  {request.view_count}
                 </span>
               </div>
 
               <div className="flex items-center space-x-3">
                 <button className="flex items-center text-sm text-gray-500 hover:text-blue-500">
                   <MessageCircle className="h-4 w-4 mr-1" />
-                  조회 {request.views}
+                  조회 {request.view_count}
                 </button>
 
                 <Button 
@@ -277,15 +268,6 @@ const PrayerRequests: React.FC = () => {
         </div>
       )}
 
-      {/* 페이지네이션 */}
-      <div className="flex justify-center mt-8">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" disabled>이전</Button>
-          <Button size="sm">1</Button>
-          <Button variant="outline" size="sm">2</Button>
-          <Button variant="outline" size="sm">다음</Button>
-        </div>
-      </div>
     </div>
   );
 };

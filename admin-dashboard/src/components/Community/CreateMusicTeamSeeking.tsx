@@ -24,7 +24,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     teamName: '',
-    instrument: '',
+    teamType: '',
     experience: '',
     portfolio: '',
     preferredLocation: [] as string[],
@@ -50,19 +50,21 @@ const CreateMusicTeamSeeking: React.FC = () => {
     '야간 (21:00-23:00)', '상시 가능', '협의 후 결정'
   ];
 
-  const getInstrumentIcon = (instrument: string) => {
-    switch (instrument) {
-      case '피아노':
-      case '키보드':
-      case '오르간':
-        return <Piano className="h-3 w-3" />;
-      case '기타':
-      case '일렉기타':
-        return <Guitar className="h-3 w-3" />;
-      case '드럼':
-        return <Drum className="h-3 w-3" />;
-      case '보컬':
+  const getTeamTypeIcon = (teamType: string) => {
+    switch (teamType) {
+      case '현재 솔로 활동':
         return <Mic className="h-3 w-3" />;
+      case '찬양팀':
+      case '워십팀':
+        return <Music className="h-3 w-3" />;
+      case '밴드':
+      case '어쿠스틱 팀':
+        return <Guitar className="h-3 w-3" />;
+      case '오케스트라':
+      case '합창단':
+        return <Piano className="h-3 w-3" />;
+      case '무용팀':
+        return <Award className="h-3 w-3" />;
       default:
         return <Music className="h-3 w-3" />;
     }
@@ -71,7 +73,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.instrument || !formData.contactPhone) {
+    if (!formData.title || !formData.teamType || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -82,7 +84,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
       const seekerData = {
         title: formData.title,
         teamName: formData.teamName,
-        instrument: formData.instrument,
+        teamType: formData.teamType,
         experience: formData.experience,
         portfolio: formData.portfolio,
         preferredLocation: formData.preferredLocation,
@@ -203,8 +205,8 @@ const CreateMusicTeamSeeking: React.FC = () => {
                 팀 형태 *
               </label>
               <select
-                value={formData.instrument}
-                onChange={(e) => setFormData({...formData, instrument: e.target.value})}
+                value={formData.teamType}
+                onChange={(e) => setFormData({...formData, teamType: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >

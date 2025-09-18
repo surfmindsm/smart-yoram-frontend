@@ -7,6 +7,7 @@ import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '../lib/utils';
+import { Plus, User } from 'lucide-react';
 
 interface Member {
   id: number;
@@ -306,9 +307,7 @@ const QRCodeManagement: React.FC = () => {
                   ) : (
                     <div className="text-center py-8">
                       <div className="text-muted-foreground mb-4">
-                        <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v4m0 4v8m-4-4h8" />
-                        </svg>
+                        <Plus className="mx-auto h-12 w-12" />
                       </div>
                       <p className="text-muted-foreground mb-4">QR 코드가 없습니다.</p>
                       <Button
@@ -323,9 +322,7 @@ const QRCodeManagement: React.FC = () => {
               ) : (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground mb-4">
-                    <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <User className="mx-auto h-12 w-12" />
                   </div>
                   <p className="text-muted-foreground">교인을 선택해주세요.</p>
                 </div>

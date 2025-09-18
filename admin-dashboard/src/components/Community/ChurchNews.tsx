@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Plus, 
-  MapPin, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  MapPin,
   Eye,
   Heart,
-  MessageCircle,
   Calendar,
   Users,
   Megaphone,
-  Grid3X3,
-  List,
   Bell,
   Star
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
-import { communityService, type ChurchNews as ChurchNewsType } from '../../services/communityService';
+import { ChurchNewsAPI } from '../../api/church-events-api';
+import { ChurchNews as ChurchNewsType, ChurchNewsListOptions } from '../../types/church-events';
+import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 
 const ChurchNews: React.FC = () => {
@@ -27,11 +26,10 @@ const ChurchNews: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [newsItems, setNewsItems] = useState<ChurchNewsType[]>([]);
 
-  const categories = [
+  const categories: SelectOption[] = [
     { value: 'all', label: '전체 카테고리' },
     // 예배/집회 관련
     { value: '특별예배', label: '특별예배/연합예배' },
@@ -61,14 +59,14 @@ const ChurchNews: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const priorities = [
+  const priorities: SelectOption[] = [
     { value: 'all', label: '전체 우선순위' },
     { value: 'urgent', label: '긴급' },
     { value: 'important', label: '중요' },
     { value: 'normal', label: '일반' }
   ];
 
-  const statusOptions = [
+  const statusOptions: SelectOption[] = [
     { value: 'all', label: '전체 상태' },
     { value: 'active', label: '진행중' },
     { value: 'completed', label: '완료' },
@@ -115,29 +113,11 @@ const ChurchNews: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return getStatusClass(mapToStandardStatus(status));
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '진행중';
-      case 'completed':
-        return '완료';
-      case 'cancelled':
-        return '취소';
-      default:
-        return '알 수 없음';
-    }
+    return getStatusLabel(mapToStandardStatus(status));
   };
 
   const getCategoryIcon = (category: string) => {
@@ -181,25 +161,82 @@ const ChurchNews: React.FC = () => {
     }
   };
 
-  const handleNewsClick = (newsId: number) => {
-    navigate(`/community/church-news/${newsId}`);
+  // 조회수 증가 함수 (전용 API 사용)
+  const incrementViewCount = async (newsId: number) => {
+    try {
+      const response = await fetch(`https://api.surfmind-team.com/api/v1/community/church-news/${newsId}/increment-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📈 교회소식 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        return data.data?.new_view_count;
+      }
+    } catch (error) {
+      console.error('교회소식 조회수 증가 실패:', error);
+    }
+  };
+
+  const handleNewsClick = async (news: ChurchNewsType) => {
+    // 조회수 증가 (백그라운드에서 실행)
+    const newViewCount = await incrementViewCount(news.id);
+
+    // 목록에서 해당 아이템의 조회수 업데이트
+    if (newViewCount) {
+      setNewsItems(prevItems =>
+        prevItems.map(prevItem =>
+          prevItem.id === news.id
+            ? { ...prevItem, view_count: newViewCount }
+            : prevItem
+        )
+      );
+    }
+
+    // 상세 페이지로 이동
+    navigate(`/community/church-news/${news.id}`);
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        const data = await communityService.getChurchNews({
+
+        const options: ChurchNewsListOptions = {
           page: 1,
           limit: 50,
-          category: selectedCategory === 'all' ? undefined : selectedCategory,
-          priority: selectedPriority === 'all' ? undefined : selectedPriority,
-          status: selectedStatus === 'all' ? undefined : selectedStatus,
-          search: searchTerm || undefined
-        });
-        
-        setNewsItems(data);
+          search: searchTerm || undefined,
+          sort_by: 'created_at',
+          sort_order: 'desc'
+        };
+
+        // 카테고리 필터링
+        if (selectedCategory !== 'all') {
+          options.category = selectedCategory as any;
+        }
+
+        // 우선순위 필터링
+        if (selectedPriority !== 'all') {
+          options.priority = selectedPriority as any;
+        }
+
+        // 상태 필터링 (표준 상태값 사용)
+        if (selectedStatus !== 'all') {
+          options.status = mapToStandardStatus(selectedStatus) as any;
+        }
+
+        const response = await ChurchNewsAPI.getList(options);
+
+        // ChurchNewsAPI.getList는 이미 handleApiResponse에서 처리된 데이터 배열을 반환
+        if (Array.isArray(response)) {
+          setNewsItems(response);
+        } else {
+          console.error('행사 소식 응답 실패:', response);
+          setNewsItems([]);
+        }
       } catch (error) {
         console.error('행사 소식 데이터 로드 실패:', error);
         setNewsItems([]);
@@ -214,90 +251,59 @@ const ChurchNews: React.FC = () => {
   return (
     <div className="p-6">
       {/* 헤더 */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">행사 소식</h1>
-          <p className="text-gray-600 mt-1">교회 행사와 중요한 소식을 확인하세요</p>
+      <div className="flex justify-between items-end pr-6 mb-4">
+        <div className="flex-1 max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">행사 소식</h1>
+          <p className="text-sm text-gray-600">교회의 중요한 소식과 공지사항을 확인하세요</p>
         </div>
-        <Button 
-          onClick={() => navigate('/community/church-news/create')}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          소식 등록
-        </Button>
-      </div>
 
-      {/* 검색 및 필터 */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="flex items-center gap-3">
+          {/* 검색바 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="제목, 내용, 주최자로 검색..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
 
-          <select
+          {/* 필터 버튼 */}
+          <CustomSelect
+            options={categories}
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {categories.map(category => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            className="w-auto"
+          />
 
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          {/* New 버튼 */}
+          <Button
+            onClick={() => navigate('/community/church-news/create')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
-            {priorities.map(priority => (
-              <option key={priority.value} value={priority.value}>
-                {priority.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
         </div>
+      </div>
 
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            총 {newsItems.length}개의 소식
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {/* 추가 필터들 - 별도 필터 */}
+      <div className="mb-4 flex gap-4">
+        <CustomSelect
+          options={priorities}
+          value={selectedPriority}
+          onChange={setSelectedPriority}
+          className="w-auto"
+        />
+
+        <CustomSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="w-auto"
+        />
       </div>
 
       {/* 컨텐츠 */}
@@ -314,96 +320,6 @@ const ChurchNews: React.FC = () => {
             <Plus className="w-4 h-4 mr-2" />
             소식 등록
           </Button>
-        </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {newsItems.map((news) => (
-            <div
-              key={news.id}
-              onClick={() => handleNewsClick(news.id)}
-              className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(news.category)}
-                    <span className="text-sm font-medium text-gray-600">{news.category}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(news.priority)}`}>
-                      {getPriorityText(news.priority)}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(news.status)}`}>
-                      {getStatusText(news.status)}
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {news.title}
-                </h3>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                  {news.content}
-                </p>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4" />
-                    <span>{news.organizer}</span>
-                    <span>•</span>
-                    <span>{news.churchName}</span>
-                  </div>
-
-                  {news.eventDate && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatEventDate(news.eventDate)}</span>
-                      {news.eventTime && <span>{news.eventTime}</span>}
-                    </div>
-                  )}
-
-                  {news.location && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4" />
-                      <span>{news.location}</span>
-                    </div>
-                  )}
-                </div>
-
-                {news.tags && news.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {news.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                    {news.tags.length > 3 && (
-                      <span className="text-xs text-gray-500">+{news.tags.length - 3}개</span>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-sm text-gray-500">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      <span>{news.views}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      <span>{news.likes}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{news.comments}</span>
-                    </div>
-                  </div>
-                  <span>{formatCreatedAt(news.createdAt)}</span>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border">
@@ -439,16 +355,16 @@ const ChurchNews: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {newsItems.map((news) => (
-                  <tr 
+                  <tr
                     key={news.id}
-                    onClick={() => handleNewsClick(news.id)}
+                    onClick={() => handleNewsClick(news)}
                     className="hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900 line-clamp-1">{news.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{news.content}</div>
-                        <div className="text-xs text-gray-400">{news.author}</div>
+                        <div className="text-sm text-gray-500 line-clamp-1">{news.description || news.content}</div>
+                        <div className="text-xs text-gray-400">{news.author_name || '작성자 없음'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -467,13 +383,13 @@ const ChurchNews: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{news.organizer}</div>
-                      <div className="text-sm text-gray-500">{news.churchName}</div>
+                      <div className="text-sm text-gray-500">{news.church_name || news.church_name || '교회명 없음'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {news.eventDate && (
+                      {(news.event_date || news.event_date) && (
                         <div className="text-sm text-gray-900">
-                          {formatEventDate(news.eventDate)}
-                          {news.eventTime && <span className="ml-1">{news.eventTime}</span>}
+                          {formatEventDate(news.event_date || news.event_date)}
+                          {(news.event_time || news.event_time) && <span className="ml-1">{news.event_time || news.event_time}</span>}
                         </div>
                       )}
                       {news.location && (
@@ -489,17 +405,17 @@ const ChurchNews: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt(news.createdAt)}
+                      {formatCreatedAt(news.created_at || news.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <Eye className="w-4 h-4" />
-                          <span>{news.views}</span>
+                          <span>{news.view_count || 0}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Heart className="w-4 h-4" />
-                          <span>{news.likes}</span>
+                          <span>{news.likes || 0}</span>
                         </div>
                       </div>
                     </td>

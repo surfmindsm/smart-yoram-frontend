@@ -252,14 +252,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                 <Clock className="h-4 w-4 mr-2" />
                 <div>
                   <div className="font-medium">등록일</div>
-                  <div>{formatCreatedAt(post.createdAt)}</div>
+                  <div>{formatCreatedAt(post.created_at)}</div>
                 </div>
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Eye className="h-4 w-4 mr-2" />
                 <div>
                   <div className="font-medium">조회수</div>
-                  <div>{post.views}</div>
+                  <div>{post.view_count}</div>
                 </div>
               </div>
               {post.church && (
@@ -375,7 +375,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                   <Eye className="h-4 w-4 mr-2" />
                   조회수
                 </span>
-                <span className="font-semibold text-gray-900">{post.views}</span>
+                <span className="font-semibold text-gray-900">{post.view_count}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="flex items-center text-sm text-gray-600">

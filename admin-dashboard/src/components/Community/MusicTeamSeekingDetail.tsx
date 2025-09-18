@@ -40,9 +40,9 @@ const MusicTeamSeekingDetail: React.FC = () => {
       type: 'music-team-seeking',
       title: seeker.title,
       description: seeker.experience,
-      views: seeker.views,
+      views: seeker.view_count,
       likes: seeker.likes,
-      createdAt: seeker.createdAt,
+      createdAt: (seeker as any).created_at || '',
       status: seeker.status,
       // 연주팀 구직 특화 필드들
       name: seeker.name,

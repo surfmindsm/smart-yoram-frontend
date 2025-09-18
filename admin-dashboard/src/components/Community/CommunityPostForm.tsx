@@ -236,8 +236,21 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
           }
         } else {
           // 백엔드에서 요구하는 snake_case로 변환
-          const backendFieldKey = field.key === 'contactInfo' ? 'contact_info' : field.key;
-          submitData[backendFieldKey] = formData[field.key];
+          let backendFieldKey = field.key;
+          if (field.key === 'contactInfo') {
+            backendFieldKey = 'contact_info';
+          } else if (field.key === 'contactPhone') {
+            backendFieldKey = 'contact_phone';
+          } else if (field.key === 'contactEmail') {
+            backendFieldKey = 'contact_email';
+          }
+
+          // 이메일이 비어있으면 필드를 전송하지 않음
+          if (field.key === 'contactEmail' && (!formData[field.key] || formData[field.key].trim() === '')) {
+            // 빈 이메일은 전송하지 않음
+          } else {
+            submitData[backendFieldKey] = formData[field.key];
+          }
         }
       });
       

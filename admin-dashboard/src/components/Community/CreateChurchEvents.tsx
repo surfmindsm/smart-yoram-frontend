@@ -5,8 +5,8 @@ import communityService from '../../services/communityService';
 interface ChurchEventFormData {
   title: string;
   content: string;
-  event_date: string;
-  event_time: string;
+  eventDate: string;
+  eventTime: string;
   location: string;
   category: string;
   contactPhone: string;
@@ -25,8 +25,8 @@ const CreateChurchEvents: React.FC = () => {
   const [formData, setFormData] = useState<ChurchEventFormData>({
     title: '',
     content: '',
-    event_date: '',
-    event_time: '',
+    eventDate: '',
+    eventTime: '',
     location: '',
     category: '',
     contactPhone: '',
@@ -122,7 +122,7 @@ const CreateChurchEvents: React.FC = () => {
       return;
     }
     
-    if (!formData.event_date) {
+    if (!formData.eventDate) {
       alert('행사 날짜를 선택해주세요.');
       return;
     }
@@ -221,7 +221,7 @@ const CreateChurchEvents: React.FC = () => {
               <input
                 type="date"
                 name="event_date"
-                value={formData.event_date}
+                value={formData.eventDate}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
@@ -235,7 +235,7 @@ const CreateChurchEvents: React.FC = () => {
               <input
                 type="time"
                 name="event_time"
-                value={formData.event_time}
+                value={formData.eventTime}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

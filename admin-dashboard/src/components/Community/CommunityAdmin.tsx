@@ -28,8 +28,8 @@ interface AdminPost {
   type: 'free-sharing' | 'item-request' | 'sharing-offer' | 'job-posting' | 'job-seeking' | 'music-team-recruit' | 'music-team-seeking' | 'church-events';
   title: string;
   status: string;
-  createdAt: string;
-  views: number;
+  created_at: string;
+  view_count: number;
   likes: number;
   comments?: number;
   church: string;
@@ -254,7 +254,7 @@ const CommunityAdmin: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">오늘 등록</p>
               <p className="text-2xl font-bold text-green-600">
-                {posts.filter(p => p.createdAt.includes('시간 전') || p.createdAt.includes('분 전')).length}
+                {posts.filter(p => p.created_at.includes('시간 전') || p.created_at.includes('분 전')).length}
               </p>
             </div>
             <Calendar className="h-8 w-8 text-green-600" />
@@ -363,14 +363,14 @@ const CommunityAdmin: React.FC = () => {
                       )}
                       <span className="flex items-center">
                         <Clock className="h-4 w-4 mr-1" />
-                        {post.createdAt}
+                        {post.created_at}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span className="flex items-center">
                         <Eye className="h-4 w-4 mr-1" />
-                        {post.views}
+                        {post.view_count}
                       </span>
                       <span className="flex items-center">
                         <Heart className="h-4 w-4 mr-1" />
@@ -425,18 +425,6 @@ const CommunityAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* 페이지네이션 */}
-      {filteredPosts.length > 20 && (
-        <div className="flex justify-center mt-8">
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" disabled>이전</Button>
-            <Button size="sm">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">다음</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
