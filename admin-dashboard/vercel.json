@@ -38,6 +38,19 @@
       ]
     },
     {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
@@ -71,8 +84,8 @@
   ],
   "redirects": [
     {
-      "source": "/((?!api|static|.*\\.).*)",
-      "destination": "/index.html",
+      "source": "/((?!api|static|manifest.json|.*\\.).*)",
+      "destination": "/",
       "permanent": false
     }
   ],
