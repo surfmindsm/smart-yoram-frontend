@@ -2,9 +2,9 @@
   "version": 2,
   "name": "smart-yoram-admin-dashboard",
   "framework": "create-react-app",
-  "buildCommand": "npm run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "build",
-  "installCommand": "npm ci",
+  "installCommand": "pnpm install --frozen-lockfile",
   "env": {
     "REACT_APP_SUPABASE_URL": "https://adzhdsajdamrflvybhxq.supabase.co",
     "REACT_APP_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c",
