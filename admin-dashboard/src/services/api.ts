@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-// API 기본 URL (환경변수 사용)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
+// Supabase Edge Functions URL
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+const API_BASE_URL = SUPABASE_URL 
+  ? `${SUPABASE_URL}/functions/v1`
+  : 'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1';
 
 // Vercel 프록시를 사용하는 경우 처리
 const isProxyMode = API_BASE_URL.startsWith('/api/proxy');

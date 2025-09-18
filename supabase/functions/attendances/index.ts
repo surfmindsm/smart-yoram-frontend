@@ -1,0 +1,316 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { verify } from 'https://deno.land/x/djwt@v2.8/mod.ts'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+}
+
+// JWT 토큰 검증 함수
+async function verifyJWT(token: string) {
+  try {
+    const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'your-secret-key';
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign', 'verify']
+    );
+    
+    const payload = await verify(token, key);
+    return payload;
+  } catch (error) {
+    console.error('JWT 검증 실패:', error);
+    return null;
+  }
+}
+
+serve(async (req) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // JWT 토큰 검증
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = await verifyJWT(token);
+
+    if (!payload) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const churchId = payload.church_id;
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    const attendanceId = pathParts[pathParts.length - 1];
+
+    // URL 파라미터 처리
+    const searchParams = url.searchParams;
+    const serviceDate = searchParams.get('service_date');
+    const serviceType = searchParams.get('service_type');
+
+    switch (req.method) {
+      case 'GET':
+        if (attendanceId && attendanceId !== 'attendances') {
+          // 특정 출석 기록 조회
+          const { data: attendance, error } = await supabaseClient
+            .from('attendances')
+            .select(`
+              *,
+              member:users!member_id(id, name, phone, email),
+              recorder:users!recorded_by(id, name)
+            `)
+            .eq('id', attendanceId)
+            .eq('church_id', churchId)
+            .single();
+
+          if (error) {
+            console.error('출석 기록 조회 실패:', error);
+            return new Response(
+              JSON.stringify({ error: error.message }),
+              {
+                status: 404,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          return new Response(JSON.stringify(attendance), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else {
+          // 출석 기록 목록 조회
+          let query = supabaseClient
+            .from('attendances')
+            .select(`
+              *,
+              member:users!member_id(id, name, phone, email),
+              recorder:users!recorded_by(id, name)
+            `)
+            .eq('church_id', churchId);
+
+          // 필터 적용
+          if (serviceDate) {
+            query = query.eq('service_date', serviceDate);
+          }
+          if (serviceType) {
+            query = query.eq('service_type', serviceType);
+          }
+
+          query = query.order('service_date', { ascending: false })
+                      .order('created_at', { ascending: false });
+
+          const { data: attendances, error } = await query;
+
+          if (error) {
+            console.error('출석 기록 목록 조회 실패:', error);
+            return new Response(
+              JSON.stringify({ error: error.message }),
+              {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          return new Response(JSON.stringify(attendances), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+      case 'POST':
+        // 대량 출석 등록 (/attendances/bulk)
+        if (pathParts.includes('bulk')) {
+          const attendancesData = await req.json();
+          
+          // 각 출석 기록에 교회 ID와 기록자 정보 추가
+          const processedAttendances = attendancesData.map((attendance: any) => ({
+            ...attendance,
+            church_id: churchId,
+            recorded_by: payload.sub,
+            created_at: new Date().toISOString()
+          }));
+
+          const { data: newAttendances, error: createError } = await supabaseClient
+            .from('attendances')
+            .insert(processedAttendances)
+            .select(`
+              *,
+              member:users!member_id(id, name, phone, email),
+              recorder:users!recorded_by(id, name)
+            `);
+
+          if (createError) {
+            console.error('대량 출석 등록 실패:', createError);
+            return new Response(
+              JSON.stringify({ error: createError.message }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          return new Response(JSON.stringify(newAttendances), {
+            status: 201,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else {
+          // 단일 출석 등록
+          const attendanceData = await req.json();
+          attendanceData.church_id = churchId;
+          attendanceData.recorded_by = payload.sub;
+          attendanceData.created_at = new Date().toISOString();
+
+          const { data: newAttendance, error: createError } = await supabaseClient
+            .from('attendances')
+            .insert(attendanceData)
+            .select(`
+              *,
+              member:users!member_id(id, name, phone, email),
+              recorder:users!recorded_by(id, name)
+            `)
+            .single();
+
+          if (createError) {
+            console.error('출석 등록 실패:', createError);
+            return new Response(
+              JSON.stringify({ error: createError.message }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          return new Response(JSON.stringify(newAttendance), {
+            status: 201,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+      case 'PUT':
+        if (!attendanceId || attendanceId === 'attendances') {
+          return new Response(
+            JSON.stringify({ error: 'Attendance ID required' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        const updateData = await req.json();
+        delete updateData.id;
+        delete updateData.church_id;
+        delete updateData.recorded_by;
+        updateData.updated_at = new Date().toISOString();
+
+        const { data: updatedAttendance, error: updateError } = await supabaseClient
+          .from('attendances')
+          .update(updateData)
+          .eq('id', attendanceId)
+          .eq('church_id', churchId)
+          .select(`
+            *,
+            member:users!member_id(id, name, phone, email),
+            recorder:users!recorded_by(id, name)
+          `)
+          .single();
+
+        if (updateError) {
+          console.error('출석 기록 수정 실패:', updateError);
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        return new Response(JSON.stringify(updatedAttendance), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      case 'DELETE':
+        if (!attendanceId || attendanceId === 'attendances') {
+          return new Response(
+            JSON.stringify({ error: 'Attendance ID required' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        const { error: deleteError } = await supabaseClient
+          .from('attendances')
+          .delete()
+          .eq('id', attendanceId)
+          .eq('church_id', churchId);
+
+        if (deleteError) {
+          console.error('출석 기록 삭제 실패:', deleteError);
+          return new Response(
+            JSON.stringify({ error: deleteError.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({ message: 'Attendance deleted successfully' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+
+      default:
+        return new Response('Method not allowed', { 
+          status: 405, 
+          headers: corsHeaders 
+        });
+    }
+
+  } catch (error) {
+    console.error('❌ Edge Function 오류:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    )
+  }
+})
