@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import SermonLibrary from './components/SermonLibrary';
+import SupabaseTest from './components/SupabaseTest';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -93,6 +94,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/supabase-test" element={<SupabaseTest />} />
         {/* Community Signup - New Enhanced Version */}
         <Route path="/community-signup" element={
           <Suspense fallback={<LoadingSpinner />}>

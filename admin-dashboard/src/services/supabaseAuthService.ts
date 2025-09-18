@@ -4,15 +4,30 @@ export const supabaseAuthService = {
   // 기존 users 테이블을 사용한 로그인
   signIn: async (email: string, password: string) => {
     try {
-      // 1. users 테이블에서 사용자 찾기
-      const { data: users, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .eq('is_active', true)
-        .single();
+      console.log('🔑 로그인 시도:', { email, password: '***' });
 
-      if (userError || !users) {
+      // 1. Edge Function을 통해 사용자 찾기 (이메일로 쿼리)
+      console.log('🔍 사용자 조회 중...');
+      const token = 'temp_system_token'; // 시스템 로그인용 임시 토큰
+
+      const response = await fetch(`https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/users?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`사용자 조회 실패: ${response.status}`);
+      }
+
+      const user = await response.json();
+      console.log('📊 쿼리 결과:', { user });
+
+      if (!user || (Array.isArray(user) && user.length === 0)) {
+        console.error('❌ 사용자 조회 실패: 사용자 없음');
         throw new Error('사용자를 찾을 수 없거나 계정이 비활성화되었습니다.');
       }
 
@@ -20,23 +35,30 @@ export const supabaseAuthService = {
       // TODO: 실제 환경에서는 bcrypt.compare(password, users.hashed_password) 사용
 
       // 3. 세션 정보 생성 (localStorage에 저장용)
+      console.log('✅ 사용자 찾음, 세션 생성 중...');
       const sessionData = {
         user: {
-          id: users.id,
-          email: users.email,
-          username: users.username,
-          full_name: users.full_name,
-          role: users.role,
-          church_id: users.church_id,
-          is_superuser: users.is_superuser
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          full_name: user.full_name,
+          role: user.role,
+          church_id: user.church_id,
+          is_superuser: user.is_superuser
         },
-        access_token: `temp_token_${users.id}_${Date.now()}`, // 임시 토큰
+        access_token: `temp_token_${user.id}_${Date.now()}`, // 임시 토큰
         expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24시간
       };
 
       // 4. 로컬스토리지에 저장
+      console.log('💾 세션 저장 중...', sessionData.user);
       localStorage.setItem('supabase_session', JSON.stringify(sessionData));
 
+      // 기존 PrivateRoute 호환성을 위해 access_token도 별도 저장
+      localStorage.setItem('access_token', sessionData.access_token);
+      console.log('🔑 호환성을 위한 access_token 저장 완료');
+
+      console.log('🎉 로그인 성공!');
       return {
         user: sessionData.user,
         session: sessionData,
@@ -44,6 +66,7 @@ export const supabaseAuthService = {
       };
 
     } catch (error: any) {
+      console.error('💥 로그인 에러:', error);
       throw new Error(error.message || '로그인에 실패했습니다.');
     }
   },
@@ -87,6 +110,7 @@ export const supabaseAuthService = {
   signOut: async () => {
     try {
       localStorage.removeItem('supabase_session');
+      localStorage.removeItem('access_token'); // 호환성을 위한 토큰도 제거
     } catch (error: any) {
       throw new Error('로그아웃에 실패했습니다.');
     }
@@ -105,6 +129,7 @@ export const supabaseAuthService = {
       // 세션 만료 확인
       if (Date.now() > session.expires_at) {
         localStorage.removeItem('supabase_session');
+        localStorage.removeItem('access_token');
         return null;
       }
 
@@ -130,6 +155,7 @@ export const supabaseAuthService = {
       // 세션 만료 확인
       if (Date.now() > session.expires_at) {
         localStorage.removeItem('supabase_session');
+        localStorage.removeItem('access_token');
         return null;
       }
 

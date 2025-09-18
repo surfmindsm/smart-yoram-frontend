@@ -1,4 +1,5 @@
 import { api, getApiUrl } from './api';
+import { supabaseApiService } from './supabaseApiService';
 
 export interface Church {
   id: number;
@@ -107,9 +108,16 @@ export const announcementService = {
   // 시스템 공지사항 읽음 처리
   markSystemAnnouncementAsRead: async (announcementId: number): Promise<void> => {
     try {
-      await api.post(getApiUrl(`/system-announcements/${announcementId}/read`));
+      // 먼저 Supabase Edge Functions 시도
+      await supabaseApiService.systemAnnouncements.markAsRead(announcementId);
     } catch (error: any) {
       console.error('시스템 공지사항 읽음 처리 실패:', error);
+      // Fallback to old API
+      try {
+        await api.post(getApiUrl(`/system-announcements/${announcementId}/read`));
+      } catch (fallbackError) {
+        console.error('Fallback API도 실패:', fallbackError);
+      }
     }
   },
 
@@ -118,11 +126,19 @@ export const announcementService = {
   // 활성 시스템 공지사항 조회 (모든 사용자용)
   getActiveSystemAnnouncements: async (): Promise<Announcement[]> => {
     try {
-      const response = await api.get(getApiUrl('/system-announcements/'));
+      // 먼저 Supabase Edge Functions 시도
+      const response = await supabaseApiService.systemAnnouncements.getActive();
       return response.data || [];
     } catch (error: any) {
       console.error('활성 시스템 공지사항 조회 실패:', error);
-      return [];
+      // Fallback to old API
+      try {
+        const response = await api.get(getApiUrl('/system-announcements/'));
+        return response.data || [];
+      } catch (fallbackError) {
+        console.error('Fallback API도 실패:', fallbackError);
+        return [];
+      }
     }
   },
 

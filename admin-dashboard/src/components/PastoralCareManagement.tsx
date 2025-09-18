@@ -35,7 +35,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { pastoralCareService } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 
 interface PastoralCareRequest {
   id: string;
@@ -173,14 +173,21 @@ const PastoralCareManagement: React.FC = () => {
   const loadPastoralCareRequests = async () => {
     try {
       setLoading(true);
-      const params: any = {};
-      
+      const params: any = {
+        church_id: 6  // 현재 교회 ID로 필터링
+      };
+
       if (statusFilter !== 'all') params.status = statusFilter;
       if (priorityFilter !== 'all') params.priority = priorityFilter;
       if (typeFilter !== 'all') params.request_type = typeFilter;
-      
-      const response = await pastoralCareService.getRequests(params);
-      
+
+      const response = await supabaseApiService.pastoralCare.getAll(params);
+
+      // 🔍 심방 테이블 데이터 확인 로그
+      console.log('🏥 [심방신청] API 응답 전체:', response);
+      console.log('🏥 [심방신청] 응답 타입:', typeof response);
+      console.log('🏥 [심방신청] 응답 키들:', response ? Object.keys(response) : 'null/undefined');
+
       // 백엔드 응답 구조 확인 및 데이터 추출
       
       let pastoralCareData = [];
@@ -190,15 +197,19 @@ const PastoralCareManagement: React.FC = () => {
         pastoralCareData = response;
       } else if (response && Array.isArray(response.data)) {
         pastoralCareData = response.data;
-      } else if (response && Array.isArray(response.items)) {
-        pastoralCareData = response.items;
-      } else if (response && Array.isArray(response.results)) {
-        pastoralCareData = response.results;
+      } else if (response && Array.isArray((response as any).items)) {
+        pastoralCareData = (response as any).items;
+      } else if (response && Array.isArray((response as any).results)) {
+        pastoralCareData = (response as any).results;
       } else {
-        console.warn('Unexpected response structure:', response);
+        console.warn('🚨 [심방신청] 예상치 못한 응답 구조:', response);
         pastoralCareData = [];
       }
-      
+
+      // 🔍 추출된 데이터 확인 로그
+      console.log('🏥 [심방신청] 추출된 원본 데이터 개수:', pastoralCareData.length);
+      console.log('🏥 [심방신청] 추출된 원본 데이터 첫 번째 항목:', pastoralCareData[0]);
+
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
       const transformedRequests: PastoralCareRequest[] = pastoralCareData.map((item: any) => ({
         id: item.id,
@@ -234,8 +245,16 @@ const PastoralCareManagement: React.FC = () => {
         isUrgent: item.is_urgent || false,
         distanceKm: item.distance_km  // 위치 검색 결과에서만 사용
       }));
-      
+
+      // 🔍 변환된 데이터 확인 로그
+      console.log('🏥 [심방신청] 변환된 데이터 개수:', transformedRequests.length);
+      console.log('🏥 [심방신청] 변환된 데이터 첫 번째 항목:', transformedRequests[0]);
+      console.log('🏥 [심방신청] 전체 변환된 데이터:', transformedRequests);
+
       setRequests(transformedRequests);
+
+      // 🔍 최종 상태 업데이트 확인
+      console.log('✅ [심방신청] 상태 업데이트 완료, 총', transformedRequests.length, '개의 심방신청 데이터 로드됨');
     } catch (error) {
       console.error('Failed to load pastoral care requests:', error);
       // 에러 발생 시 빈 배열로 설정
@@ -249,13 +268,14 @@ const PastoralCareManagement: React.FC = () => {
     try {
       setLoading(true);
       const params: any = {
+        church_id: 6,  // 현재 교회 ID로 필터링
         status: 'completed' // 완료된 심방 기록만 조회
       };
-      
+
       if (priorityFilter !== 'all') params.priority = priorityFilter;
       if (typeFilter !== 'all') params.request_type = typeFilter;
       
-      const response = await pastoralCareService.getRequests(params);
+      const response = await supabaseApiService.pastoralCare.getAll(params);
       
       let recordsData = [];
       
@@ -263,10 +283,10 @@ const PastoralCareManagement: React.FC = () => {
         recordsData = response;
       } else if (response && Array.isArray(response.data)) {
         recordsData = response.data;
-      } else if (response && Array.isArray(response.items)) {
-        recordsData = response.items;
-      } else if (response && Array.isArray(response.results)) {
-        recordsData = response.results;
+      } else if (response && Array.isArray((response as any).items)) {
+        recordsData = (response as any).items;
+      } else if (response && Array.isArray((response as any).results)) {
+        recordsData = (response as any).results;
       } else {
         console.warn('Unexpected response structure:', response);
         recordsData = [];
@@ -393,7 +413,7 @@ const PastoralCareManagement: React.FC = () => {
     try {
       setLoading(true);
       
-      // 위치 기반 검색 API 호출 (가상의 API - 실제로는 pastoralCareService에 추가 필요)
+      // 위치 기반 검색 API 호출 (가상의 API - 실제로는 supabaseApiService.pastoralCare에 추가 필요)
       const locationSearchUrl = '/api/v1/pastoral-care/admin/requests/search/location';
       const response = await fetch(locationSearchUrl, {
         method: 'POST',
@@ -595,7 +615,7 @@ const PastoralCareManagement: React.FC = () => {
 
   const handleApprove = async (request: PastoralCareRequest) => {
     try {
-      await pastoralCareService.updateRequest(request.id, {
+      await supabaseApiService.pastoralCare.update(request.id, {
         status: 'approved',
         admin_notes: '승인됨'
       });
@@ -622,7 +642,7 @@ const PastoralCareManagement: React.FC = () => {
     if (!selectedRequest || !rejectionReason) return;
 
     try {
-      await pastoralCareService.updateRequest(selectedRequest.id, {
+      await supabaseApiService.pastoralCare.update(selectedRequest.id, {
         status: 'cancelled',
         admin_notes: `거부됨: ${rejectionReason}`,
         rejection_reason: rejectionReason
@@ -658,7 +678,7 @@ const PastoralCareManagement: React.FC = () => {
     if (!selectedRequest || !scheduledDate || !scheduledTime) return;
 
     try {
-      await pastoralCareService.updateRequest(selectedRequest.id, {
+      await supabaseApiService.pastoralCare.update(selectedRequest.id, {
         status: 'scheduled',
         scheduled_date: scheduledDate,
         scheduled_time: scheduledTime
@@ -704,7 +724,7 @@ const PastoralCareManagement: React.FC = () => {
 
     try {
       // 심방 신청을 완료 상태로 업데이트 - completeRequest 엔드포인트 사용
-      const response = await pastoralCareService.completeRequest(selectedRequest.id, {
+      const response = await supabaseApiService.pastoralCare.complete(selectedRequest.id, {
         completion_notes: completionNotes,
         completed_at: new Date().toISOString()
       });
@@ -780,7 +800,7 @@ const PastoralCareManagement: React.FC = () => {
         is_urgent: newRequest.isUrgent
       };
 
-      await pastoralCareService.createUserRequest(requestData);
+      await supabaseApiService.pastoralCare.create(requestData);
       
       // 등록 성공 후 목록 새로고침
       await loadPastoralCareRequests();
@@ -840,8 +860,8 @@ const PastoralCareManagement: React.FC = () => {
 
     try {
       // API 호출로 일지 내용 업데이트 - completeRequest 엔드포인트 사용
-      const response = await pastoralCareService.completeRequest(selectedRecord.id, updateData);
-      const updatedRecord = await pastoralCareService.getRequest(selectedRecord.id);
+      const response = await supabaseApiService.pastoralCare.complete(selectedRecord.id, updateData);
+      const updatedRecord = await supabaseApiService.pastoralCare.getById(selectedRecord.id);
 
       // 로컬 상태 업데이트
       setCompletedRecords(prev => prev.map(record => 
@@ -855,7 +875,7 @@ const PastoralCareManagement: React.FC = () => {
 
       setShowRecordDetailModal(false);
       
-      if (updatedRecord.completion_notes === editingNotes) {
+      if ((updatedRecord as any)?.completion_notes === editingNotes) {
         alert('심방 일지가 수정되었습니다.');
       } else {
         alert('⚠️ 프론트엔드는 성공했지만 DB 업데이트를 확인할 수 없습니다. 백엔드 확인이 필요합니다.');
@@ -875,7 +895,7 @@ const PastoralCareManagement: React.FC = () => {
     if (!selectedRequest || !assignedPastorId) return;
 
     try {
-      await pastoralCareService.assignPastor(selectedRequest.id, assignedPastorId);
+      await supabaseApiService.pastoralCare.assignPastor(selectedRequest.id, assignedPastorId);
       
       setRequests(prev => 
         prev.map(req => 

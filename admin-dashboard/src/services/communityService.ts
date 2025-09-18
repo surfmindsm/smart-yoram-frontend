@@ -1,5 +1,6 @@
 import { api, getApiUrl, userService } from './api';
 import { formatCreatedAt } from '../utils/dateUtils';
+import { supabaseApiService } from './supabaseApiService';
 
 // 표준 페이지네이션 타입 (마이그레이션 가이드 준수)
 export interface StandardPagination {
@@ -608,37 +609,35 @@ export const communityService = {
     limit?: number;
   }): Promise<SharingItem[]> => {
     try {
-      const response = await api.get(getApiUrl('/community/sharing'), { params });
-      
-      // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
-      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+      // Use Supabase API instead of old API
+      const response = await supabaseApiService.communitySharing.getAll(params?.limit);
+
+      // Supabase service returns { data: [...] } format
+      if (response.data && Array.isArray(response.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = response.data.data.map((item: any): SharingItem => {
+        const transformedData = response.data.map((item: any): SharingItem => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
-          
+
           return {
             id: item.id,
             title: item.title,
-            description: item.description,
+            description: item.content || item.description, // Supabase uses 'content'
             category: item.category,
             condition: item.condition || '양호',
             quantity: item.quantity || 1,
-            images: parseJsonArray(item.images, []).map((img: string) =>
-              typeof img === 'string' && img.startsWith('http') ? img :
-              `https://api.surfmind-team.com/static/community/images/${img}`
-            ),
+            images: item.images || [],
             church: churchName,
             location: item.location,
-            contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
-            contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
-            contactInfo: item.contact_info || item.contactInfo, // 기존 필드 (호환성 유지)
+            contactPhone: item.contact_phone || '',
+            contactEmail: item.contact_email || '',
+            contactInfo: item.contact_info || '', // 기존 필드 (호환성 유지)
             status: item.status,
             createdAt: item.created_at || item.createdAt || null, // snake_case를 camelCase로 변환, null인 경우 null 유지
             view_count: item.view_count || 0, // 조회수
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || '익명' // 통일된 필드명 사용
+            userName: item.author_name || item.user_name || '익명' // 통일된 필드명 사용
           };
         });
 
@@ -647,30 +646,12 @@ export const communityService = {
 
         return transformedData;
       }
-      
-      // 직접 배열이 반환되는 경우
-      if (Array.isArray(response.data)) {
-        const transformedData = response.data.map((item: any) => {
-          // 교회 9998의 경우 null로 처리
-          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || item.churchName || getChurchNameById(item.church_id));
-          
-          return {
-            ...item,
-            church: churchName,
-            churchName: churchName, // JobPost의 경우 churchName 필드 사용
-            userName: item.author_name || '익명' // 통일된 필드명 사용
-          };
-        });
-        return transformedData;
-      }
-      
+
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      console.warn('예상치 못한 Supabase API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 무료 나눔 조회 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
+      console.error('❌ 무료 나눔 조회 실패 (Supabase API):', error);
       return []; // 에러 발생 시 빈 배열 반환
     }
   },

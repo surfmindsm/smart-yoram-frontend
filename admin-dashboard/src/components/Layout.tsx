@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { authService, loginHistoryService } from '../services/api';
+import { supabaseAuthService } from '../services/supabaseAuthService';
+import { loginHistoryService } from '../services/api';
 import AnnouncementModal from './AnnouncementModal';
 import {
   BarChart3,
@@ -102,12 +103,20 @@ const Layout: React.FC = () => {
   useEffect(() => {
     console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
     
-    // API로 현재 사용자 정보 가져오기
+    // Supabase로 현재 사용자 정보 가져오기
     const fetchUserInfo = async () => {
       try {
-        console.log('🌐 authService.getCurrentUser() 호출 중...');
-        const user = await authService.getCurrentUser();
-        console.log('✅ API 응답 받음:', user);
+        console.log('🌐 supabaseAuthService.getCurrentUser() 호출 중...');
+        const result = await supabaseAuthService.getCurrentUser();
+        console.log('✅ Supabase 응답 받음:', result);
+
+        if (!result) {
+          console.log('❌ 사용자 정보 없음 - 로그인 페이지로 이동');
+          navigate('/login');
+          return;
+        }
+
+        const user = result.user;
         
         const processedUser = {
           name: user.full_name || user.name || user.username || '사용자',
@@ -118,10 +127,11 @@ const Layout: React.FC = () => {
         
         setUserInfo(processedUser);
         
-        // 최근 로그인 기록 가져오기
+        // 최근 로그인 기록 가져오기 (일단 스킵 - 기존 API 의존성)
         try {
-          const recentLoginData = await loginHistoryService.getRecentLogin();
-          setRecentLogin(recentLoginData);
+          // const recentLoginData = await loginHistoryService.getRecentLogin();
+          // setRecentLogin(recentLoginData);
+          console.log('📝 로그인 기록 조회는 일시적으로 비활성화됨');
         } catch (loginError) {
           console.error('로그인 기록 조회 실패:', loginError);
         }
@@ -136,9 +146,14 @@ const Layout: React.FC = () => {
     fetchUserInfo();
   }, []);
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await supabaseAuthService.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      navigate('/login'); // 오류가 있어도 로그인 페이지로 이동
+    }
   };
 
   // 로그인 히스토리 모달 열기

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { api } from '../services/api';
+import { edgeApi } from '../services/supabaseApiService';
 import {
   Users,
   CheckCircle,
@@ -36,12 +36,13 @@ const Dashboard = React.memo(() => {
       // 병렬로 API 호출하여 성능 개선
       const today = new Date().toISOString().split('T')[0];
       const [membersResponse, attendanceResponse] = await Promise.all([
-        api.get('/members/').catch(() => ({ data: [] })),
-        api.get(`/attendances/?start_date=${today}&end_date=${today}`).catch(() => ({ data: [] }))
+        edgeApi.get('/members/').catch(() => ({ data: [] })),
+        edgeApi.get(`/attendances/?start_date=${today}&end_date=${today}`).catch(() => ({ data: [] }))
       ]);
       
       const totalMembers = membersResponse.data.length || 0;
-      const todayAttendance = attendanceResponse.data?.filter((a: any) => a.is_present)?.length || 0;
+      const attendanceData: any[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : [];
+      const todayAttendance = attendanceData.filter((a: any) => a.is_present).length;
 
       setDashboardData({
         totalMembers,

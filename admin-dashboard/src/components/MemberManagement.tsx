@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 import { activityLogger } from '../services/activityLogger';
 import axios from 'axios';
 import { 
@@ -150,47 +151,46 @@ const MemberManagement: React.FC = () => {
     console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
     try {
       setLoading(true);
-      // 1. 전체 개수를 먼저 조회 (pagination 없이)
-      const countParams = new URLSearchParams();
-      if (appliedSearchTerm) {
-        countParams.append('search', appliedSearchTerm);
-        console.log('🔍 Count API에 search 파라미터 추가:', appliedSearchTerm);
-      }
-      if (statusFilter !== 'all') countParams.append('member_status', statusFilter);
-      
-      const countUrl = `/members/?${countParams.toString()}`;
-      console.log('📡 Count API 호출 URL:', countUrl);
-      
-      const countResponse = await api.get(countUrl);
-      // API 응답 확인 완료
-      const actualTotalCount = countResponse.data.length;
-      
-      // 2. 현재 페이지 데이터 조회
-      const params = new URLSearchParams();
-      if (appliedSearchTerm) {
-        params.append('search', appliedSearchTerm);
-        console.log('🔍 Page API에 search 파라미터 추가:', appliedSearchTerm);
-      }
-      if (statusFilter !== 'all') params.append('member_status', statusFilter);
-      params.append('skip', ((currentPage - 1) * pageSize).toString());
-      params.append('limit', pageSize.toString());
-      
-      const pageUrl = `/members/?${params.toString()}`;
-      console.log('📡 Page API 호출 URL:', pageUrl);
-      
-      const response = await api.get(pageUrl);
-      console.log('📊 Page API 응답:', {
-        status: response.status,
+
+      // Use Supabase Edge Function for members data
+      const response = await supabaseApiService.members.getAll();
+      console.log('📊 Supabase API 응답:', {
         dataLength: response.data.length,
-        sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name }))
+        sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name || m.full_name }))
       });
-      console.log('🔍 Page API - 실제 반환된 교인들:');
-      response.data.slice(0, 5).forEach((member: any, index: number) => {
-        console.log(`${index + 1}. ID: ${member.id}, Name: ${member.name}, Email: ${member.email}`);
-      });
+
+      let filteredData = response.data;
+
+      // Apply search filter on client side for now
+      if (appliedSearchTerm) {
+        const searchLower = appliedSearchTerm.toLowerCase();
+        filteredData = response.data.filter((member: any) =>
+          (member.name && member.name.toLowerCase().includes(searchLower)) ||
+          (member.full_name && member.full_name.toLowerCase().includes(searchLower)) ||
+          (member.email && member.email.toLowerCase().includes(searchLower)) ||
+          (member.phone && member.phone.toLowerCase().includes(searchLower))
+        );
+        console.log('🔍 검색 필터 적용 후:', filteredData.length);
+      }
+
+      // Apply status filter on client side
+      if (statusFilter !== 'all') {
+        filteredData = filteredData.filter((member: any) => {
+          if (statusFilter === 'active') return member.is_active !== false;
+          if (statusFilter === 'inactive') return member.is_active === false;
+          return true;
+        });
+      }
+
+      const actualTotalCount = filteredData.length;
+
+      // Apply pagination on client side
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
       
-      // Sort data on client side for now
-      let sortedData = [...response.data];
+      // Sort paginated data on client side
+      let sortedData = [...paginatedData];
       if (sortField) {
         sortedData.sort((a, b) => {
           const aVal = a[sortField] || '';
@@ -202,7 +202,7 @@ const MemberManagement: React.FC = () => {
           }
         });
       }
-      
+
       setMembers(sortedData);
       setTotalCount(actualTotalCount);
       
