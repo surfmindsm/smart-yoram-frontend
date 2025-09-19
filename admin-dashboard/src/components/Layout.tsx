@@ -18,12 +18,12 @@ import {
   Megaphone,
   BookOpen,
   X,
+  Heart,
   Clock,
   Bell,
   Bot,
   Settings,
   TrendingUp,
-  Heart,
   UserCheck,
   Wrench,
   DollarSign,
@@ -272,6 +272,7 @@ const Layout: React.FC = () => {
           items: [
             { path: '/community/church-events', name: '행사 소식', Icon: Calendar },
             { path: '/community/my-posts', name: '내 글 관리', Icon: User },
+            { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
           ]
         }
       ],

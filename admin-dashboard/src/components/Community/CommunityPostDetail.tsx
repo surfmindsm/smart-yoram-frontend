@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import {
@@ -21,6 +21,7 @@ import {
 import { Button } from '../ui/button';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { supabase } from '../../lib/supabase';
+import { supabaseApiService } from '../../services/supabaseApiService';
 
 // 공통 게시글 상세 인터페이스
 export interface PostDetailData {
@@ -78,6 +79,8 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
   const [showContactModal, setShowContactModal] = useState(false);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [loadingChurch, setLoadingChurch] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const { showToast } = useToast();
 
   const copyToClipboard = (text: string, type: string) => {
@@ -94,6 +97,57 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
       showToast('복사에 실패했습니다', 'error');
     });
   };
+
+  // 찜하기 상태 확인
+  const checkWishlistStatus = async () => {
+    if (!post) return;
+
+    try {
+      const status = await supabaseApiService.wishlists.checkWishlistStatus(post.type, post.id);
+      setIsWishlisted(status);
+    } catch (error) {
+      console.error('찜 상태 확인 실패:', error);
+    }
+  };
+
+  // 찜하기 토글
+  const handleWishlistToggle = async () => {
+    if (!post || wishlistLoading) return;
+
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        // 찜하기 제거
+        await supabaseApiService.wishlists.removeFromWishlist({
+          post_type: post.type,
+          post_id: post.id
+        });
+        setIsWishlisted(false);
+        showToast('찜하기에서 제거되었습니다', 'success');
+      } else {
+        // 찜하기 추가
+        await supabaseApiService.wishlists.addToWishlist({
+          post_type: post.type,
+          post_id: post.id,
+          post_title: post.title,
+          post_description: post.description,
+          post_image_url: post.images && post.images.length > 0 ? post.images[0] : undefined
+        });
+        setIsWishlisted(true);
+        showToast('찜하기에 추가되었습니다', 'success');
+      }
+    } catch (error) {
+      console.error('찜하기 처리 실패:', error);
+      showToast('찜하기 처리에 실패했습니다', 'error');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 찜하기 상태 확인
+  useEffect(() => {
+    checkWishlistStatus();
+  }, [post]);
 
   const handleImageClick = (index: number) => {
     setCurrentImageIndex(index);
@@ -402,14 +456,18 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
               {/* 찜하기 버튼 */}
               <Button
                 variant="outline"
-                className="flex-1 flex items-center justify-center gap-2 border-gray-200 hover:border-red-300 hover:bg-red-50 hover:text-red-600 transition-colors"
-                onClick={() => {
-                  // TODO: 찜하기 기능 구현
-                  console.log('찜하기 클릭:', post.id);
-                }}
+                className={`flex-1 flex items-center justify-center gap-2 transition-colors ${
+                  isWishlisted
+                    ? 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'border-gray-200 hover:border-red-300 hover:bg-red-50 hover:text-red-600'
+                }`}
+                onClick={handleWishlistToggle}
+                disabled={wishlistLoading}
               >
-                <Heart className="h-4 w-4" />
-                찜하기
+                <Heart
+                  className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`}
+                />
+                {wishlistLoading ? '처리중...' : isWishlisted ? '찜 해제' : '찜하기'}
               </Button>
 
               {/* 문의하기 버튼 */}

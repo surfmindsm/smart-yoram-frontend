@@ -2427,6 +2427,181 @@ export const supabaseApiService = {
         return blob;
       }
     }
+  },
+
+  // 찜하기 관련 API
+  wishlists: {
+    // 찜한 글 목록 조회
+    getWishlists: async (page: number = 1, limit: number = 20) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('인증 토큰이 없습니다.');
+        }
+
+        console.log('📋 [찜한 글 목록 API] 조회 시작');
+
+        const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+        const url = new URL(`${SUPABASE_URL}/functions/v1/wishlists`);
+        url.searchParams.append('page', page.toString());
+        url.searchParams.append('limit', limit.toString());
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'temp-token': token,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ [찜한 글 목록 API] 오류:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [찜한 글 목록 API] 성공:', data);
+        return data.data;
+      } catch (error) {
+        console.error('❌ [찜한 글 목록 API] 예외:', error);
+        throw error;
+      }
+    },
+
+    // 찜하기 추가
+    addToWishlist: async (wishlistData: {
+      post_type: string;
+      post_id: number;
+      post_title: string;
+      post_description: string;
+      post_image_url?: string;
+    }) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('인증 토큰이 없습니다.');
+        }
+
+        console.log('❤️ [찜하기 추가 API] 시작:', wishlistData);
+
+        const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/wishlists`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'temp-token': token,
+          },
+          body: JSON.stringify(wishlistData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ [찜하기 추가 API] 오류:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [찜하기 추가 API] 성공:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ [찜하기 추가 API] 예외:', error);
+        throw error;
+      }
+    },
+
+    // 찜하기 제거
+    removeFromWishlist: async (removeData: {
+      post_type: string;
+      post_id: number;
+    }) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('인증 토큰이 없습니다.');
+        }
+
+        console.log('💔 [찜하기 제거 API] 시작:', removeData);
+
+        const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/wishlists`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'temp-token': token,
+          },
+          body: JSON.stringify(removeData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ [찜하기 제거 API] 오류:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [찜하기 제거 API] 성공:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ [찜하기 제거 API] 예외:', error);
+        throw error;
+      }
+    },
+
+    // 찜 상태 확인
+    checkWishlistStatus: async (post_type: string, post_id: number): Promise<boolean> => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('인증 토큰이 없습니다.');
+        }
+
+        console.log('🔍 [찜 상태 확인 API] 시작:', { post_type, post_id });
+
+        const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+        const url = new URL(`${SUPABASE_URL}/functions/v1/wishlists`);
+        url.searchParams.append('page', '1');
+        url.searchParams.append('limit', '100');
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'temp-token': token,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ [찜 상태 확인 API] 오류:', response.status, errorText);
+          return false;
+        }
+
+        const data = await response.json();
+        const wishlistData = data.data;
+        const isWishlisted = wishlistData.items.some((item: any) =>
+          item.post_type === post_type && item.post_id === post_id
+        );
+
+        console.log('✅ [찜 상태 확인 API] 결과:', isWishlisted);
+        return isWishlisted;
+      } catch (error) {
+        console.error('❌ [찜 상태 확인 API] 예외:', error);
+        return false;
+      }
+    }
   }
 
 };
@@ -2458,7 +2633,6 @@ export const edgeApi = {
     }
 
     throw new Error(`Unsupported API endpoint: ${url}`);
-  },
-
+  }
 
 };
