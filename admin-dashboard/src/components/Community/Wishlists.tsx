@@ -131,16 +131,26 @@ const Wishlists: React.FC = () => {
     return matchesSearch && matchesPostType;
   }) || [];
 
+  // 이미지가 필요 없는 게시물 타입들
+  const noImagePostTypes = ['item-request', 'job-posting', 'music-team-recruit'];
+
   // 테이블 컬럼 정의
   const columns: TableColumn[] = [
     {
       key: 'post_title',
       title: '제목',
-      render: (_, item) => TableRenderers.titleWithImage(
-        item.post_title,
-        item.post_image_url,
-        <ImageIcon className="h-6 w-6 text-gray-400" />
-      )
+      render: (_, item) => {
+        // 특정 게시물 타입은 이미지 없이 제목만 표시
+        if (noImagePostTypes.includes(item.post_type)) {
+          return TableRenderers.title(item.post_title);
+        }
+        // 나머지는 이미지와 함께 표시
+        return TableRenderers.titleWithImage(
+          item.post_title,
+          item.post_image_url,
+          <ImageIcon className="h-6 w-6 text-gray-400" />
+        );
+      }
     },
     {
       key: 'post_type',

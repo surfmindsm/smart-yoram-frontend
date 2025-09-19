@@ -83,6 +83,10 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { showToast } = useToast();
 
+  // 이미지가 필요 없는 게시물 타입들
+  const noImagePostTypes = ['item-request', 'job-posting', 'music-team-recruit'];
+  const shouldShowImages = !noImagePostTypes.includes(post.type) && post.images && post.images.length > 0;
+
   const copyToClipboard = (text: string, type: string) => {
     const copyMessages: { [key: string]: string } = {
       '전화번호': '전화번호가 복사되었습니다',
@@ -131,7 +135,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
           post_id: post.id,
           post_title: post.title,
           post_description: post.description,
-          post_image_url: post.images && post.images.length > 0 ? post.images[0] : undefined
+          post_image_url: shouldShowImages && post.images && post.images.length > 0 ? post.images[0] : undefined
         });
         setIsWishlisted(true);
         showToast('찜하기에 추가되었습니다', 'success');
@@ -312,57 +316,59 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
       {/* 메인 콘텐츠 - 상품 스타일 레이아웃 */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         {/* 상단: 이미지 + 기본 정보 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
-          {/* 왼쪽: 이미지 섹션 */}
-          <div className="space-y-4">
-            {post.images && post.images.length > 0 ? (
-              <>
-                {/* 메인 이미지 */}
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={post.images[currentImageIndex]}
-                    alt={post.title}
-                    className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => handleImageClick(currentImageIndex)}
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="flex flex-col items-center justify-center text-gray-400 h-full"><div class="text-4xl mb-2">🖼️</div><span class="text-sm">이미지 로딩 실패</span></div>';
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* 썸네일 */}
-                {post.images.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {post.images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`${post.title} ${index + 1}`}
-                        className={`w-20 h-20 object-cover rounded cursor-pointer border-2 flex-shrink-0 ${
-                          currentImageIndex === index ? 'border-blue-500' : 'border-gray-200'
-                        } hover:border-blue-500 transition-colors`}
-                        onClick={() => setCurrentImageIndex(index)}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ))}
+        <div className={`grid ${shouldShowImages ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-8 p-6`}>
+          {/* 왼쪽: 이미지 섹션 (특정 타입에서는 숨김) */}
+          {shouldShowImages && (
+            <div className="space-y-4">
+              {post.images && post.images.length > 0 ? (
+                <>
+                  {/* 메인 이미지 */}
+                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                    <img
+                      src={post.images[currentImageIndex]}
+                      alt={post.title}
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => handleImageClick(currentImageIndex)}
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="flex flex-col items-center justify-center text-gray-400 h-full"><div class="text-4xl mb-2">🖼️</div><span class="text-sm">이미지 로딩 실패</span></div>';
+                        }
+                      }}
+                    />
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <div className="text-6xl mb-2">🖼️</div>
-                  <span>이미지 없음</span>
+
+                  {/* 썸네일 */}
+                  {post.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {post.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${post.title} ${index + 1}`}
+                          className={`w-20 h-20 object-cover rounded cursor-pointer border-2 flex-shrink-0 ${
+                            currentImageIndex === index ? 'border-blue-500' : 'border-gray-200'
+                          } hover:border-blue-500 transition-colors`}
+                          onClick={() => setCurrentImageIndex(index)}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center text-gray-400">
+                    <div className="text-6xl mb-2">🖼️</div>
+                    <span>이미지 없음</span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* 오른쪽: 기본 정보 */}
           <div className="space-y-6">
@@ -510,6 +516,61 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
             </p>
           </div>
         </div>
+
+        {/* 포트폴리오 섹션 - 행사팀 지원 글에만 표시 */}
+        {post.type === 'music-team-seeking' && post.portfolio && (
+          <div className="border-t bg-white p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              YOUTUBE
+            </h2>
+            {(() => {
+              // 유튜브 URL인지 확인
+              const isYouTubeUrl = (url: string) => {
+                return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(url);
+              };
+
+              // 유튜브 비디오 ID 추출
+              const extractYouTubeId = (url: string) => {
+                const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                return match ? match[1] : null;
+              };
+
+              const fullUrl = post.portfolio.startsWith('http') ? post.portfolio : `https://${post.portfolio}`;
+
+              if (isYouTubeUrl(fullUrl)) {
+                const videoId = extractYouTubeId(fullUrl);
+                if (videoId) {
+                  return (
+                    <div className="space-y-4">
+                      {/* 유튜브 임베드 */}
+                      <div className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${videoId}`}
+                          title="포트폴리오 영상"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 w-full h-full"
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+              }
+
+              // 유튜브가 아닌 경우 기존 링크 방식
+              return (
+                <a
+                  href={fullUrl}
+                  className="text-blue-600 hover:underline inline-flex items-center"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  🔗 포트폴리오 링크: {post.portfolio}
+                </a>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
 

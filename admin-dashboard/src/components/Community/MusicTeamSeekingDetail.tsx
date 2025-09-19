@@ -19,10 +19,14 @@ const MusicTeamSeekingDetail: React.FC = () => {
   const fetchSeekerDetail = async (seekerId: number) => {
     try {
       setLoading(true);
-      const foundSeeker = await communityService.getMusicSeekerById(seekerId);
-      
+      // 개별 상세 조회 API가 403 에러를 반환하므로 목록에서 찾기
+      const seekers = await communityService.getMusicSeekers();
+      const foundSeeker = seekers.find(seeker => seeker.id === seekerId);
+
       if (foundSeeker) {
         setSeeker(foundSeeker);
+        // 조회수 증가 API가 405 에러를 반환하므로 생략
+        // TODO: 백엔드에서 올바른 조회수 증가 API 제공 시 추가
       } else {
         setError('해당 구인 정보를 찾을 수 없습니다.');
       }
@@ -52,7 +56,9 @@ const MusicTeamSeekingDetail: React.FC = () => {
       preferredGenre: seeker.preferredGenre,
       preferredLocation: seeker.preferredLocation,
       availability: seeker.availability,
-      matches: seeker.matches
+      matches: seeker.matches,
+      // 포트폴리오를 별도 섹션으로 처리하기 위한 플래그
+      hasPortfolioSection: !!seeker.portfolio
     };
   };
 
@@ -92,24 +98,6 @@ const MusicTeamSeekingDetail: React.FC = () => {
       label: '선호 장르',
       key: 'preferredGenre',
       type: 'array' as const
-    },
-    {
-      label: '포트폴리오',
-      key: 'portfolio',
-      type: 'text' as const,
-      render: (value: any) => {
-        if (!value) return null;
-        return (
-          <a 
-            href={value.startsWith('http') ? value : `https://${value}`}
-            className="text-blue-600 hover:underline" 
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            {value}
-          </a>
-        );
-      }
     },
     {
       label: '매칭 건수',
