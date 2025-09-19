@@ -1,0 +1,432 @@
+import React, { useState, useEffect } from 'react';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { authService, loginHistoryService } from '../services/api';
+import AnnouncementModal from './AnnouncementModal';
+import {
+  BarChart3,
+  ChartLine,
+  Users,
+  MessageSquare,
+  QrCode,
+  FileSpreadsheet,
+  CheckSquare,
+  FileText,
+  Church,
+  Menu,
+  LogOut,
+  Megaphone,
+  BookOpen,
+  X,
+  Clock,
+  Bell,
+  Bot,
+  Settings,
+  TrendingUp,
+  Heart,
+  UserCheck,
+  Wrench,
+  DollarSign,
+  Library,
+  Shield,
+  Monitor,
+  MapPin
+} from 'lucide-react';
+import { cn } from '../lib/utils';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+
+const Layout: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number} | null>(null);
+  const [recentLogin, setRecentLogin] = useState<any>(null);
+  const [loginHistory, setLoginHistory] = useState<any[]>([]);
+  const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
+    
+    // API로 현재 사용자 정보 가져오기
+    const fetchUserInfo = async () => {
+      try {
+        console.log('🌐 authService.getCurrentUser() 호출 중...');
+        const user = await authService.getCurrentUser();
+        console.log('✅ API 응답 받음:', user);
+        
+        const processedUser = {
+          name: user.full_name || user.name || user.username || '사용자',
+          email: user.email,
+          church_id: user.church_id
+        };
+        console.log('📝 처리된 사용자 정보:', processedUser);
+        
+        setUserInfo(processedUser);
+        
+        // 최근 로그인 기록 가져오기
+        try {
+          const recentLoginData = await loginHistoryService.getRecentLogin();
+          setRecentLogin(recentLoginData);
+        } catch (loginError) {
+          console.error('로그인 기록 조회 실패:', loginError);
+        }
+      } catch (error: unknown) {
+        console.error('❌ 사용자 정보 가져오기 오류:', error);
+        if (error && typeof error === 'object' && 'response' in error) {
+          console.log('🔍 오류 상세:', (error as any).response?.data);
+        }
+      }
+    };
+    
+    fetchUserInfo();
+  }, []);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
+  };
+
+  // 로그인 히스토리 모달 열기
+  const handleOpenLoginHistory = async () => {
+    try {
+      const history = await loginHistoryService.getLoginHistory();
+      setLoginHistory(history);
+      setShowLoginHistoryModal(true);
+    } catch (error) {
+      console.error('로그인 기록 조회 실패:', error);
+    }
+  };
+
+  // 시스템 관리자 여부 확인
+  const isSystemAdmin = userInfo?.church_id === 0;
+
+  // Sidebar menu grouped by sections
+  const menuGroups = [
+    {
+      title: '분석',
+      items: [
+        { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
+        { path: '/statistics', name: '통계 분석', Icon: ChartLine },
+      ],
+    },
+    ...(isSystemAdmin ? [{
+      title: '시스템 관리',
+      items: [
+        { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+      ],
+    }] : []),
+    {
+      title: '교인 관리',
+      items: [
+        { path: '/member-management', name: '교인 관리', Icon: Users },
+        { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
+        { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
+        { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
+      ],
+    },
+    {
+      title: '재정',
+      items: [
+        { path: '/donations', name: '헌금 관리', Icon: DollarSign },
+      ],
+    },
+    {
+      title: '예배 · 소식',
+      items: [
+        { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
+        { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
+        { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
+        { path: '/bulletins', name: '주보 관리', Icon: FileText },
+        ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
+      ],
+    },
+    {
+      title: '교회 운영',
+      items: [
+        { path: '/church', name: '교회 정보', Icon: Church },
+        { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
+      ],
+    },
+    {
+      title: '보안 관리',
+      items: [
+        { path: '/security-logs', name: '보안 로그', Icon: Shield },
+      ],
+    },
+    {
+      title: '기타',
+      items: [
+        { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
+        { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
+      ],
+    },
+  ];
+
+  const aiMenuItems = [
+    { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
+    { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
+    { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
+    { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 fixed w-full top-0 z-50">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="mr-4"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-semibold text-slate-900">스마트 요람 관리자</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            {/* 최근 접속 기록 버튼 */}
+            {recentLogin && (
+              <div className="relative group">
+                <Button
+                  variant="ghost" 
+                  size="sm"
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2"
+                  onClick={handleOpenLoginHistory}
+                >
+                  <Clock className="w-4 h-4" />
+                  <div className="text-sm">최근 접속 기록</div>
+                </Button>
+                
+                {/* 호버 툴팁 */}
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs rounded py-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <div className="font-medium">{new Date(recentLogin.last_login).toLocaleString('ko-KR')}</div>
+                  <div className="text-slate-300">IP: {recentLogin.ip_address}</div>
+                  <div className="text-slate-300">위치: {recentLogin.location}</div>
+                  <div className="text-slate-300 mt-1">클릭하여 전체 기록 보기</div>
+                </div>
+              </div>
+            )}
+            
+            {/* 사용자 정보 */}
+            {userInfo ? (
+              <div className="text-right">
+                <div className="text-sm font-medium text-slate-900">
+                  {userInfo.name}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {userInfo.email}
+                </div>
+              </div>
+            ) : (
+              <div className="text-right">
+                <div className="text-sm text-slate-400">
+                  로딩 중...
+                </div>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-slate-600 hover:text-slate-900"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex pt-14">
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            "bg-white border-r border-slate-200 transition-all duration-300 fixed h-full z-40 overflow-y-auto",
+            isSidebarOpen ? "w-64" : "w-0 overflow-hidden"
+          )}
+        >
+          <nav className="p-4 space-y-1 pb-20">
+            {/* 섹션별 일반 메뉴 */}
+            {menuGroups.map((group, idx) => (
+              <div key={group.title} className="mb-2">
+                {idx > 0 && <div className="border-t border-slate-200 my-3"></div>}
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {group.title}
+                  </h3>
+                </div>
+                {group.items.map((item: { path: string; name: string; Icon: React.ElementType }) => {
+                  const IconComponent = item.Icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-sky-50 text-sky-700"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      )}
+                    >
+                      <IconComponent
+                        className={cn(
+                          "mr-3 h-5 w-5",
+                          isActive ? "text-sky-600" : "text-slate-400"
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+            
+            {/* AI 메뉴 구분선 */}
+            <div className="border-t border-slate-200 my-4"></div>
+            <div className="px-3 py-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                AI 기능
+              </h3>
+            </div>
+            
+            {/* AI 관련 메뉴 */}
+            {aiMenuItems.map((item: { path: string; name: string; Icon: React.ElementType }) => {
+              const IconComponent = item.Icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-sky-50 text-sky-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <IconComponent className={cn(
+                    "mr-3 h-5 w-5",
+                    isActive ? "text-sky-600" : "text-slate-400"
+                  )} />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className={cn(
+          "flex-1 transition-all duration-300",
+          isSidebarOpen ? "ml-64" : "ml-0"
+        )}>
+          <div className="p-3">
+            <div className="max-w-full mx-auto">
+              {/* 공지사항 모달 */}
+              <AnnouncementModal />
+              
+              <Outlet />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* 로그인 기록 모달 */}
+      <Dialog open={showLoginHistoryModal} onOpenChange={setShowLoginHistoryModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              로그인 기록
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {loginHistory.length > 0 ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-semibold text-blue-600">{loginHistory.length}</span>개의 개인정보 접근기록 내역이 검색되었습니다.
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-green-600 hover:bg-green-50"
+                  >
+                    📊 엑셀다운
+                  </Button>
+                </div>
+                
+                {/* 테이블 형태로 변경 */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">번호</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">수행일시</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">관리자</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">구분</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">접속페이지</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">수행업무</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-900">접속아이피</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {loginHistory.map((login, index) => (
+                          <tr key={login.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-4 py-3 text-gray-900">{loginHistory.length - index}</td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {new Date(login.login_time).toLocaleString('ko-KR').replace(/\./g, '/').replace(/\s/g, ' ')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-900">김○○(admin)</td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {login.page_type || (index < 5 ? '회원' : '회원정보수정')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {login.page_accessed || (index % 3 === 0 ? '상세(info)' : index % 3 === 1 ? '수정' : '리스트')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              {login.activity || (index % 4 === 0 ? '회원정보조회' : index % 4 === 1 ? 'guest 외 1명' : index % 4 === 2 ? '회원정보입력' : '회원리스트')}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+                              {login.ip_address}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">로그인 기록이 없습니다</p>
+                <p className="text-sm text-gray-500">백엔드 API가 연결되면 기록이 표시됩니다</p>
+              </div>
+            )}
+            
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-900 mb-1">보안 팁</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• 익숙하지 않은 로그인 기록이 있다면 즉시 비밀번호를 변경하세요</li>
+                    <li>• 공용 컴퓨터에서는 로그아웃을 반드시 해주세요</li>
+                    <li>• 정기적으로 로그인 기록을 확인하는 것을 권장합니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Layout;

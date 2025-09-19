@@ -1,0 +1,41 @@
+구분,테이블명,컬럼명,설명
+교회정보,churches,id,교회 PK
+교회정보,churches,name,교회명 (단체명)
+교회정보,churches,business_no,사업자등록번호
+교회정보,churches,rrn_encrypted,"주민등록번호(단체용, 필요시 암호화)"
+교회정보,churches,address,소재지
+기부자,donors,id,기부자 PK
+기부자,donors,member_id,교인 ID (동명이인 방지 위해 FK 연결)
+기부자,donors,legal_name,성명
+기부자,donors,rrn_encrypted,"주민등록번호(암호화 저장, 출력 시만 사용)"
+기부자,donors,address,주소
+헌금내역,offerings,id,헌금 PK
+헌금내역,offerings,donor_id,기부자 FK
+헌금내역,offerings,church_id,교회 FK
+헌금내역,offerings,offered_on,헌금일자
+헌금내역,offerings,fund_type,"헌금유형 (십일조, 감사, 건축 등)"
+헌금내역,offerings,amount,금액
+헌금내역,offerings,note,적요 (비고)
+헌금내역,offerings,input_user_id,입력자
+영수증,receipts,id,영수증 PK
+영수증,receipts,church_id,발급 교회
+영수증,receipts,donor_id,기부자
+영수증,receipts,tax_year,귀속연도
+영수증,receipts,issue_no,일련번호 (교회별 연도 단위 고유번호)
+영수증,receipts,issued_by,발급자
+영수증,receipts,issued_at,발급일
+영수증,receipts,canceled_at,취소일 (있으면 무효 처리)
+영수증 항목,receipt_items,id,항목 PK
+영수증 항목,receipt_items,receipt_id,영수증 ID
+영수증 항목,receipt_items,offering_id,헌금 ID
+영수증 항목,receipt_items,fund_code,코드 (41: 종교단체기부금 등)
+영수증 항목,receipt_items,description,"적요 (십일조, 감사헌금 등)"
+영수증 항목,receipt_items,amount,금액
+스냅샷,receipt_snapshots,id,스냅샷 PK
+스냅샷,receipt_snapshots,receipt_id,영수증 FK
+스냅샷,receipt_snapshots,donor_name,발급 시점의 기부자 성명
+스냅샷,receipt_snapshots,donor_rrn_masked,주민등록번호(마스킹 처리)
+스냅샷,receipt_snapshots,donor_address,주소 문자열
+스냅샷,receipt_snapshots,church_name,교회명
+스냅샷,receipt_snapshots,church_business_no,교회 사업자번호
+스냅샷,receipt_snapshots,total_amount,총액
