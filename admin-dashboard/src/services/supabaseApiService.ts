@@ -2602,6 +2602,177 @@ export const supabaseApiService = {
         return false;
       }
     }
+  },
+
+  // 파일 업로드 관련 기능
+  files: {
+    // 포트폴리오 파일 업로드 (Base64 방식으로 변경)
+    uploadPortfolioFile: async (file: File, seekerId?: number): Promise<string> => {
+      try {
+        console.log('📁 [파일 업로드] 포트폴리오 파일 업로드 시작:', file.name);
+
+        // 파일 확장자 확인
+        const allowedTypes = ['pdf', 'mp3', 'mp4', 'doc', 'docx'];
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+          throw new Error('지원하지 않는 파일 형식입니다. PDF, MP3, MP4, DOC, DOCX 파일만 업로드 가능합니다.');
+        }
+
+        // 파일을 Base64로 변환
+        console.log('📁 [파일 업로드] 파일을 Base64로 변환 중...');
+        const fileBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const result = reader.result as string;
+              console.log('📁 [파일 업로드] FileReader 결과 타입:', typeof result);
+              console.log('📁 [파일 업로드] FileReader 결과 길이:', result?.length);
+
+              if (!result) {
+                throw new Error('파일 읽기 결과가 없습니다.');
+              }
+
+              // data:application/pdf;base64, 부분 제거
+              const base64Data = result.split(',')[1];
+              console.log('📁 [파일 업로드] Base64 데이터 길이:', base64Data?.length);
+
+              if (!base64Data) {
+                throw new Error('Base64 데이터 추출에 실패했습니다.');
+              }
+
+              resolve(base64Data);
+            } catch (error) {
+              console.error('📁 [파일 업로드] FileReader 처리 중 오류:', error);
+              reject(error);
+            }
+          };
+          reader.onerror = (error) => {
+            console.error('📁 [파일 업로드] FileReader 오류:', error);
+            reject(new Error('파일 읽기에 실패했습니다.'));
+          };
+          reader.readAsDataURL(file);
+        });
+
+        // 파일명을 안전하게 처리
+        console.log('📁 [파일 업로드] 원본 파일명:', file.name);
+        const safeFileName = file.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .replace(/_{2,}/g, '_')
+          .toLowerCase();
+        console.log('📁 [파일 업로드] 안전한 파일명:', safeFileName);
+
+        // 임시로 파일 정보를 문자열로 반환 (실제 업로드는 백엔드에서 처리)
+        const fileInfo = {
+          fileName: safeFileName,
+          fileBase64: fileBase64,
+          fileSize: file.size,
+          mimeType: file.type,
+          originalName: file.name
+        };
+        console.log('📁 [파일 업로드] 파일 정보 객체 생성:', {
+          fileName: fileInfo.fileName,
+          fileSize: fileInfo.fileSize,
+          mimeType: fileInfo.mimeType,
+          originalName: fileInfo.originalName,
+          base64Length: fileInfo.fileBase64?.length
+        });
+
+        try {
+          // Base64 데이터가 너무 큰 경우 chunked 처리
+          const CHUNK_SIZE = 1000000; // 1MB 청크
+          const base64Length = fileBase64.length;
+
+          if (base64Length > CHUNK_SIZE) {
+            console.log('📁 [파일 업로드] 대용량 파일 감지, 청크 방식으로 처리:', base64Length);
+
+            // 파일 정보만 포함한 메타데이터 생성 (Base64 데이터 제외)
+            const metadata = {
+              fileName: safeFileName,
+              fileSize: file.size,
+              mimeType: file.type,
+              originalName: file.name,
+              isChunked: true,
+              chunkCount: Math.ceil(base64Length / CHUNK_SIZE)
+            };
+
+            // 청크로 나눈 Base64 데이터를 별도로 저장
+            const chunks = [];
+            for (let i = 0; i < base64Length; i += CHUNK_SIZE) {
+              chunks.push(fileBase64.substring(i, i + CHUNK_SIZE));
+            }
+
+            // 메타데이터와 청크를 결합하여 저장
+            const combinedData = {
+              metadata,
+              chunks
+            };
+
+            const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(combinedData))}`;
+            console.log('✅ [파일 업로드] 청크 방식으로 성공:', dataUrl.substring(0, 100) + '...');
+
+            return dataUrl;
+          } else {
+            // 작은 파일은 기존 방식 사용
+            console.log('📁 [파일 업로드] 소형 파일, 기존 방식 사용');
+            const fileUrl = `data:${file.type};base64,${fileBase64}`;
+            console.log('✅ [파일 업로드] 성공 (직접 저장):', fileUrl.substring(0, 100) + '...');
+
+            return fileUrl;
+          }
+        } catch (error) {
+          console.error('📁 [파일 업로드] JSON 처리 중 오류:', error);
+          throw new Error('파일 정보 처리에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('❌ [파일 업로드] 실패:', error);
+        throw error;
+      }
+    },
+
+    // 파일 다운로드 URL 생성
+    getDownloadUrl: (filePath: string): string => {
+      if (!filePath) return '';
+
+      // 이미 전체 URL인 경우 그대로 반환
+      if (filePath.startsWith('http')) {
+        return filePath;
+      }
+
+      // Supabase Storage URL 생성
+      const { data } = supabase.storage
+        .from('community-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    },
+
+    // 파일 삭제
+    deletePortfolioFile: async (filePath: string): Promise<boolean> => {
+      try {
+        console.log('🗑️ [파일 삭제] 시작:', filePath);
+
+        // URL에서 실제 파일 경로 추출
+        let actualPath = filePath;
+        if (filePath.includes('/storage/v1/object/public/community-images/')) {
+          actualPath = filePath.split('/storage/v1/object/public/community-images/')[1];
+        }
+
+        const { error } = await supabase.storage
+          .from('community-images')
+          .remove([actualPath]);
+
+        if (error) {
+          console.error('🗑️ [파일 삭제] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [파일 삭제] 성공');
+        return true;
+      } catch (error) {
+        console.error('❌ [파일 삭제] 실패:', error);
+        return false;
+      }
+    }
   }
 
 };

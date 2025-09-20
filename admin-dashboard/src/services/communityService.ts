@@ -1,4 +1,4 @@
-import { api, getApiUrl, userService } from './api';
+import { api, getApiUrl, userService, authService } from './api';
 import { formatCreatedAt } from '../utils/dateUtils';
 import { supabase } from '../lib/supabase';
 import { supabaseApiService } from './supabaseApiService';
@@ -236,6 +236,7 @@ const FIELD_LIMITS = {
   REASON: 500,
   EXPERIENCE: 1000,
   PORTFOLIO: 1000,
+  PORTFOLIO_FILE: 50000000, // 50MB for Base64 encoded files
   INTRODUCTION: 1000
 } as const;
 
@@ -467,6 +468,7 @@ export interface MusicSeeker {
   instruments?: string[];          // 호환성을 위해 유지
   experience: string;
   portfolio: string;
+  portfolioFile?: string;          // 포트폴리오 파일 (Base64 또는 URL)
   preferredGenre?: string[];       // 제거되었지만 호환성을 위해 optional로 유지
   preferredLocation: string[];     // 배열 타입
   availability?: string;           // 기존 호환성
@@ -475,7 +477,7 @@ export interface MusicSeeker {
   contactPhone: string;            // contact_phone 매핑
   contactEmail?: string;           // contact_email 매핑
   status: 'available' | 'interviewing' | 'inactive';
-  createdAt: string;
+  createdAt: string | null;
   created_at?: string;             // 백엔드 호환성
   view_count: number;
   likes: number;
@@ -2003,37 +2005,62 @@ export const communityService = {
         return [];
       }
 
-      console.log('✅ [Supabase] 음악팀 지원자 목록 조회 완료:', data?.length || 0, '건');
+      console.log('✅ [Supabase] 음악팀 지원자 목록 조회 완료:', data?.data?.length || 0, '건');
+      console.log('🔍 [DEBUG] 원본 데이터 샘플:', data?.data?.[0]);
+      console.log('🔍 [DEBUG] 원본 created_at:', data?.data?.[0]?.created_at);
+      console.log('🔍 [DEBUG] 원본 portfolio_file:', data?.data?.[0]?.portfolio_file);
+      console.log('🔍 [DEBUG] 조인된 users 데이터:', data?.data?.[0]?.users);
+      console.log('🔍 [DEBUG] 조인된 churches 데이터:', data?.data?.[0]?.churches);
 
-      if (!Array.isArray(data)) {
+      // Edge Function 응답 구조: {data: Array, count: number}
+      const musicSeekers = data?.data || [];
+
+      if (!Array.isArray(musicSeekers)) {
         console.warn('❌ 예상치 못한 응답 구조:', data);
         return [];
       }
 
-      return data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        name: item.author_name || '익명',
-        teamName: item.team_name,
-        instrument: item.instrument,
-        experience: item.experience,
-        portfolio: item.portfolio,
-        preferredLocation: Array.isArray(item.preferred_location) ? item.preferred_location : [],
-        availableDays: Array.isArray(item.available_days) ? item.available_days : [],
-        availableTime: item.available_time,
-        contactPhone: item.contact_phone,
-        contactEmail: item.contact_email,
-        status: item.status,
-        authorName: item.author_name || '익명',
-        churchName: item.church_name,
-        view_count: item.view_count || 0,
-        likes: item.likes || 0,
-        matches: item.matches || 0,
-        applications: item.applications || 0,
-        createdAt: item.created_at || '',
-        userName: item.author_name || '익명',
-        content: item.experience || ''
-      }));
+      const mappedData = musicSeekers.map((item: any) => {
+        // 사용자 이름 추출 - 현재는 조인 없이 author_name 사용
+        const userName = item.author_name || '익명';
+
+        // 교회 이름은 church_name 컬럼에서 직접 가져오기
+        const churchName = item.church_name;
+
+        return {
+          id: item.id,
+          title: item.title,
+          name: userName,
+          teamName: item.team_name,
+          instrument: item.instrument,
+          experience: item.experience,
+          portfolio: item.portfolio,
+          portfolioFile: item.portfolio_file,
+          preferredLocation: Array.isArray(item.preferred_location) ? item.preferred_location : [],
+          availableDays: Array.isArray(item.available_days) ? item.available_days : [],
+          availableTime: item.available_time,
+          contactPhone: item.contact_phone,
+          contactEmail: item.contact_email,
+          status: item.status,
+          authorName: userName,
+          churchName: churchName,
+          view_count: item.view_count || 0,
+          likes: item.likes || 0,
+          matches: item.matches || 0,
+          applications: item.applications || 0,
+          createdAt: item.created_at || item.createdAt || null,
+          created_at: item.created_at, // 백엔드 호환성
+          userName: userName,
+          content: item.experience || ''
+        };
+      });
+
+      console.log('🔍 [DEBUG] 원본 데이터 샘플:', data[0]);
+      console.log('🔍 [DEBUG] 원본 created_at:', data[0]?.created_at);
+      console.log('🔍 [DEBUG] 매핑된 데이터 샘플:', mappedData[0]);
+      console.log('🔍 [DEBUG] 매핑된 createdAt:', mappedData[0]?.createdAt);
+      console.log('🔍 [DEBUG] 매핑된 portfolioFile:', mappedData[0]?.portfolioFile);
+      return mappedData;
 
     } catch (error: any) {
       console.error('❌ 음악팀 지원자 목록 조회 실패:', error);
@@ -2083,6 +2110,7 @@ export const communityService = {
   createMusicSeeker: async (seekerData: any): Promise<any> => {
     try {
       console.log('🎶 [Supabase] 음악팀 지원서 등록 중...', seekerData);
+      console.log('🔍 [DEBUG] seekerData.contactPhone:', `'${seekerData.contactPhone}'`, typeof seekerData.contactPhone);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -2090,14 +2118,54 @@ export const communityService = {
         throw new Error('로그인이 필요합니다.');
       }
 
+      // Supabase에서 사용자 정보와 교회 정보 조회
+      let userInfo = null;
+      let churchInfo = null;
+
+      try {
+        // 사용자 정보 조회 (church_id 포함) - 이름 필드도 포함
+        const { data: userData, error: userError } = await supabaseApiService.supabase
+          .from('users')
+          .select('id, email, church_id, username, full_name')
+          .eq('id', currentUser.user?.id)
+          .single();
+
+        if (userError) {
+          console.warn('⚠️ 사용자 정보 조회 실패:', userError);
+        } else {
+          userInfo = userData;
+          console.log('🔍 [DEBUG] 사용자 정보:', userInfo);
+
+          // 교회 정보 조회
+          if (userInfo?.church_id && userInfo.church_id !== 9998) {
+            const { data: churchData, error: churchError } = await supabaseApiService.supabase
+              .from('churches')
+              .select('id, name')
+              .eq('id', userInfo.church_id)
+              .single();
+
+            if (churchError) {
+              console.warn('⚠️ 교회 정보 조회 실패:', churchError);
+            } else {
+              churchInfo = churchData;
+              console.log('🔍 [DEBUG] 교회 정보:', churchInfo);
+            }
+          }
+        }
+      } catch (dbError) {
+        console.warn('⚠️ 데이터베이스 조회 실패:', dbError);
+      }
+
       // Supabase Edge Function에 전송할 데이터 준비
       const requestData = {
         title: validateAndTrimField(seekerData.title, FIELD_LIMITS.TITLE, '제목'),
         team_name: validateAndTrimField(seekerData.teamName, FIELD_LIMITS.SHORT_TEXT, '팀명') || null,
-        instrument: validateAndTrimField(seekerData.instrument, FIELD_LIMITS.SHORT_TEXT, '악기/팀형태'),
+        instrument: validateAndTrimField(seekerData.instrument || seekerData.teamType, FIELD_LIMITS.SHORT_TEXT, '악기/팀형태'),
         content: validateAndTrimField(seekerData.content || seekerData.experience, FIELD_LIMITS.EXPERIENCE, '경력') || null,
         experience: validateAndTrimField(seekerData.content || seekerData.experience, FIELD_LIMITS.EXPERIENCE, '경력') || null,
         portfolio: validateAndTrimField(seekerData.portfolio, FIELD_LIMITS.PORTFOLIO, '포트폴리오') || null,
+        portfolio_file: validateAndTrimField(seekerData.portfolioFile, FIELD_LIMITS.PORTFOLIO_FILE, '포트폴리오 파일') || null,
+        portfolioFile: validateAndTrimField(seekerData.portfolioFile, FIELD_LIMITS.PORTFOLIO_FILE, '포트폴리오 파일') || null,
         preferred_location: seekerData.preferredLocation || [],
         preferredLocation: seekerData.preferredLocation || [],
         available_days: seekerData.availableDays || [],
@@ -2109,28 +2177,38 @@ export const communityService = {
         contact_email: validateAndTrimField(seekerData.contactEmail, FIELD_LIMITS.EMAIL, '연락처 이메일') || null,
         contactEmail: validateAndTrimField(seekerData.contactEmail, FIELD_LIMITS.EMAIL, '연락처 이메일') || null,
         author_id: currentUser.user?.id,
-        author_name: currentUser.user?.user_metadata?.full_name || currentUser.user?.email || '익명',
-        church_id: currentUser.user?.user_metadata?.church_id === 9998 ? null : currentUser.user?.user_metadata?.church_id,
-        church_name: currentUser.user?.user_metadata?.church_id === 9998 ? null : currentUser.user?.user_metadata?.church_name,
+        author_name: userInfo?.full_name ||
+                    userInfo?.username ||
+                    userInfo?.email ||
+                    currentUser.user?.email ||
+                    '익명',
+        church_id: churchInfo?.id || (userInfo?.church_id === 9998 ? null : userInfo?.church_id),
+        church_name: churchInfo?.name,
         status: 'active'
       };
 
+      console.log('🔍 [DEBUG] churchInfo:', churchInfo);
+      console.log('🔍 [DEBUG] church_name 값:', churchInfo?.name);
       console.log('🔍 [Supabase] 전송할 데이터:', requestData);
 
-      const { data, error } = await supabaseApiService.supabase.functions.invoke('music-seekers', {
+      // Use direct fetch instead of Supabase SDK to avoid issues
+      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/music-seekers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
           'temp-token': `temp_token_${currentUser.user?.id}_${Date.now()}`
         },
-        body: requestData
+        body: JSON.stringify(requestData)
       });
 
-      if (error) {
-        console.error('❌ music-seekers Edge Function 오류:', error);
-        throw new Error(error.message || '음악팀 지원서 등록에 실패했습니다.');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ HTTP Error:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
+      const data = await response.json();
       console.log('✅ [Supabase] 음악팀 지원서 등록 완료:', data);
       return data;
 

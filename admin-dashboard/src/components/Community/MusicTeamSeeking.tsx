@@ -148,7 +148,7 @@ const MusicTeamSeeking: React.FC = () => {
       }
     },
     {
-      key: 'church',
+      key: 'churchName',
       title: '교회명',
       render: (value) => TableRenderers.church(value)
     },
@@ -176,7 +176,7 @@ const MusicTeamSeeking: React.FC = () => {
       render: (value) => TableRenderers.badge(getStatusText(value), getStatusColor(value))
     },
     {
-      key: 'created_at',
+      key: 'createdAt',
       title: '등록일',
       render: (value) => TableRenderers.date(formatCreatedAt(value))
     },
@@ -198,7 +198,7 @@ const MusicTeamSeeking: React.FC = () => {
           day: selectedDay === 'all' ? undefined : selectedDay,
           time: selectedTime === 'all' ? undefined : selectedTime,
           search: searchTerm || undefined,
-          status: 'available'
+          status: 'active'
         });
         setMusicSeekers(data);
       } catch (error) {
@@ -234,15 +234,6 @@ const MusicTeamSeeking: React.FC = () => {
             />
           </div>
 
-          {/* 필터 버튼 */}
-          <CustomSelect
-            options={teamTypes}
-            value={selectedInstrument}
-            onChange={setSelectedInstrument}
-            className="w-auto"
-          />
-
-
           {/* New 버튼 */}
           <Button
             onClick={() => navigate('/community/music-team-seeking/create')}
@@ -256,6 +247,13 @@ const MusicTeamSeeking: React.FC = () => {
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
+        <CustomSelect
+          options={teamTypes}
+          value={selectedInstrument}
+          onChange={setSelectedInstrument}
+          className="w-auto"
+        />
+
         <CustomSelect
           options={days}
           value={selectedDay}

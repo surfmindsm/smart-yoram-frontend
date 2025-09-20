@@ -46,19 +46,23 @@ const MusicTeamSeekingDetail: React.FC = () => {
       description: seeker.experience,
       views: seeker.view_count,
       likes: seeker.likes,
-      createdAt: (seeker as any).created_at || '',
+      createdAt: seeker.createdAt || (seeker as any).created_at || seeker.created_at || new Date().toISOString(),
       status: seeker.status,
       // 연주팀 구직 특화 필드들
       name: seeker.name,
+      instrument: seeker.instrument, // 팀 형태 필드 추가
       instruments: seeker.instruments,
       experience: seeker.experience,
       portfolio: seeker.portfolio,
+      portfolioFile: seeker.portfolioFile, // 누락된 portfolioFile 필드 추가
       preferredGenre: seeker.preferredGenre,
       preferredLocation: seeker.preferredLocation,
-      availability: seeker.availability,
+      availability: seeker.availability || (seeker.availableDays && seeker.availableTime ?
+        `${seeker.availableDays.join(', ')} ${seeker.availableTime}` :
+        seeker.availableTime || (seeker.availableDays ? seeker.availableDays.join(', ') : null)),
       matches: seeker.matches,
       // 포트폴리오를 별도 섹션으로 처리하기 위한 플래그
-      hasPortfolioSection: !!seeker.portfolio
+      hasPortfolioSection: !!(seeker.portfolio || seeker.portfolioFile)
     };
   };
 
@@ -80,9 +84,9 @@ const MusicTeamSeekingDetail: React.FC = () => {
       type: 'text' as const
     },
     {
-      label: '연주 가능 악기',
-      key: 'instruments',
-      type: 'array' as const
+      label: '팀 형태',
+      key: 'instrument',
+      type: 'text' as const
     },
     {
       label: '활동 지역',
@@ -93,25 +97,6 @@ const MusicTeamSeekingDetail: React.FC = () => {
       label: '가능 시간',
       key: 'availability',
       type: 'text' as const
-    },
-    {
-      label: '선호 장르',
-      key: 'preferredGenre',
-      type: 'array' as const
-    },
-    {
-      label: '매칭 건수',
-      key: 'matches',
-      type: 'badge' as const,
-      color: 'bg-blue-100 text-blue-800',
-      render: (value: any) => `${value}건`
-    },
-    {
-      label: '구직 상태',
-      key: 'status',
-      type: 'badge' as const,
-      color: seeker?.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
-      render: (value: any) => getStatusText(value)
     }
   ];
 

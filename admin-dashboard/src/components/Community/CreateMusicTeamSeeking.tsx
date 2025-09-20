@@ -15,11 +15,13 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { communityService } from '../../services/communityService';
+import { supabaseApiService } from '../../services/supabaseApiService';
 
 const CreateMusicTeamSeeking: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -27,6 +29,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
     teamType: '',
     experience: '',
     portfolio: '',
+    portfolioFile: '',
     preferredLocation: [] as string[],
     availableDays: [] as string[],
     availableTime: '',
@@ -72,7 +75,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.teamType || !formData.contactPhone) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
@@ -80,13 +83,32 @@ const CreateMusicTeamSeeking: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
+      let portfolioFileUrl = '';
+
+      // 파일이 있으면 먼저 업로드
+      if (portfolioFile) {
+        try {
+          setUploadingFile(true);
+          portfolioFileUrl = await supabaseApiService.files.uploadPortfolioFile(portfolioFile);
+          console.log('✅ 파일 업로드 성공:', portfolioFileUrl);
+        } catch (fileError) {
+          console.error('❌ 파일 업로드 실패:', fileError);
+          const errorMessage = fileError instanceof Error ? fileError.message : '알 수 없는 오류가 발생했습니다.';
+          alert(`파일 업로드에 실패했습니다: ${errorMessage}`);
+          return;
+        } finally {
+          setUploadingFile(false);
+        }
+      }
+
       const seekerData = {
         title: formData.title,
         teamName: formData.teamName,
         teamType: formData.teamType,
         experience: formData.experience,
         portfolio: formData.portfolio,
+        portfolioFile: portfolioFileUrl,
         preferredLocation: formData.preferredLocation,
         availableDays: formData.availableDays,
         availableTime: formData.availableTime,
@@ -327,14 +349,14 @@ const CreateMusicTeamSeeking: React.FC = () => {
             {/* 포트폴리오 링크 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                포트폴리오 링크
+                YouTube 링크 (선택)
               </label>
               <input
                 type="url"
                 value={formData.portfolio}
                 onChange={(e) => setFormData({...formData, portfolio: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="YouTube, SoundCloud 등의 연주 영상 링크를 입력하세요"
+                placeholder="YouTube 연주 영상 링크를 입력하세요"
               />
             </div>
 
@@ -345,19 +367,29 @@ const CreateMusicTeamSeeking: React.FC = () => {
               </label>
               {!portfolioFile ? (
                 <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                  <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg ${uploadingFile ? 'cursor-not-allowed opacity-50' : 'cursor-pointer bg-gray-50 hover:bg-gray-100'}`}>
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">클릭하여 업로드</span>
-                      </p>
-                      <p className="text-xs text-gray-500">PDF, MP3, MP4, DOC (최대 10MB)</p>
+                      {uploadingFile ? (
+                        <>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                          <p className="mb-2 text-sm text-gray-500">파일 업로드 중...</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">클릭하여 업로드</span>
+                          </p>
+                          <p className="text-xs text-gray-500">PDF, MP3, MP4, DOC (최대 10MB)</p>
+                        </>
+                      )}
                     </div>
                     <input
                       type="file"
                       className="hidden"
                       accept=".pdf,.mp3,.mp4,.doc,.docx"
                       onChange={handlePortfolioUpload}
+                      disabled={uploadingFile}
                     />
                   </label>
                 </div>
@@ -378,6 +410,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                     type="button"
                     onClick={removePortfolioFile}
                     className="text-red-500 hover:text-red-700"
+                    disabled={uploadingFile}
                   >
                     <X className="h-4 w-4" />
                   </button>

@@ -423,15 +423,17 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
               <div className="space-y-3">
                 {fieldMappings.map((field, index) => {
                   const value = post[field.key];
-                  if (!value) return null;
+                  // 배열 타입의 경우 빈 배열도 빈 값으로 처리
+                  const isEmpty = !value || (Array.isArray(value) && value.length === 0);
+                  const displayValue = !isEmpty ? renderFieldValue(field, value, post) : '-';
 
                   return (
-                    <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                      <span className="text-sm font-medium text-gray-500">
+                    <div key={index} className="py-2 border-b border-gray-100 last:border-b-0">
+                      <div className="text-sm font-medium text-gray-500 mb-1">
                         {field.label}
-                      </span>
+                      </div>
                       <div className="text-sm text-gray-900">
-                        {renderFieldValue(field, value, post)}
+                        {displayValue}
                       </div>
                     </div>
                   );
@@ -518,57 +520,194 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
         </div>
 
         {/* 포트폴리오 섹션 - 행사팀 지원 글에만 표시 */}
-        {post.type === 'music-team-seeking' && post.portfolio && (
+        {(() => {
+          if (post.type === 'music-team-seeking') {
+            console.log('🔍 [DEBUG] 상세페이지 portfolioFile:', post.portfolioFile);
+            console.log('🔍 [DEBUG] 상세페이지 portfolio:', post.portfolio);
+          }
+          return null;
+        })()}
+        {post.type === 'music-team-seeking' && (post.portfolio || post.portfolioFile) && (
           <div className="border-t bg-white p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              YOUTUBE
+              포트폴리오
             </h2>
-            {(() => {
-              // 유튜브 URL인지 확인
-              const isYouTubeUrl = (url: string) => {
-                return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(url);
-              };
+            <div className="space-y-4">
+              {/* YouTube 영상 */}
+              {post.portfolio && (() => {
+                // 유튜브 URL인지 확인
+                const isYouTubeUrl = (url: string) => {
+                  return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(url);
+                };
 
-              // 유튜브 비디오 ID 추출
-              const extractYouTubeId = (url: string) => {
-                const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-                return match ? match[1] : null;
-              };
+                // 유튜브 비디오 ID 추출
+                const extractYouTubeId = (url: string) => {
+                  const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                  return match ? match[1] : null;
+                };
 
-              const fullUrl = post.portfolio.startsWith('http') ? post.portfolio : `https://${post.portfolio}`;
+                const fullUrl = post.portfolio.startsWith('http') ? post.portfolio : `https://${post.portfolio}`;
 
-              if (isYouTubeUrl(fullUrl)) {
-                const videoId = extractYouTubeId(fullUrl);
-                if (videoId) {
-                  return (
-                    <div className="space-y-4">
-                      {/* 유튜브 임베드 */}
-                      <div className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${videoId}`}
-                          title="포트폴리오 영상"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 w-full h-full"
-                        />
+                if (isYouTubeUrl(fullUrl)) {
+                  const videoId = extractYouTubeId(fullUrl);
+                  if (videoId) {
+                    return (
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">연주 영상</h3>
+                        <div className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${videoId}`}
+                            title="포트폴리오 영상"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 w-full h-full"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
+                    );
+                  }
                 }
-              }
 
-              // 유튜브가 아닌 경우 기존 링크 방식
-              return (
-                <a
-                  href={fullUrl}
-                  className="text-blue-600 hover:underline inline-flex items-center"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  🔗 포트폴리오 링크: {post.portfolio}
-                </a>
-              );
-            })()}
+                // 유튜브가 아닌 경우 기존 링크 방식
+                return (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">🔗 포트폴리오 링크</h3>
+                    <a
+                      href={fullUrl}
+                      className="text-blue-600 hover:underline inline-flex items-center"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {post.portfolio}
+                    </a>
+                  </div>
+                );
+              })()}
+
+              {/* 파일 다운로드 */}
+              {post.portfolioFile && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">포트폴리오 파일</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                          📄
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {(() => {
+                              try {
+                                if (post.portfolioFile.startsWith('data:application/json;charset=utf-8,')) {
+                                  // 새로운 청크 방식에서 파일명 추출
+                                  const encodedData = post.portfolioFile.split(',')[1];
+                                  const combinedData = JSON.parse(decodeURIComponent(encodedData));
+                                  return combinedData.metadata?.originalName || '포트폴리오 파일';
+                                } else if (post.portfolioFile.startsWith('data:application/json;base64,')) {
+                                  // 기존 Base64 JSON에서 파일명 추출
+                                  const base64Data = post.portfolioFile.split(',')[1];
+                                  const fileInfo = JSON.parse(atob(base64Data));
+                                  return fileInfo.originalName || '포트폴리오 파일';
+                                } else {
+                                  // 기존 URL 방식
+                                  const fileName = post.portfolioFile.split('/').pop();
+                                  if (fileName && fileName.includes('_')) {
+                                    const originalName = fileName.split('_').slice(1).join('_');
+                                    return originalName.replace(/_/g, ' ') || '포트폴리오 파일';
+                                  }
+                                  return fileName || '포트폴리오 파일';
+                                }
+                              } catch (error) {
+                                return '포트폴리오 파일';
+                              }
+                            })()}
+                          </p>
+                          <p className="text-xs text-gray-500">첨부된 포트폴리오 자료</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          try {
+                            if (post.portfolioFile.startsWith('data:application/json;charset=utf-8,')) {
+                              // 새로운 청크 방식 처리
+                              const encodedData = post.portfolioFile.split(',')[1];
+                              const combinedData = JSON.parse(decodeURIComponent(encodedData));
+
+                              if (combinedData.metadata && combinedData.chunks) {
+                                // 청크를 재결합하여 원본 Base64 데이터 복원
+                                const fullBase64 = combinedData.chunks.join('');
+
+                                // Base64 데이터를 Blob으로 변환
+                                const byteCharacters = atob(fullBase64);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray], { type: combinedData.metadata.mimeType });
+
+                                // 다운로드 링크 생성
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = combinedData.metadata.originalName;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                              }
+                            } else if (post.portfolioFile.startsWith('data:application/json;base64,')) {
+                              // 기존 Base64 JSON 파일 정보에서 실제 파일 다운로드
+                              const base64Data = post.portfolioFile.split(',')[1];
+                              const fileInfo = JSON.parse(atob(base64Data));
+
+                              // Base64 데이터를 Blob으로 변환
+                              const byteCharacters = atob(fileInfo.fileBase64);
+                              const byteNumbers = new Array(byteCharacters.length);
+                              for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                              }
+                              const byteArray = new Uint8Array(byteNumbers);
+                              const blob = new Blob([byteArray], { type: fileInfo.mimeType });
+
+                              // 다운로드 링크 생성
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = fileInfo.originalName;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            } else if (post.portfolioFile.startsWith('data:')) {
+                              // 직접 Base64 데이터 URL
+                              const a = document.createElement('a');
+                              a.href = post.portfolioFile;
+                              a.download = '포트폴리오_파일';
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            } else {
+                              // 기존 URL 방식
+                              window.open(post.portfolioFile, '_blank');
+                            }
+                          } catch (error) {
+                            console.error('파일 다운로드 실패:', error);
+                            alert('파일 다운로드에 실패했습니다.');
+                          }
+                        }}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        다운로드
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
