@@ -6,27 +6,29 @@ export const supabaseAuthService = {
     try {
       console.log('🔑 로그인 시도:', { email, password: '***' });
 
-      // 1. Edge Function을 통해 사용자 찾기 (이메일로 쿼리)
-      console.log('🔍 사용자 조회 중...');
-      const token = 'temp_system_token'; // 시스템 로그인용 임시 토큰
+      // 1. users 테이블에서 직접 사용자 찾기 (이메일로 쿼리)
+      console.log('🔍 users 테이블에서 사용자 조회 중...');
 
-      const { data: user, error } = await supabase.functions.invoke(`users?email=${encodeURIComponent(email)}`, {
-        method: 'GET',
-        headers: {
-          'X-Custom-Auth': token,
-          'Content-Type': 'application/json',
-        },
-      });
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .limit(1);
 
       if (error) {
+        console.error('❌ Supabase users 테이블 조회 오류:', error);
         throw new Error(`사용자 조회 실패: ${error.message}`);
       }
-      console.log('📊 쿼리 결과:', { user });
 
-      if (!user || (Array.isArray(user) && user.length === 0)) {
-        console.error('❌ 사용자 조회 실패: 사용자 없음');
+      console.log('📊 쿼리 결과:', { users });
+
+      if (!users || users.length === 0) {
+        console.error('❌ 사용자 조회 실패: 사용자 없음 또는 비활성화');
         throw new Error('사용자를 찾을 수 없거나 계정이 비활성화되었습니다.');
       }
+
+      const user = users[0];
 
       // 2. 비밀번호 검증은 현재는 skip (실제로는 bcrypt 등으로 해시 비교해야 함)
       // TODO: 실제 환경에서는 bcrypt.compare(password, users.hashed_password) 사용
@@ -181,6 +183,37 @@ export const supabaseAuthService = {
   getToken: async () => {
     const session = await supabaseAuthService.getSession();
     return session?.access_token || null;
+  },
+
+  // 비밀번호 업데이트
+  updatePassword: async (newPassword: string) => {
+    try {
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      // users 테이블에서 비밀번호 업데이트
+      // TODO: 실제 환경에서는 bcrypt로 해시화해야 함
+      const { error } = await supabase
+        .from('users')
+        .update({
+          password: newPassword, // 실제로는 hashed_password를 사용해야 함
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.user.id);
+
+      if (error) {
+        console.error('❌ 비밀번호 업데이트 오류:', error);
+        throw new Error('비밀번호 변경에 실패했습니다.');
+      }
+
+      console.log('✅ 비밀번호 업데이트 성공');
+      return true;
+    } catch (error: any) {
+      console.error('💥 비밀번호 업데이트 에러:', error);
+      throw new Error(error.message || '비밀번호 변경에 실패했습니다.');
+    }
   }
 };
 

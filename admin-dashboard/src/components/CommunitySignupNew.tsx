@@ -8,16 +8,16 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { Alert, AlertDescription } from './ui/alert';
-import { ArrowLeft, Upload, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
+import { supabaseApiService } from '../services/supabaseApiService';
 
 interface SignupFormData {
   applicantType: string;
   organizationName: string;
   contactPerson: string;
   email: string;
-  password: string;
-  passwordConfirm: string;
+  emailVerificationCode: string;
   phone: string;
   businessNumber: string;
   address: string;
@@ -36,8 +36,7 @@ const CommunitySignupNew: React.FC = () => {
     organizationName: '',
     contactPerson: '',
     email: '',
-    password: '',
-    passwordConfirm: '',
+    emailVerificationCode: '',
     phone: '',
     businessNumber: '',
     address: '',
@@ -51,12 +50,12 @@ const CommunitySignupNew: React.FC = () => {
   });
   
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [emailVerificationLoading, setEmailVerificationLoading] = useState(false);
   const navigate = useNavigate();
 
   const applicantTypes = [
@@ -79,22 +78,83 @@ const CommunitySignupNew: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validationResult = communityApplicationService.validateFiles(files);
-    
+
     if (!validationResult.isValid) {
       setError(validationResult.error || '파일 검증에 실패했습니다.');
       return;
     }
-    
+
     handleInputChange('attachments', files);
   };
 
+  const sendEmailVerification = async () => {
+    if (!formData.email) {
+      setEmailError('이메일을 먼저 입력해주세요.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setEmailError('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+
+    setEmailVerificationLoading(true);
+    setEmailError('');
+
+    try {
+      // 1단계: 이메일 중복 체크
+      const emailExists = await supabaseApiService.emailVerification.checkEmailExists(formData.email);
+
+      if (emailExists) {
+        setEmailError('이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.');
+        return;
+      }
+
+      // 2단계: 중복이 아니면 인증 코드 발송
+      await supabaseApiService.emailVerification.sendCode(formData.email);
+      setEmailVerificationSent(true);
+      setEmailError('');
+    } catch (err: any) {
+      setEmailError(err.message || '이메일 인증 코드 발송에 실패했습니다.');
+    } finally {
+      setEmailVerificationLoading(false);
+    }
+  };
+
+  const verifyEmailCode = async () => {
+    if (!formData.emailVerificationCode) {
+      setError('인증 코드를 입력해주세요.');
+      return;
+    }
+
+    if (formData.emailVerificationCode.length !== 6) {
+      setError('인증 코드는 6자리 숫자입니다.');
+      return;
+    }
+
+    try {
+      await supabaseApiService.emailVerification.verifyCode(formData.email, formData.emailVerificationCode);
+      setEmailVerified(true);
+      setError('');
+    } catch (err: any) {
+      setError(err.message || '인증 코드가 올바르지 않습니다.');
+    }
+  };
+
   const validateForm = (): boolean => {
+    // 이메일 인증 확인
+    if (!emailVerified) {
+      setError('이메일 인증을 완료해주세요.');
+      return false;
+    }
+
     // 필수 필드 검증
     const requiredFields = [
-      'applicantType', 'organizationName', 'contactPerson', 
-      'email', 'password', 'passwordConfirm', 'phone', 'description'
+      'applicantType', 'organizationName', 'contactPerson',
+      'email', 'phone', 'description'
     ];
-    
+
     for (const field of requiredFields) {
       if (!formData[field as keyof SignupFormData]) {
         setError(`${getFieldLabel(field)}은(는) 필수 입력 항목입니다.`);
@@ -106,17 +166,6 @@ const CommunitySignupNew: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('올바른 이메일 주소를 입력해주세요.');
-      return false;
-    }
-
-    // 비밀번호 유효성 검사
-    if (formData.password.length < 8) {
-      setError('비밀번호는 8자 이상 입력해주세요.');
-      return false;
-    }
-
-    if (formData.password !== formData.passwordConfirm) {
-      setError('비밀번호가 일치하지 않습니다.');
       return false;
     }
 
@@ -147,8 +196,6 @@ const CommunitySignupNew: React.FC = () => {
       organizationName: '단체/회사명',
       contactPerson: '담당자명',
       email: '이메일',
-      password: '비밀번호',
-      passwordConfirm: '비밀번호 확인',
       phone: '연락처',
       description: '상세 소개 및 신청 사유'
     };
@@ -181,10 +228,7 @@ const CommunitySignupNew: React.FC = () => {
       address: formData.address || undefined,
       service_area: formData.serviceArea || undefined,
       website: formData.website || undefined,
-      // 임시로 파일 첨부 비활성화 (413 에러 테스트)
-      // attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
-      // 백엔드가 요구하는 새로운 필드들 추가
-      password: formData.password,
+      attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
       agree_terms: formData.agreeTerms,
       agree_privacy: formData.agreePrivacy,
       agree_marketing: formData.agreeMarketing
@@ -336,65 +380,75 @@ const CommunitySignupNew: React.FC = () => {
               {/* 계정 정보 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">계정 정보</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
                     <Label htmlFor="email">이메일 (로그인 ID) *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="example@example.com"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      이 이메일로 로그인하시게 됩니다.
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="password">비밀번호 *</Label>
-                    <div className="relative">
+                    <div className="flex gap-2">
                       <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        placeholder="8자 이상 입력하세요"
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="example@example.com"
+                        disabled={emailVerified}
+                        className={emailVerified ? 'bg-green-50 border-green-200' : ''}
                       />
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowPassword(!showPassword)}
+                        variant="outline"
+                        onClick={sendEmailVerification}
+                        disabled={emailVerificationLoading || !formData.email || emailVerified}
+                        className="min-w-[100px]"
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {emailVerificationLoading ? '발송중...' : emailVerified ? '인증완료' : '인증코드'}
                       </Button>
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600 mt-1 flex items-center">
+                        <X className="w-4 h-4 mr-1" />
+                        {emailError}
+                      </p>
+                    )}
+                    {emailVerified ? (
+                      <p className="text-sm text-green-600 mt-1 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        이메일 인증이 완료되었습니다.
+                      </p>
+                    ) : !emailError && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        승인 시 이 이메일로 로그인 정보를 발송드립니다.
+                      </p>
+                    )}
                   </div>
 
-                  <div>
-                    <Label htmlFor="passwordConfirm">비밀번호 확인 *</Label>
-                    <div className="relative">
-                      <Input
-                        id="passwordConfirm"
-                        type={showPasswordConfirm ? "text" : "password"}
-                        value={formData.passwordConfirm}
-                        onChange={(e) => handleInputChange('passwordConfirm', e.target.value)}
-                        placeholder="비밀번호를 다시 입력하세요"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                      >
-                        {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                  {emailVerificationSent && !emailVerified && (
+                    <div>
+                      <Label htmlFor="emailVerificationCode">이메일 인증 코드 *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="emailVerificationCode"
+                          type="text"
+                          value={formData.emailVerificationCode}
+                          onChange={(e) => handleInputChange('emailVerificationCode', e.target.value)}
+                          placeholder="6자리 인증 코드"
+                          maxLength={6}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={verifyEmailCode}
+                          disabled={!formData.emailVerificationCode || formData.emailVerificationCode.length !== 6}
+                          className="min-w-[80px]"
+                        >
+                          확인
+                        </Button>
+                      </div>
+                      <p className="text-sm text-blue-600 mt-1">
+                        {formData.email}로 발송된 6자리 인증 코드를 입력해주세요.
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

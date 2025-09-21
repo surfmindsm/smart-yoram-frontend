@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { edgeApi } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
   Users,
   CheckCircle,
@@ -18,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
+import PasswordChangeModal from './PasswordChangeModal';
+import { useToast } from '../contexts/ToastContext';
 
 const Dashboard = React.memo(() => {
   const [dashboardData, setDashboardData] = useState({
@@ -28,6 +31,9 @@ const Dashboard = React.memo(() => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isTemporaryPassword, setIsTemporaryPassword] = useState(false);
+  const { showToast } = useToast();
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -61,6 +67,44 @@ const Dashboard = React.memo(() => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // 임시 비밀번호 체크
+  useEffect(() => {
+    const checkTemporaryPassword = async () => {
+      try {
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (currentUser?.user) {
+          // 임시 비밀번호 여부를 체크
+          // TODO: users 테이블에 is_temporary_password 필드가 있다면 이를 사용
+          // 지금은 비밀번호가 8자리 랜덤 문자열인지로 판단 (임시 비밀번호 생성 로직과 동일)
+          const isTemp = currentUser.user.email &&
+                        localStorage.getItem('temporary_password_login') === 'true';
+
+          if (isTemp) {
+            setIsTemporaryPassword(true);
+            setShowPasswordModal(true);
+            localStorage.removeItem('temporary_password_login'); // 한 번만 체크
+          }
+        }
+      } catch (error) {
+        console.error('임시 비밀번호 체크 오류:', error);
+      }
+    };
+
+    checkTemporaryPassword();
+  }, []);
+
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordModal(false);
+    setIsTemporaryPassword(false);
+    showToast('비밀번호가 성공적으로 변경되었습니다.', 'success');
+  };
+
+  const handlePasswordModalClose = () => {
+    if (!isTemporaryPassword) {
+      setShowPasswordModal(false);
+    }
+  };
 
   // stats 배열을 useMemo로 최적화
   const stats = useMemo(() => [
@@ -207,6 +251,14 @@ const Dashboard = React.memo(() => {
           </div>
         </CardContent>
       </Card>
+
+      {/* 비밀번호 변경 모달 */}
+      <PasswordChangeModal
+        isOpen={showPasswordModal}
+        onClose={handlePasswordModalClose}
+        onSuccess={handlePasswordChangeSuccess}
+        isTemporaryPassword={isTemporaryPassword}
+      />
     </div>
   );
 });

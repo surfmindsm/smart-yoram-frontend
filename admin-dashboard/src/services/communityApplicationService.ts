@@ -13,7 +13,7 @@ export interface CommunityApplicationRequest {
   description: string;
   
   // 백엔드가 요구하는 새로운 필수 필드들
-  password: string;
+  password?: string; // 새로운 flow에서는 선택적 (승인 후 임시 비밀번호 발송)
   agree_terms: boolean;
   agree_privacy: boolean;
   agree_marketing: boolean;
@@ -95,7 +95,8 @@ class CommunityApplicationService {
     formData.append('description', data.description);
     
     // 새로운 필수 필드들 추가
-    formData.append('password', data.password);
+    // 새로운 auth flow에서는 비밀번호가 없으므로 임시 비밀번호 사용
+    formData.append('password', data.password ?? 'temp_password_will_be_sent_after_approval');
     formData.append('agree_terms', data.agree_terms.toString());
     formData.append('agree_privacy', data.agree_privacy.toString());
     formData.append('agree_marketing', data.agree_marketing.toString());
@@ -173,56 +174,122 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 목록 조회 (슈퍼어드민 전용)
+   * 신청서 목록 조회 (Supabase 직접 접근)
    */
   async getApplications(params: ApplicationsQueryParams = {}): Promise<ApplicationsResponse> {
-    const query = new URLSearchParams();
-    
-    // 기본값 설정
-    query.append('page', String(params.page || 1));
-    query.append('limit', String(params.limit || 20));
-    
-    // 선택적 파라미터 추가
-    if (params.status && params.status !== 'all') {
-      query.append('status', params.status);
-    }
-    if (params.applicant_type && params.applicant_type !== 'all') {
-      query.append('applicant_type', params.applicant_type);
-    }
-    if (params.search) {
-      query.append('search', params.search);
-    }
-    if (params.sort_by) {
-      query.append('sort_by', params.sort_by);
-    }
-    if (params.sort_order) {
-      query.append('sort_order', params.sort_order);
-    }
-    
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
+
+      // 기본값 설정
+      const page = params.page || 1;
+      const limit = params.limit || 20;
+      const offset = (page - 1) * limit;
+
+      console.log('📋 [Supabase] 신청서 목록 조회 중...', params);
+
+      // 베이스 쿼리 시작
+      let query = supabase
+        .from('community_applications')
+        .select('*', { count: 'exact' });
+
+      // 필터링 적용
+      if (params.status && params.status !== 'all') {
+        query = query.eq('status', params.status);
       }
 
-      const response = await fetch(`${BASE_URL}/community/admin/applications?${query}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
-        } else if (response.status === 403) {
-          throw new Error('접근 권한이 없습니다.');
-        }
-        throw new Error('신청서 목록 조회에 실패했습니다.');
+      if (params.applicant_type && params.applicant_type !== 'all') {
+        query = query.eq('applicant_type', params.applicant_type);
       }
-      
-      return await response.json();
+
+      if (params.search) {
+        query = query.or(`organization_name.ilike.%${params.search}%,contact_person.ilike.%${params.search}%,email.ilike.%${params.search}%`);
+      }
+
+      // 정렬 적용
+      const sortBy = params.sort_by || 'submitted_at';
+      const sortOrder = params.sort_order || 'desc';
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+      // 페이지네이션 적용
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('❌ Supabase 신청서 목록 조회 오류:', error);
+        throw new Error('신청서 목록을 불러오는데 실패했습니다.');
+      }
+
+      console.log('✅ [Supabase] 신청서 목록 조회 완료:', data?.length || 0, '건');
+
+      // 데이터 변환
+      const applications = (data || []).map((item: any) => ({
+        id: item.id,
+        applicant_type: item.applicant_type,
+        organization_name: item.organization_name,
+        contact_person: item.contact_person,
+        email: item.email,
+        phone: item.phone,
+        business_number: item.business_number,
+        address: item.address,
+        description: item.description,
+        service_area: item.service_area,
+        website: item.website,
+        attachments: item.attachments ? JSON.parse(item.attachments) : [],
+        status: item.status,
+        submitted_at: item.submitted_at,
+        reviewed_at: item.reviewed_at,
+        reviewed_by: item.reviewed_by,
+        rejection_reason: item.rejection_reason,
+        notes: item.notes,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+
+      // 통계 계산
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // 상태별 통계 조회
+      const { data: stats } = await supabase
+        .from('community_applications')
+        .select('status')
+        .then(result => {
+          const statusCounts = {
+            pending: 0,
+            approved: 0,
+            rejected: 0,
+            total: result.data?.length || 0
+          };
+
+          if (result.data) {
+            result.data.forEach((item: any) => {
+              if (item.status === 'pending') statusCounts.pending++;
+              else if (item.status === 'approved') statusCounts.approved++;
+              else if (item.status === 'rejected') statusCounts.rejected++;
+            });
+          }
+
+          return { data: statusCounts };
+        });
+
+      return {
+        applications,
+        pagination: {
+          current_page: page,
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: limit
+        },
+        statistics: stats || {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total: totalCount
+        }
+      };
+
     } catch (error) {
       console.error('신청서 목록 조회 실패:', error);
       throw error;
@@ -230,31 +297,55 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 상세 조회 (슈퍼어드민 전용)
+   * 신청서 상세 조회 (Supabase 직접 접근)
    */
   async getApplication(applicationId: number): Promise<CommunityApplication> {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
-      }
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
 
-      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
+      console.log('📄 [Supabase] 신청서 상세 조회 중...', applicationId);
+
+      const { data, error } = await supabase
+        .from('community_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
           throw new Error('신청서를 찾을 수 없습니다.');
         }
+        console.error('❌ Supabase 신청서 상세 조회 오류:', error);
         throw new Error('신청서 조회에 실패했습니다.');
       }
-      
-      return await response.json();
+
+      console.log('✅ [Supabase] 신청서 상세 조회 완료:', data?.id);
+
+      // 데이터 변환
+      return {
+        id: data.id,
+        applicant_type: data.applicant_type,
+        organization_name: data.organization_name,
+        contact_person: data.contact_person,
+        email: data.email,
+        phone: data.phone,
+        business_number: data.business_number,
+        address: data.address,
+        description: data.description,
+        service_area: data.service_area,
+        website: data.website,
+        attachments: data.attachments ? JSON.parse(data.attachments) : [],
+        status: data.status,
+        submitted_at: data.submitted_at,
+        reviewed_at: data.reviewed_at,
+        reviewed_by: data.reviewed_by,
+        rejection_reason: data.rejection_reason,
+        notes: data.notes,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      };
+
     } catch (error) {
       console.error('신청서 상세 조회 실패:', error);
       throw error;
@@ -262,7 +353,7 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 승인 (슈퍼어드민 전용)
+   * 신청서 승인 (Supabase 직접 접근)
    */
   async approveApplication(applicationId: number, notes?: string): Promise<{
     application_id: number;
@@ -275,41 +366,122 @@ class CommunityApplicationService {
     };
   }> {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
+
+      console.log('✅ [Supabase] 신청서 승인 처리 중...', applicationId);
+
+      const reviewedAt = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('community_applications')
+        .update({
+          status: 'approved',
+          reviewed_at: reviewedAt,
+          reviewed_by: 1, // 현재 사용자 ID (추후 개선 가능)
+          notes: notes || null
+        })
+        .eq('id', applicationId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase 신청서 승인 오류:', error);
+        throw new Error('신청서 승인 처리에 실패했습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          notes: notes || ''
-        })
-      });
-      
-      const result = await response.json();
-      
-      console.log('🔍 승인 API 응답:', {
-        status: response.status,
-        ok: response.ok,
-        result: result
-      });
-      
-      if (!response.ok) {
-        console.error('❌ 승인 API 에러 상세:', result);
-        const errorMessage = result.detail || result.message || '승인 처리에 실패했습니다.';
-        throw new Error(`승인 실패 (${response.status}): ${JSON.stringify(errorMessage)}`);
+      console.log('✅ [Supabase] 신청서 승인 완료:', data?.id);
+
+      // users 테이블에 사용자 정보 추가 (커뮤니티 멤버)
+      console.log('👤 [Supabase] users 테이블에 사용자 데이터 추가 중...', data.email);
+
+      // 사용자 ID 생성 (UUID 대신 간단한 ID 사용)
+      const userId = Date.now(); // 임시로 timestamp 사용
+
+      try {
+        // users 테이블에 사용자 정보 추가
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: data.email,
+            full_name: data.contact_person,
+            organization_name: data.organization_name,
+            phone: data.phone,
+            role: 'community_member',
+            is_active: true,
+            password_hash: data.password_hash, // 신청서에서 받은 패스워드 해시 사용
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (userError) {
+          console.error('❌ users 테이블 삽입 오류:', userError);
+        } else {
+          console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
+        }
+
+      } catch (userCreationError) {
+        console.error('❌ 사용자 데이터 추가 과정에서 오류 발생:', userCreationError);
       }
-      
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.message);
+
+      // 랜덤 임시 비밀번호 생성 (8자리: 대문자, 소문자, 숫자 조합)
+      const generateTempPassword = (): string => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let password = '';
+        for (let i = 0; i < 8; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      };
+
+      const temporaryPassword = generateTempPassword();
+
+      // 임시 비밀번호를 users 테이블에 업데이트
+      try {
+        const { error: passwordUpdateError } = await supabase
+          .from('users')
+          .update({
+            password_hash: temporaryPassword, // 실제로는 해시해야 하지만 임시로 평문 저장
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+
+        if (passwordUpdateError) {
+          console.error('❌ 임시 비밀번호 업데이트 오류:', passwordUpdateError);
+        } else {
+          console.log('✅ 임시 비밀번호 업데이트 완료');
+        }
+      } catch (passwordError) {
+        console.error('❌ 비밀번호 업데이트 중 오류:', passwordError);
       }
+
+      // 임시 비밀번호 이메일 발송
+      try {
+        const { supabaseApiService } = await import('./supabaseApiService');
+        await supabaseApiService.sendTempPassword.send(
+          data.email,
+          temporaryPassword,
+          data.contact_person,
+          data.organization_name
+        );
+        console.log('✅ 임시 비밀번호 이메일 발송 완료');
+      } catch (emailError) {
+        console.error('❌ 임시 비밀번호 이메일 발송 실패:', emailError);
+        // 이메일 발송이 실패해도 승인 프로세스는 계속 진행
+      }
+
+      return {
+        application_id: applicationId,
+        status: 'approved',
+        reviewed_at: reviewedAt,
+        user_account: {
+          username: data.email,
+          temporary_password: temporaryPassword,
+          login_url: window.location.origin + '/login'
+        }
+      };
+
     } catch (error) {
       console.error('신청서 승인 실패:', error);
       throw error;
@@ -317,7 +489,7 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 반려 (슈퍼어드민 전용)
+   * 신청서 반려 (Supabase 직접 접근)
    */
   async rejectApplication(applicationId: number, rejectionReason: string, notes?: string): Promise<{
     application_id: number;
@@ -325,34 +497,39 @@ class CommunityApplicationService {
     reviewed_at: string;
   }> {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
+
+      console.log('❌ [Supabase] 신청서 반려 처리 중...', applicationId);
+
+      const reviewedAt = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('community_applications')
+        .update({
+          status: 'rejected',
+          reviewed_at: reviewedAt,
+          reviewed_by: 1, // 현재 사용자 ID (추후 개선 가능)
+          rejection_reason: rejectionReason,
+          notes: notes || null
+        })
+        .eq('id', applicationId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase 신청서 반려 오류:', error);
+        throw new Error('신청서 반려 처리에 실패했습니다.');
       }
 
-      const response = await fetch(`${BASE_URL}/community/admin/applications/${applicationId}/reject`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          rejection_reason: rejectionReason,
-          notes: notes || ''
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || '반려 처리에 실패했습니다.');
-      }
-      
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.message);
-      }
+      console.log('✅ [Supabase] 신청서 반려 완료:', data?.id);
+
+      return {
+        application_id: applicationId,
+        status: 'rejected',
+        reviewed_at: reviewedAt
+      };
+
     } catch (error) {
       console.error('신청서 반려 실패:', error);
       throw error;

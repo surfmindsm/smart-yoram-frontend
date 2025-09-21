@@ -2773,6 +2773,113 @@ export const supabaseApiService = {
         return false;
       }
     }
+  },
+
+  // Email Verification API
+  emailVerification: {
+    // 이메일 중복 체크
+    checkEmailExists: async (email: string) => {
+      try {
+        console.log('📧 [이메일 중복 체크] 시작:', email);
+
+        // community_applications 테이블에서 이메일 확인
+        const { data, error } = await supabase
+          .from('community_applications')
+          .select('email')
+          .eq('email', email)
+          .limit(1);
+
+        if (error) {
+          console.error('📧 [이메일 중복 체크] 오류:', error);
+          throw error;
+        }
+
+        const exists = data && data.length > 0;
+        console.log('✅ [이메일 중복 체크] 결과:', { email, exists });
+        return exists;
+      } catch (error: any) {
+        console.error('📧 [이메일 중복 체크] 실패:', error);
+        throw new Error(error.message || '이메일 중복 체크에 실패했습니다.');
+      }
+    },
+
+    sendCode: async (email: string) => {
+      try {
+        console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
+
+        const { data, error } = await supabase.functions.invoke('email-verification', {
+          body: {
+            email,
+            action: 'send'
+          }
+        });
+
+        if (error) {
+          console.error('📧 [이메일 인증] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [이메일 인증] 코드 발송 성공:', data);
+        return { data };
+      } catch (error: any) {
+        console.error('📧 [이메일 인증] 발송 실패:', error);
+        throw new Error(error.message || '이메일 인증 코드 발송에 실패했습니다.');
+      }
+    },
+
+    verifyCode: async (email: string, code: string) => {
+      try {
+        console.log('🔍 [이메일 인증] 코드 확인 시작:', { email, code: '***' });
+
+        const { data, error } = await supabase.functions.invoke('email-verification', {
+          body: {
+            email,
+            code,
+            action: 'verify'
+          }
+        });
+
+        if (error) {
+          console.error('🔍 [이메일 인증] 확인 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [이메일 인증] 코드 확인 성공:', data);
+        return { data };
+      } catch (error: any) {
+        console.error('🔍 [이메일 인증] 확인 실패:', error);
+        throw new Error(error.message || '인증 코드가 올바르지 않습니다.');
+      }
+    }
+  },
+
+  // Temporary Password Email API
+  sendTempPassword: {
+    send: async (email: string, temporaryPassword: string, contactPerson: string, organizationName?: string) => {
+      try {
+        console.log('📧 [임시 비밀번호] 이메일 발송 시작:', { email, contactPerson });
+
+        const { data, error } = await supabase.functions.invoke('send-temp-password', {
+          body: {
+            email,
+            temporary_password: temporaryPassword,
+            contact_person: contactPerson,
+            organization_name: organizationName
+          }
+        });
+
+        if (error) {
+          console.error('📧 [임시 비밀번호] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [임시 비밀번호] 이메일 발송 성공:', data);
+        return { data };
+      } catch (error: any) {
+        console.error('📧 [임시 비밀번호] 발송 실패:', error);
+        throw new Error(error.message || '임시 비밀번호 이메일 발송에 실패했습니다.');
+      }
+    }
   }
 
 };
