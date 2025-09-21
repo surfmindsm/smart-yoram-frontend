@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { communityService, ChurchEvent } from '../../services/communityService';
-import { ChurchNewsAPI } from '../../api/church-events-api';
-import { ChurchNews } from '../../types/church-events';
+import { communityService, ChurchEvent, ChurchNews } from '../../services/communityService';
 import CommunityPostDetail, { PostDetailData } from './CommunityPostDetail';
 
 const ChurchEventsDetail: React.FC = () => {
@@ -28,12 +26,15 @@ const ChurchEventsDetail: React.FC = () => {
       setLoading(true);
 
       if (isChurchNews) {
-        // 교회 소식 데이터 가져오기
-        const newsResponse = await ChurchNewsAPI.getList();
-        console.log('🔍 ChurchNewsAPI.getList() 응답:', newsResponse);
+        // 교회 소식 데이터 가져오기 - 같은 서비스 사용
+        const newsResponse = await communityService.getChurchNews({
+          page: 1,
+          limit: 100
+        });
+        console.log('🔍 communityService.getChurchNews() 응답:', newsResponse);
 
-        // API가 직접 배열을 반환하는 경우를 처리
-        const newsData = Array.isArray(newsResponse) ? newsResponse : (newsResponse.data || []);
+        // communityService.getChurchNews는 처리된 데이터 배열을 반환
+        const newsData = Array.isArray(newsResponse) ? newsResponse : [];
         console.log('🔍 처리된 newsData:', newsData);
 
         const foundNews = newsData.find((news: any) => news.id === eventId);
