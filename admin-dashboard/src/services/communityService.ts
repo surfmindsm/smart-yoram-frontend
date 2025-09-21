@@ -44,20 +44,52 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
     // 캐시가 있고 유효하면 캐시 사용
     const now = Date.now();
     if (usersCache && (now - usersCacheTime) < CACHE_DURATION) {
+      console.log('👥 캐시에서 사용자 조회:', authorId);
       const user = usersCache.find(u => u.id === authorId);
-      return user ? (user.full_name || user.name || user.username || `사용자${authorId}`) : null;
+      return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
     }
 
-    // 캐시가 없거나 만료되었으면 API 호출
-    console.log('👥 사용자 목록 API 호출 중...');
-    const users = await userService.getUsers();
-    usersCache = users;
-    usersCacheTime = now;
+    // Users API 직접 호출해서 구조 확인
+    console.log('👥 Users API 직접 호출 중...');
+    try {
+      const response = await api.get(getApiUrl('/users/'));
+      console.log('👥 Users API 응답 전체:', response);
+      console.log('👥 Users API 응답 데이터:', response.data);
 
-    const user = users.find((u: any) => u.id === authorId);
-    return user ? (user.full_name || user.name || user.username || `사용자${authorId}`) : null;
+      if (response.data && Array.isArray(response.data)) {
+        usersCache = response.data;
+        usersCacheTime = now;
+
+        console.log('👥 사용자 목록 샘플:', response.data.slice(0, 3));
+        const user = usersCache.find((u: any) => u.id === authorId);
+        console.log(`👥 authorId ${authorId}에 해당하는 사용자:`, user);
+
+        return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
+      }
+    } catch (apiError: any) {
+      console.error('👥 Users API 호출 실패 (403 등):', apiError.response?.status, apiError.message);
+
+      // 403인 경우 Supabase members 시도
+      if (apiError.response?.status === 403) {
+        console.log('👥 403 에러로 Supabase members 시도...');
+        const { supabaseApiService } = await import('./supabaseApiService');
+        const membersResponse = await supabaseApiService.members.getAll();
+        console.log('👥 Supabase members 응답:', membersResponse);
+
+        if (membersResponse && Array.isArray(membersResponse.data)) {
+          usersCache = membersResponse.data;
+          usersCacheTime = now;
+
+          const user = usersCache.find((u: any) => u.id === authorId);
+          console.log(`👥 Supabase에서 authorId ${authorId}에 해당하는 사용자:`, user);
+          return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
+        }
+      }
+    }
+
+    return null;
   } catch (error) {
-    console.error('👥 사용자 조회 실패:', error);
+    console.error('👥 전체 사용자 조회 실패:', error);
     return null;
   }
 };
@@ -2700,27 +2732,68 @@ export const communityService = {
         return [];
       }
 
+      // 사용자명들을 병렬로 조회 (Supabase users 테이블에서 full_name)
+      const authorIds = data.map((item: any) => item.author_id);
+      const uniqueAuthorIds = Array.from(new Set(authorIds));
+      console.log('👥 고유 author_id들:', uniqueAuthorIds);
+
+      const usersData: { [key: number]: string } = {};
+
+      // Supabase에서 users 테이블 직접 조회
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const { data: usersResponse, error } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', uniqueAuthorIds);
+
+        console.log('👥 Supabase users 테이블 조회 결과:', usersResponse);
+        console.log('👥 Supabase users 조회 에러:', error);
+
+        if (usersResponse && !error) {
+          usersResponse.forEach((user: any) => {
+            usersData[user.id] = user.full_name || user.email || `사용자${user.id}`;
+          });
+        }
+      } catch (error) {
+        console.error('👥 Supabase users 조회 실패:', error);
+      }
+
+      console.log('👥 매핑된 사용자 데이터:', usersData);
+
       // 백엔드 형식을 프론트엔드 형식으로 변환
-      return data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        category: item.category,
-        isUrgent: item.is_urgent || false,
-        eventDate: item.event_date,
-        location: item.location,
-        attachments: item.attachments || [],
-        authorId: item.author_id,
-        authorName: item.author_name || '익명',
-        churchId: item.church_id,
-        churchName: item.church_name,
-        status: item.status,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        viewCount: item.view_count || 0,
-        userName: item.author_name || '익명',
-        user_name: item.author_name || '익명'
-      }));
+      return data.map((item: any) => {
+        // 교회명 매핑 (church_id 9998은 협력사)
+        const churchName = (item.church_id === 9998) ? '협력사' : (getChurchNameById(item.church_id) || undefined);
+
+        // 사용자명 매핑 (users 테이블에서 조회한 full_name)
+        const authorName = usersData[item.author_id] || `사용자${item.author_id}`;
+
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          category: item.category,
+          isUrgent: item.is_urgent || false,
+          eventDate: item.event_date,
+          location: item.location,
+          attachments: item.attachments || [],
+          authorId: item.author_id,
+          authorName: authorName,
+          author_name: authorName,
+          churchId: item.church_id,
+          churchName: churchName,
+          church_name: churchName,
+          status: item.status,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          viewCount: item.view_count || 0,
+          view_count: item.view_count || 0,
+          likes: item.likes || 0,
+          userName: authorName,
+          user_name: authorName
+        };
+      });
 
     } catch (error: any) {
       console.error('❌ 교회 소식 목록 조회 실패:', error);
@@ -2903,8 +2976,10 @@ function transformChurchNewsFromBackend(backendData: any): ChurchNews {
     createdAt: createdAt,
     updatedAt: backendData.updated_at,
     author: backendData.author_name || '익명',
+    author_name: backendData.author_name || '익명',
     authorId: backendData.author_id,
     churchName: backendData.church_name,
+    church_name: backendData.church_name,
     churchId: backendData.church_id
   };
 }

@@ -24,8 +24,6 @@ const ChurchNews: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedPriority, setSelectedPriority] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
   const [loading, setLoading] = useState(true);
   const [newsItems, setNewsItems] = useState<ChurchNewsType[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -60,19 +58,6 @@ const ChurchNews: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  const priorities: SelectOption[] = [
-    { value: 'all', label: '전체 우선순위' },
-    { value: 'urgent', label: '긴급' },
-    { value: 'important', label: '중요' },
-    { value: 'normal', label: '일반' }
-  ];
-
-  const statusOptions: SelectOption[] = [
-    { value: 'all', label: '전체 상태' },
-    { value: 'active', label: '진행중' },
-    { value: 'completed', label: '완료' },
-    { value: 'cancelled', label: '취소' }
-  ];
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -219,22 +204,11 @@ const ChurchNews: React.FC = () => {
           options.category = selectedCategory as any;
         }
 
-        // 우선순위 필터링
-        if (selectedPriority !== 'all') {
-          options.priority = selectedPriority as any;
-        }
-
-        // 상태 필터링 (표준 상태값 사용)
-        if (selectedStatus !== 'all') {
-          options.status = mapToStandardStatus(selectedStatus) as any;
-        }
 
         const response = await communityService.getChurchNews({
           page: options.page,
           limit: options.limit,
           category: options.category,
-          priority: options.priority,
-          status: options.status,
           search: options.search
         });
 
@@ -254,7 +228,7 @@ const ChurchNews: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedCategory, selectedPriority, selectedStatus, searchTerm]);
+  }, [selectedCategory, searchTerm]);
 
   return (
     <div className="p-6">
@@ -300,19 +274,6 @@ const ChurchNews: React.FC = () => {
           className="w-auto"
         />
 
-        <CustomSelect
-          options={priorities}
-          value={selectedPriority}
-          onChange={setSelectedPriority}
-          className="w-auto"
-        />
-
-        <CustomSelect
-          options={statusOptions}
-          value={selectedStatus}
-          onChange={setSelectedStatus}
-          className="w-auto"
-        />
       </div>
 
       {/* 컨텐츠 */}
@@ -337,22 +298,19 @@ const ChurchNews: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    소식 정보
+                    제목
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     카테고리
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    우선순위
+                    교회
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    주최자/교회
+                    작성자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     행사일/장소
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     등록일
@@ -370,29 +328,16 @@ const ChurchNews: React.FC = () => {
                     className="hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 line-clamp-1">{news.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{news.description || news.content}</div>
-                        <div className="text-xs text-gray-400">{news.author_name || '작성자 없음'}</div>
-                      </div>
+                      <div className="text-sm font-medium text-gray-900 line-clamp-1">{news.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {getCategoryIcon(news.category)}
-                        <span className="text-sm text-gray-900">{news.category}</span>
-                      </div>
+                      <span className="text-sm text-gray-900">{news.category}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {getPriorityIcon(news.priority || 'normal')}
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(news.priority || 'normal')}`}>
-                          {getPriorityText(news.priority || 'normal')}
-                        </span>
-                      </div>
+                      <div className="text-sm text-gray-900">{news.church_name || '교회명 없음'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{news.organizer}</div>
-                      <div className="text-sm text-gray-500">{news.church_name || news.church_name || '교회명 없음'}</div>
+                      <span className="text-sm text-gray-900">{news.userName || news.author_name || '익명'}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(news.event_date || news.event_date) && (
@@ -408,18 +353,8 @@ const ChurchNews: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {(() => {
-                        const status = news.status || 'active';
-                        return (
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(status)}`}>
-                            {getStatusText(status)}
-                          </span>
-                        );
-                      })()}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatCreatedAt(news.created_at || news.created_at)}
+                      {formatCreatedAt(news.created_at || news.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3 text-sm text-gray-500">
