@@ -49,7 +49,7 @@ export const supabaseApiService = {
             name: `사용자 ${i + 1}`, // name 필드 추가
             full_name: `사용자 ${i + 1}`,
             role: i === 0 ? 'admin' : 'member',
-            church_id: filters.church_id || 6,
+            church_id: filters.church_id || 9998, // 기본값을 9998 (no church affiliation)로 변경
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }))
@@ -2887,8 +2887,12 @@ export const supabaseApiService = {
 // 기존 API 호환성을 위한 래퍼
 export const edgeApi = {
   get: async (url: string) => {
-    if (url === '/members/') {
-      return await supabaseApiService.members.getAll();
+    if (url === '/members/' || url.startsWith('/members/?')) {
+      // Parse church_id from URL parameters
+      const urlObj = new URL(`http://localhost${url}`);
+      const churchId = urlObj.searchParams.get('church_id');
+      const filters = churchId ? { church_id: parseInt(churchId) } : {};
+      return await supabaseApiService.members.getAll(filters);
     }
 
     if (url.startsWith('/attendances/')) {

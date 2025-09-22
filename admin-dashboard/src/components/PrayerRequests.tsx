@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
   Calendar,
   Clock,
@@ -137,8 +138,13 @@ const PrayerRequests: React.FC = () => {
   const loadPrayerRequests = async () => {
     try {
       setLoading(true);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const params: any = {
-        church_id: 6  // 현재 교회 ID로 필터링
+        church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
       if (statusFilter !== 'all') params.status = statusFilter;
@@ -217,8 +223,12 @@ const PrayerRequests: React.FC = () => {
     }
 
     try {
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const requestData = {
-        church_id: 6,
+        church_id: userChurchId,
         requester_name: newRequest.requesterName,
         requester_phone: newRequest.requesterPhone,
         prayer_type: newRequest.prayerType,

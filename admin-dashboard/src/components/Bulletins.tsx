@@ -57,11 +57,11 @@ const Bulletins: React.FC = () => {
       }
 
       // Final fallback
-      console.log('📰 No church_id found in localStorage, using fallback: 6');
-      return 6;
+      console.log('📰 No church_id found in localStorage, using fallback: 9998');
+      return 9998;
     } catch (error) {
       console.error('📰 Error getting church_id from localStorage:', error);
-      return 6;
+      return 9998;
     }
   };
 

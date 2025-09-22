@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 
 interface PastoralCareRequest {
   id: string;
@@ -173,8 +174,13 @@ const PastoralCareManagement: React.FC = () => {
   const loadPastoralCareRequests = async () => {
     try {
       setLoading(true);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const params: any = {
-        church_id: 6  // 현재 교회 ID로 필터링
+        church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
       if (statusFilter !== 'all') params.status = statusFilter;
@@ -267,8 +273,13 @@ const PastoralCareManagement: React.FC = () => {
   const loadCompletedRecords = async () => {
     try {
       setLoading(true);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const params: any = {
-        church_id: 6,  // 현재 교회 ID로 필터링
+        church_id: userChurchId,  // 현재 사용자의 교회 ID로 필터링
         status: 'completed' // 완료된 심방 기록만 조회
       };
 

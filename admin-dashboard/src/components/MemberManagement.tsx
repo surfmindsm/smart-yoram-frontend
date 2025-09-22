@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
 import axios from 'axios';
 import { 
@@ -152,8 +153,12 @@ const MemberManagement: React.FC = () => {
     try {
       setLoading(true);
 
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       // Use Supabase Edge Function for members data
-      const response = await supabaseApiService.members.getAll();
+      const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
       console.log('📊 Supabase API 응답:', {
         dataLength: response.data.length,
         sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name || m.full_name }))

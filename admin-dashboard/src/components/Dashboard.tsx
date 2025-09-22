@@ -38,12 +38,16 @@ const Dashboard = React.memo(() => {
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null);
-      
+
+      // 현재 사용자 정보 가져오기 (church_id 필요)
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id;
+
       // 병렬로 API 호출하여 성능 개선
       const today = new Date().toISOString().split('T')[0];
       const [membersResponse, attendanceResponse] = await Promise.all([
-        edgeApi.get('/members/').catch(() => ({ data: [] })),
-        edgeApi.get(`/attendances/?start_date=${today}&end_date=${today}`).catch(() => ({ data: [] }))
+        edgeApi.get(`/members/${userChurchId ? `?church_id=${userChurchId}` : ''}`).catch(() => ({ data: [] })),
+        edgeApi.get(`/attendances/${userChurchId ? `?church_id=${userChurchId}&start_date=${today}&end_date=${today}` : `?start_date=${today}&end_date=${today}`}`).catch(() => ({ data: [] }))
       ]);
       
       const totalMembers = membersResponse.data.length || 0;

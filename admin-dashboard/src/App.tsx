@@ -21,7 +21,7 @@ const ExcelManagement = lazy(() => import('./components/ExcelManagement'));
 const Attendance = lazy(() => import('./components/Attendance'));
 const Bulletins = lazy(() => import('./components/Bulletins'));
 const ChurchInfo = lazy(() => import('./components/ChurchInfo'));
-// const DailyVerse = lazy(() => import('./components/DailyVerse'));
+const DailyVerse = lazy(() => import('./components/DailyVerse'));
 const WorshipScheduleManagement = lazy(() => import('./components/worship/WorshipScheduleManagement'));
 const PushNotifications = lazy(() => import('./components/PushNotifications'));
 const AIChat = lazy(() => import('./components/AIChat'));
@@ -30,7 +30,7 @@ const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
 const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
-// const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
+const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
@@ -198,11 +198,11 @@ function App() {
               <PrayerRequestManagement />
             </Suspense>
           } />
-          {/* <Route path="prayer-requests" element={
+          <Route path="prayer-requests" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PrayerRequests />
             </Suspense>
-          } /> */}
+          } />
           <Route path="sms" element={
             <Suspense fallback={<LoadingSpinner />}>
               <SMSManagement />
@@ -233,11 +233,11 @@ function App() {
               <Bulletins />
             </Suspense>
           } />
-          {/* <Route path="daily-verses" element={
+          <Route path="daily-verses" element={
             <Suspense fallback={<LoadingSpinner />}>
               <DailyVerse />
             </Suspense>
-          } /> */}
+          } />
           <Route path="church" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ChurchInfo />
@@ -449,11 +449,11 @@ function App() {
               <PrayerRequestManagement />
             </Suspense>
           } />
-          {/* <Route path="prayer-requests" element={
+          <Route path="prayer-requests" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PrayerRequests />
             </Suspense>
-          } /> */}
+          } />
         </Route>
       </Routes>
       <ToastContainer />

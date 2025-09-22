@@ -198,7 +198,7 @@ export const supabaseAuthService = {
       const { error } = await supabase
         .from('users')
         .update({
-          password: newPassword, // 실제로는 hashed_password를 사용해야 함
+          hashed_password: newPassword, // 실제 컬럼명 사용
           updated_at: new Date().toISOString()
         })
         .eq('id', currentUser.user.id);

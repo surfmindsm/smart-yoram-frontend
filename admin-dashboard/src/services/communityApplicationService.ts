@@ -392,39 +392,6 @@ class CommunityApplicationService {
 
       console.log('✅ [Supabase] 신청서 승인 완료:', data?.id);
 
-      // users 테이블에 사용자 정보 추가 (커뮤니티 멤버)
-      console.log('👤 [Supabase] users 테이블에 사용자 데이터 추가 중...', data.email);
-
-      // 사용자 ID 생성 (UUID 대신 간단한 ID 사용)
-      const userId = Date.now(); // 임시로 timestamp 사용
-
-      try {
-        // users 테이블에 사용자 정보 추가
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: userId,
-            email: data.email,
-            full_name: data.contact_person,
-            organization_name: data.organization_name,
-            phone: data.phone,
-            role: 'community_member',
-            is_active: true,
-            password_hash: data.password_hash, // 신청서에서 받은 패스워드 해시 사용
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-        if (userError) {
-          console.error('❌ users 테이블 삽입 오류:', userError);
-        } else {
-          console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
-        }
-
-      } catch (userCreationError) {
-        console.error('❌ 사용자 데이터 추가 과정에서 오류 발생:', userCreationError);
-      }
-
       // 랜덤 임시 비밀번호 생성 (8자리: 대문자, 소문자, 숫자 조합)
       const generateTempPassword = (): string => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -437,23 +404,77 @@ class CommunityApplicationService {
 
       const temporaryPassword = generateTempPassword();
 
-      // 임시 비밀번호를 users 테이블에 업데이트
-      try {
-        const { error: passwordUpdateError } = await supabase
-          .from('users')
-          .update({
-            password_hash: temporaryPassword, // 실제로는 해시해야 하지만 임시로 평문 저장
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
+      // users 테이블에 사용자 정보 추가 (커뮤니티 멤버)
+      console.log('👤 [Supabase] users 테이블에 사용자 데이터 추가 중...', data.email);
 
-        if (passwordUpdateError) {
-          console.error('❌ 임시 비밀번호 업데이트 오류:', passwordUpdateError);
-        } else {
-          console.log('✅ 임시 비밀번호 업데이트 완료');
+      // 기존 최대 ID 조회해서 다음 ID 생성
+      const { data: maxIdData } = await supabase
+        .from('users')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id : 0;
+      const userId = maxId + 1;
+
+      // church_id 결정
+      let churchId = 9998; // 기본값: no church affiliation
+      let userRole = 'community_member';
+
+      if (data.applicant_type === 'organization') {
+        // 교회 관리자인 경우 새로운 교회 생성
+        try {
+          const { data: churchData, error: churchError } = await supabase
+            .from('churches')
+            .insert({
+              name: data.organization_name,
+              address: data.address,
+              phone: data.phone,
+              email: data.email,
+              is_active: true
+            })
+            .select()
+            .single();
+
+          if (churchError) {
+            console.error('❌ 교회 생성 오류:', churchError);
+            throw new Error('교회 정보 생성에 실패했습니다.');
+          }
+
+          churchId = churchData.id;
+          userRole = 'church_admin';
+          console.log('✅ 새로운 교회 생성 완료:', churchData.id, data.organization_name);
+        } catch (churchCreationError) {
+          console.error('❌ 교회 생성 실패:', churchCreationError);
+          throw new Error('교회 정보 생성에 실패했습니다.');
         }
-      } catch (passwordError) {
-        console.error('❌ 비밀번호 업데이트 중 오류:', passwordError);
+      }
+
+      try {
+        // users 테이블에 사용자 정보 추가 (church_id 포함)
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            username: data.email, // 이메일을 username으로 사용
+            email: data.email,
+            full_name: data.contact_person,
+            church_id: churchId,
+            role: userRole,
+            hashed_password: temporaryPassword, // 실제로는 해시해야 하지만 임시로 평문 저장
+            is_active: true
+          });
+
+        if (userError) {
+          console.error('❌ users 테이블 삽입 오류:', userError);
+          throw userError; // 사용자 생성 실패 시 전체 프로세스 중단
+        } else {
+          console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
+        }
+
+      } catch (userCreationError) {
+        console.error('❌ 사용자 데이터 추가 과정에서 오류 발생:', userCreationError);
+        throw new Error('사용자 계정 생성에 실패했습니다.');
       }
 
       // 임시 비밀번호 이메일 발송

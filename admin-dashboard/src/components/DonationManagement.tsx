@@ -22,6 +22,7 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import { Combobox } from './ui/combobox';
 
 // 백엔드 API 응답 타입 정의
@@ -262,6 +263,10 @@ const DonationManagement: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       // API 병렬 호출로 로딩 시간 단축 (donors API 제거)
       let offeringsResponse: any = [];
       let membersResponse: any = [];
@@ -273,8 +278,8 @@ const DonationManagement: React.FC = () => {
 
         // Supabase API 병렬 호출
         const [offeringsResult, membersResult] = await Promise.allSettled([
-          supabaseApiService.offerings.getAll({ church_id: 6 }),
-          supabaseApiService.members.getAll({ church_id: 6 })
+          supabaseApiService.offerings.getAll({ church_id: userChurchId }),
+          supabaseApiService.members.getAll({ church_id: userChurchId })
         ]);
 
         if (offeringsResult.status === 'fulfilled') {

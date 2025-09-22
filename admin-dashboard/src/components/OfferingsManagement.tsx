@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
   Calendar,
   DollarSign,
@@ -141,8 +142,13 @@ const OfferingsManagement: React.FC = () => {
   const loadOfferings = async () => {
     try {
       setLoading(true);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const params: any = {
-        church_id: 6  // 현재 교회 ID로 필터링
+        church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
       if (fundTypeFilter !== 'all') params.fund_type = fundTypeFilter;
@@ -200,7 +206,11 @@ const OfferingsManagement: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const filters: any = { church_id: 6 };
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
+      const filters: any = { church_id: userChurchId };
       if (dateFromFilter) filters.date_from = dateFromFilter;
       if (dateToFilter) filters.date_to = dateToFilter;
 
@@ -228,8 +238,12 @@ const OfferingsManagement: React.FC = () => {
     }
 
     try {
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+
       const offeringData = {
-        church_id: 6,
+        church_id: userChurchId,
         member_id: parseInt(newOffering.memberId),
         offered_on: newOffering.offeredOn,
         fund_type: newOffering.fundType,
