@@ -51,7 +51,16 @@ import {
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { isCommunityUser, isSuperAdmin, getCommunityMenus } from '../utils/userPermissions';
+import {
+  isCommunityAdmin,
+  isSuperAdmin,
+  getCommunityMenus,
+  normalizeRole,
+  canAccessAdminDashboard,
+  isMember,
+  isChurchSuperAdmin,
+  isChurchAdmin
+} from '../utils/userPermissions';
 
 interface MenuSubGroup {
   title: string;
@@ -75,7 +84,7 @@ interface MenuGroup {
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number} | null>(null);
+  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string} | null>(null);
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
@@ -102,7 +111,7 @@ const Layout: React.FC = () => {
 
   useEffect(() => {
     console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
-    
+
     // Supabase로 현재 사용자 정보 가져오기
     const fetchUserInfo = async () => {
       try {
@@ -117,16 +126,17 @@ const Layout: React.FC = () => {
         }
 
         const user = result.user;
-        
+
         const processedUser = {
           name: user.full_name || user.name || user.username || '사용자',
           email: user.email,
-          church_id: user.church_id
+          church_id: user.church_id,
+          role: normalizeRole(user.role) // 역할 정규화
         };
         console.log('📝 처리된 사용자 정보:', processedUser);
-        
+
         setUserInfo(processedUser);
-        
+
         // 최근 로그인 기록 가져오기 (일단 스킵 - 기존 API 의존성)
         try {
           // const recentLoginData = await loginHistoryService.getRecentLogin();
@@ -142,7 +152,7 @@ const Layout: React.FC = () => {
         }
       }
     };
-    
+
     fetchUserInfo();
   }, []);
 
@@ -167,9 +177,9 @@ const Layout: React.FC = () => {
     }
   };
 
-  // 사용자 권한 확인
-  const isSystemAdmin = userInfo?.church_id === 0;
-  const isCommunityOnlyUser = userInfo ? isCommunityUser(userInfo) : false;
+  // 사용자 권한 확인 (새로운 5-tier 시스템 사용)
+  const isSystemAdmin = userInfo ? isSuperAdmin(userInfo) : false;
+  const isCommunityOnlyUser = userInfo ? isCommunityAdmin(userInfo) && !canAccessAdminDashboard(userInfo) : false;
 
   // 아이콘 매핑
   const getIconByName = (iconName: string) => {
@@ -245,6 +255,8 @@ const Layout: React.FC = () => {
       items: [
         { path: '/church', name: '교회 정보', Icon: Church },
         { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
+        // Church Super Admin에게만 권한 관리 메뉴 표시
+        ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield }] : []),
       ],
     },
     {
@@ -346,7 +358,7 @@ const Layout: React.FC = () => {
             {/* 최근 접속 기록 버튼 */}
             {recentLogin && (
               <Button
-                variant="ghost" 
+                variant="ghost"
                 size="sm"
                 className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2"
                 onClick={handleOpenLoginHistory}
@@ -355,7 +367,7 @@ const Layout: React.FC = () => {
                 <div className="text-sm">최근 접속 기록</div>
               </Button>
             )}
-            
+
             {/* 사용자 정보 */}
             {userInfo ? (
               <div className="text-right">
@@ -420,7 +432,7 @@ const Layout: React.FC = () => {
                   {group.items && group.items.map((item) => {
                     const IconComponent = item.Icon;
                     const isActive = location.pathname === item.path;
-                    
+
                     return (
                       <Link
                         key={item.path}
@@ -460,13 +472,13 @@ const Layout: React.FC = () => {
                               <ChevronRight className="h-3 w-3" />
                             )}
                           </button>
-                          
+
                           {expandedSubGroups[subGroupKey] && (
                             <div className="space-y-1">
                               {subGroup.items.map((item) => {
                                 const IconComponent = item.Icon;
                                 const isActive = location.pathname === item.path;
-                                
+
                                 return (
                                   <Link
                                     key={item.path}
@@ -506,7 +518,7 @@ const Layout: React.FC = () => {
                 {aiMenuItems.map((item) => {
                   const IconComponent = item.Icon;
                   const isActive = location.pathname === item.path;
-                  
+
                   return (
                     <Link
                       key={item.path}
@@ -541,7 +553,7 @@ const Layout: React.FC = () => {
             <div className="max-w-full mx-auto">
               {/* 공지사항 모달 */}
               <AnnouncementModal />
-              
+
               <Outlet />
             </div>
           </div>
@@ -565,7 +577,7 @@ const Layout: React.FC = () => {
                     <span className="font-semibold text-blue-600">{loginHistory.length}</span>개의 로그인 기록이 검색되었습니다.
                   </div>
                 </div>
-                
+
                 {/* 테이블 형태로 변경 */}
                 <div className="border rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
@@ -585,7 +597,7 @@ const Layout: React.FC = () => {
                             <td className="px-3 py-3 text-gray-900 text-center">{loginHistory.length - index}</td>
                             <td className="px-3 py-3 text-gray-900 text-xs">
                               {new Date(login.timestamp).toLocaleDateString('ko-KR', {
-                                month: '2-digit', day: '2-digit', 
+                                month: '2-digit', day: '2-digit',
                                 hour: '2-digit', minute: '2-digit', second: '2-digit'
                               })}
                             </td>
@@ -612,7 +624,7 @@ const Layout: React.FC = () => {
                 <p className="text-sm text-gray-500">백엔드 API가 연결되면 기록이 표시됩니다</p>
               </div>
             )}
-            
+
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-blue-600 mt-0.5" />

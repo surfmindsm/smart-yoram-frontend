@@ -9,7 +9,7 @@ export const supabaseAuthService = {
       // 1. users 테이블에서 직접 사용자 찾기 (이메일로 쿼리)
       console.log('🔍 users 테이블에서 사용자 조회 중...');
 
-      const { data: users, error } = await supabase
+      let { data: users, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
@@ -25,7 +25,37 @@ export const supabaseAuthService = {
 
       if (!users || users.length === 0) {
         console.error('❌ 사용자 조회 실패: 사용자 없음 또는 비활성화');
-        throw new Error('사용자를 찾을 수 없거나 계정이 비활성화되었습니다.');
+
+        // users 테이블에 없으면 members 테이블에서 찾아서 생성 시도
+        console.log('🔄 members 테이블에서 사용자 생성 시도...');
+        try {
+          const { supabaseApiService } = await import('./supabaseApiService');
+          const createResult = await supabaseApiService.users.createFromMember(email);
+
+          if (createResult.data) {
+            console.log('✅ users 테이블에 사용자 생성 완료, 로그인 재시도...');
+
+            // 다시 users 테이블에서 조회
+            const { data: newUsers, error: retryError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', email)
+              .eq('is_active', true)
+              .limit(1);
+
+            if (retryError || !newUsers || newUsers.length === 0) {
+              throw new Error('사용자 생성 후 재조회 실패');
+            }
+
+            // 생성된 사용자로 계속 진행
+            users = newUsers;
+          } else {
+            throw new Error('사용자 생성 실패');
+          }
+        } catch (createError: any) {
+          console.error('❌ members에서 users 생성 실패:', createError);
+          throw new Error('사용자를 찾을 수 없거나 계정이 비활성화되었습니다.');
+        }
       }
 
       const user = users[0];

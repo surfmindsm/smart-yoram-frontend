@@ -5,10 +5,10 @@ import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
 import axios from 'axios';
-import { 
-  Search, 
-  Plus, 
-  RefreshCw, 
+import {
+  Search,
+  Plus,
+  RefreshCw,
   Camera,
   QrCode,
   ChevronUp,
@@ -31,7 +31,8 @@ import {
   Heart,
   Upload,
   Download,
-  Settings
+  Settings,
+  Shield
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -42,6 +43,7 @@ import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import AddMemberModal from './AddMemberModal';
+import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 
 interface Member {
   id: number;
@@ -119,6 +121,11 @@ const MemberManagement: React.FC = () => {
   // SMS Invitation states
   const [smsLoading, setSmsLoading] = useState<number | null>(null);
 
+  // 현재 사용자 정보 및 권한 관련 상태
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleChangeLoading, setRoleChangeLoading] = useState(false);
+
   // Advanced search states
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [advancedSearchData, setAdvancedSearchData] = useState({
@@ -159,8 +166,11 @@ const MemberManagement: React.FC = () => {
       setLoading(true);
 
       // 현재 사용자의 church_id 가져오기
-      const currentUser = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
+      const currentUserData = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUserData?.user?.church_id || 9998; // 기본값 9998
+
+      // 현재 사용자 정보를 상태에 저장
+      setCurrentUser(currentUserData?.user);
 
       // Use Supabase Edge Function for members data
       const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
@@ -567,6 +577,53 @@ const MemberManagement: React.FC = () => {
       alert(`SMS 초대 발송에 실패했습니다.\n오류: ${error.message}`);
     } finally {
       setSmsLoading(null);
+    }
+  };
+
+  // 관리자 지정 함수
+  const handleAssignAdminRole = async (member: Member) => {
+    if (!currentUser) {
+      alert('사용자 정보를 가져올 수 없습니다.');
+      return;
+    }
+
+    // Church Super Admin 권한 확인
+    if (!isChurchSuperAdmin(currentUser) && !isSuperAdmin(currentUser)) {
+      alert('관리자 지정 권한이 없습니다.');
+      return;
+    }
+
+    const confirmMessage = `${member.name}님을 교회 관리자로 지정하시겠습니까?\n\n이 작업은 해당 교인에게 관리자 페이지 접근 권한을 부여합니다.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setShowRoleModal(true);
+  };
+
+  // 역할 변경 처리 함수
+  const handleRoleChange = async (newRole: string) => {
+    if (!selectedMember || !currentUser) return;
+
+    try {
+      setRoleChangeLoading(true);
+
+      // 이메일을 통해 users 테이블에서 역할 변경 (members 테이블 ID와 users 테이블 ID가 다르기 때문)
+      if (!selectedMember.email) {
+        throw new Error('이메일이 등록되지 않은 교인은 관리자로 지정할 수 없습니다.');
+      }
+      await supabaseApiService.users.updateRoleByEmail(selectedMember.email, newRole);
+
+      // 성공적으로 변경됨을 알림
+      alert(`${selectedMember.name}님의 역할이 ${getRoleDisplayName(newRole)}(으)로 성공적으로 변경되었습니다.`);
+
+      setShowRoleModal(false);
+      // fetchMembers(); // 목록 새로고침
+    } catch (error: any) {
+      console.error('역할 변경 실패:', error);
+      alert(`역할 변경에 실패했습니다.\n오류: ${error.message}`);
+    } finally {
+      setRoleChangeLoading(false);
     }
   };
 
@@ -1280,6 +1337,25 @@ const MemberManagement: React.FC = () => {
                     )}
                     초대
                   </Button>
+
+                  {/* 관리자 지정 버튼 - Church Super Admin에게만 표시 */}
+                  {currentUser && (isChurchSuperAdmin(currentUser) || isSuperAdmin(currentUser)) && (
+                    <Button
+                      onClick={() => handleAssignAdminRole(selectedMember!)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      disabled={roleChangeLoading}
+                    >
+                      {roleChangeLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Shield className="w-4 h-4" />
+                      )}
+                      관리자 지정
+                    </Button>
+                  )}
+
                   <Button
                     onClick={handleEditMember}
                     variant="outline"
@@ -2088,11 +2164,68 @@ const MemberManagement: React.FC = () => {
       </Dialog>
 
       {/* Add Member Modal */}
-      <AddMemberModal 
-        open={showAddMemberModal} 
+      <AddMemberModal
+        open={showAddMemberModal}
         onOpenChange={setShowAddMemberModal}
         onMemberAdded={fetchMembers}
       />
+
+      {/* 역할 선택 모달 */}
+      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              관리자 역할 지정
+            </DialogTitle>
+            <DialogDescription>
+              {selectedMember?.name}님에게 부여할 관리자 역할을 선택해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <Button
+                onClick={() => handleRoleChange(ROLES.CHURCH_ADMIN)}
+                variant="outline"
+                className="w-full justify-start"
+                disabled={roleChangeLoading}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                <div className="text-left">
+                  <div className="font-medium">{getRoleDisplayName(ROLES.CHURCH_ADMIN)}</div>
+                  <div className="text-xs text-gray-500">교회 관리 기능에 접근 가능</div>
+                </div>
+              </Button>
+
+              {/* Super Admin만 Church Super Admin 지정 가능 */}
+              {currentUser && isSuperAdmin(currentUser) && (
+                <Button
+                  onClick={() => handleRoleChange(ROLES.CHURCH_SUPER_ADMIN)}
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={roleChangeLoading}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  <div className="text-left">
+                    <div className="font-medium">{getRoleDisplayName(ROLES.CHURCH_SUPER_ADMIN)}</div>
+                    <div className="text-xs text-gray-500">교회 관리 + 다른 관리자 권한 부여 가능</div>
+                  </div>
+                </Button>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowRoleModal(false)}
+                disabled={roleChangeLoading}
+              >
+                취소
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

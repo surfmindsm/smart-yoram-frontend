@@ -84,8 +84,11 @@ const CommunitySignupNew = lazy(() => import('./components/CommunitySignupNew'))
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
-// Community Application Management  
+// Community Application Management
 const CommunityApplicationManagement = lazy(() => import('./components/CommunityApplicationManagement'));
+
+// Admin Role Management
+const AdminRoleManagement = lazy(() => import('./components/AdminRoleManagement'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -412,6 +415,11 @@ function App() {
           <Route path="community-applications" element={
             <Suspense fallback={<LoadingSpinner />}>
               <CommunityApplicationManagement />
+            </Suspense>
+          } />
+          <Route path="admin-roles" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminRoleManagement />
             </Suspense>
           } />
           <Route path="ai-tools" element={

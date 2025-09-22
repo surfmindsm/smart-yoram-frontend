@@ -2986,6 +2986,53 @@ export const supabaseApiService = {
           console.error('📱📧 [초대] DB 업데이트 오류:', updateError);
         }
 
+        // users 테이블에도 사용자 생성 (로그인 가능하도록)
+        try {
+          // 먼저 member 정보 조회
+          const { data: memberData } = await supabase
+            .from('members')
+            .select('name, email, church_id')
+            .eq('id', memberId)
+            .single();
+
+          if (memberData && email) {
+            // 기존 users 테이블에 같은 이메일이 있는지 확인
+            const { data: existingUser } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', email)
+              .single();
+
+            if (!existingUser) {
+              // users 테이블에 새 사용자 생성
+              const { error: userInsertError } = await supabase
+                .from('users')
+                .insert({
+                  email: email,
+                  name: memberData.name || username,
+                  full_name: memberData.name || username,
+                  hashed_password: temporaryPassword, // 임시 비밀번호 저장
+                  church_id: memberData.church_id || 0,
+                  role: 'member',
+                  is_active: true,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+
+              if (userInsertError) {
+                console.error('👤 [초대] users 테이블 생성 오류:', userInsertError);
+              } else {
+                console.log('✅ [초대] users 테이블에 사용자 생성 성공');
+              }
+            } else {
+              console.log('ℹ️ [초대] users 테이블에 이미 사용자 존재');
+            }
+          }
+        } catch (userCreateError) {
+          console.error('👤 [초대] users 테이블 생성 실패:', userCreateError);
+          // users 테이블 생성 실패는 초대 전체를 실패로 처리하지 않음
+        }
+
         const successMessage = [];
         if (smsSuccess) successMessage.push('SMS');
         if (emailSuccess) successMessage.push('이메일');
@@ -3018,6 +3065,226 @@ export const supabaseApiService = {
         return { data };
       } catch (error: any) {
         console.error('📱 [SMS 초대] 상태 조회 실패:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Users API (Role Management)
+  users: {
+    // 기존 초대된 교인을 users 테이블에 생성하는 유틸리티 함수
+    createFromMember: async (email: string) => {
+      try {
+        console.log('👤 [사용자 생성] 교인 정보로부터 사용자 생성 시작:', { email });
+
+        // 1. members 테이블에서 교인 정보 조회
+        const { data: member, error: memberError } = await supabase
+          .from('members')
+          .select('id, name, email, church_id, temporary_password')
+          .eq('email', email)
+          .single();
+
+        if (memberError || !member) {
+          throw new Error(`교인 정보를 찾을 수 없습니다: ${memberError?.message}`);
+        }
+
+        // 2. users 테이블에 이미 존재하는지 확인
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .single();
+
+        if (existingUser) {
+          console.log('ℹ️ [사용자 생성] 이미 users 테이블에 존재:', email);
+          return { data: existingUser, alreadyExists: true };
+        }
+
+        // 3. users 테이블에 새 사용자 생성
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            email: member.email,
+            username: member.email.split('@')[0], // 이메일의 @ 앞부분을 username으로 사용
+            full_name: member.name,
+            hashed_password: member.temporary_password || 'changeme123', // 임시 비밀번호
+            church_id: member.church_id || 0,
+            role: 'member',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          throw new Error(`사용자 생성 실패: ${insertError.message}`);
+        }
+
+        console.log('✅ [사용자 생성] users 테이블에 사용자 생성 성공:', newUser);
+        return { data: newUser, alreadyExists: false };
+      } catch (error: any) {
+        console.error('👤 [사용자 생성] 실패:', error);
+        throw error;
+      }
+    },
+
+    // 교회 관리자들만 조회 (church_super_admin, church_admin)
+    getChurchAdmins: async (church_id: number) => {
+      try {
+        console.log('👤 [사용자 API] 교회 관리자 목록 조회 시작:', { church_id });
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, email, full_name, role, church_id, created_at, updated_at')
+          .eq('church_id', church_id)
+          .in('role', ['church_super_admin', 'church_admin'])
+          .eq('is_active', true)
+          .order('role', { ascending: false }) // church_super_admin 먼저
+          .order('full_name', { ascending: true }); // 그다음 이름순
+
+        if (error) {
+          console.error('👤 [사용자 API] 교회 관리자 조회 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [사용자 API] 교회 관리자 조회 성공:', data?.length || 0, '명');
+        return { data: data || [] };
+      } catch (error) {
+        console.error('👤 [사용자 API] 교회 관리자 조회 실패:', error);
+        return { data: [] };
+      }
+    },
+
+    getAll: async (filters: { church_id?: number } = {}) => {
+      try {
+        console.log('👤 [사용자 API] 사용자 목록 조회 시작:', filters);
+
+        let query = supabase
+          .from('users')
+          .select('id, email, name, role, church_id, created_at');
+
+        // 교회 ID 필터
+        if (filters.church_id) {
+          query = query.eq('church_id', filters.church_id);
+        }
+
+        // 이메일 순으로 정렬
+        query = query.order('email', { ascending: true });
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('👤 [사용자 API] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [사용자 API] 조회 성공:', data?.length || 0, '명');
+        return { data: data || [] };
+      } catch (error) {
+        console.error('👤 [사용자 API] 조회 실패:', error);
+        // Use fallback mock data
+        console.log('🔄 Using fallback mock data for users');
+        return {
+          data: [
+            {
+              id: '1',
+              email: 'admin@example.com',
+              name: '관리자',
+              role: 'church_super_admin',
+              church_id: filters.church_id || 1,
+              created_at: new Date().toISOString()
+            },
+            {
+              id: '2',
+              email: 'pastor@example.com',
+              name: '목사님',
+              role: 'church_admin',
+              church_id: filters.church_id || 1,
+              created_at: new Date().toISOString()
+            }
+          ]
+        };
+      }
+    },
+
+    updateRole: async (userId: string, newRole: string) => {
+      try {
+        console.log('👤 [사용자 API] 역할 변경 시작:', { userId, newRole });
+
+        const { data, error } = await supabase
+          .from('users')
+          .update({ role: newRole })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('👤 [사용자 API] 역할 변경 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [사용자 API] 역할 변경 성공:', data);
+        return { data };
+      } catch (error) {
+        console.error('👤 [사용자 API] 역할 변경 실패:', error);
+        throw error;
+      }
+    },
+
+    // 이메일로 사용자를 찾아 역할 변경
+    updateRoleByEmail: async (email: string, newRole: string) => {
+      try {
+        console.log('👤 [사용자 API] 이메일로 역할 변경 시작:', { email, newRole });
+
+        // 1. 먼저 이메일로 users 테이블에서 사용자 찾기
+        const { data: users, error: findError } = await supabase
+          .from('users')
+          .select('id, email, full_name, role')
+          .eq('email', email)
+          .limit(1);
+
+        if (findError || !users || users.length === 0) {
+          console.error('👤 [사용자 API] 사용자 조회 실패:', findError);
+          throw new Error(`해당 이메일의 사용자를 찾을 수 없습니다: ${email}`);
+        }
+
+        const user = users[0];
+        console.log('✅ [사용자 API] 사용자 찾음:', user);
+
+        // 2. 역할 업데이트
+        const { data, error } = await supabase
+          .from('users')
+          .update({ role: newRole })
+          .eq('id', user.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('👤 [사용자 API] 역할 변경 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [사용자 API] 이메일 기반 역할 변경 성공:', data);
+        return { data };
+      } catch (error) {
+        console.error('👤 [사용자 API] 이메일 기반 역할 변경 실패:', error);
+        throw error;
+      }
+    },
+
+    getById: async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (error) throw error;
+        return { data };
+      } catch (error) {
+        console.error('👤 [사용자 API] 사용자 조회 실패:', error);
         throw error;
       }
     }
