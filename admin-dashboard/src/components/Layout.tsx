@@ -179,7 +179,8 @@ const Layout: React.FC = () => {
 
   // 사용자 권한 확인 (새로운 5-tier 시스템 사용)
   const isSystemAdmin = userInfo ? isSuperAdmin(userInfo) : false;
-  const isCommunityOnlyUser = userInfo ? isCommunityAdmin(userInfo) && !canAccessAdminDashboard(userInfo) : false;
+  // Church ID 9998 사용자는 커뮤니티 전용 (교회 소속 없음)
+  const isCommunityOnlyUser = userInfo ? userInfo.church_id === 9998 : false;
 
   // 아이콘 매핑
   const getIconByName = (iconName: string) => {
