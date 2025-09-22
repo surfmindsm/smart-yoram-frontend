@@ -20,6 +20,8 @@ import {
   Key,
   Eye,
   EyeOff,
+  Send,
+  MessageSquare,
   Edit3,
   Save,
   X,
@@ -113,7 +115,10 @@ const MemberManagement: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInfo, setPasswordInfo] = useState<{member_id: number, member_name: string, email: string, password: string} | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
+  // SMS Invitation states
+  const [smsLoading, setSmsLoading] = useState<number | null>(null);
+
   // Advanced search states
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [advancedSearchData, setAdvancedSearchData] = useState({
@@ -521,6 +526,48 @@ const MemberManagement: React.FC = () => {
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
+  };
+
+  // SMS 초대 발송 함수
+  const handleSendInvitation = async (member: Member) => {
+    if (!member.phone) {
+      alert('전화번호가 등록되지 않은 교인입니다.');
+      return;
+    }
+
+    const inviteMessage = member.email
+      ? `${member.name}님에게 앱 초대를 발송하시겠습니까?\nSMS: ${member.phone}\n이메일: ${member.email}`
+      : `${member.name}님에게 앱 초대 SMS를 발송하시겠습니까?\n전화번호: ${member.phone}`;
+
+    if (!window.confirm(inviteMessage)) {
+      return;
+    }
+
+    try {
+      setSmsLoading(member.id);
+
+      // SMS + 이메일 초대 발송
+      const result = await supabaseApiService.smsInvitation.send(
+        member.id,
+        member.phone,
+        member.name || member.phone, // 이름이 있으면 이름, 없으면 전화번호를 username으로 사용
+        member.email, // 이메일 주소 추가
+        '요람교회' // 교회명
+      );
+
+      if (result.success) {
+        const statusText = result.message || '초대 발송 완료';
+        alert(`${statusText}\n임시 비밀번호: ${result.temporaryPassword}`);
+        // 교인 목록 새로고침
+        fetchMembers();
+      }
+
+    } catch (error: any) {
+      console.error('SMS 초대 발송 실패:', error);
+      alert(`SMS 초대 발송에 실패했습니다.\n오류: ${error.message}`);
+    } finally {
+      setSmsLoading(null);
+    }
   };
 
   const downloadExcelTemplate = () => {
@@ -1219,6 +1266,20 @@ const MemberManagement: React.FC = () => {
             <div className="flex justify-end gap-2 -mt-2 mb-4">
               {!isEditMode ? (
                 <>
+                  <Button
+                    onClick={() => handleSendInvitation(selectedMember!)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    disabled={smsLoading === selectedMember?.id || !selectedMember?.phone}
+                  >
+                    {smsLoading === selectedMember?.id ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    초대
+                  </Button>
                   <Button
                     onClick={handleEditMember}
                     variant="outline"

@@ -18,6 +18,8 @@ import {
   Camera
 } from 'lucide-react';
 import { api } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
 
 interface AddMemberModalProps {
@@ -245,12 +247,22 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         // 특별 사항
         special_notes: formData.special_notes
       };
-      
-      const response = await api.post('/members/', memberData);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998;
+
+      // church_id를 포함한 최종 멤버 데이터 생성
+      const finalMemberData = {
+        ...memberData,
+        church_id: userChurchId
+      };
+
+      const response = await supabaseApiService.members.create(finalMemberData);
       const newMemberId = response.data.id;
       
       // 교인 생성 로그 기록
-      activityLogger.logMemberCreate(memberData);
+      activityLogger.logMemberCreate(finalMemberData);
       
       // Upload profile photo if selected
       if (profilePhoto && newMemberId) {

@@ -59,29 +59,41 @@ export const supabaseApiService = {
 
     create: async (memberData: any) => {
       try {
-        const token = await supabaseAuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token available');
-        }
+        console.log('👥 [교인 생성 API] 시작:', memberData);
 
-        const { data, error } = await supabase.functions.invoke('members', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: memberData
-        });
+        // 기본 필드만 필터링 (존재하는 컬럼만)
+        const filteredData = {
+          name: memberData.name,
+          name_eng: memberData.name_eng,
+          email: memberData.email,
+          gender: memberData.gender,
+          birthdate: memberData.birthdate,
+          phone: memberData.phone,
+          address: memberData.address,
+          position: memberData.position,
+          district: memberData.district,
+          church_id: memberData.church_id,
+          // 다른 필드들은 일단 제외하고 기본 필드만 사용
+        };
+
+        console.log('👥 [교인 생성 API] 필터링된 데이터:', filteredData);
+
+        // Supabase 직접 삽입으로 변경 (Edge Function 대신)
+        const { data, error } = await supabase
+          .from('members')
+          .insert([filteredData])
+          .select()
+          .single();
 
         if (error) {
-          console.error('Member creation error:', error);
+          console.error('👥 [교인 생성 API] 오류:', error);
           throw error;
         }
 
+        console.log('✅ [교인 생성 API] 성공:', data);
         return { data };
       } catch (error) {
-        console.error('Failed to create member:', error);
+        console.error('👥 [교인 생성 API] 실패:', error);
         throw error;
       }
     }
@@ -2878,6 +2890,135 @@ export const supabaseApiService = {
       } catch (error: any) {
         console.error('📧 [임시 비밀번호] 발송 실패:', error);
         throw new Error(error.message || '임시 비밀번호 이메일 발송에 실패했습니다.');
+      }
+    }
+  },
+
+  // SMS Invitation API
+  smsInvitation: {
+    send: async (memberId: number, phone: string, username: string, email?: string, churchName: string = '요람교회') => {
+      try {
+        console.log('📱📧 [초대] 발송 시작:', { memberId, phone, username, email });
+
+        // 임시 비밀번호 생성 (8자리: 대소문자 + 숫자)
+        const generateTempPassword = (): string => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+          let password = '';
+          for (let i = 0; i < 8; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return password;
+        };
+
+        const temporaryPassword = generateTempPassword();
+        let smsSuccess = false;
+        let emailSuccess = false;
+
+        // SMS 발송
+        try {
+          const { data: smsData, error: smsError } = await supabase.functions.invoke('send-sms', {
+            body: {
+              phone,
+              username,
+              temporaryPassword,
+              churchName
+            }
+          });
+
+          if (smsError) {
+            console.error('📱 [SMS 초대] 발송 오류:', smsError);
+          } else {
+            console.log('✅ [SMS 초대] 발송 성공');
+            smsSuccess = true;
+          }
+        } catch (error) {
+          console.error('📱 [SMS 초대] 발송 실패:', error);
+        }
+
+        // 이메일 발송 (이메일이 제공된 경우)
+        if (email) {
+          try {
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-temp-password', {
+              body: {
+                email,
+                temporary_password: temporaryPassword,
+                contact_person: username,
+                organization_name: churchName
+              }
+            });
+
+            if (emailError) {
+              console.error('📧 [이메일 초대] 발송 오류:', emailError);
+            } else {
+              console.log('✅ [이메일 초대] 발송 성공');
+              emailSuccess = true;
+            }
+          } catch (error) {
+            console.error('📧 [이메일 초대] 발송 실패:', error);
+          }
+        }
+
+        // 최소 하나는 성공해야 함
+        if (!smsSuccess && !emailSuccess) {
+          // DB에 실패 상태 업데이트
+          await supabase
+            .from('members')
+            .update({
+              invitation_status: 'failed',
+              invited_at: new Date().toISOString()
+            })
+            .eq('id', memberId);
+
+          throw new Error('SMS와 이메일 발송 모두 실패했습니다.');
+        }
+
+        // 성공 시 DB 업데이트
+        const { error: updateError } = await supabase
+          .from('members')
+          .update({
+            invitation_status: 'sent',
+            invited_at: new Date().toISOString(),
+            temporary_password: temporaryPassword
+          })
+          .eq('id', memberId);
+
+        if (updateError) {
+          console.error('📱📧 [초대] DB 업데이트 오류:', updateError);
+        }
+
+        const successMessage = [];
+        if (smsSuccess) successMessage.push('SMS');
+        if (emailSuccess) successMessage.push('이메일');
+
+        console.log(`✅ [초대] ${successMessage.join(', ')} 발송 및 DB 업데이트 성공`);
+        return {
+          temporaryPassword,
+          success: true,
+          smsSuccess,
+          emailSuccess,
+          message: `${successMessage.join(', ')} 발송 완료`
+        };
+
+      } catch (error: any) {
+        console.error('📱📧 [초대] 발송 실패:', error);
+        throw new Error(error.message || '초대 발송에 실패했습니다.');
+      }
+    },
+
+    // 초대 상태 조회
+    getInvitationStatus: async (memberId: number) => {
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('invitation_status, invited_at, temporary_password')
+          .eq('id', memberId)
+          .single();
+
+        if (error) throw error;
+        return { data };
+      } catch (error: any) {
+        console.error('📱 [SMS 초대] 상태 조회 실패:', error);
+        throw error;
       }
     }
   }
