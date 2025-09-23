@@ -173,7 +173,7 @@ const MemberManagement: React.FC = () => {
       setCurrentUser(currentUserData?.user);
 
       // Use Supabase Edge Function for members data
-      const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
+      const response = await supabaseApiService.members.getAll();
       console.log('📊 Supabase API 응답:', {
         dataLength: response.data.length,
         sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name || m.full_name }))
@@ -274,8 +274,7 @@ const MemberManagement: React.FC = () => {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Don't send church_id - backend will use current user's church_id
-      const response = await api.post('/members/', newMember);
+      const response = await supabaseApiService.members.create(newMember);
       setMembers([...members, response.data]);
       setShowAddModal(false);
       setNewMember({
@@ -407,13 +406,16 @@ const MemberManagement: React.FC = () => {
 
   const handleDeletePhoto = async (memberId: number) => {
     try {
-      await api.delete(`/members/${memberId}/delete-photo`);
-      setMembers(members.map(m => 
-        m.id === memberId 
-          ? { ...m, profile_photo_url: null }
-          : m
-      ));
-      alert('프로필 사진이 삭제되었습니다.');
+      // TODO: 사진 삭제 기능을 Supabase Storage로 마이그레이션 필요
+      alert('사진 삭제 기능은 현재 마이그레이션 중입니다.');
+      return;
+      // await api.delete(`/members/${memberId}/delete-photo`);
+      // setMembers(members.map(m =>
+      //   m.id === memberId
+      //     ? { ...m, profile_photo_url: null }
+      //     : m
+      // ));
+      // alert('프로필 사진이 삭제되었습니다.');
     } catch (error) {
       console.error('사진 삭제 실패:', error);
       alert('사진 삭제에 실패했습니다.');
@@ -437,10 +439,13 @@ const MemberManagement: React.FC = () => {
 
   const handleGetPassword = async (memberId: number) => {
     try {
-      const response = await api.get(`/members/${memberId}/password`);
-      setPasswordInfo(response.data);
-      setShowPasswordModal(true);
-      setShowPassword(false); // Reset to hidden state
+      // TODO: 비밀번호 조회 기능을 Supabase Edge Function에 구현 필요
+      alert('비밀번호 조회 기능은 현재 마이그레이션 중입니다.');
+      return;
+      // const response = await api.get(`/members/${memberId}/password`);
+      // setPasswordInfo(response.data);
+      // setShowPasswordModal(true);
+      // setShowPassword(false); // Reset to hidden state
     } catch (error: any) {
       console.error('비밀번호 조회 실패:', error);
       if (error.response?.status === 404) {
@@ -485,7 +490,7 @@ const MemberManagement: React.FC = () => {
       
       console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
       
-      const response = await api.put(`/members/${selectedMember.id}`, memberDataToSave);
+      const response = await supabaseApiService.members.update(memberDataToSave);
       
       // 수정된 필드들 확인
       const updatedFields = Object.keys(editedMember).filter(key => 
@@ -516,7 +521,7 @@ const MemberManagement: React.FC = () => {
     if (!selectedMember) return;
 
     try {
-      await api.delete(`/members/${selectedMember.id}`);
+      await supabaseApiService.members.delete(selectedMember.id);
       
       // 교인 삭제 로그 기록
       activityLogger.logMemberDelete(selectedMember.id, selectedMember.name);
@@ -704,13 +709,16 @@ const MemberManagement: React.FC = () => {
       const formData = new FormData();
       formData.append('file', excelFile);
       
-      const response = await api.post('/members/bulk-import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      alert(`총 ${response.data.imported_count}명의 교인이 성공적으로 등록되었습니다.`);
+      // TODO: 엑셀 일괄 등록 기능을 Supabase Edge Function에 구현 필요
+      alert('엑셀 일괄 등록 기능은 현재 마이그레이션 중입니다.');
+      return;
+      // const response = await api.post('/members/bulk-import', formData, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      // });
+
+      // alert(`총 ${response.data.imported_count}명의 교인이 성공적으로 등록되었습니다.`);
       setShowExcelImportModal(false);
       setExcelFile(null);
       fetchMembers(); // 목록 새로고침

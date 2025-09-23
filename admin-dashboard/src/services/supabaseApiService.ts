@@ -7,36 +7,51 @@ export const supabaseApiService = {
   supabase,
   // Members API
   members: {
-    getAll: async (filters: { church_id?: number; active?: boolean } = {}) => {
+    getAll: async (filters: { page?: number; limit?: number; search?: string; position?: string; department?: string; status?: string; church_id?: number } = {}) => {
       try {
         console.log('👥 [교인 API] 교인 목록 조회 시작:', filters);
 
-        let query = supabase
-          .from('members')
-          .select('*');
-
-        // 교회 ID 필터
-        if (filters.church_id) {
-          query = query.eq('church_id', filters.church_id);
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
         }
 
-        // 활성 상태 필터는 is_active 컬럼이 없어서 제거
-        // if (filters.active !== undefined) {
-        //   query = query.eq('is_active', filters.active);
-        // }
+        const params = new URLSearchParams();
+        if (filters.page) params.append('page', filters.page.toString());
+        if (filters.limit) params.append('limit', filters.limit.toString());
+        if (filters.search) params.append('search', filters.search);
+        if (filters.position) params.append('position', filters.position);
+        if (filters.department) params.append('department', filters.department);
+        if (filters.status) params.append('status', filters.status);
 
-        // 이름 순으로 정렬
-        query = query.order('name', { ascending: true });
+        // Use direct fetch instead of supabase.functions.invoke for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/members?${params.toString()}`;
 
-        const { data, error } = await query;
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const error = null;
 
         if (error) {
           console.error('👥 [교인 API] 오류:', error);
           throw error;
         }
 
-        console.log('✅ [교인 API] 조회 성공:', data?.length || 0, '명');
-        return { data: data || [] }; // 다른 API와 호환성을 위해 { data: [] } 형태로 반환
+        console.log('✅ [교인 API] 조회 성공:', data?.data?.length || 0, '명');
+        return { data: data?.data || [] };
       } catch (error) {
         console.error('👥 [교인 API] 조회 실패:', error);
         // Use fallback mock data if Edge Function fails
@@ -46,10 +61,10 @@ export const supabaseApiService = {
             id: i + 1,
             email: `user${i + 1}@example.com`,
             username: `user${i + 1}`,
-            name: `사용자 ${i + 1}`, // name 필드 추가
+            name: `사용자 ${i + 1}`,
             full_name: `사용자 ${i + 1}`,
             role: i === 0 ? 'admin' : 'member',
-            church_id: filters.church_id || 9998, // 기본값을 9998 (no church affiliation)로 변경
+            church_id: 9998,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }))
@@ -61,29 +76,32 @@ export const supabaseApiService = {
       try {
         console.log('👥 [교인 생성 API] 시작:', memberData);
 
-        // 기본 필드만 필터링 (존재하는 컬럼만)
-        const filteredData = {
-          name: memberData.name,
-          name_eng: memberData.name_eng,
-          email: memberData.email,
-          gender: memberData.gender,
-          birthdate: memberData.birthdate,
-          phone: memberData.phone,
-          address: memberData.address,
-          position: memberData.position,
-          district: memberData.district,
-          church_id: memberData.church_id,
-          // 다른 필드들은 일단 제외하고 기본 필드만 사용
-        };
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
 
-        console.log('👥 [교인 생성 API] 필터링된 데이터:', filteredData);
+        // Use direct fetch instead of supabase.functions.invoke for POST requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/members`;
 
-        // Supabase 직접 삽입으로 변경 (Edge Function 대신)
-        const { data, error } = await supabase
-          .from('members')
-          .insert([filteredData])
-          .select()
-          .single();
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(memberData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const error = null;
 
         if (error) {
           console.error('👥 [교인 생성 API] 오류:', error);
@@ -94,6 +112,93 @@ export const supabaseApiService = {
         return { data };
       } catch (error) {
         console.error('👥 [교인 생성 API] 실패:', error);
+        throw error;
+      }
+    },
+
+    update: async (memberData: any) => {
+      try {
+        console.log('👥 [교인 수정 API] 시작:', memberData);
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        // Use direct fetch instead of supabase.functions.invoke for PUT requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/members`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(memberData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const error = null;
+
+        if (error) {
+          console.error('👥 [교인 수정 API] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [교인 수정 API] 성공:', data);
+        return { data };
+      } catch (error) {
+        console.error('👥 [교인 수정 API] 실패:', error);
+        throw error;
+      }
+    },
+
+    delete: async (memberId: number) => {
+      try {
+        console.log('👥 [교인 삭제 API] 시작:', memberId);
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        // Use direct fetch instead of supabase.functions.invoke for DELETE requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/members?id=${memberId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const error = null;
+
+        if (error) {
+          console.error('👥 [교인 삭제 API] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [교인 삭제 API] 성공:', data);
+        return { data };
+      } catch (error) {
+        console.error('👥 [교인 삭제 API] 실패:', error);
         throw error;
       }
     }

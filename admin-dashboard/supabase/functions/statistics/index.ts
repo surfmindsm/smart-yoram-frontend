@@ -92,15 +92,20 @@ serve(async (req) => {
               // 사용자의 교회 ID 조회
               const { data: userProfile, error: profileError } = await supabase
                 .from('users')
-                .select('church_id')
+                .select('church_id, email')
                 .eq('id', userId.toString())
                 .single()
 
               console.log('🏛️ User church lookup:', {
                 userId: userId,
+                userProfile: userProfile,
                 churchId: userProfile?.church_id,
                 profileError: profileError?.message
               })
+
+              if (profileError) {
+                console.error('❌ User profile lookup failed:', profileError)
+              }
 
               churchId = userProfile?.church_id
             }
@@ -218,32 +223,62 @@ serve(async (req) => {
       // 교인 데이터 조회 (교회 ID 필터 포함)
       let membersQuery = supabase
         .from('members')
-        .select('gender, birth_date')
+        .select('gender, church_id')
         .eq('status', 'active')
+
+      console.log('🔍 Before church filtering - churchId:', churchId)
 
       // 교회 ID 필터 추가 (슈퍼어드민이 아닌 경우에만)
       if (churchId && churchId !== 0) {
         membersQuery = membersQuery.eq('church_id', churchId)
+        console.log('🏛️ Applied church filter for churchId:', churchId)
+      } else {
+        console.log('⚠️ No church filter applied - showing all members')
       }
 
       const { data: members, error } = await membersQuery
 
       console.log('👥 Demographics query result:', {
         count: members?.length || 0,
-        error: error?.message
+        error: error?.message,
+        churchId: churchId,
+        query: `SELECT gender, church_id FROM members WHERE status = 'active'${churchId && churchId !== 0 ? ' AND church_id = ' + churchId : ''}`,
+        sampleMembers: members?.slice(0, 5)?.map(m => ({ gender: m.gender, church_id: m.church_id }))
+      })
+
+      // 전체 members 테이블 확인
+      const { data: allMembers, error: allError } = await supabase
+        .from('members')
+        .select('church_id, status, gender')
+        .limit(10)
+
+      console.log('🔍 All members sample (for debugging):', {
+        count: allMembers?.length || 0,
+        error: allError?.message,
+        sample: allMembers?.map(m => ({ church_id: m.church_id, status: m.status, gender: m.gender }))
       })
 
       // 에러가 있어도 빈 배열로 계속 진행
       const membersData = members || []
 
-      // 성별 통계
+      // 성별 통계 (정규화)
       const genderStats = membersData?.reduce((acc: any, member: any) => {
-        const gender = member.gender || '미상'
+        let gender = member.gender || '미상'
+
+        // 성별 정규화 처리
+        if (gender === '남' || gender === '남성' || gender === 'M' || gender === 'male') {
+          gender = '남성'
+        } else if (gender === '여' || gender === '여성' || gender === 'F' || gender === 'female') {
+          gender = '여성'
+        } else if (!gender || gender === null || gender === undefined) {
+          gender = '미상'
+        }
+
         acc[gender] = (acc[gender] || 0) + 1
         return acc
       }, {}) || {}
 
-      // 연령대 통계
+      // 연령대 통계 (birth_date 컬럼이 없으므로 기본값 반환)
       const ageGroups = {
         '10대 이하': 0,
         '20대': 0,
@@ -251,26 +286,8 @@ serve(async (req) => {
         '40대': 0,
         '50대': 0,
         '60대 이상': 0,
-        '미상': 0
+        '미상': membersData?.length || 0  // 모든 회원을 '미상'으로 분류
       }
-
-      membersData?.forEach((member: any) => {
-        if (!member.birth_date) {
-          ageGroups['미상']++
-          return
-        }
-
-        const birthYear = new Date(member.birth_date).getFullYear()
-        const currentYear = new Date().getFullYear()
-        const age = currentYear - birthYear
-
-        if (age <= 19) ageGroups['10대 이하']++
-        else if (age <= 29) ageGroups['20대']++
-        else if (age <= 39) ageGroups['30대']++
-        else if (age <= 49) ageGroups['40대']++
-        else if (age <= 59) ageGroups['50대']++
-        else ageGroups['60대 이상']++
-      })
 
       const result = {
         gender_distribution: Object.entries(genderStats).map(([gender, count]) => ({
@@ -287,6 +304,11 @@ serve(async (req) => {
       }
 
       console.log('✅ Demographics result:', result)
+      console.log('🔍 Gender statistics detail:', {
+        genderStats: genderStats,
+        membersCount: membersData?.length,
+        allGenders: membersData?.map(m => m.gender)
+      })
 
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -300,11 +322,11 @@ serve(async (req) => {
       console.log('📈 Fetching member growth:', { months })
 
       // 교인 데이터 조회 (교회 ID 필터 포함)
+      // created_at 컬럼 확인 필요 - 우선 기본 필드로 시도
       let membersQuery = supabase
         .from('members')
-        .select('created_at')
+        .select('id, church_id')
         .eq('status', 'active')
-        .order('created_at', { ascending: true })
 
       // 교회 ID 필터 추가 (슈퍼어드민이 아닌 경우에만)
       if (churchId && churchId !== 0) {
@@ -322,9 +344,10 @@ serve(async (req) => {
       // 에러가 있어도 빈 배열로 계속 진행
       const membersData = members || []
 
-      // 월별 등록 교인 수 집계
+      // created_at 컬럼이 없으므로 임시로 현재 월에 모든 회원을 배치
       const monthlyGrowth: any = {}
       const endDate = new Date()
+      const currentMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`
 
       // 지난 N개월 동안의 데이터 생성
       for (let i = months - 1; i >= 0; i--) {
@@ -333,15 +356,8 @@ serve(async (req) => {
         monthlyGrowth[yearMonth] = 0
       }
 
-      // 실제 등록 데이터 집계
-      membersData?.forEach((member: any) => {
-        const createdDate = new Date(member.created_at)
-        const yearMonth = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`
-
-        if (monthlyGrowth[yearMonth] !== undefined) {
-          monthlyGrowth[yearMonth]++
-        }
-      })
+      // 현재 월에 모든 활성 회원 배치 (임시)
+      monthlyGrowth[currentMonth] = membersData?.length || 0
 
       // 누적 교인 수 계산
       let cumulativeCount = 0

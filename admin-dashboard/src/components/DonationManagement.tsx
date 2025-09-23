@@ -279,7 +279,7 @@ const DonationManagement: React.FC = () => {
         // Supabase API 병렬 호출
         const [offeringsResult, membersResult] = await Promise.allSettled([
           supabaseApiService.offerings.getAll({ church_id: userChurchId }),
-          supabaseApiService.members.getAll({ church_id: userChurchId })
+          supabaseApiService.members.getAll()
         ]);
 
         if (offeringsResult.status === 'fulfilled') {

@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
 Deno.serve(async (req) => {
@@ -31,6 +32,26 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // Get user's church_id from token
+    let userChurchId = null
+    if (customToken.startsWith('temp_token_')) {
+      const tokenParts = customToken.split('_')
+      if (tokenParts.length >= 3) {
+        const userId = parseInt(tokenParts[2])
+        if (!isNaN(userId) && userId > 0) {
+          // Get user's church_id
+          const { data: userProfile } = await supabaseClient
+            .from('users')
+            .select('church_id')
+            .eq('id', userId.toString())
+            .single()
+
+          userChurchId = userProfile?.church_id
+          console.log('🏛️ User church lookup:', { userId, userChurchId })
+        }
+      }
     }
 
     // Validate custom auth token format: temp_token_{user_id}_{timestamp}
@@ -89,12 +110,17 @@ Deno.serve(async (req) => {
       // Calculate offset for pagination
       const offset = (page - 1) * limit
 
-      // Build base query
+      // Build base query with church filter
       let query = supabaseClient
         .from('members')
         .select('*', { count: 'exact' })
 
-      // Apply filters
+      // Apply church filter (except for super admin with church_id 0)
+      if (userChurchId && userChurchId !== 0) {
+        query = query.eq('church_id', userChurchId)
+      }
+
+      // Apply other filters
       if (search) {
         query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`)
       }
@@ -110,7 +136,6 @@ Deno.serve(async (req) => {
       if (status) {
         query = query.eq('status', status)
       }
-      // Note: is_active column doesn't exist in members table
 
       // Apply pagination and ordering
       query = query
@@ -149,16 +174,38 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       // Create new member
-      const body = await req.json()
-
-      const insertData = {
-        name: body.name,
-        phone: body.phone,
-        position: body.position,
-        department: body.department || null,
-        status: body.status || 'active',
-        church_id: body.church_id || 9998 // Default church ID
+      let body
+      try {
+        const text = await req.text()
+        body = text ? JSON.parse(text) : {}
+      } catch (error) {
+        console.error('JSON parsing error in POST:', error)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
+
+      const insertData: any = {
+        church_id: userChurchId || body.church_id || 9998, // Use user's church_id
+        status: body.status || 'active'
+      }
+
+      // Only include fields that are provided and exist in the members table
+      if (body.name !== undefined) insertData.name = body.name
+      if (body.phone !== undefined) insertData.phone = body.phone
+      if (body.email !== undefined) insertData.email = body.email
+      if (body.gender !== undefined) insertData.gender = body.gender
+      if (body.birthdate !== undefined) insertData.birthdate = body.birthdate
+      if (body.address !== undefined) insertData.address = body.address
+      if (body.position !== undefined) insertData.position = body.position
+      if (body.department !== undefined) insertData.department = body.department
+      if (body.district !== undefined) insertData.district = body.district
+
+      console.log('📝 Insert data prepared:', insertData)
 
       const { data, error } = await supabaseClient
         .from('members')
@@ -188,7 +235,26 @@ Deno.serve(async (req) => {
 
     if (req.method === 'PUT') {
       // Update member
-      const body = await req.json()
+      console.log('📝 PUT request received')
+      let body
+      try {
+        const text = await req.text()
+        console.log('📝 Request text length:', text.length)
+        console.log('📝 Request text preview:', text.substring(0, 200))
+        body = text ? JSON.parse(text) : {}
+        console.log('📝 Parsed body keys:', Object.keys(body))
+      } catch (error) {
+        console.error('JSON parsing error in PUT:', error)
+        console.error('Request text that failed to parse:', text)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
       const memberId = body.id
 
       if (!memberId) {
@@ -201,18 +267,34 @@ Deno.serve(async (req) => {
         )
       }
 
-      const updateData = {
-        name: body.name,
-        phone: body.phone,
-        position: body.position,
-        department: body.department,
-        status: body.status
-      }
+      // Only include fields that exist in the members table and are being updated
+      const updateData: any = {}
 
-      const { data, error } = await supabaseClient
+      if (body.name !== undefined) updateData.name = body.name
+      if (body.phone !== undefined) updateData.phone = body.phone
+      if (body.email !== undefined) updateData.email = body.email
+      if (body.gender !== undefined) updateData.gender = body.gender
+      if (body.birthdate !== undefined) updateData.birthdate = body.birthdate
+      if (body.address !== undefined) updateData.address = body.address
+      if (body.position !== undefined) updateData.position = body.position
+      if (body.department !== undefined) updateData.department = body.department
+      if (body.district !== undefined) updateData.district = body.district
+      if (body.status !== undefined) updateData.status = body.status
+      if (body.profile_photo_url !== undefined) updateData.profile_photo_url = body.profile_photo_url
+
+      console.log('📝 Update data prepared:', updateData)
+
+      let updateQuery = supabaseClient
         .from('members')
         .update(updateData)
         .eq('id', memberId)
+
+      // Add church filter for non-super admins
+      if (userChurchId && userChurchId !== 0) {
+        updateQuery = updateQuery.eq('church_id', userChurchId)
+      }
+
+      const { data, error } = await updateQuery
         .select()
         .single()
 
@@ -250,10 +332,17 @@ Deno.serve(async (req) => {
         )
       }
 
-      const { data, error } = await supabaseClient
+      let deleteQuery = supabaseClient
         .from('members')
         .update({ status: 'inactive' })
         .eq('id', parseInt(memberId))
+
+      // Add church filter for non-super admins
+      if (userChurchId && userChurchId !== 0) {
+        deleteQuery = deleteQuery.eq('church_id', userChurchId)
+      }
+
+      const { data, error } = await deleteQuery
         .select()
         .single()
 
