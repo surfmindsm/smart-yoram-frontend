@@ -1,5 +1,222 @@
 import { supabase } from '../lib/supabase';
 
+// 위치 정보 한국어 매핑 테이블
+const countryMap: { [key: string]: string } = {
+  'South Korea': '대한민국',
+  'Korea': '대한민국',
+  'Republic of Korea': '대한민국',
+  'United States': '미국',
+  'United States of America': '미국',
+  'China': '중국',
+  'Japan': '일본',
+  'United Kingdom': '영국',
+  'Germany': '독일',
+  'France': '프랑스',
+  'Canada': '캐나다',
+  'Australia': '호주',
+  'Russia': '러시아',
+  'India': '인도',
+  'Brazil': '브라질',
+  'Italy': '이탈리아',
+  'Spain': '스페인',
+  'Mexico': '멕시코',
+  'Indonesia': '인도네시아',
+  'Turkey': '터키',
+  'Saudi Arabia': '사우디아라비아',
+  'Netherlands': '네덜란드',
+  'Switzerland': '스위스',
+  'Belgium': '벨기에',
+  'Sweden': '스웨덴',
+  'Poland': '폴란드',
+  'Argentina': '아르헨티나',
+  'Ireland': '아일랜드',
+  'Israel': '이스라엘',
+  'Austria': '오스트리아',
+  'Norway': '노르웨이',
+  'United Arab Emirates': '아랍에미리트',
+  'Egypt': '이집트',
+  'South Africa': '남아프리카공화국',
+  'Chile': '칠레',
+  'Finland': '핀란드',
+  'Denmark': '덴마크',
+  'Philippines': '필리핀',
+  'Bangladesh': '방글라데시',
+  'Vietnam': '베트남',
+  'Malaysia': '말레이시아',
+  'Singapore': '싱가포르',
+  'Thailand': '태국',
+  'Nigeria': '나이지리아',
+  'Ukraine': '우크라이나',
+  'Peru': '페루',
+  'Czech Republic': '체코',
+  'New Zealand': '뉴질랜드',
+  'Romania': '루마니아',
+  'Greece': '그리스',
+  'Portugal': '포르투갈',
+  'Hungary': '헝가리',
+  'Belarus': '벨라루스',
+  'Cuba': '쿠바',
+  'Croatia': '크로아티아',
+  'Bulgaria': '불가리아',
+  'Slovakia': '슬로바키아',
+  'Lithuania': '리투아니아',
+  'Slovenia': '슬로베니아',
+  'Latvia': '라트비아',
+  'Estonia': '에스토니아',
+  'Luxembourg': '룩셈부르크'
+};
+
+const cityMap: { [key: string]: string } = {
+  'Seoul': '서울',
+  'Busan': '부산',
+  'Incheon': '인천',
+  'Daegu': '대구',
+  'Daejeon': '대전',
+  'Gwangju': '광주',
+  'Ulsan': '울산',
+  'Suwon': '수원',
+  'Goyang': '고양',
+  'Yongin': '용인',
+  'Seongnam': '성남',
+  'Bucheon': '부천',
+  'Ansan': '안산',
+  'Cheongju': '청주',
+  'Jeonju': '전주',
+  'Anyang': '안양',
+  'Cheonan': '천안',
+  'Pohang': '포항',
+  'Changwon': '창원',
+  'Gimhae': '김해',
+  'Jeju': '제주',
+  'Beijing': '베이징',
+  'Shanghai': '상하이',
+  'Tokyo': '도쿄',
+  'Osaka': '오사카',
+  'New York': '뉴욕',
+  'Los Angeles': '로스앤젤레스',
+  'London': '런던',
+  'Paris': '파리',
+  'Berlin': '베를린',
+  'Rome': '로마',
+  'Madrid': '마드리드',
+  'Amsterdam': '암스테르담',
+  'Brussels': '브뤼셀',
+  'Vienna': '비엔나',
+  'Zurich': '취리히',
+  'Stockholm': '스톡홀름',
+  'Copenhagen': '코펜하겐',
+  'Oslo': '오슬로',
+  'Helsinki': '헬싱키',
+  'Warsaw': '바르샤바',
+  'Prague': '프라하',
+  'Budapest': '부다페스트',
+  'Dublin': '더블린',
+  'Lisbon': '리스본',
+  'Athens': '아테네',
+  'Moscow': '모스크바',
+  'Sydney': '시드니',
+  'Melbourne': '멜버른',
+  'Toronto': '토론토',
+  'Vancouver': '밴쿠버',
+  'Montreal': '몬트리올'
+};
+
+// 클라이언트 IP 주소 가져오기 헬퍼 함수
+const getClientIP = async (): Promise<string> => {
+  try {
+    // 항상 실제 IP 조회 시도
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip || '0.0.0.0';
+  } catch (error) {
+    console.error('IP 주소 조회 실패:', error);
+    // 실패 시에만 개발 환경 기본값 사용
+    return process.env.NODE_ENV === 'development' ? '개발환경' : '0.0.0.0';
+  }
+};
+
+// 위치 정보 가져오기 헬퍼 함수 (테더링 감지 포함)
+const getLocationInfo = async (): Promise<string> => {
+  try {
+    // 항상 실제 위치 조회 시도 (HTTPS 사용)
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+
+    console.log('🌍 위치 정보 조회 결과:', data);
+
+    if (data.city && data.country_name) {
+      const koreanCity = cityMap[data.city] || data.city;
+      const koreanCountry = countryMap[data.country_name] || data.country_name;
+
+      // ISP나 조직 정보로 테더링/모바일 감지
+      const org = data.org || data.asn || '';
+      const isp = data.isp || '';
+
+      // 모바일 캐리어 패턴 감지
+      const mobileCarriers = [
+        'LG U+', 'SK Telecom', 'KT Corporation', 'Korea Telecom',
+        'Verizon', 'AT&T', 'T-Mobile', 'Sprint',
+        'Vodafone', 'Orange', 'O2', 'Three',
+        'NTT DOCOMO', 'SoftBank', 'au'
+      ];
+
+      const isMobileCarrier = mobileCarriers.some(carrier =>
+        org.toLowerCase().includes(carrier.toLowerCase()) ||
+        isp.toLowerCase().includes(carrier.toLowerCase())
+      );
+
+      // "Mobile" 키워드 감지
+      const hasMobileKeyword = org.toLowerCase().includes('mobile') ||
+                              isp.toLowerCase().includes('mobile') ||
+                              org.toLowerCase().includes('cellular') ||
+                              isp.toLowerCase().includes('cellular');
+
+      if (isMobileCarrier || hasMobileKeyword) {
+        return `📱 모바일 테더링 (${koreanCity}, ${koreanCountry})`;
+      }
+
+      return `${koreanCity}, ${koreanCountry}`;
+    }
+
+    // 도시나 국가 정보가 없는 경우
+    if (data.org || data.isp) {
+      const org = data.org || data.isp || '';
+      if (org.toLowerCase().includes('mobile') || org.toLowerCase().includes('cellular')) {
+        return '📱 모바일 테더링';
+      }
+    }
+
+    return '위치 정보 없음';
+  } catch (error) {
+    console.error('위치 정보 조회 실패:', error);
+
+    // 백업으로 다른 서비스 시도
+    try {
+      const backupResponse = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=free');
+      const backupData = await backupResponse.json();
+
+      console.log('🔄 백업 위치 정보 조회 결과:', backupData);
+
+      if (backupData.city && backupData.country_name) {
+        const koreanCity = cityMap[backupData.city] || backupData.city;
+        const koreanCountry = countryMap[backupData.country_name] || backupData.country_name;
+
+        // 백업 서비스에서도 ISP 확인
+        const isp = backupData.isp || backupData.organization || '';
+        if (isp.toLowerCase().includes('mobile') || isp.toLowerCase().includes('cellular')) {
+          return `📱 모바일 테더링 (${koreanCity}, ${koreanCountry})`;
+        }
+
+        return `${koreanCity}, ${koreanCountry}`;
+      }
+    } catch (backupError) {
+      console.error('백업 위치 조회도 실패:', backupError);
+    }
+
+    return process.env.NODE_ENV === 'development' ? '🔧 개발환경' : '-';
+  }
+};
+
 export const supabaseAuthService = {
   // 기존 users 테이블을 사용한 로그인
   signIn: async (email: string, password: string) => {
@@ -88,6 +305,26 @@ export const supabaseAuthService = {
       console.log('🔑 호환성을 위한 access_token 저장 완료');
 
       console.log('🎉 로그인 성공!');
+
+      // 보안 로그 기록
+      try {
+        const { supabaseApiService } = await import('./supabaseApiService');
+        await supabaseApiService.securityLogs.recordLogin({
+          user_id: sessionData.user.id,
+          user_name: sessionData.user.full_name || sessionData.user.username || sessionData.user.email,
+          user_email: sessionData.user.email,
+          success: true,
+          church_id: sessionData.user.church_id,
+          ip_address: await getClientIP(),
+          user_agent: navigator.userAgent,
+          location: await getLocationInfo()
+        });
+        console.log('✅ 로그인 보안 로그 기록 완료');
+      } catch (logError) {
+        console.error('⚠️ 로그인 보안 로그 기록 실패:', logError);
+        // 로그 기록 실패는 로그인 프로세스를 방해하지 않음
+      }
+
       return {
         user: sessionData.user,
         session: sessionData,
@@ -96,6 +333,29 @@ export const supabaseAuthService = {
 
     } catch (error: any) {
       console.error('💥 로그인 에러:', error);
+
+      // 로그인 실패 보안 로그 기록
+      try {
+        const { supabaseApiService } = await import('./supabaseApiService');
+        await supabaseApiService.securityLogs.recordLogin({
+          user_id: null,
+          user_name: null,
+          user_email: email,
+          success: false,
+          church_id: null,
+          ip_address: await getClientIP(),
+          user_agent: navigator.userAgent,
+          location: await getLocationInfo(),
+          details: {
+            error_message: error.message,
+            attempted_email: email
+          }
+        });
+        console.log('✅ 로그인 실패 보안 로그 기록 완료');
+      } catch (logError) {
+        console.error('⚠️ 로그인 실패 보안 로그 기록 실패:', logError);
+      }
+
       throw new Error(error.message || '로그인에 실패했습니다.');
     }
   },

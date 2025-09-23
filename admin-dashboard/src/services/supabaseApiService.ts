@@ -3288,6 +3288,423 @@ export const supabaseApiService = {
         throw error;
       }
     }
+  },
+
+  // Security Logs API
+  securityLogs: {
+    // 로그인 기록 조회
+    getLoginRecords: async (options: {
+      start_date?: string;
+      end_date?: string;
+      user_id?: string;
+      page?: number;
+      limit?: number;
+    } = {}) => {
+      try {
+        console.log('🛡️ [로그인 기록] 조회 시작:', options);
+
+        // 현재 사용자 권한 확인
+        const { supabaseAuthService } = await import('./supabaseAuthService');
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다.');
+        }
+
+        // 실제 security_logs 테이블 조회
+        let query = supabase
+          .from('security_logs')
+          .select('*')
+          .in('action', ['login', 'logout', 'failed_login']);
+
+        // 권한별 필터링
+        if (currentUser.user.role === 'church_super_admin') {
+          // 교회 수퍼어드민: 같은 교회의 모든 사용자 로그 (교회 어드민 포함)
+          query = query.eq('church_id', currentUser.user.church_id);
+        } else if (currentUser.user.role === 'church_admin') {
+          // 교회 어드민: 자신의 로그만
+          query = query.eq('user_id', currentUser.user.id);
+        } else if (currentUser.user.role === 'super_admin') {
+          // 수퍼어드민: 모든 로그 접근 가능 (필터 없음)
+        } else {
+          // 기타: 자신의 로그만
+          query = query.eq('user_id', currentUser.user.id);
+        }
+
+        // 필터 적용 (날짜 범위를 하루 전체로 확장)
+        if (options.start_date) {
+          query = query.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        }
+        if (options.end_date) {
+          query = query.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        }
+        if (options.user_id) {
+          query = query.eq('user_id', options.user_id);
+        }
+
+        // 페이지네이션
+        const limit = options.limit || 50;
+        const offset = ((options.page || 1) - 1) * limit;
+        query = query.range(offset, offset + limit - 1);
+
+        // 정렬
+        query = query.order('timestamp', { ascending: false });
+
+        const { data, error, count } = await query;
+
+        if (error) {
+          console.error('🛡️ [로그인 기록] 데이터베이스 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [로그인 기록] 조회 성공:', data?.length || 0, '건');
+        return {
+          data: data || [],
+          total: count || 0,
+          page: options.page || 1,
+          limit
+        };
+      } catch (error) {
+        console.error('🛡️ [로그인 기록] 조회 실패:', error);
+        // 테이블이 없거나 오류 발생 시 빈 데이터 반환
+        return {
+          data: [],
+          total: 0,
+          page: options.page || 1,
+          limit: options.limit || 50
+        };
+      }
+    },
+
+    // 활동 로그 조회
+    getActivityLogs: async (options: {
+      start_date?: string;
+      end_date?: string;
+      action?: string;
+      user_id?: string;
+      page?: number;
+      limit?: number;
+    } = {}) => {
+      try {
+        console.log('🛡️ [활동 로그] 조회 시작:', options);
+
+        // 현재 사용자 권한 확인
+        const { supabaseAuthService } = await import('./supabaseAuthService');
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다.');
+        }
+
+        // 실제 activity_logs 테이블 조회
+        let query = supabase
+          .from('activity_logs')
+          .select('*');
+
+        // 권한별 필터링
+        if (currentUser.user.role === 'church_super_admin') {
+          // 교회 수퍼어드민: 같은 교회의 모든 사용자 활동 로그
+          query = query.eq('church_id', currentUser.user.church_id);
+        } else if (currentUser.user.role === 'church_admin') {
+          // 교회 어드민: 자신의 활동 로그만
+          query = query.eq('user_id', currentUser.user.id);
+        } else if (currentUser.user.role === 'super_admin') {
+          // 수퍼어드민: 모든 활동 로그 접근 가능 (필터 없음)
+        } else {
+          // 기타: 자신의 활동 로그만
+          query = query.eq('user_id', currentUser.user.id);
+        }
+
+        // 필터 적용 (날짜 범위를 하루 전체로 확장)
+        if (options.start_date) {
+          query = query.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        }
+        if (options.end_date) {
+          query = query.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        }
+        if (options.action) {
+          query = query.eq('action', options.action);
+        }
+        if (options.user_id) {
+          query = query.eq('user_id', options.user_id);
+        }
+
+        // 페이지네이션
+        const limit = options.limit || 50;
+        const offset = ((options.page || 1) - 1) * limit;
+        query = query.range(offset, offset + limit - 1);
+
+        // 정렬
+        query = query.order('timestamp', { ascending: false });
+
+        const { data, error, count } = await query;
+
+        if (error) {
+          console.error('🛡️ [활동 로그] 데이터베이스 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [활동 로그] 조회 성공:', data?.length || 0, '건');
+        return {
+          data: data || [],
+          total: count || 0,
+          page: options.page || 1,
+          limit
+        };
+      } catch (error) {
+        console.error('🛡️ [활동 로그] 조회 실패:', error);
+        // 테이블이 없거나 오류 발생 시 빈 데이터 반환
+        return {
+          data: [],
+          total: 0,
+          page: options.page || 1,
+          limit: options.limit || 50
+        };
+      }
+    },
+
+    // 보안 로그 통계 조회
+    getStats: async (options: {
+      start_date?: string;
+      end_date?: string;
+    } = {}) => {
+      try {
+        console.log('📊 [보안 로그 통계] 조회 시작:', options);
+
+        // 실제 security_logs 테이블에서 통계 계산
+        let baseQuery = supabase.from('security_logs').select('*');
+
+        // 날짜 필터 적용
+        if (options.start_date) {
+          baseQuery = baseQuery.gte('timestamp', options.start_date);
+        }
+        if (options.end_date) {
+          baseQuery = baseQuery.lte('timestamp', options.end_date);
+        }
+
+        // 총 로그인 수
+        let totalLoginsQuery = supabase.from('security_logs').select('*', { count: 'exact', head: true });
+        if (options.start_date) totalLoginsQuery = totalLoginsQuery.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        if (options.end_date) totalLoginsQuery = totalLoginsQuery.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        const { count: totalLogins } = await totalLoginsQuery.in('action', ['login', 'logout']);
+
+        // 성공한 로그인 수
+        let successfulLoginsQuery = supabase.from('security_logs').select('*', { count: 'exact', head: true });
+        if (options.start_date) successfulLoginsQuery = successfulLoginsQuery.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        if (options.end_date) successfulLoginsQuery = successfulLoginsQuery.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        const { count: successfulLogins } = await successfulLoginsQuery
+          .eq('action', 'login')
+          .eq('success', true);
+
+        // 실패한 로그인 수
+        let failedLoginsQuery = supabase.from('security_logs').select('*', { count: 'exact', head: true });
+        if (options.start_date) failedLoginsQuery = failedLoginsQuery.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        if (options.end_date) failedLoginsQuery = failedLoginsQuery.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        const { count: failedLogins } = await failedLoginsQuery.eq('action', 'failed_login');
+
+        // 고유 사용자 수
+        let uniqueUsersQuery = supabase.from('security_logs').select('user_id');
+        if (options.start_date) uniqueUsersQuery = uniqueUsersQuery.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        if (options.end_date) uniqueUsersQuery = uniqueUsersQuery.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        const { data: uniqueUsersData } = await uniqueUsersQuery.in('action', ['login']);
+
+        const uniqueUsers = new Set(uniqueUsersData?.map((log: any) => log.user_id) || []).size;
+
+        // 위치별 통계
+        let locationQuery = supabase.from('security_logs').select('location');
+        if (options.start_date) locationQuery = locationQuery.gte('timestamp', `${options.start_date}T00:00:00.000Z`);
+        if (options.end_date) locationQuery = locationQuery.lte('timestamp', `${options.end_date}T23:59:59.999Z`);
+        const { data: locationData } = await locationQuery.eq('action', 'login');
+
+        const locationStats = locationData?.reduce((acc: any, log: any) => {
+          if (log.location) {
+            acc[log.location] = (acc[log.location] || 0) + 1;
+          }
+          return acc;
+        }, {}) || {};
+
+        const topLocations = Object.entries(locationStats)
+          .map(([location, count]) => ({ location, count }))
+          .sort((a: any, b: any) => b.count - a.count)
+          .slice(0, 5);
+
+        const stats = {
+          total_logins: totalLogins || 0,
+          successful_logins: successfulLogins || 0,
+          failed_logins: failedLogins || 0,
+          unique_users: uniqueUsers,
+          top_locations: topLocations,
+          hourly_distribution: [] // 시간별 분포는 추후 구현
+        };
+
+        console.log('✅ [보안 로그 통계] 조회 성공:', stats);
+        return { data: stats };
+      } catch (error) {
+        console.error('📊 [보안 로그 통계] 조회 실패:', error);
+        // 테이블이 없거나 오류 발생 시 기본값 반환
+        return {
+          data: {
+            total_logins: 0,
+            successful_logins: 0,
+            failed_logins: 0,
+            unique_users: 0,
+            top_locations: [],
+            hourly_distribution: []
+          }
+        };
+      }
+    },
+
+    // 로그인 세션 조회 (활성 세션)
+    getSessions: async (userId?: string) => {
+      try {
+        console.log('🔐 [로그인 세션] 조회 시작:', { userId });
+
+        // 실제 auth.sessions 테이블 또는 security_logs에서 활성 세션 조회
+        let query = supabase
+          .from('security_logs')
+          .select(`
+            id,
+            user_id,
+            user_name,
+            timestamp,
+            ip_address,
+            location,
+            user_agent,
+            details
+          `)
+          .eq('action', 'login')
+          .eq('success', true);
+
+        if (userId) {
+          query = query.eq('user_id', userId);
+        }
+
+        // 최근 24시간 이내 로그인만 활성 세션으로 간주
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte('timestamp', oneDayAgo);
+
+        query = query.order('timestamp', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('🔐 [로그인 세션] 데이터베이스 오류:', error);
+          throw error;
+        }
+
+        // 세션 데이터 변환
+        const sessions = (data || []).map(log => ({
+          id: log.id,
+          user_id: log.user_id,
+          user_name: log.user_name || '알 수 없음',
+          login_time: log.timestamp,
+          last_activity: log.timestamp,
+          ip_address: log.ip_address || 'N/A',
+          browser: log.user_agent ? log.user_agent.split(' ')[0] : 'Unknown',
+          is_active: true, // 24시간 이내면 활성으로 간주
+          location: log.location || 'N/A'
+        }));
+
+        console.log('✅ [로그인 세션] 조회 성공:', sessions.length, '건');
+        return { data: sessions };
+      } catch (error) {
+        console.error('🔐 [로그인 세션] 조회 실패:', error);
+        // 테이블이 없거나 오류 발생 시 빈 데이터 반환
+        return { data: [] };
+      }
+    },
+
+    // 로그인 로그 기록
+    recordLogin: async (loginData: {
+      user_id: string | null;
+      user_name: string | null;
+      user_email: string;
+      success: boolean;
+      church_id: number | null;
+      ip_address: string;
+      user_agent: string;
+      location: string;
+      details?: any;
+    }) => {
+      try {
+        console.log('📝 [로그인 로그] 기록 시작:', loginData);
+
+        const { data, error } = await supabase
+          .from('security_logs')
+          .insert({
+            user_id: loginData.user_id,
+            user_name: loginData.user_name,
+            user_email: loginData.user_email,
+            action: loginData.success ? 'login' : 'failed_login',
+            success: loginData.success,
+            church_id: loginData.church_id,
+            ip_address: loginData.ip_address,
+            user_agent: loginData.user_agent,
+            location: loginData.location,
+            details: loginData.details ? JSON.stringify(loginData.details) : null,
+            timestamp: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('📝 [로그인 로그] 기록 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [로그인 로그] 기록 성공:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('📝 [로그인 로그] 기록 실패:', error);
+        throw error;
+      }
+    },
+
+    // 테스트용 로그인 로그 생성
+    createTestLoginLog: async () => {
+      try {
+        console.log('🧪 [테스트 로그인 로그] 생성 시작');
+
+        // 먼저 테이블 존재 확인
+        const { data: tableCheck, error: tableError } = await supabase
+          .from('security_logs')
+          .select('id')
+          .limit(1);
+
+        if (tableError) {
+          console.error('❌ security_logs 테이블 존재하지 않음:', tableError);
+          throw new Error(`security_logs 테이블이 존재하지 않습니다: ${tableError.message}`);
+        }
+
+        console.log('✅ security_logs 테이블 확인됨');
+
+        const testLog = {
+          user_id: '123e4567-e89b-12d3-a456-426614174000',
+          user_name: '이선민',
+          user_email: 'composm@naver.com',
+          action: 'login',
+          success: true,
+          church_id: 7,
+          ip_address: '127.0.0.1',
+          user_agent: navigator.userAgent,
+          location: '서울, 대한민국',
+          details: JSON.stringify({ test: true, browser: 'Chrome' }),
+          timestamp: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+          .from('security_logs')
+          .insert(testLog);
+
+        if (error) {
+          console.error('🧪 [테스트 로그인 로그] 생성 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [테스트 로그인 로그] 생성 성공:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('🧪 [테스트 로그인 로그] 생성 실패:', error);
+        throw error;
+      }
+    }
   }
 
 };

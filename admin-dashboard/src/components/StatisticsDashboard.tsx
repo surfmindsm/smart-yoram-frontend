@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 import {
   Users,
   BarChart3,
@@ -9,7 +9,8 @@ import {
   UserPlus,
   UserMinus,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -30,33 +31,26 @@ interface AttendanceSummary {
   };
   attendance_data: Array<{
     date: string;
-    present_count: number;
-    total_members: number;
-    attendance_rate: number;
+    count: number;
+    attendance_type: string;
   }>;
 }
 
 interface Demographics {
-  gender_distribution: Array<{ gender: string; count: number }>;
-  age_distribution: Array<{ age_group: string; count: number }>;
-  position_distribution: Array<{ position: string; count: number }>;
-  district_distribution: Array<{ district: string; count: number }>;
+  gender_distribution: Array<{ gender: string; count: number; percentage: number }>;
+  age_distribution: Array<{ age_group: string; count: number; percentage: number }>;
+  total_members: number;
 }
 
 interface MemberGrowth {
   growth_data: Array<{
     month: string;
     new_members: number;
-    transfers_out: number;
-    net_growth: number;
     total_members: number;
+    growth_rate: number;
   }>;
-  summary: {
-    total_new_members: number;
-    total_transfers_out: number;
-    net_growth: number;
-    current_total_members: number;
-  };
+  total_current_members: number;
+  period_months: number;
 }
 
 const StatisticsDashboard: React.FC = () => {
@@ -90,30 +84,147 @@ const StatisticsDashboard: React.FC = () => {
 
   const fetchAttendanceSummary = async () => {
     try {
-      const response = await api.get(
-        `/statistics/attendance/summary?start_date=${dateRange.start_date}&end_date=${dateRange.end_date}&attendance_type=주일예배`
-      );
-      setAttendanceSummary(response.data);
+      const params = new URLSearchParams({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        attendance_type: '주일예배'
+      });
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/statistics/attendance/summary?${params.toString()}`;
+
+      // 다른 Edge Function과 동일한 인증 패턴 사용
+      const { supabaseAuthService } = await import('../services/supabaseAuthService');
+      const token = await supabaseAuthService.getToken();
+
+      console.log('🔐 Token check:', {
+        hasToken: !!token,
+        tokenPrefix: token?.substring(0, 20),
+        fullToken: token
+      });
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📊 Attendance response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📊 Attendance error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('📊 Attendance data received:', data);
+      setAttendanceSummary(data);
     } catch (error) {
       console.error('출석 통계 조회 실패:', error);
+      // 기본값 설정
+      setAttendanceSummary({
+        summary: {
+          total_members: 0,
+          average_attendance: 0,
+          average_attendance_rate: 0,
+          period: {
+            start_date: dateRange.start_date,
+            end_date: dateRange.end_date
+          }
+        },
+        attendance_data: []
+      });
     }
   };
 
   const fetchDemographics = async () => {
     try {
-      const response = await api.get('/statistics/members/demographics');
-      setDemographics(response.data);
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/statistics/members/demographics`;
+
+      // 다른 Edge Function과 동일한 인증 패턴 사용
+      const { supabaseAuthService } = await import('../services/supabaseAuthService');
+      const token = await supabaseAuthService.getToken();
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      setDemographics(data);
     } catch (error) {
       console.error('인구통계 조회 실패:', error);
+      // 기본값 설정
+      setDemographics({
+        gender_distribution: [
+          { gender: '남성', count: 0, percentage: 0 },
+          { gender: '여성', count: 0, percentage: 0 }
+        ],
+        age_distribution: [
+          { age_group: '10대', count: 0, percentage: 0 },
+          { age_group: '20대', count: 0, percentage: 0 },
+          { age_group: '30대', count: 0, percentage: 0 },
+          { age_group: '40대', count: 0, percentage: 0 },
+          { age_group: '50대', count: 0, percentage: 0 },
+          { age_group: '60대 이상', count: 0, percentage: 0 }
+        ],
+        total_members: 0
+      });
     }
   };
 
   const fetchMemberGrowth = async () => {
     try {
-      const response = await api.get('/statistics/members/growth?months=12');
-      setMemberGrowth(response.data);
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/statistics/members/growth?months=12`;
+
+      // 다른 Edge Function과 동일한 인증 패턴 사용
+      const { supabaseAuthService } = await import('../services/supabaseAuthService');
+      const token = await supabaseAuthService.getToken();
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      setMemberGrowth(data);
     } catch (error) {
       console.error('교인 증가 통계 조회 실패:', error);
+      // 기본값 설정
+      const now = new Date();
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+          month: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+          new_members: 0,
+          total_members: 0,
+          growth_rate: 0
+        });
+      }
+      setMemberGrowth({
+        growth_data: months,
+        total_current_members: 0,
+        period_months: 12
+      });
     }
   };
 
@@ -129,6 +240,14 @@ const StatisticsDashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">통계 대시보드</h2>
+
+        {/* API 연결 상태 알림 */}
+        {(!attendanceSummary || !demographics || !memberGrowth) && (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+            <AlertTriangle className="w-4 h-4" />
+            <span>통계 API 연결 중 문제가 발생했습니다. 기본 데이터를 표시합니다.</span>
+          </div>
+        )}
         
         {/* Date Range Selector */}
         <div className="flex space-x-4">
@@ -244,12 +363,12 @@ const StatisticsDashboard: React.FC = () => {
                       {new Date(data.date).toLocaleDateString('ko-KR')}
                     </span>
                     <div className="flex items-center space-x-2">
-                      <Progress value={data.attendance_rate} className="w-32" />
+                      <Progress value={attendanceSummary?.summary.total_members ? (data.count / attendanceSummary.summary.total_members) * 100 : 0} className="w-32" />
                       <span className="text-sm font-medium text-foreground w-12">
-                        {data.attendance_rate.toFixed(1)}%
+                        {attendanceSummary?.summary.total_members ? ((data.count / attendanceSummary.summary.total_members) * 100).toFixed(1) : 0}%
                       </span>
                       <span className="text-sm text-muted-foreground w-16">
-                        ({data.present_count}명)
+                        ({data.count}명)
                       </span>
                     </div>
                   </div>
@@ -313,31 +432,6 @@ const StatisticsDashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* 직분 분포 */}
-        {demographics && demographics.position_distribution.length > 0 && (
-          <Card className="border-muted">
-            <CardHeader>
-              <CardTitle className="text-lg">직분 분포</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {demographics.position_distribution.map((item, index) => {
-                  const maxCount = Math.max(...demographics.position_distribution.map(p => p.count));
-                  const percentage = (item.count / maxCount * 100);
-                  return (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{item.position}</span>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={percentage} className="w-20" />
-                        <span className="text-sm text-foreground w-8">{item.count}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {/* 교인 증가 추이 */}
@@ -348,19 +442,12 @@ const StatisticsDashboard: React.FC = () => {
               <CardTitle className="text-lg">교인 증가 추이 (최근 12개월)</CardTitle>
               <div className="text-sm text-muted-foreground flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <UserPlus className="h-4 w-4 text-green-600" />
-                  신규: {memberGrowth.summary.total_new_members}명
+                  <Users className="h-4 w-4 text-blue-600" />
+                  현재 교인: {memberGrowth.total_current_members}명
                 </span>
                 <span className="flex items-center gap-1">
-                  <UserMinus className="h-4 w-4 text-red-600" />
-                  이전: {memberGrowth.summary.total_transfers_out}명
-                </span>
-                <span className="flex items-center gap-1">
-                  {memberGrowth.summary.net_growth >= 0 ? 
-                    <ArrowUp className="h-4 w-4 text-green-600" /> : 
-                    <ArrowDown className="h-4 w-4 text-red-600" />
-                  }
-                  순증가: {memberGrowth.summary.net_growth}명
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  조회 기간: {memberGrowth.period_months}개월
                 </span>
               </div>
             </div>
@@ -371,9 +458,8 @@ const StatisticsDashboard: React.FC = () => {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">월</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">신규</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">이전</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">순증가</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">신규 교인</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">증가율</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">총인원</th>
                   </tr>
                 </thead>
@@ -386,12 +472,9 @@ const StatisticsDashboard: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <Badge variant="success">+{data.new_members}</Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Badge variant="destructive">-{data.transfers_out}</Badge>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Badge variant={data.net_growth >= 0 ? 'success' : 'destructive'}>
-                          {data.net_growth >= 0 ? '+' : ''}{data.net_growth}
+                        <Badge variant={data.growth_rate >= 0 ? 'success' : 'destructive'}>
+                          {data.growth_rate >= 0 ? '+' : ''}{data.growth_rate}%
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">

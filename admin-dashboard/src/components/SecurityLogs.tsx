@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Clock, 
-  MapPin, 
-  Monitor, 
+import {
+  Shield,
+  Clock,
+  MapPin,
   Search,
   Filter,
   RefreshCw,
@@ -11,9 +10,10 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Eye,
   Calendar,
-  Globe
+  Globe,
+  Users,
+  Eye
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -21,8 +21,9 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { api } from '../services/api';
+import { Pagination } from './common/Pagination';
+import { StandardPagination } from '../types';
+import { supabaseApiService } from '../services/supabaseApiService';
 
 interface LoginRecord {
   id: number;
@@ -59,8 +60,25 @@ const SecurityLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('today');
-  const [selectedRecord, setSelectedRecord] = useState<LoginRecord | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // 페이지네이션 state
+  const [loginPagination, setLoginPagination] = useState<StandardPagination>({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 20,
+    has_next: false,
+    has_prev: false
+  });
+
+  const [activityPagination, setActivityPagination] = useState<StandardPagination>({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 20,
+    has_next: false,
+    has_prev: false
+  });
   
   // 통계 데이터
   const [stats, setStats] = useState({
@@ -73,30 +91,56 @@ const SecurityLogs: React.FC = () => {
   });
 
   // 데이터 로드 함수들
-  const fetchLoginRecords = async () => {
+  const fetchLoginRecords = async (page: number = loginPagination.current_page) => {
     try {
-      const response = await api.get('/auth/activity-logs', {
-        params: {
-          resource: 'system',
-          action: 'login,logout,failed_login',
-          ...getFilterParams()
-        }
+      const response = await supabaseApiService.securityLogs.getLoginRecords({
+        ...getFilterParams(),
+        page,
+        limit: loginPagination.per_page
       });
-      setLoginRecords(response.data.logs || []);
+
+      setLoginRecords(response.data || []);
+
+      // 페이지네이션 정보 업데이트
+      if (response.total !== undefined) {
+        const totalPages = Math.ceil(response.total / loginPagination.per_page);
+        setLoginPagination({
+          current_page: page,
+          total_pages: totalPages,
+          total_count: response.total,
+          per_page: loginPagination.per_page,
+          has_next: page < totalPages,
+          has_prev: page > 1
+        });
+      }
     } catch (error) {
       console.error('로그인 기록 조회 실패:', error);
       setLoginRecords([]);
     }
   };
 
-  const fetchActivityLogs = async () => {
+  const fetchActivityLogs = async (page: number = activityPagination.current_page) => {
     try {
-      const response = await api.get('/auth/activity-logs', {
-        params: {
-          ...getFilterParams()
-        }
+      const response = await supabaseApiService.securityLogs.getActivityLogs({
+        ...getFilterParams(),
+        page,
+        limit: activityPagination.per_page
       });
-      setActivityLogs(response.data.logs || []);
+
+      setActivityLogs(response.data || []);
+
+      // 페이지네이션 정보 업데이트
+      if (response.total !== undefined) {
+        const totalPages = Math.ceil(response.total / activityPagination.per_page);
+        setActivityPagination({
+          current_page: page,
+          total_pages: totalPages,
+          total_count: response.total,
+          per_page: activityPagination.per_page,
+          has_next: page < totalPages,
+          has_prev: page > 1
+        });
+      }
     } catch (error) {
       console.error('활동 로그 조회 실패:', error);
       setActivityLogs([]);
@@ -105,14 +149,18 @@ const SecurityLogs: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/auth/activity-logs/stats/summary');
-      setStats(response.data || {
-        totalLogins: 0,
-        successfulLogins: 0,
-        failedLogins: 0,
-        uniqueUsers: 0,
-        todayLogins: 0,
-        suspiciousActivities: 0
+      const response = await supabaseApiService.securityLogs.getStats({
+        ...getFilterParams()
+      });
+
+      const data = response.data;
+      setStats({
+        totalLogins: data.total_logins || 0,
+        successfulLogins: data.successful_logins || 0,
+        failedLogins: data.failed_logins || 0,
+        uniqueUsers: data.unique_users || 0,
+        todayLogins: data.total_logins || 0, // 임시로 전체 로그인 수 사용
+        suspiciousActivities: data.failed_logins || 0 // 실패한 로그인을 의심스러운 활동으로 간주
       });
     } catch (error) {
       console.error('통계 조회 실패:', error);
@@ -144,8 +192,10 @@ const SecurityLogs: React.FC = () => {
     
     const now = new Date();
     if (dateFilter === 'today') {
-      params.start_date = now.toISOString().split('T')[0];
-      params.end_date = now.toISOString().split('T')[0];
+      const today = now.toISOString().split('T')[0];
+      params.start_date = today;
+      params.end_date = today;
+      console.log('📅 오늘 날짜 필터:', { start_date: today, end_date: today });
     } else if (dateFilter === 'week') {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       params.start_date = weekAgo.toISOString().split('T')[0];
@@ -223,6 +273,27 @@ const SecurityLogs: React.FC = () => {
     return `${minutes}분`;
   };
 
+  // 페이지네이션 핸들러들
+  const handleLoginPageChange = (page: number) => {
+    fetchLoginRecords(page);
+  };
+
+  const handleLoginLimitChange = (limit: number) => {
+    setLoginPagination(prev => ({ ...prev, per_page: limit, current_page: 1 }));
+    // 새로운 limit으로 첫 번째 페이지부터 다시 로드
+    fetchLoginRecords(1);
+  };
+
+  const handleActivityPageChange = (page: number) => {
+    fetchActivityLogs(page);
+  };
+
+  const handleActivityLimitChange = (limit: number) => {
+    setActivityPagination(prev => ({ ...prev, per_page: limit, current_page: 1 }));
+    // 새로운 limit으로 첫 번째 페이지부터 다시 로드
+    fetchActivityLogs(1);
+  };
+
   // API에서 이미 필터링된 데이터를 받으므로 클라이언트 필터링은 최소화
   const filteredLoginRecords = loginRecords;
   const filteredActivityLogs = activityLogs;
@@ -232,11 +303,27 @@ const SecurityLogs: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">보안 로그 관리</h2>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={async () => {
+              try {
+                console.log('🧪 테스트 로그 생성 시작...');
+                await supabaseApiService.securityLogs.createTestLoginLog();
+                alert('테스트 로그가 생성되었습니다. 페이지를 새로고침해주세요.');
+              } catch (error) {
+                console.error('테스트 로그 생성 실패:', error);
+                alert('테스트 로그 생성에 실패했습니다. 콘솔을 확인해주세요.');
+              }
+            }}
+          >
+            🧪 테스트 로그 생성
+          </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <Download className="w-4 h-4" />
             Excel 내보내기
           </Button>
-          <Button 
+          <Button
             variant="outline" 
             className="flex items-center gap-2"
             onClick={handleRefresh}
@@ -293,7 +380,7 @@ const SecurityLogs: React.FC = () => {
                 <p className="text-sm font-medium text-muted-foreground">활성 사용자</p>
                 <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
               </div>
-              <Monitor className="w-8 h-8 text-purple-600" />
+              <Users className="w-8 h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -433,87 +520,69 @@ const SecurityLogs: React.FC = () => {
                 <p className="text-sm text-muted-foreground">필터 조건을 변경하거나 다른 기간을 선택해보세요</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>번호</TableHead>
-                      <TableHead>시간</TableHead>
-                      <TableHead>사용자</TableHead>
-                      <TableHead>상태</TableHead>
-                      <TableHead>IP 주소</TableHead>
-                      <TableHead>브라우저</TableHead>
-                      <TableHead>위치</TableHead>
-                      <TableHead>세션 시간</TableHead>
-                      <TableHead>작업</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLoginRecords.slice(0, 20).map((record) => (
-                      <TableRow key={record.id} className="hover:bg-muted/50">
-                        <TableCell>{record.id}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="text-sm">
-                              {new Date(record.timestamp).toLocaleDateString('ko-KR')}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(record.timestamp).toLocaleTimeString('ko-KR')}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{record.user_name}</span>
-                            <span className="text-xs text-muted-foreground">{record.user_id}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(record)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-muted-foreground" />
-                            {record.ip_address}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Monitor className="w-4 h-4 text-muted-foreground" />
-                            {record.browser || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-muted-foreground" />
-                            {record.location || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {record.session_duration ? (
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              {formatDuration(record.session_duration)}
-                            </div>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRecord(record);
-                              setShowDetailModal(true);
-                            }}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                            상세
-                          </Button>
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>번호</TableHead>
+                        <TableHead>시간</TableHead>
+                        <TableHead>사용자</TableHead>
+                        <TableHead>상태</TableHead>
+                        <TableHead>IP 주소</TableHead>
+                        <TableHead>위치</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLoginRecords.map((record, index) => (
+                        <TableRow key={record.id} className="hover:bg-muted/50">
+                          <TableCell>{(loginPagination.current_page - 1) * loginPagination.per_page + index + 1}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm">
+                                {new Date(record.timestamp).toLocaleDateString('ko-KR')}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(record.timestamp).toLocaleTimeString('ko-KR')}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">{record.user_name || '알 수 없음'}</span>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(record)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-muted-foreground" />
+                              {record.ip_address}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              {record.location || '-'}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {filteredLoginRecords.length > 0 && (
+                  <div className="mt-6">
+                    <Pagination
+                      currentPage={loginPagination.current_page}
+                      totalPages={loginPagination.total_pages}
+                      itemsPerPage={loginPagination.per_page}
+                      totalItems={loginPagination.total_count}
+                      onPageChange={handleLoginPageChange}
+                      onItemsPerPageChange={handleLoginLimitChange}
+                      itemsPerPageOptions={[10, 20, 50, 100]}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -541,114 +610,75 @@ const SecurityLogs: React.FC = () => {
                 <p className="text-sm text-muted-foreground">사용자 활동이 기록되면 여기에 표시됩니다</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>번호</TableHead>
-                      <TableHead>시간</TableHead>
-                      <TableHead>사용자</TableHead>
-                      <TableHead>액션</TableHead>
-                      <TableHead>리소스</TableHead>
-                      <TableHead>대상</TableHead>
-                      <TableHead>페이지</TableHead>
-                      <TableHead>민감정보</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredActivityLogs.slice(0, 20).map((log) => (
-                      <TableRow key={log.id} className="hover:bg-muted/50">
-                        <TableCell>{log.id}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="text-sm">
-                              {new Date(log.timestamp).toLocaleDateString('ko-KR')}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(log.timestamp).toLocaleTimeString('ko-KR')}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{log.user_name}</span>
-                            <span className="text-xs text-muted-foreground">{log.user_id}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getActionBadge(log.action)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{log.resource}</Badge>
-                        </TableCell>
-                        <TableCell>{log.target_name || '-'}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{log.page_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="flex items-center gap-1">
-                            <Shield className="w-3 h-3" />
-                            {log.sensitive_data_count}개
-                          </Badge>
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>번호</TableHead>
+                        <TableHead>시간</TableHead>
+                        <TableHead>사용자</TableHead>
+                        <TableHead>액션</TableHead>
+                        <TableHead>리소스</TableHead>
+                        <TableHead>대상</TableHead>
+                        <TableHead>페이지</TableHead>
+                        <TableHead>민감정보</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredActivityLogs.map((log, index) => (
+                        <TableRow key={log.id} className="hover:bg-muted/50">
+                          <TableCell>{(activityPagination.current_page - 1) * activityPagination.per_page + index + 1}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm">
+                                {new Date(log.timestamp).toLocaleDateString('ko-KR')}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(log.timestamp).toLocaleTimeString('ko-KR')}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">{log.user_name || '알 수 없음'}</span>
+                          </TableCell>
+                          <TableCell>{getActionBadge(log.action)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{log.resource}</Badge>
+                          </TableCell>
+                          <TableCell>{log.target_name || '-'}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{log.page_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Shield className="w-3 h-3" />
+                              {log.sensitive_data_count}개
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {filteredActivityLogs.length > 0 && (
+                  <div className="mt-6">
+                    <Pagination
+                      currentPage={activityPagination.current_page}
+                      totalPages={activityPagination.total_pages}
+                      itemsPerPage={activityPagination.per_page}
+                      totalItems={activityPagination.total_count}
+                      onPageChange={handleActivityPageChange}
+                      onItemsPerPageChange={handleActivityLimitChange}
+                      itemsPerPageOptions={[10, 20, 50, 100]}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* 상세 정보 모달 */}
-      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              로그인 기록 상세 정보
-            </DialogTitle>
-          </DialogHeader>
-          {selectedRecord && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">사용자</label>
-                  <p className="font-medium">{selectedRecord.user_name} ({selectedRecord.user_id})</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">상태</label>
-                  <div className="mt-1">{getStatusBadge(selectedRecord)}</div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">시간</label>
-                  <p>{new Date(selectedRecord.timestamp).toLocaleString('ko-KR')}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">IP 주소</label>
-                  <p>{selectedRecord.ip_address}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">브라우저</label>
-                  <p>{selectedRecord.browser}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">위치</label>
-                  <p>{selectedRecord.location || '-'}</p>
-                </div>
-              </div>
-              
-              {selectedRecord.details && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">추가 정보</label>
-                  <div className="mt-2 bg-muted/50 rounded-lg p-4">
-                    <pre className="text-sm text-muted-foreground">
-                      {JSON.stringify(selectedRecord.details, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
