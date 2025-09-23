@@ -45,15 +45,15 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'noreply@churchround.com',
           to: email,
-          subject: '스마트 요람 커뮤니티 가입 승인 및 로그인 정보',
+          subject: 'Church Round 커뮤니티 가입 승인 및 로그인 정보',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-              <h2 style="color: #333; text-align: center;">스마트 요람 커뮤니티 가입 승인</h2>
+              <h2 style="color: #333; text-align: center;">Church Round 커뮤니티 가입 승인</h2>
 
               <p style="font-size: 16px; color: #555;">안녕하세요, ${contact_person}님!</p>
 
               <p style="font-size: 16px; color: #555;">
-                ${organization_name || '귀하'}의 스마트 요람 커뮤니티 가입 신청이 승인되었습니다.
+                ${organization_name || '귀하'}의 Church Round 커뮤니티 가입 신청이 승인되었습니다.
               </p>
 
               <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -92,7 +92,7 @@ serve(async (req) => {
 
               <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
               <p style="font-size: 12px; color: #999; text-align: center;">
-                스마트 요람 커뮤니티<br>
+                Church Round 커뮤니티<br>
                 이 이메일은 자동으로 발송되었습니다.
               </p>
             </div>

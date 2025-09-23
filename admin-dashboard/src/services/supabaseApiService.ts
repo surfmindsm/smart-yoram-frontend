@@ -2203,10 +2203,10 @@ export const supabaseApiService = {
         },
         // 기본값 (매핑되지 않은 교회ID들을 위한)
         default: {
-          name: '스마트 요람 교회',
+          name: 'Church Round 교회',
           address: '서울특별시 강남구 테헤란로 123',
           phone: '02-1234-5678',
-          email: 'admin@smartyoram.church',
+          email: 'admin@churchround.church',
           pastor_name: '김목사',
           gpt_api_key: null,
           current_month_tokens: 0,

@@ -13,7 +13,7 @@ const PrivacyPolicy: React.FC = () => {
           <section>
             <h3 className="text-lg font-semibold mb-3">제1조 (개인정보의 처리목적)</h3>
             <div className="space-y-2 text-gray-700">
-              <p>스마트 요람(이하 '회사')은 다음의 목적을 위하여 개인정보를 처리합니다:</p>
+              <p>Church Round(이하 '회사')은 다음의 목적을 위하여 개인정보를 처리합니다:</p>
               <ul className="list-disc pl-6 space-y-1">
                 <li>서비스 제공 및 계약이행</li>
                 <li>회원가입 의사 확인, 회원 식별, 회원탈퇴 의사 확인</li>
@@ -125,7 +125,7 @@ const PrivacyPolicy: React.FC = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="font-medium">개인정보보호책임자</p>
                 <p>이름: 개인정보보호담당자</p>
-                <p>연락처: privacy@smartyoram.com</p>
+                <p>연락처: privacy@churchround.com</p>
               </div>
             </div>
           </section>

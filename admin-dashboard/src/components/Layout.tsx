@@ -352,7 +352,7 @@ const Layout: React.FC = () => {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-semibold text-slate-900">
-              {isCommunityOnlyUser ? '스마트 요람 커뮤니티' : '스마트 요람 관리자'}
+              {isCommunityOnlyUser ? 'Church Round 커뮤니티' : 'Church Round 관리자'}
             </h1>
           </div>
           <div className="flex items-center space-x-4">

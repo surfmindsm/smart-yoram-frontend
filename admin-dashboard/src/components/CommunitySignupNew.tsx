@@ -296,7 +296,7 @@ const CommunitySignupNew: React.FC = () => {
           
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">스마트 요람 커뮤니티 가입</CardTitle>
+              <CardTitle className="text-2xl">Church Round 커뮤니티 가입</CardTitle>
               <CardDescription>
                 교회 관리자, 업체, 사역자 등 커뮤니티 회원으로 가입하여<br />
                 다양한 교회 관련 서비스를 이용해보세요.
@@ -519,7 +519,7 @@ const CommunitySignupNew: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder={formData.applicantType === 'church_admin'
-                      ? '교회에 대한 간단한 소개와 스마트 요람 시스템을 사용하고자 하는 이유를 적어주세요.'
+                      ? '교회에 대한 간단한 소개와 Church Round 시스템을 사용하고자 하는 이유를 적어주세요.'
                       : '제공하시는 서비스나 이용 목적에 대해 상세히 작성해주세요.'
                     }
                     className="min-h-[120px]"

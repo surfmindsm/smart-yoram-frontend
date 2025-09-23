@@ -194,7 +194,7 @@ const CommunitySignup: React.FC = () => {
               <div>
                 <CardTitle className="text-2xl">커뮤니티 회원 신청</CardTitle>
                 <CardDescription>
-                  스마트 요람 커뮤니티 이용을 위한 신청서입니다
+                  Church Round 커뮤니티 이용을 위한 신청서입니다
                 </CardDescription>
               </div>
             </div>

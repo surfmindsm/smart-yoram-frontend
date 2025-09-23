@@ -79,10 +79,10 @@ serve(async (req) => {
           body: JSON.stringify({
             from: 'noreply@churchround.com',
             to: email,
-            subject: '스마트 요람 이메일 인증 코드',
+            subject: 'Church Round 이메일 인증 코드',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                <h2 style="color: #333; text-align: center;">스마트 요람 이메일 인증</h2>
+                <h2 style="color: #333; text-align: center;">Church Round 이메일 인증</h2>
                 <p style="font-size: 16px; color: #555;">안녕하세요,</p>
                 <p style="font-size: 16px; color: #555;">요청하신 이메일 인증 코드는 다음과 같습니다:</p>
                 <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
@@ -91,7 +91,7 @@ serve(async (req) => {
                 <p style="font-size: 14px; color: #777;">이 코드는 15분 동안만 유효합니다.</p>
                 <p style="font-size: 14px; color: #777;">본인이 요청하지 않았다면 이 이메일을 무시하세요.</p>
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-                <p style="font-size: 12px; color: #999; text-align: center;">스마트 요람 커뮤니티</p>
+                <p style="font-size: 12px; color: #999; text-align: center;">Church Round 커뮤니티</p>
               </div>
             `
           })

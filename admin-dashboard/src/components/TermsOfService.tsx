@@ -6,14 +6,14 @@ const TermsOfService: React.FC = () => {
     <div className="container mx-auto p-6 max-w-4xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl text-center">스마트 요람 서비스 이용약관</CardTitle>
+          <CardTitle className="text-2xl text-center">Church Round 서비스 이용약관</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           
           <section>
             <h3 className="text-lg font-semibold mb-3">제1조 (목적)</h3>
             <p className="text-gray-700 leading-7">
-              본 약관은 스마트 요람(이하 "회사")이 제공하는 교회 관리 및 커뮤니티 서비스(이하 "서비스")의 
+              본 약관은 Church Round(이하 "회사")이 제공하는 교회 관리 및 커뮤니티 서비스(이하 "서비스")의 
               이용과 관련하여 회사와 이용자 간의 권리와 의무, 책임사항 및 기타 필요한 사항을 규정함을 목적으로 합니다.
             </p>
           </section>
