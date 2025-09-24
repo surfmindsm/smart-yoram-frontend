@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, KeyboardEvent, useCallback } from 'react';
 import { ChatMessage, ChatHistory, Agent } from '../types/chat';
 import { queryDatabaseViaMCP } from '../utils/mcpUtils';
-import { chatService } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 import { formatChurchData } from '../utils/churchDataFormatter';
 
 interface UseChatHandlersProps {
@@ -116,9 +116,9 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             return;
           }
           
-          const historyResult = await chatService.createChatHistory(
-            agentId, 
-            selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`
+          const historyResult = await supabaseApiService.aiChat.createChatHistory(
+            selectedAgentForChat ? `${selectedAgentForChat.name}와의 대화` : `새 대화 ${new Date().toLocaleString()}`,
+            agentId
           );
           
           historyCreated = true;
@@ -219,18 +219,18 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         console.log('🚀 비서 에이전트 API 요청 데이터:', messageData);
         
         try {
-          const responseData = await chatService.sendMessage(messageData);
+          const responseData = await supabaseApiService.aiChat.sendMessage(
+            parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
+            userMessage.content,
+            agentId
+          );
           
           let aiContent = '교회 데이터를 기반으로 답변드리겠습니다.';
-          if (responseData.success && responseData.data) {
-            const data = responseData.data;
-            let rawContent = data.ai_response || data.content || data.message;
-            
-            if (typeof rawContent === 'object' && rawContent !== null) {
-              aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
-            } else if (typeof rawContent === 'string') {
-              aiContent = rawContent;
-            }
+          if (responseData && responseData.ai_message) {
+            aiContent = responseData.ai_message.content;
+          } else if (responseData && responseData.user_message) {
+            // 현재는 목업 응답만 있음
+            aiContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || 'AI 비서'}입니다. "${userMessage.content}"에 대해 도움을 드리겠습니다.`;
           }
           
           aiResponse = {
@@ -297,69 +297,23 @@ export function useChatHandlers(props: UseChatHandlersProps) {
         console.log('🚀 API 요청 데이터:', messageData);
         
         // 백엔드에서 AI 응답 생성하도록 API 호출
-        const responseData = await chatService.sendMessage(messageData);
+        const responseData = await supabaseApiService.aiChat.sendMessage(
+          parseInt(effectiveChatId.replace('chat_', '')) || Date.now(),
+          userMessage.content,
+          agentId
+        );
         
         // 백엔드 응답 데이터 구조 확인 및 파싱
         let aiContent = '응답을 생성하지 못했습니다.';
         let tokensUsed = 0;
         let actualChatId = effectiveChatId;
-        let usedModel = 'Unknown';
-        
-        if (responseData.success && responseData.data) {
-          const data = responseData.data;
-          
-          let rawContent = data.ai_response || data.content || data.message;
-          
-          // 객체인 경우 적절한 파싱 시도
-          if (typeof rawContent === 'object' && rawContent !== null) {
-            if (rawContent.content) {
-              aiContent = rawContent.content;
-            } else if (rawContent.message) {
-              aiContent = rawContent.message;
-            } else if (rawContent.text) {
-              aiContent = rawContent.text;
-            } else {
-              // 최후 수단으로 JSON 문자열화
-              aiContent = JSON.stringify(rawContent, null, 2);
-            }
-          } else if (typeof rawContent === 'string') {
-            aiContent = rawContent;
-          } else {
-            aiContent = String(rawContent) || '응답을 생성하지 못했습니다.';
-          }
-          
-          tokensUsed = data.tokens_used || data.tokensUsed || 0;
-          
-          // 사용된 모델명 로깅
-          usedModel = data.model || data.gpt_model || 'Unknown';
-          console.log(`🤖 AI 응답 생성 완료 - 사용 모델: ${usedModel}, 토큰: ${tokensUsed}`);
-          
-          // 백엔드에서 실제 생성된 chat_history_id 받기
-          if (data.chat_history_id) {
-            actualChatId = `chat_${data.chat_history_id}`;
-            
-            // 임시 ID와 다르면 업데이트
-            if (actualChatId !== effectiveChatId) {
-              setCurrentChatId(actualChatId);
-              effectiveChatId = actualChatId;
-            }
-          }
-        } else if (responseData.ai_response) {
-          let rawContent = responseData.ai_response;
-          if (typeof rawContent === 'object' && rawContent !== null) {
-            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
-          } else {
-            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
-          }
-          tokensUsed = responseData.tokens_used || 0;
-        } else if (responseData.content) {
-          let rawContent = responseData.content;
-          if (typeof rawContent === 'object' && rawContent !== null) {
-            aiContent = rawContent.content || rawContent.message || rawContent.text || JSON.stringify(rawContent, null, 2);
-          } else {
-            aiContent = typeof rawContent === 'string' ? rawContent : String(rawContent);
-          }
-          tokensUsed = responseData.tokens_used || 0;
+
+        if (responseData && responseData.ai_message) {
+          aiContent = responseData.ai_message.content;
+          console.log(`🤖 AI 응답 생성 완료`);
+        } else if (responseData && responseData.user_message) {
+          // 현재는 목업 응답만 있음
+          aiContent = `안녕하세요! 저는 ${selectedAgentForChat?.name || 'AI 도우미'}입니다. "${userMessage.content}"에 대해 도움을 드리겠습니다.`;
         }
         
         
@@ -368,11 +322,7 @@ export function useChatHandlers(props: UseChatHandlersProps) {
           role: 'assistant',
           content: aiContent,
           timestamp: new Date(),
-          tokensUsed: tokensUsed,
-          // 비서 에이전트 응답 메타데이터 처리
-          is_secretary_agent: responseData.data?.is_secretary_agent || false,
-          query_type: responseData.data?.query_type,
-          data_sources: responseData.data?.data_sources || []
+          tokensUsed: tokensUsed
         };
       }
         
@@ -402,12 +352,13 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       if (finalMessages.length >= 2 && finalMessages.length <= 4) {
         
         try {
-          const generatedTitle = await chatService.generateChatTitle(
-            finalMessages.map(msg => ({
-              content: msg.content,
-              role: msg.role
-            }))
-          );
+          // TODO: 제목 생성 기능은 나중에 구현
+          const generatedTitle = `${selectedAgentForChat?.name || 'AI'}와의 대화 ${new Date().toLocaleString('ko-KR', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}`;
           
           if (generatedTitle && generatedTitle !== '새 대화' && generatedTitle.length > 2) {
             
@@ -423,10 +374,8 @@ export function useChatHandlers(props: UseChatHandlersProps) {
             
             // 2. 백엔드에 제목 저장 (비동기)
             try {
-              await chatService.updateChatTitle(
-                effectiveChatId.replace('chat_', ''), 
-                generatedTitle
-              );
+              // TODO: 제목 업데이트 API 구현 필요
+              console.log('📝 제목 업데이트:', generatedTitle);
             } catch (backendError) {
               console.warn('⚠️ 백엔드 제목 저장 실패:', backendError);
             }
@@ -579,8 +528,8 @@ export function useChatHandlers(props: UseChatHandlersProps) {
       ));
       
       // 2. 백엔드에 북마크 상태 저장
-      const historyId = chatId.replace('chat_', '');
-      await chatService.bookmarkChat(historyId, newBookmarkState);
+      // TODO: 북마크 업데이트 API 구현 필요
+      console.log('📌 북마크 상태 업데이트:', { chatId, newBookmarkState });
       
       
     } catch (error) {

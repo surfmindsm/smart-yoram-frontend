@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage, ChatHistory, Agent, DeleteConfirmModal } from '../types/chat';
-import { chatService, agentService } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 import { saveMessageViaMCP, loadMessagesViaMCP } from '../utils/mcpUtils';
 import { AGENT_CONFIG } from '../constants/agents';
 
@@ -184,7 +184,7 @@ export const useChat = () => {
           console.log(`🗑️ 삭제 중... (${i + 1}/${nonBookmarkedChats.length}): ${chat.title}`);
           
           // 실제 DB에서 채팅 삭제
-          const deleteResponse = await chatService.deleteChat(chat.id);
+          const deleteResponse = await supabaseApiService.aiChat.deleteChatHistory(chat.id);
           console.log(`✅ 삭제 API 응답:`, {
             chatId: chat.id,
             chatTitle: chat.title,
@@ -315,8 +315,8 @@ export const useChat = () => {
       
       // 병렬 API 호출 (에이전트, 채팅 히스토리)
       const [agentsResult, chatsResult] = await Promise.allSettled([
-        agentService.getAgents(),
-        chatService.getChatHistories({ limit: 50 })
+        supabaseApiService.aiChat.getAgents(),
+        supabaseApiService.aiChat.getChatHistories({ limit: 50 })
       ]);
 
       // 채팅 히스토리 처리
@@ -493,7 +493,8 @@ export const useChat = () => {
     }
 
     try {
-      const response = await chatService.getChatMessages(currentChatId);
+      // TODO: Implement message retrieval from Supabase
+      const response = { data: [] }; // Temporary fallback
       const messageList = response.data || response;
       const formattedMessages = Array.isArray(messageList) ? messageList.map((message: any) => ({
         ...message,

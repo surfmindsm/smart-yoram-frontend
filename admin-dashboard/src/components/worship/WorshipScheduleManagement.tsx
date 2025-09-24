@@ -307,75 +307,119 @@ export default function WorshipScheduleManagement() {
         </div>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">전체</TabsTrigger>
-          <TabsTrigger value="sunday">주일예배</TabsTrigger>
-          <TabsTrigger value="weekday">주중예배</TabsTrigger>
-          <TabsTrigger value="online">온라인</TabsTrigger>
-        </TabsList>
+      {services.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">등록된 예배가 없습니다</h3>
+            <p className="text-muted-foreground mb-4">
+              아직 등록된 예배 일정이 없습니다.<br />
+              새로운 예배 일정을 추가해보세요.
+            </p>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              첫 번째 예배 추가하기
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList>
+            <TabsTrigger value="all">전체</TabsTrigger>
+            <TabsTrigger value="sunday">주일예배</TabsTrigger>
+            <TabsTrigger value="weekday">주중예배</TabsTrigger>
+            <TabsTrigger value="online">온라인</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
-          {Object.entries(groupServicesByType()).map(([type, typeServices]) => (
-            <Card key={type}>
-              <CardHeader>
-                <CardTitle>{SERVICE_TYPES.find(t => t.value === type)?.label || '기타'}</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <TabsContent value="all" className="space-y-4">
+            {Object.entries(groupServicesByType()).map(([type, typeServices]) => (
+              <div key={type} className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground">{SERVICE_TYPES.find(t => t.value === type)?.label || '기타'}</h3>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {typeServices.map(service => (
+                        <ServiceCard
+                          key={service.id}
+                          service={service}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="sunday" className="space-y-4">
+            <Card>
+              <CardContent className="p-6">
                 <div className="space-y-4">
-                  {typeServices.map(service => (
-                    <ServiceCard 
-                      key={service.id} 
-                      service={service} 
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
+                  {services
+                    .filter(s => s.service_type === 'sunday_worship')
+                    .map(service => (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  {services.filter(s => s.service_type === 'sunday_worship').length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">주일예배가 등록되지 않았습니다.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="sunday" className="space-y-4">
-          {services
-            .filter(s => s.service_type === 'sunday_worship')
-            .map(service => (
-              <ServiceCard 
-                key={service.id} 
-                service={service} 
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-        </TabsContent>
+          <TabsContent value="weekday" className="space-y-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {services
+                    .filter(s => s.service_type !== 'sunday_worship')
+                    .map(service => (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  {services.filter(s => s.service_type !== 'sunday_worship').length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">주중예배가 등록되지 않았습니다.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="weekday" className="space-y-4">
-          {services
-            .filter(s => s.service_type !== 'sunday_worship')
-            .map(service => (
-              <ServiceCard 
-                key={service.id} 
-                service={service} 
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-        </TabsContent>
-
-        <TabsContent value="online" className="space-y-4">
-          {services
-            .filter(s => s.is_online)
-            .map(service => (
-              <ServiceCard 
-                key={service.id} 
-                service={service} 
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="online" className="space-y-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {services
+                    .filter(s => s.is_online)
+                    .map(service => (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  {services.filter(s => s.is_online).length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">온라인 예배가 등록되지 않았습니다.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
@@ -514,24 +558,24 @@ export default function WorshipScheduleManagement() {
   );
 }
 
-function ServiceCard({ 
-  service, 
-  onEdit, 
-  onDelete 
-}: { 
-  service: WorshipService; 
+function ServiceCard({
+  service,
+  onEdit,
+  onDelete
+}: {
+  service: WorshipService;
   onEdit: (service: WorshipService) => void;
   onDelete: (id: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
+    <div className="flex items-center justify-between p-4 border border-muted rounded-lg">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <h4 className="font-semibold">{service.name}</h4>
+          <h4 className="font-semibold text-foreground">{service.name}</h4>
           {service.is_online && <Monitor className="h-4 w-4 text-blue-500" />}
-          {!service.is_active && <span className="text-xs text-gray-500">(비활성)</span>}
+          {!service.is_active && <span className="text-xs text-muted-foreground">(비활성)</span>}
         </div>
-        <div className="mt-1 space-y-1 text-sm text-gray-600">
+        <div className="mt-1 space-y-1 text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             {service.day_of_week !== undefined && (
               <span>{DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week]}</span>

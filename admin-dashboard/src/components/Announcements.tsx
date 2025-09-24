@@ -180,7 +180,7 @@ const Announcements: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-slate-900">공지사항 관리</h2>
+        <h2 className="text-3xl font-bold text-foreground">공지사항 관리</h2>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
           새 공지사항
@@ -222,70 +222,68 @@ const Announcements: React.FC = () => {
       </div>
 
       {/* Announcements List */}
-      <div className="space-y-4">
-        {announcements.map((announcement) => (
-          <Card 
-            key={announcement.id} 
-            className={`${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2">
-                    {announcement.is_pinned && (
-                      <Pin className="w-4 h-4 text-yellow-600 fill-current" />
-                    )}
-                    {announcement.title}
-                    {!announcement.is_active && (
-                      <Badge variant="secondary">비활성</Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    {announcement.category && <><CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | </> }
-                    작성자: {announcement.author_name} | 
-                    작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} | 
-                    대상: {getTargetAudienceText(announcement.target_audience)}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(announcement)}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleTogglePin(announcement.id)}
-                  >
-                    <Pin className={`w-4 h-4 ${announcement.is_pinned ? 'fill-current' : ''}`} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(announcement.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600 whitespace-pre-wrap">{announcement.content}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {announcements.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <p className="text-slate-500">공지사항이 없습니다.</p>
+      {announcements.length === 0 ? (
+        <Card className="border-muted">
+          <CardContent className="text-center py-12">
+            <p className="text-muted-foreground">공지사항이 없습니다.</p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="space-y-4">
+          {announcements.map((announcement) => (
+            <Card
+              key={announcement.id}
+              className={`border-muted ${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      {announcement.is_pinned && (
+                        <Pin className="w-4 h-4 text-yellow-600 fill-current" />
+                      )}
+                      <h3 className="text-lg font-semibold text-foreground">{announcement.title}</h3>
+                      {!announcement.is_active && (
+                        <Badge variant="secondary">비활성</Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {announcement.category && <><CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | </> }
+                      작성자: {announcement.author_name} |
+                      작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} |
+                      대상: {getTargetAudienceText(announcement.target_audience)}
+                    </div>
+                    <p className="text-muted-foreground whitespace-pre-wrap mt-2">{announcement.content}</p>
+                  </div>
+                  <div className="flex gap-1 ml-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(announcement)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleTogglePin(announcement.id)}
+                    >
+                      <Pin className={`w-4 h-4 ${announcement.is_pinned ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(announcement.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Modal */}

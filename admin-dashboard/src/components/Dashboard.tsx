@@ -15,7 +15,7 @@ import {
   Smartphone,
   MessageCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
@@ -43,20 +43,20 @@ const Dashboard = React.memo(() => {
       const currentUser = await supabaseAuthService.getCurrentUser();
       const userChurchId = currentUser?.user?.church_id;
 
-      // 병렬로 API 호출하여 성능 개선
-      const today = new Date().toISOString().split('T')[0];
-      const [membersResponse, attendanceResponse] = await Promise.all([
-        edgeApi.get(`/members/${userChurchId ? `?church_id=${userChurchId}` : ''}`).catch(() => ({ data: [] })),
-        edgeApi.get(`/attendances/${userChurchId ? `?church_id=${userChurchId}&start_date=${today}&end_date=${today}` : `?start_date=${today}&end_date=${today}`}`).catch(() => ({ data: [] }))
+      // 교인 데이터만 조회 (출석 데이터는 임시로 주석처리)
+      // const today = new Date().toISOString().split('T')[0];
+      const [membersResponse] = await Promise.all([
+        edgeApi.get(`/members/${userChurchId ? `?church_id=${userChurchId}` : ''}`).catch(() => ({ data: [] }))
+        // edgeApi.get(`/attendances/${userChurchId ? `?church_id=${userChurchId}&start_date=${today}&end_date=${today}` : `?start_date=${today}&end_date=${today}`}`).catch(() => ({ data: [] }))
       ]);
-      
+
       const totalMembers = membersResponse.data.length || 0;
-      const attendanceData: any[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : [];
-      const todayAttendance = attendanceData.filter((a: any) => a.is_present).length;
+      // const attendanceData: any[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : [];
+      // const todayAttendance = attendanceData.filter((a: any) => a.is_present).length;
 
       setDashboardData({
         totalMembers,
-        todayAttendance,
+        todayAttendance: 0, // 임시로 0으로 설정 (출석 기능 비활성화)
         newMembersThisWeek: 0, // TODO: 실제 로직 구현
         activeUsers: 1
       });
@@ -113,7 +113,7 @@ const Dashboard = React.memo(() => {
   // stats 배열을 useMemo로 최적화
   const stats = useMemo(() => [
     { title: '전체 교인', value: dashboardData.totalMembers.toString(), Icon: Users, color: 'bg-blue-500' },
-    { title: '오늘 출석', value: dashboardData.todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' },
+    // { title: '오늘 출석', value: dashboardData.todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' }, // 임시로 주석처리
     { title: '이번 주 새가족', value: dashboardData.newMembersThisWeek.toString(), Icon: UserPlus, color: 'bg-purple-500' },
     { title: '활성 사용자', value: dashboardData.activeUsers.toString(), Icon: User, color: 'bg-yellow-500' },
   ], [dashboardData]);
@@ -195,8 +195,8 @@ const Dashboard = React.memo(() => {
         <h2 className="text-3xl font-bold tracking-tight text-foreground">대시보드</h2>
       </div>
       
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats Grid - 3개 카드로 더 넓게 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         {stats.map((stat, index) => (
           <StatCard
             key={`stat-${index}`}
@@ -227,11 +227,10 @@ const Dashboard = React.memo(() => {
       </div>
 
       {/* Recent Activities */}
-      <Card className="border-muted">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-foreground">최근 활동</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4">최근 활동</h3>
+        <Card className="border-muted">
+          <CardContent className="p-6 space-y-4">
           <div className="flex items-center text-sm text-muted-foreground">
             <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center mr-3">
               <Activity className="h-4 w-4 text-green-600" />
@@ -253,8 +252,9 @@ const Dashboard = React.memo(() => {
             <span>SMS 발송 기능을 사용할 수 있습니다.</span>
             <Badge variant="outline" className="ml-auto">준비</Badge>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 비밀번호 변경 모달 */}
       <PasswordChangeModal

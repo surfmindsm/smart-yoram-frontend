@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card, CardContent } from './ui/card';
 
 interface PrayerRequest {
   id: string;
@@ -370,58 +371,67 @@ const PrayerRequests: React.FC = () => {
       {/* 통계 카드 */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Heart className="h-5 w-5 text-blue-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-blue-500/10">
+                  <Heart className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">전체 요청</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">전체 요청</p>
-                <p className="text-lg font-semibold text-gray-900">{stats.total}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-orange-500/10">
+                  <Clock className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">진행중</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.active}</div>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">진행중</p>
-                <p className="text-lg font-semibold text-gray-900">{stats.active}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-green-500/10">
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">응답됨</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.answered}</div>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">응답됨</p>
-                <p className="text-lg font-semibold text-gray-900">{stats.answered}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-red-500/10">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">긴급</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.urgent}</div>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">긴급</p>
-                <p className="text-lg font-semibold text-gray-900">{stats.urgent}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* 필터 및 검색 */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <Card className="border-muted mb-6">
+        <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -486,10 +496,11 @@ const PrayerRequests: React.FC = () => {
             새 요청
           </button>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 기도요청 목록 */}
-      <div className="bg-white rounded-lg shadow">
+      <Card className="border-muted">
         {loading ? (
           <div className="p-6 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -633,7 +644,7 @@ const PrayerRequests: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* 새 기도요청 생성 모달 */}
       {showCreateModal && (

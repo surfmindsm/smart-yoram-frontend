@@ -177,31 +177,43 @@ const DailyVerses: React.FC = () => {
       {/* 통계 카드 */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-muted">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 말씀</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_verses}</div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-blue-500/10">
+                  <BarChart3 className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">전체 말씀</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.total_verses}</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-muted">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">활성 말씀</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.active_verses}</div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-green-500/10">
+                  <Eye className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">활성 말씀</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.active_verses}</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-muted">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">비활성 말씀</CardTitle>
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.inactive_verses}</div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-lg bg-red-500/10">
+                  <EyeOff className="h-6 w-6 text-red-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">비활성 말씀</p>
+                  <div className="text-2xl font-bold text-foreground">{stats.inactive_verses}</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -209,14 +221,16 @@ const DailyVerses: React.FC = () => {
 
       {/* 현재 랜덤 말씀 */}
       {currentRandomVerse && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              현재 오늘의 말씀
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <div className="p-3 rounded-lg bg-primary/10">
+                <BookOpen className="h-6 w-6 text-primary" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-foreground">현재 오늘의 말씀</h3>
+              </div>
+            </div>
             <blockquote className="text-lg italic text-foreground mb-2">
               {currentRandomVerse.verse}
             </blockquote>
@@ -235,65 +249,65 @@ const DailyVerses: React.FC = () => {
       )}
 
       {/* 말씀 목록 */}
-      <Card className="border-muted">
-        <CardHeader>
-          <CardTitle>말씀 목록</CardTitle>
-          <CardDescription>등록된 모든 말씀을 관리할 수 있습니다.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">로딩 중...</p>
-              </div>
-            ) : verses.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">등록된 말씀이 없습니다.</p>
-              </div>
-            ) : (
-              verses.map((verse) => (
-                <div key={verse.id} className="border border-muted rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <blockquote className="text-base italic text-foreground mb-2">
-                        {verse.verse}
-                      </blockquote>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        - {verse.reference}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={verse.is_active ? "success" : "secondary"}>
-                          {verse.is_active ? "활성" : "비활성"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(verse.created_at).toLocaleDateString('ko-KR')}
-                        </span>
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-foreground">말씀 목록</h3>
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground mb-6">등록된 모든 말씀을 관리할 수 있습니다.</p>
+            <div className="space-y-4">
+              {loading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">로딩 중...</p>
+                </div>
+              ) : verses.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">등록된 말씀이 없습니다.</p>
+                </div>
+              ) : (
+                verses.map((verse) => (
+                  <div key={verse.id} className="rounded-lg p-4 bg-muted/20">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <blockquote className="text-base italic text-foreground mb-2">
+                          {verse.verse}
+                        </blockquote>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          - {verse.reference}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={verse.is_active ? "success" : "secondary"}>
+                            {verse.is_active ? "활성" : "비활성"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(verse.created_at).toLocaleDateString('ko-KR')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(verse)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteVerse(verse.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(verse)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteVerse(verse.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 말씀 추가 모달 */}
       <Dialog open={showAddModal} onOpenChange={closeModals}>

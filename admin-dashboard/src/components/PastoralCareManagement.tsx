@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
@@ -1025,64 +1025,84 @@ const PastoralCareManagement: React.FC = () => {
         <>
           {/* 통계 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">대기중</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {requests.filter(r => r.status === 'pending').length}
-                  </p>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-yellow-500/10">
+                    <Clock className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">대기중</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {requests.filter(r => r.status === 'pending').length}
+                    </div>
+                  </div>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-600" />
-              </div>
-            </div>
-            
+              </CardContent>
+            </Card>
+
             {/* 🆕 긴급 요청 통계 추가 */}
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">긴급 요청</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {requests.filter(r => r.isUrgent).length}
-                  </p>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-red-500/10">
+                    <Zap className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">긴급 요청</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {requests.filter(r => r.isUrgent).length}
+                    </div>
+                  </div>
                 </div>
-                <Zap className="h-8 w-8 text-red-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">예정됨</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {requests.filter(r => r.status === 'scheduled').length}
-                  </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-purple-500/10">
+                    <Calendar className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">예정됨</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {requests.filter(r => r.status === 'scheduled').length}
+                    </div>
+                  </div>
                 </div>
-                <Calendar className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">완료</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {requests.filter(r => r.status === 'completed').length}
-                  </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-green-500/10">
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">완료</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {requests.filter(r => r.status === 'completed').length}
+                    </div>
+                  </div>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">전체</p>
-                  <p className="text-2xl font-bold text-slate-900">{requests.length}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-slate-500/10">
+                    <Users className="h-6 w-6 text-slate-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">전체</p>
+                    <div className="text-2xl font-bold text-foreground">{requests.length}</div>
+                  </div>
                 </div>
-                <Users className="h-8 w-8 text-slate-600" />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
@@ -1092,64 +1112,81 @@ const PastoralCareManagement: React.FC = () => {
         <>
           {/* 심방 기록 통계 */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">총 심방 완료</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {completedRecords.length}
-                  </p>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-green-500/10">
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">총 심방 완료</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {completedRecords.length}
+                    </div>
+                  </div>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">이번 달</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {completedRecords.filter(r => {
-                      const completedAt = new Date(r.completedAt || r.createdAt);
-                      const thisMonth = new Date();
-                      return completedAt.getMonth() === thisMonth.getMonth() && 
-                             completedAt.getFullYear() === thisMonth.getFullYear();
-                    }).length}
-                  </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-blue-500/10">
+                    <Calendar className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">이번 달</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {completedRecords.filter(r => {
+                        const completedAt = new Date(r.completedAt || r.createdAt);
+                        const thisMonth = new Date();
+                        return completedAt.getMonth() === thisMonth.getMonth() &&
+                               completedAt.getFullYear() === thisMonth.getFullYear();
+                      }).length}
+                    </div>
+                  </div>
                 </div>
-                <Calendar className="h-8 w-8 text-blue-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">병원 심방</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {completedRecords.filter(r => r.requestType === 'hospital').length}
-                  </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-red-500/10">
+                    <AlertCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">병원 심방</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {completedRecords.filter(r => r.requestType === 'hospital').length}
+                    </div>
+                  </div>
                 </div>
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">일지 작성</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {completedRecords.filter(r => r.completionNotes && r.completionNotes.trim()).length}
-                  </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-lg bg-purple-500/10">
+                    <FileText className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-muted-foreground">일지 작성</p>
+                    <div className="text-2xl font-bold text-foreground">
+                      {completedRecords.filter(r => r.completionNotes && r.completionNotes.trim()).length}
+                    </div>
+                  </div>
                 </div>
-                <FileText className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
 
       {/* 검색 및 필터 */}
-      <div className="bg-white p-4 rounded-lg border border-slate-200">
+      <Card className="border-muted">
+        <CardContent className="p-6">
         <div className="flex items-center space-x-4 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1335,11 +1372,12 @@ const PastoralCareManagement: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 신청 관리 목록 */}
       {activeTab === 'requests' && (
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <Card className="border-muted overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -1543,14 +1581,15 @@ const PastoralCareManagement: React.FC = () => {
             <p className="text-slate-500">조건에 맞는 심방 신청이 없습니다.</p>
           </div>
         )}
-        </div>
+        </Card>
       )}
 
       {/* 심방 기록 목록 */}
       {activeTab === 'records' && (
         <>
           {/* 심방 기록 필터링 */}
-          <div className="bg-white p-4 rounded-lg border border-slate-200 mb-6">
+          <Card className="border-muted mb-6">
+            <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">심방 기록 검색 및 필터</h3>
               <button
@@ -1637,14 +1676,16 @@ const PastoralCareManagement: React.FC = () => {
                 <span className="text-blue-600">필터 적용 중</span>
               )}
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="space-y-4">
             {filteredRecords.map((record) => (
-              <div key={record.id} 
-                   className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+              <Card key={record.id}
+                   className="border-muted cursor-pointer"
                    onClick={() => handleRecordDetail(record)}
                    >
+                <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
@@ -1736,7 +1777,8 @@ const PastoralCareManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 

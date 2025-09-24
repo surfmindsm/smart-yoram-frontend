@@ -301,126 +301,124 @@ export default function PushNotifications() {
         </TabsList>
 
         <TabsContent value="send" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>알림 대상 선택</CardTitle>
-              <CardDescription>
-                푸시 알림을 받을 대상을 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup value={targetType} onValueChange={setTargetType}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="all" />
-                  <Label htmlFor="all" className="cursor-pointer">
-                    전체 교인
-                  </Label>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">알림 대상 선택</h3>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground mb-6">푸시 알림을 받을 대상을 선택하세요</p>
+                <RadioGroup value={targetType} onValueChange={setTargetType}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="all" />
+                    <Label htmlFor="all" className="cursor-pointer">
+                      전체 교인
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="group" id="group" />
+                    <Label htmlFor="group" className="cursor-pointer">
+                      그룹 선택
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="individual" id="individual" />
+                    <Label htmlFor="individual" className="cursor-pointer">
+                      개별 선택
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {(targetType === 'individual' || targetType === 'group') && (
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsMemberDialogOpen(true)}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      교인 선택 ({selectedMembers.length}명 선택됨)
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">알림 내용</h3>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground mb-6">발송할 푸시 알림의 내용을 작성하세요</p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="type">알림 유형</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value) => setFormData({ ...formData, type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NOTIFICATION_TYPES.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="title">제목</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="알림 제목을 입력하세요"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="body">내용</Label>
+                    <Textarea
+                      id="body"
+                      value={formData.body}
+                      onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                      placeholder="알림 내용을 입력하세요"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="image_url">
+                      <Image className="inline mr-2 h-4 w-4" />
+                      이미지 URL (선택사항)
+                    </Label>
+                    <Input
+                      id="image_url"
+                      type="url"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="link_url">
+                      링크 URL (선택사항)
+                    </Label>
+                    <Input
+                      id="link_url"
+                      type="url"
+                      value={formData.link_url}
+                      onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+                      placeholder="https://example.com"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="group" id="group" />
-                  <Label htmlFor="group" className="cursor-pointer">
-                    그룹 선택
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual" className="cursor-pointer">
-                    개별 선택
-                  </Label>
-                </div>
-              </RadioGroup>
-
-              {(targetType === 'individual' || targetType === 'group') && (
-                <div className="mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsMemberDialogOpen(true)}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    교인 선택 ({selectedMembers.length}명 선택됨)
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>알림 내용</CardTitle>
-              <CardDescription>
-                발송할 푸시 알림의 내용을 작성하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="type">알림 유형</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) => setFormData({ ...formData, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NOTIFICATION_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="title">제목</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="알림 제목을 입력하세요"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="body">내용</Label>
-                <Textarea
-                  id="body"
-                  value={formData.body}
-                  onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                  placeholder="알림 내용을 입력하세요"
-                  rows={4}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="image_url">
-                  <Image className="inline mr-2 h-4 w-4" />
-                  이미지 URL (선택사항)
-                </Label>
-                <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="link_url">
-                  링크 URL (선택사항)
-                </Label>
-                <Input
-                  id="link_url"
-                  type="url"
-                  value={formData.link_url}
-                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                  placeholder="https://example.com"
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="flex justify-end space-x-2">
             <Button
@@ -436,29 +434,29 @@ export default function PushNotifications() {
 
         <TabsContent value="history" className="space-y-4">
           {history.length === 0 ? (
-            <Card>
+            <Card className="border-muted">
               <CardContent className="text-center py-8">
-                <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-500">발송한 알림이 없습니다</p>
+                <Bell className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">발송한 알림이 없습니다</p>
               </CardContent>
             </Card>
           ) : (
             history.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="pt-6">
+              <Card key={item.id} className="border-muted">
+                <CardContent className="p-6">
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <h4 className="font-semibold">{item.title}</h4>
-                        <p className="text-sm text-gray-600">{item.body}</p>
+                        <h4 className="font-semibold text-foreground">{item.title}</h4>
+                        <p className="text-sm text-muted-foreground">{item.body}</p>
                       </div>
                       <div className="flex gap-2">
                         {getStatusBadge(item)}
                         <Badge variant="outline">{getTypeLabel(item.type)}</Badge>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{getTargetLabel(item.target_type, item.total_recipients)}</span>
                       {item.sent_count > 0 && (
                         <>
@@ -485,11 +483,11 @@ export default function PushNotifications() {
                         </>
                       )}
                       {item.total_recipients === 0 && (
-                        <span className="text-gray-400">대상 없음</span>
+                        <span className="text-muted-foreground">대상 없음</span>
                       )}
                     </div>
-                    
-                    <div className="flex items-center text-sm text-gray-400">
+
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <Clock className="mr-1 h-3 w-3" />
                       {new Date(item.sent_at || item.created_at).toLocaleString()}
                     </div>

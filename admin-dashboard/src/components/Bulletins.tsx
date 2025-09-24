@@ -219,56 +219,69 @@ const Bulletins: React.FC = () => {
       </div>
 
       {/* Bulletins Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {bulletins.map((bulletin) => (
-          <Card key={bulletin.id} className="border-muted overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">{bulletin.title}</CardTitle>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {new Date(bulletin.date).toLocaleDateString('ko-KR')}
-              </p>
-            </CardHeader>
-            <CardContent>
-              {bulletin.content && (
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{bulletin.content}</p>
-              )}
-              <div className="flex justify-between items-center">
-                {bulletin.file_url ? (
-                  <a
-                    href={bulletin.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline text-sm flex items-center gap-1"
-                  >
-                    <FileText className="w-3 h-3" />
-                    파일 보기
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground text-sm">첨부파일 없음</span>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(bulletin)}
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(bulletin.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+      {bulletins.length === 0 ? (
+        <Card className="border-muted">
+          <CardContent className="text-center py-8">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">등록된 주보가 없습니다.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {bulletins.map((bulletin) => (
+            <Card key={bulletin.id} className="border-muted">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{bulletin.title}</h3>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(bulletin.date).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+
+                  {bulletin.content && (
+                    <p className="text-sm text-muted-foreground line-clamp-3">{bulletin.content}</p>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    {bulletin.file_url ? (
+                      <a
+                        href={bulletin.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-sm flex items-center gap-1"
+                      >
+                        <FileText className="w-3 h-3" />
+                        파일 보기
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">첨부파일 없음</span>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(bulletin)}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(bulletin.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       <Dialog open={showAddModal} onOpenChange={handleCloseModal}>

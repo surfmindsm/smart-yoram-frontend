@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
@@ -1231,52 +1231,77 @@ const DonationManagement: React.FC = () => {
             {loading ? (
               // 스켈레톤 카드들
               Array.from({ length: 4 }).map((_, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-2">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-8 bg-gray-200 rounded animate-pulse w-24"></div>
+                <Card key={index} className="border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="p-3 rounded-lg bg-gray-200 animate-pulse">
+                        <div className="h-6 w-6 bg-gray-300 rounded"></div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20 mb-2"></div>
+                        <div className="h-8 bg-gray-200 rounded animate-pulse w-24"></div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))
             ) : (
               <>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">이번 달 총액</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
+                <Card className="border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="p-3 rounded-lg bg-green-500/10">
+                        <DollarSign className="h-6 w-6 text-green-500" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">이번 달 총액</p>
+                        <div className="text-2xl font-bold text-foreground">
+                          {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">헌금 건수</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{donations.length}건</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">기부자 수</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {new Set(donations.map(d => d.donorId)).size}명
+                <Card className="border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="p-3 rounded-lg bg-blue-500/10">
+                        <Receipt className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">헌금 건수</p>
+                        <div className="text-2xl font-bold text-foreground">{donations.length}건</div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">평균 헌금</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
+                <Card className="border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="p-3 rounded-lg bg-purple-500/10">
+                        <Users className="h-6 w-6 text-purple-500" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">기부자 수</p>
+                        <div className="text-2xl font-bold text-foreground">
+                          {new Set(donations.map(d => d.donorId)).size}명
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="p-3 rounded-lg bg-orange-500/10">
+                        <DollarSign className="h-6 w-6 text-orange-500" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">평균 헌금</p>
+                        <div className="text-2xl font-bold text-foreground">
+                          {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1285,12 +1310,10 @@ const DonationManagement: React.FC = () => {
           </div>
 
           {/* 헌금 목록 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>헌금 내역</CardTitle>
-              <CardDescription>등록된 헌금 내역을 확인할 수 있습니다.</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">헌금 내역</h3>
+            <Card className="border-muted">
+              <CardContent className="p-6">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -1403,8 +1426,9 @@ const DonationManagement: React.FC = () => {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
@@ -1445,12 +1469,11 @@ const DonationManagement: React.FC = () => {
           </div>
 
           {/* 영수증 목록 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>기부금 영수증</CardTitle>
-              <CardDescription>{selectedYear}년 발행된 기부금 영수증 목록입니다.</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">기부금 영수증</h3>
+            <Card className="border-muted">
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground mb-6">{selectedYear}년 발행된 기부금 영수증 목록입니다.</p>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -1501,13 +1524,14 @@ const DonationManagement: React.FC = () => {
                   </tbody>
                 </table>
                 {filteredReceipts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     {selectedYear}년에 발행된 영수증이 없습니다.
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 

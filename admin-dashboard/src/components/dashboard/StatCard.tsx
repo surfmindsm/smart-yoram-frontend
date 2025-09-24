@@ -21,9 +21,9 @@ const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading
           </div>
           <div className="ml-4">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="text-2xl font-semibold text-foreground">
+            <div className="text-3xl font-bold text-foreground mt-1">
               {loading ? (
-                <div className="w-12 h-8 bg-muted animate-pulse rounded"></div>
+                <div className="w-14 h-8 bg-muted animate-pulse rounded"></div>
               ) : (
                 value
               )}

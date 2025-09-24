@@ -3810,6 +3810,202 @@ export const supabaseApiService = {
         throw error;
       }
     }
+  },
+
+  // AI Chat API
+  aiChat: {
+    // 채팅 히스토리 조회
+    getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
+      try {
+        console.log('🔍 [AI Chat] 채팅 히스토리 조회 시작:', params);
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const searchParams = new URLSearchParams();
+        if (params?.limit) searchParams.append('limit', params.limit.toString());
+        if (params?.skip) searchParams.append('skip', params.skip.toString());
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/ai-chat/histories?${searchParams.toString()}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [AI Chat] 채팅 히스토리 조회 성공:', data);
+        return data;
+      } catch (error: any) {
+        console.error('❌ [AI Chat] 채팅 히스토리 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    // AI 에이전트 목록 조회
+    getAgents: async () => {
+      try {
+        console.log('🤖 [AI Chat] AI 에이전트 조회 시작');
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/ai-chat/agents`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [AI Chat] AI 에이전트 조회 성공:', data);
+        return data;
+      } catch (error: any) {
+        console.error('❌ [AI Chat] AI 에이전트 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    // 새 채팅 히스토리 생성
+    createChatHistory: async (title: string, agentId?: string | number) => {
+      try {
+        console.log('📝 [AI Chat] 채팅 히스토리 생성 시작:', { title, agentId });
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/ai-chat/histories`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            agent_id: agentId
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [AI Chat] 채팅 히스토리 생성 성공:', data);
+        return data;
+      } catch (error: any) {
+        console.error('❌ [AI Chat] 채팅 히스토리 생성 실패:', error);
+        throw error;
+      }
+    },
+
+    // 채팅 히스토리 삭제
+    deleteChatHistory: async (historyId: string | number) => {
+      try {
+        console.log('🗑️ [AI Chat] 채팅 히스토리 삭제 시작:', historyId);
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/ai-chat/histories/${historyId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [AI Chat] 채팅 히스토리 삭제 성공:', data);
+        return data;
+      } catch (error: any) {
+        console.error('❌ [AI Chat] 채팅 히스토리 삭제 실패:', error);
+        throw error;
+      }
+    },
+
+    // 새 메시지 전송
+    sendMessage: async (historyId: string | number, content: string, agentId?: string | number) => {
+      try {
+        console.log('💬 [AI Chat] 메시지 전송 시작:', { historyId, content, agentId });
+
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/ai-chat/messages`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            history_id: historyId,
+            content,
+            agent_id: agentId
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [AI Chat] 메시지 전송 성공:', data);
+        return data;
+      } catch (error: any) {
+        console.error('❌ [AI Chat] 메시지 전송 실패:', error);
+        throw error;
+      }
+    }
   }
 
 };
@@ -3846,5 +4042,4 @@ export const edgeApi = {
 
     throw new Error(`Unsupported API endpoint: ${url}`);
   }
-
 };
