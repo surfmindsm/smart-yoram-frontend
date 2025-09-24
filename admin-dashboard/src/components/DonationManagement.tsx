@@ -20,6 +20,7 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { SimpleTabs } from './ui/simple-tabs';
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
@@ -1118,24 +1119,24 @@ const DonationManagement: React.FC = () => {
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="flex space-x-1 mb-6">
-        <Button
-          variant={activeTab === 'donations' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('donations')}
-          className="flex items-center space-x-2"
-        >
-          <DollarSign className="w-4 h-4" />
-          <span>헌금 내역</span>
-        </Button>
-        <Button
-          variant={activeTab === 'receipts' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('receipts')}
-          className="flex items-center space-x-2"
-        >
-          <Receipt className="w-4 h-4" />
-          <span>기부금 영수증</span>
-        </Button>
-      </div>
+      <SimpleTabs
+        tabs={[
+          {
+            id: 'donations',
+            label: '헌금 내역',
+            icon: <DollarSign className="w-4 h-4" />
+          },
+          {
+            id: 'receipts',
+            label: '기부금 영수증',
+            icon: <Receipt className="w-4 h-4" />
+          }
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as 'donations' | 'receipts')}
+        variant="default"
+        className="mb-6"
+      />
 
       {/* 헌금 내역 탭 */}
       {activeTab === 'donations' && (

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
 import { cn } from '../lib/utils';
 import { agentService, analyticsService, churchConfigService, promptService } from '../services/api';
 import {
   Bot, Plus, Eye, Settings, MoreHorizontal, Search,
-  ChevronDown, X, BookOpen, Heart, Calendar, 
+  ChevronDown, X, BookOpen, Heart, Calendar,
   GraduationCap, FileText, AlertCircle
 } from 'lucide-react';
 
@@ -441,20 +442,20 @@ const AIAgentManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">AI 시스템 관리</h1>
-        <p className="text-slate-600">AI 목교역자와 에이전트를 관리합니다</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">AI 시스템 관리</h2>
       </div>
+      <p className="text-muted-foreground">AI 목교역자와 에이전트를 관리합니다</p>
 
       {/* 탭 */}
-      <div className="flex border-b border-slate-200 mb-6">
+      <div className="flex border-b border-muted">
         <button
           className={cn(
             "px-6 py-3 font-medium text-sm border-b-2 transition-colors",
             activeTab === 'agents'
-              ? "border-sky-500 text-sky-600"
-              : "border-transparent text-slate-500 hover:text-slate-700"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
           onClick={() => setActiveTab('agents')}
         >
@@ -464,8 +465,8 @@ const AIAgentManagement: React.FC = () => {
           className={cn(
             "px-6 py-3 font-medium text-sm border-b-2 transition-colors",
             activeTab === 'templates'
-              ? "border-sky-500 text-sky-600"
-              : "border-transparent text-slate-500 hover:text-slate-700"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
           onClick={() => setActiveTab('templates')}
         >
@@ -476,50 +477,58 @@ const AIAgentManagement: React.FC = () => {
       {activeTab === 'agents' && (
         <>
           {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{totalAgents}</p>
-                  <p className="text-sm text-slate-600">총 에이전트</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{totalAgents}</p>
+                    <p className="text-sm text-muted-foreground">총 에이전트</p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{activeAgents.length}</p>
-                  <p className="text-sm text-slate-600">활성 에이전트</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">{activeAgents.length}</p>
+                    <p className="text-sm text-muted-foreground">활성 에이전트</p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{inactiveAgents}</p>
-                  <p className="text-sm text-slate-600">비활성 에이전트</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{inactiveAgents}</p>
+                    <p className="text-sm text-muted-foreground">비활성 에이전트</p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-sky-600">{totalUsage}</p>
-                  <p className="text-sm text-slate-600">총 사용 횟수</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{totalUsage}</p>
+                    <p className="text-sm text-muted-foreground">총 사용 횟수</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* 검색 및 필터 */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="에이전트 이름이나 설명으로 검색..."
-                  className="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 w-full border border-muted rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -527,16 +536,16 @@ const AIAgentManagement: React.FC = () => {
             </div>
             <div className="relative">
               <button
-                className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-md bg-white hover:bg-slate-50"
+                className="flex items-center gap-2 px-4 py-2 border border-muted rounded-md bg-background hover:bg-muted/50 text-foreground"
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
               >
                 {selectedCategory}
                 <ChevronDown className="h-4 w-4" />
               </button>
               {showCategoryDropdown && (
-                <div className="absolute top-full mt-1 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
+                <div className="absolute top-full mt-1 w-48 bg-background border border-muted rounded-md shadow-lg z-10">
                   <button
-                    className="w-full px-4 py-2 text-left hover:bg-slate-50"
+                    className="w-full px-4 py-2 text-left hover:bg-muted/50 text-foreground"
                     onClick={() => {
                       setSelectedCategory('모든 카테고리');
                       setShowCategoryDropdown(false);
@@ -547,7 +556,7 @@ const AIAgentManagement: React.FC = () => {
                   {categories.map((category) => (
                     <button
                       key={category}
-                      className="w-full px-4 py-2 text-left hover:bg-slate-50"
+                      className="w-full px-4 py-2 text-left hover:bg-muted/50 text-foreground"
                       onClick={() => {
                         setSelectedCategory(category);
                         setShowCategoryDropdown(false);
@@ -561,7 +570,6 @@ const AIAgentManagement: React.FC = () => {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-slate-800 hover:bg-slate-900 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               에이전트 생성
@@ -569,100 +577,94 @@ const AIAgentManagement: React.FC = () => {
           </div>
 
           {/* 에이전트 목록 */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
               에이전트 목록 ({filteredAgents.length}개)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAgents.map((agent) => (
-                <div 
-                  key={agent.id} 
-                  className="bg-white p-6 rounded-lg border border-slate-200 hover:shadow-md transition-shadow cursor-pointer relative"
+                <Card
+                  key={agent.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer relative"
                   onClick={() => handleAgentClick(agent)}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center mr-3">
-                        <span className="text-lg">{agent.icon}</span>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mr-3">
+                          <span className="text-lg">{agent.icon}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground">{agent.name}</h4>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900">{agent.name}</h4>
-                        {/* <span className={`inline-block px-2 py-1 text-xs font-medium rounded mt-1 ${
-                          agent.isActive 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {agent.isActive ? '활성' : '비활성'}
-                        </span> */}
+                      <div className="relative">
+                        <button
+                          className="text-muted-foreground hover:text-foreground p-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveAgentMenu(activeAgentMenu === agent.id ? null : agent.id);
+                          }}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                        {activeAgentMenu === agent.id && (
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-background border border-muted rounded-md shadow-lg z-20">
+                            <button
+                              className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-2 text-sm text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditAgent(agent);
+                              }}
+                            >
+                              <Settings className="h-4 w-4" />
+                              수정
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left hover:bg-red-50 flex items-center gap-2 text-sm text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAgent(agent.id);
+                              }}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              삭제
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="relative">
-                      <button 
-                        className="text-slate-400 hover:text-slate-600 p-1"
+
+                    <p className="text-sm text-muted-foreground mb-4">{agent.description}</p>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{agent.category}</span>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-foreground">활성화</span>
+                      </div>
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveAgentMenu(activeAgentMenu === agent.id ? null : agent.id);
+                          toggleAgentStatus(agent.id);
                         }}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                      {activeAgentMenu === agent.id && (
-                        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-md shadow-lg z-20">
-                          <button
-                            className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditAgent(agent);
-                            }}
-                          >
-                            <Settings className="h-4 w-4" />
-                            수정
-                          </button>
-                          <button
-                            className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-sm text-red-600 hover:bg-red-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAgent(agent.id);
-                            }}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            삭제
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-slate-600 mb-4">{agent.description}</p>
-                  
-                  <div className="flex items-center justify-between text-sm text-slate-500">
-                    <span>{agent.category}</span>
-                    {/* <span>사용 {agent.usage}회</span> */}
-                  </div>
-                  
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="text-sm">
-                      <span className="text-slate-600">활성화</span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleAgentStatus(agent.id);
-                      }}
-                      className={cn(
-                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                        agent.isActive ? "bg-sky-600" : "bg-slate-200"
-                      )}
-                    >
-                      <span
                         className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                          agent.isActive ? "translate-x-6" : "translate-x-1"
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          agent.isActive ? "bg-primary" : "bg-muted"
                         )}
-                      />
-                    </button>
-                  </div>
-                </div>
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            agent.isActive ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>

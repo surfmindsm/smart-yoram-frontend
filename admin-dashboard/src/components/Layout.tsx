@@ -89,7 +89,14 @@ const Layout: React.FC = () => {
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
-    '커뮤니티': true // 커뮤니티 섹션은 기본으로 열어두기
+    '대시보드 & 분석': true, // 대시보드는 기본으로 열어두기
+    '교인 관리': false,
+    '재정 관리': false,
+    '예배 & 소식': false,
+    '교회 운영 & 설정': false,
+    'AI 기능 (Premium)': false,
+    '커뮤니티': true, // 커뮤니티 섹션은 기본으로 열어두기
+    '보안 & 시스템': false
   });
   const [expandedSubGroups, setExpandedSubGroups] = useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
@@ -214,50 +221,53 @@ const Layout: React.FC = () => {
   // 일반 교회/슈퍼어드민 메뉴 그룹
   const defaultMenuGroups: MenuGroup[] = [
     {
-      title: '분석',
+      title: '대시보드 & 분석',
       items: [
         { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
         { path: '/statistics', name: '통계 분석', Icon: ChartLine },
       ],
     },
-    ...(isSystemAdmin ? [{
-      title: '시스템 관리',
-      items: [
-        { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
-      ],
-    }] : []),
     {
       title: '교인 관리',
       items: [
         { path: '/member-management', name: '교인 관리', Icon: Users },
+        { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
-        { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
       ],
     },
     {
-      title: '재정',
+      title: '재정 관리',
       items: [
         { path: '/donations', name: '헌금 관리', Icon: DollarSign },
       ],
     },
     {
-      title: '예배 · 소식',
+      title: '예배 & 소식',
       items: [
         { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
         { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
-        { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
         { path: '/bulletins', name: '주보 관리', Icon: FileText },
         ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
+        { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
       ],
     },
     {
-      title: '교회 운영',
+      title: '교회 운영 & 설정',
       items: [
         { path: '/church', name: '교회 정보', Icon: Church },
         { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
-        // Church Super Admin에게만 권한 관리 메뉴 표시
-        ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield }] : []),
+        { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
+        { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
+      ],
+    },
+    {
+      title: 'AI 기능 (Premium)',
+      items: [
+        { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
+        { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
+        { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
+        { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
       ],
     },
     {
@@ -283,7 +293,7 @@ const Layout: React.FC = () => {
         {
           title: '소식 · 관리',
           items: [
-            { path: '/community/church-events', name: '행사 소식', Icon: Calendar },
+            { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
             { path: '/community/my-posts', name: '내 글 관리', Icon: User },
             { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
           ]
@@ -295,47 +305,21 @@ const Layout: React.FC = () => {
       ],
     },
     {
-      title: '보안 관리',
+      title: '보안 & 시스템',
       items: [
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
-      ],
-    },
-    ...(isSystemAdmin ? [{
-      title: '시스템 관리',
-      items: [
-        { path: '/community-applications', name: '회원 신청 관리', Icon: UserCheck2 },
-      ],
-    }] : []),
-    {
-      title: '기타',
-      items: [
-        { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
-        { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
+        ...(isSystemAdmin ? [
+          { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+          { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 }
+        ] : []),
+        // Church Super Admin에게만 권한 관리 메뉴 표시
+        ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield }] : []),
       ],
     },
   ];
 
   // 사용자 권한에 따라 메뉴 그룹 선택
   const menuGroups = isCommunityOnlyUser ? communityMenuGroups : defaultMenuGroups;
-
-  // 슈퍼어드민에게만 커뮤니티 신청 관리 메뉴 추가
-  if (isSystemAdmin) {
-    const systemMenuGroup = menuGroups.find(group => group.title === '시스템 관리');
-    if (systemMenuGroup && systemMenuGroup.items) {
-      systemMenuGroup.items.push({
-        path: '/community-applications',
-        name: '커뮤니티 신청 관리',
-        Icon: UserCheck2
-      });
-    }
-  }
-
-  const aiMenuItems = [
-    { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
-    { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
-    { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
-    { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
-  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -409,139 +393,100 @@ const Layout: React.FC = () => {
             {/* Main Menu Groups */}
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
-                {/* Group Header */}
-                {group.hasSubGroups ? (
-                  <button
-                    onClick={() => toggleGroup(group.title)}
-                    className="w-full flex items-center justify-between mb-2 px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors"
-                  >
-                    <span>{group.title}</span>
-                    {expandedGroups[group.title] ? (
-                      <ChevronDown className="h-3 w-3" />
-                    ) : (
-                      <ChevronRight className="h-3 w-3" />
-                    )}
-                  </button>
-                ) : (
-                  <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {group.title}
-                  </div>
+                {/* Separator line between categories (except for the first one) */}
+                {groupIndex > 0 && (
+                  <div className="border-t border-slate-100 mb-4"></div>
                 )}
 
-                {/* Regular Items */}
-                <div className="space-y-1">
-                  {group.items && group.items.map((item) => {
-                    const IconComponent = item.Icon;
-                    const isActive = location.pathname === item.path;
+                {/* Group Header - 모든 그룹을 접을 수 있도록 수정 */}
+                <button
+                  onClick={() => toggleGroup(group.title)}
+                  className="w-full flex items-center justify-between mb-2 px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors"
+                >
+                  <span>{group.title}</span>
+                  {expandedGroups[group.title] ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                </button>
 
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-sky-50 text-sky-700"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        )}
-                      >
-                        <IconComponent className={cn(
-                          "mr-3 h-5 w-5",
-                          isActive ? "text-sky-600" : "text-slate-400"
-                        )} />
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </div>
+                {/* Collapsed content */}
+                {expandedGroups[group.title] && (
+                  <>
+                    {/* Regular Items */}
+                    <div className="space-y-1">
+                      {group.items && group.items.map((item) => {
+                        const isActive = location.pathname === item.path;
 
-                {/* Sub Groups */}
-                {group.hasSubGroups && expandedGroups[group.title] && group.subGroups && (
-                  <div className="ml-4 space-y-4 mt-2">
-                    {group.subGroups.map((subGroup, subIndex) => {
-                      const subGroupKey = `${group.title}-${subGroup.title}`;
-                      return (
-                        <div key={subIndex}>
-                          <button
-                            onClick={() => toggleSubGroup(subGroupKey)}
-                            className="w-full flex items-center justify-between mb-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-                          >
-                            <span>{subGroup.title}</span>
-                            {expandedSubGroups[subGroupKey] ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronRight className="h-3 w-3" />
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={cn(
+                              "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                              isActive
+                                ? "bg-sky-50 text-sky-700"
+                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                             )}
-                          </button>
+                          >
+                            {item.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
 
-                          {expandedSubGroups[subGroupKey] && (
-                            <div className="space-y-1">
-                              {subGroup.items.map((item) => {
-                                const IconComponent = item.Icon;
-                                const isActive = location.pathname === item.path;
+                    {/* Sub Groups */}
+                    {group.hasSubGroups && group.subGroups && (
+                      <div className="ml-4 space-y-4 mt-2">
+                        {group.subGroups.map((subGroup, subIndex) => {
+                          const subGroupKey = `${group.title}-${subGroup.title}`;
+                          return (
+                            <div key={subIndex}>
+                              <button
+                                onClick={() => toggleSubGroup(subGroupKey)}
+                                className="w-full flex items-center justify-between mb-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                              >
+                                <span>{subGroup.title}</span>
+                                {expandedSubGroups[subGroupKey] ? (
+                                  <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                  <ChevronRight className="h-3 w-3" />
+                                )}
+                              </button>
 
-                                return (
-                                  <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    className={cn(
-                                      "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                      isActive
-                                        ? "bg-sky-50 text-sky-700"
-                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                                    )}
-                                  >
-                                    <IconComponent className={cn(
-                                      "mr-2 h-4 w-4",
-                                      isActive ? "text-sky-600" : "text-slate-400"
-                                    )} />
-                                    {item.name}
-                                  </Link>
-                                );
-                              })}
+                              {expandedSubGroups[subGroupKey] && (
+                                <div className="space-y-1">
+                                  {subGroup.items.map((item) => {
+                                    const isActive = location.pathname === item.path;
+
+                                    return (
+                                      <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        className={cn(
+                                          "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
+                                          isActive
+                                            ? "bg-sky-50 text-sky-700"
+                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                                        )}
+                                      >
+                                        {item.name}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
 
-            {/* AI 기능 섹션 - 커뮤니티 사용자에게는 숨김 */}
-            {!isCommunityOnlyUser && (
-              <div>
-                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  AI 기능
-                </div>
-              <div className="space-y-1">
-                {aiMenuItems.map((item) => {
-                  const IconComponent = item.Icon;
-                  const isActive = location.pathname === item.path;
-
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={cn(
-                        "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-sky-50 text-sky-700"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                      )}
-                    >
-                      <IconComponent className={cn(
-                        "mr-3 h-5 w-5",
-                        isActive ? "text-sky-600" : "text-slate-400"
-                      )} />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-              </div>
-            )}
           </nav>
         </aside>
 

@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Combobox } from './ui/combobox';
+import { SimpleTabs } from './ui/simple-tabs';
 import { 
   Search, 
   Filter, 
@@ -976,49 +977,26 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 탭 네비게이션 좌측 정렬로 변경 */}
-      <div className="bg-white rounded-lg border border-slate-200 p-1 mb-6 inline-flex">
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={cn(
-              "py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center space-x-2",
-              activeTab === 'requests'
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-            )}
-          >
-            <Users className="h-4 w-4" />
-            <span>심방 신청</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-medium ml-1",
-              activeTab === 'requests' 
-                ? "bg-blue-500 text-white" 
-                : "bg-slate-200 text-slate-600"
-            )}>
-              {requests.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('records')}
-            className={cn(
-              "py-2 px-4 rounded-md font-medium transition-all duration-200 flex items-center space-x-2",
-              activeTab === 'records'
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-            )}
-          >
-            <FileText className="h-4 w-4" />
-            <span>심방 기록</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-medium ml-1",
-              activeTab === 'records' 
-                ? "bg-blue-500 text-white" 
-                : "bg-slate-200 text-slate-600"
-            )}>
-              {completedRecords.length}
-            </span>
-          </button>
-      </div>
+      <SimpleTabs
+        tabs={[
+          {
+            id: 'requests',
+            label: '심방 신청',
+            icon: <Users className="h-4 w-4" />,
+            count: requests.length
+          },
+          {
+            id: 'records',
+            label: '심방 기록',
+            icon: <FileText className="h-4 w-4" />,
+            count: completedRecords.length
+          }
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as 'requests' | 'records')}
+        variant="default"
+        className="mb-6"
+      />
 
       {/* 신청 관리 탭 */}
       {activeTab === 'requests' && (

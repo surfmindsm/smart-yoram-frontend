@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { CategorySelect, CategoryBadge, CATEGORIES } from './AnnouncementCategories';
+import { SimpleTabs } from './ui/simple-tabs';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -24,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 interface Announcement {
   id: number;
@@ -188,38 +188,27 @@ const Announcements: React.FC = () => {
       </div>
 
       {/* Filter Bar: 카테고리 탭 */}
-      <div className="mb-6">
-        <Tabs
-          value={categoryFilter || 'all'}
-          onValueChange={(value) => {
-            if (value === 'all') {
-              setCategoryFilter('');
-              setSubcategoryFilter('');
-            } else {
-              setCategoryFilter(value);
-              setSubcategoryFilter('');
-            }
-          }}
-        >
-          <TabsList className="bg-transparent p-0 gap-2 h-auto">
-            <TabsTrigger
-              value="all"
-              className="rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-none"
-            >
-              전체
-            </TabsTrigger>
-            {Object.entries(CATEGORIES).map(([key, cat]) => (
-              <TabsTrigger
-                key={key}
-                value={key}
-                className="rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-none"
-              >
-                {cat.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+      <SimpleTabs
+        tabs={[
+          { id: 'all', label: '전체' },
+          ...Object.entries(CATEGORIES).map(([key, cat]) => ({
+            id: key,
+            label: cat.label
+          }))
+        ]}
+        activeTab={categoryFilter || 'all'}
+        onTabChange={(value) => {
+          if (value === 'all') {
+            setCategoryFilter('');
+            setSubcategoryFilter('');
+          } else {
+            setCategoryFilter(value);
+            setSubcategoryFilter('');
+          }
+        }}
+        variant="default"
+        className="mb-6"
+      />
 
       {/* Announcements List */}
       {announcements.length === 0 ? (
