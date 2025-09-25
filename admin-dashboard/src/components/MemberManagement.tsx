@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
+import { Pagination } from './common/Pagination';
 import axios from 'axios';
 import {
   Search,
@@ -13,8 +14,6 @@ import {
   QrCode,
   ChevronUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   User,
   Trash2,
   Key,
@@ -44,6 +43,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from './ui/textarea';
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
+import { StandardPagination } from '../types/community-common';
 
 interface Member {
   id: number;
@@ -109,9 +109,14 @@ const MemberManagement: React.FC = () => {
   
   // View and pagination states
   const [viewType, setViewType] = useState<'grid'>('grid');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
+  const [pagination, setPagination] = useState<StandardPagination>({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 20,
+    has_next: false,
+    has_prev: false
+  });
   const [sortField, setSortField] = useState<keyof Member | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -141,6 +146,15 @@ const MemberManagement: React.FC = () => {
     spiritual_grade: 'all'
   });
 
+  // Member limit states
+  const [memberLimitInfo, setMemberLimitInfo] = useState<{
+    canAddMember: boolean;
+    currentMemberCount: number;
+    memberLimit: number | null;
+    subscriptionPlan: string;
+    subscriptionStatus: string;
+  } | null>(null);
+
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
@@ -154,11 +168,25 @@ const MemberManagement: React.FC = () => {
 
   useEffect(() => {
     // 페이지 접근 로그 (최초 마운트 시에만)
-    if (currentPage === 1 && !appliedSearchTerm) {
+    if (pagination.current_page === 1 && !appliedSearchTerm) {
       activityLogger.logPageAccess('/member-management', '교인 관리');
     }
     fetchMembers();
-  }, [appliedSearchTerm, statusFilter, currentPage, pageSize, sortField, sortOrder]);
+    fetchMemberLimitInfo();
+  }, [appliedSearchTerm, statusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
+
+  const fetchMemberLimitInfo = async () => {
+    try {
+      const currentUserData = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUserData?.user?.church_id || 9998;
+
+      const { data } = await supabaseApiService.churches.checkMemberLimit(userChurchId);
+      setMemberLimitInfo(data);
+    } catch (error) {
+      console.warn('교인 제한 정보 조회 실패:', error);
+      setMemberLimitInfo(null);
+    }
+  };
 
   const fetchMembers = async () => {
     console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
@@ -205,10 +233,10 @@ const MemberManagement: React.FC = () => {
       const actualTotalCount = filteredData.length;
 
       // Apply pagination on client side
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
+      const startIndex = (pagination.current_page - 1) * pagination.per_page;
+      const endIndex = startIndex + pagination.per_page;
       const paginatedData = filteredData.slice(startIndex, endIndex);
-      
+
       // Sort paginated data on client side
       let sortedData = [...paginatedData];
       if (sortField) {
@@ -224,7 +252,16 @@ const MemberManagement: React.FC = () => {
       }
 
       setMembers(sortedData);
-      setTotalCount(actualTotalCount);
+
+      // Update pagination state
+      const totalPages = Math.ceil(actualTotalCount / pagination.per_page);
+      setPagination(prev => ({
+        ...prev,
+        total_count: actualTotalCount,
+        total_pages: totalPages,
+        has_prev: prev.current_page > 1,
+        has_next: prev.current_page < totalPages
+      }));
       
       // 검색 로그 기록 (실제 결과와 함께)
       if (appliedSearchTerm) {
@@ -238,9 +275,9 @@ const MemberManagement: React.FC = () => {
   };
 
   const handleSearch = () => {
-    setCurrentPage(1); // Reset to first page on new search
+    setPagination(prev => ({ ...prev, current_page: 1 })); // Reset to first page on new search
     setAppliedSearchTerm(searchTerm);
-    
+
     // 검색 로그 기록 (실제 검색 수행 후에 결과 개수와 함께 기록)
     if (searchTerm.trim()) {
       // 검색 로그는 fetchMembers에서 실제 결과 개수를 알 수 있을 때 기록
@@ -251,7 +288,7 @@ const MemberManagement: React.FC = () => {
   const handleClearSearch = () => {
     setSearchTerm('');
     setAppliedSearchTerm('');
-    setCurrentPage(1);
+    setPagination(prev => ({ ...prev, current_page: 1 }));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -269,7 +306,6 @@ const MemberManagement: React.FC = () => {
     }
   };
 
-  const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -774,23 +810,84 @@ const MemberManagement: React.FC = () => {
             <Download className="w-4 h-4" />
             엑셀 템플릿 다운로드
           </Button>
-          <Button 
-            onClick={() => setShowExcelImportModal(true)}
+          <Button
+            onClick={() => {
+              if (memberLimitInfo && !memberLimitInfo.canAddMember) {
+                alert(`교인 등록 제한에 도달했습니다.\n현재: ${memberLimitInfo.currentMemberCount}명 / 최대: ${memberLimitInfo.memberLimit}명\n\n유료 플랜으로 업그레이드하면 무제한으로 교인을 등록할 수 있습니다.`);
+                return;
+              }
+              setShowExcelImportModal(true);
+            }}
+            disabled={memberLimitInfo ? !memberLimitInfo.canAddMember : false}
             variant="outline"
-            className="flex items-center gap-2"
+            className={cn(
+              "flex items-center gap-2",
+              memberLimitInfo && !memberLimitInfo.canAddMember && "opacity-50 cursor-not-allowed"
+            )}
           >
             <Upload className="w-4 h-4" />
             엑셀 일괄 등록
           </Button>
-          <Button 
-            onClick={() => setShowAddMemberModal(true)}
-            className="flex items-center gap-2"
+          <Button
+            onClick={() => {
+              if (memberLimitInfo && !memberLimitInfo.canAddMember) {
+                alert(`교인 등록 제한에 도달했습니다.\n현재: ${memberLimitInfo.currentMemberCount}명 / 최대: ${memberLimitInfo.memberLimit}명\n\n유료 플랜으로 업그레이드하면 무제한으로 교인을 등록할 수 있습니다.`);
+                return;
+              }
+              setShowAddMemberModal(true);
+            }}
+            disabled={memberLimitInfo ? !memberLimitInfo.canAddMember : false}
+            className={cn(
+              "flex items-center gap-2",
+              memberLimitInfo && !memberLimitInfo.canAddMember && "opacity-50 cursor-not-allowed"
+            )}
           >
             <Plus className="w-4 h-4" />
             교인 추가
           </Button>
         </div>
       </div>
+
+      {/* Member Limit Information */}
+      {memberLimitInfo && (
+        <Card className={cn(
+          "border-2",
+          memberLimitInfo.canAddMember
+            ? "border-green-200 bg-green-50/50"
+            : "border-orange-200 bg-orange-50/50"
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-3 h-3 rounded-full",
+                  memberLimitInfo.canAddMember ? "bg-green-500" : "bg-orange-500"
+                )} />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    교인 등록 현황: {memberLimitInfo.currentMemberCount}명
+                    {memberLimitInfo.memberLimit && ` / ${memberLimitInfo.memberLimit}명`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    구독 플랜: {memberLimitInfo.subscriptionPlan === 'trial' || !memberLimitInfo.subscriptionPlan ? '무료' : '유료'} |
+                    상태: {memberLimitInfo.subscriptionStatus === 'active' ? '활성' : '비활성'}
+                  </p>
+                </div>
+              </div>
+              {!memberLimitInfo.canAddMember && memberLimitInfo.memberLimit && (
+                <Badge variant="destructive" className="text-xs">
+                  등록 제한 도달
+                </Badge>
+              )}
+            </div>
+            {!memberLimitInfo.canAddMember && memberLimitInfo.memberLimit && (
+              <p className="text-xs text-orange-700 mt-2">
+                ⚠️ 무료 플랜은 {memberLimitInfo.memberLimit}명까지 등록 가능합니다. 유료 플랜으로 업그레이드하면 무제한 등록이 가능합니다.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Filter */}
       <Card className="border-muted">
@@ -860,34 +957,10 @@ const MemberManagement: React.FC = () => {
             </div>
           </div>
           
-          {/* View Options */}
-          <div className="flex justify-between items-center border-t border-border pt-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">페이지당:</label>
-                <Select
-                  value={pageSize.toString()}
-                  onValueChange={(value) => {
-                    setPageSize(Number(value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10개</SelectItem>
-                    <SelectItem value="20">20개</SelectItem>
-                    <SelectItem value="30">30개</SelectItem>
-                    <SelectItem value="40">40개</SelectItem>
-                    <SelectItem value="50">50개</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
+          {/* Total Count Display */}
+          <div className="flex justify-end items-center border-t border-border pt-4">
             <div className="text-sm text-muted-foreground">
-              전체 {totalCount}명 중 {Math.min((currentPage - 1) * pageSize + 1, totalCount)}-{Math.min(currentPage * pageSize, totalCount)}
+              전체 {pagination.total_count}명
             </div>
           </div>
         </CardContent>
@@ -1028,53 +1101,23 @@ const MemberManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-2 mt-6">
-          <Button
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            이전
-          </Button>
-          
-          {/* Page numbers */}
-          {[...Array(Math.min(5, totalPages))].map((_, idx) => {
-            let pageNum = idx + 1;
-            if (totalPages > 5) {
-              if (currentPage > 3) {
-                pageNum = currentPage - 2 + idx;
-                if (pageNum > totalPages) return null;
-              }
-            }
-            return (
-              <Button
-                key={pageNum}
-                onClick={() => setCurrentPage(pageNum)}
-                variant={currentPage === pageNum ? 'default' : 'outline'}
-                size="sm"
-              >
-                {pageNum}
-              </Button>
-            );
-          })}
-          
-          <Button
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            다음
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+      {/* Pagination 사용 */}
+      <div className="mt-6">
+        <Pagination
+          currentPage={pagination.current_page}
+          totalPages={pagination.total_pages}
+          itemsPerPage={pagination.per_page}
+          totalItems={pagination.total_count}
+          onPageChange={(page) => {
+            setPagination(prev => ({ ...prev, current_page: page }));
+            fetchMembers();
+          }}
+          onItemsPerPageChange={(itemsPerPage) => {
+            setPagination(prev => ({ ...prev, per_page: itemsPerPage, current_page: 1 }));
+            fetchMembers();
+          }}
+        />
+      </div>
 
       {/* Add Member Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
