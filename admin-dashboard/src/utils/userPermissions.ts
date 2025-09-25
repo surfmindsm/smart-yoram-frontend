@@ -272,6 +272,13 @@ export const getChurchMenus = () => [
 ];
 
 /**
+ * 사용자가 커뮤니티 전용 사용자인지 확인 (교회 없는 사용자)
+ */
+export const isCommunityUser = (user: User): boolean => {
+  return user.church_id === 9998 || isCommunityAdmin(user);
+};
+
+/**
  * 커뮤니티 전용 메뉴 목록
  */
 export const getCommunityMenus = () => [

@@ -5,6 +5,8 @@ import { supabaseAuthService } from './supabaseAuthService';
 export const supabaseApiService = {
   // Supabase 클라이언트 접근
   supabase,
+
+
   // Members API
   members: {
     getAll: async (filters: { page?: number; limit?: number; search?: string; position?: string; department?: string; status?: string; church_id?: number } = {}) => {
@@ -2049,6 +2051,110 @@ export const supabaseApiService = {
 
   // Churches API
   churches: {
+    getById: async (churchId: number) => {
+      try {
+        console.log('🏛️ [교회 정보 API] 교회 정보 조회 시작:', churchId);
+
+        const { data, error } = await supabase
+          .from('churches')
+          .select('*')
+          .eq('serial_id', churchId);
+
+        if (error) {
+          console.error('🏛️ [교회 정보 API] 오류:', error);
+          throw error;
+        }
+
+        // 결과가 없는 경우 처리
+        if (!data || data.length === 0) {
+          console.warn('🏛️ [교회 정보 API] 교회 정보 없음:', churchId);
+          return { data: null };
+        }
+
+        const churchData = data[0];
+        console.log('✅ [교회 정보 API] 조회 성공:', churchData);
+        return { data: churchData };
+      } catch (error) {
+        console.error('🏛️ [교회 정보 API] 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    checkMemberLimit: async (churchId: number) => {
+      try {
+        console.log('👥 [교인 제한 확인 API] 시작:', churchId);
+
+        // 교회 정보 조회
+        const { data: church } = await supabaseApiService.churches.getById(churchId);
+
+        // 교회 정보가 없으면 기본값으로 처리
+        if (!church) {
+          console.warn('👥 [교인 제한 확인 API] 교회 정보 없음, 기본 제한 적용:', churchId);
+
+          // 현재 교인 수 조회
+          const { data: members } = await supabase
+            .from('members')
+            .select('id', { count: 'exact' })
+            .eq('church_id', churchId);
+
+          const currentMemberCount = members?.length || 0;
+          const memberLimit = 500; // 기본 제한
+          const canAddMember = currentMemberCount < memberLimit;
+
+          return {
+            data: {
+              canAddMember,
+              currentMemberCount,
+              memberLimit,
+              subscriptionPlan: null,
+              subscriptionStatus: null
+            }
+          };
+        }
+
+        // 현재 교인 수 조회
+        const { data: members } = await supabase
+          .from('members')
+          .select('id', { count: 'exact' })
+          .eq('church_id', churchId);
+
+        const currentMemberCount = members?.length || 0;
+
+        // 구독 상태에 따른 제한 확인
+        let memberLimit = church.member_limit;
+
+        // 기본 정책: subscription_plan이 null이거나 'trial'이면 무료 (500명), 그 외는 유료 (무제한)
+        if (!church.subscription_plan || church.subscription_plan === 'trial' || church.subscription_status !== 'active') {
+          memberLimit = 500; // 무료 교회 제한
+        } else {
+          memberLimit = null; // 유료 교회는 무제한
+        }
+
+        const canAddMember = memberLimit === null || currentMemberCount < memberLimit;
+
+        console.log('✅ [교인 제한 확인 API] 결과:', {
+          currentMemberCount,
+          memberLimit,
+          canAddMember,
+          subscriptionPlan: church.subscription_plan,
+          subscriptionStatus: church.subscription_status
+        });
+
+        return {
+          data: {
+            canAddMember,
+            currentMemberCount,
+            memberLimit,
+            subscriptionPlan: church.subscription_plan,
+            subscriptionStatus: church.subscription_status
+          }
+        };
+      } catch (error) {
+        console.error('👥 [교인 제한 확인 API] 실패:', error);
+        throw error;
+      }
+    },
+
     // 내 교회 정보 조회 (동적 데이터 관리)
     getMyChurch: async () => {
       try {
@@ -3809,6 +3915,139 @@ export const supabaseApiService = {
         console.error('🧪 [테스트 로그인 로그] 생성 실패:', error);
         throw error;
       }
+    },
+
+    // 테이블 존재 확인 및 생성
+    checkAndCreateTables: async () => {
+      try {
+        console.log('🔍 [보안 로그 테이블] 존재 확인 시작');
+
+        // security_logs 테이블 확인
+        const { error: securityError } = await supabase
+          .from('security_logs')
+          .select('id')
+          .limit(1);
+
+        // activity_logs 테이블 확인
+        const { error: activityError } = await supabase
+          .from('activity_logs')
+          .select('id')
+          .limit(1);
+
+        const results = {
+          security_logs_exists: !securityError,
+          activity_logs_exists: !activityError,
+          security_error: securityError?.message,
+          activity_error: activityError?.message
+        };
+
+        if (securityError) {
+          console.error('❌ security_logs 테이블:', securityError.message);
+        } else {
+          console.log('✅ security_logs 테이블 존재함');
+        }
+
+        if (activityError) {
+          console.error('❌ activity_logs 테이블:', activityError.message);
+        } else {
+          console.log('✅ activity_logs 테이블 존재함');
+        }
+
+        return { success: true, data: results };
+      } catch (error) {
+        console.error('🔍 [보안 로그 테이블] 확인 실패:', error);
+        return { success: false, error };
+      }
+    },
+
+    // 테스트용 활동 로그 생성
+    createTestActivityLog: async () => {
+      try {
+        console.log('🧪 [테스트 활동 로그] 생성 시작');
+
+        const testLog = {
+          user_id: '123e4567-e89b-12d3-a456-426614174000',
+          user_name: '이선민',
+          user_email: 'composm@naver.com',
+          action: 'view',
+          resource: 'member',
+          resource_id: '123',
+          church_id: 7,
+          ip_address: '127.0.0.1',
+          user_agent: navigator.userAgent,
+          details: {
+            page_name: '교인 관리',
+            target_name: '김철수',
+            sensitive_data_count: 3,
+            page_path: '/member-management',
+            session_id: 'test-session-' + Date.now(),
+            sensitive_data: ['name', 'phone', 'email']
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+          .from('activity_logs')
+          .insert(testLog);
+
+        if (error) {
+          console.error('🧪 [테스트 활동 로그] 생성 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [테스트 활동 로그] 생성 성공:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('🧪 [테스트 활동 로그] 생성 실패:', error);
+        throw error;
+      }
+    },
+
+    // 테스트용 교회 데이터 생성 (Church ID 7)
+    createTestChurchData: async () => {
+      try {
+        console.log('🏛️ [테스트 교회 데이터] 생성 시작 - Church ID 7');
+
+        // 이미 존재하는지 확인
+        const { data: existing } = await supabase
+          .from('churches')
+          .select('id')
+          .eq('id', 7)
+          .single();
+
+        if (existing) {
+          console.log('✅ Church ID 7이 이미 존재합니다.');
+          return { success: true, message: 'Church ID 7이 이미 존재합니다.' };
+        }
+
+        const testChurch = {
+          id: 7,
+          name: '테스트 교회',
+          address: '서울시 강남구 테스트로 123',
+          contact: '02-1234-5678',
+          pastor_name: '김목사',
+          email: 'test@church.com',
+          is_active: true,
+          member_limit: 500,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+          .from('churches')
+          .insert(testChurch);
+
+        if (error) {
+          console.error('🏛️ [테스트 교회 데이터] 생성 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [테스트 교회 데이터] 생성 성공 - Church ID 7:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('🏛️ [테스트 교회 데이터] 생성 실패:', error);
+        throw error;
+      }
     }
   },
 
@@ -4004,6 +4243,364 @@ export const supabaseApiService = {
       } catch (error: any) {
         console.error('❌ [AI Chat] 메시지 전송 실패:', error);
         throw error;
+      }
+    }
+  },
+
+  // GPT License Management API
+  gptLicenses: {
+    // Get church GPT license statistics
+    getChurchStats: async (churchId?: number) => {
+      try {
+        console.log('🔍 GPT License Stats - Direct DB Query:', { churchId });
+
+        let query = supabase
+          .from('churches')
+          .select(`
+            serial_id,
+            name,
+            gpt_licenses_purchased,
+            gpt_licenses_active
+          `);
+
+        // If churchId is specified, filter by it
+        if (churchId) {
+          query = query.eq('serial_id', churchId);
+        }
+
+        const { data: churches, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        // Get license assignments for each church from user_gpt_licenses table
+        const stats = await Promise.all(churches.map(async (church) => {
+          // 타입 안전성을 위한 명시적 타입 캐스팅
+          const churchData = church as {
+            serial_id: number;
+            name: string;
+            gpt_licenses_purchased?: number;
+            gpt_licenses_active?: number;
+          };
+
+          const licensesPurchased = churchData.gpt_licenses_purchased || 0;
+          const licensesActive = churchData.gpt_licenses_active || 0;
+
+          // Query user_gpt_licenses table to get actual assigned licenses count
+          let licensesAssigned = 0;
+          try {
+            const { data: licenseData, error: licenseError } = await supabase
+              .from('user_gpt_licenses')
+              .select('id')
+              .eq('church_id', churchData.serial_id)
+              .eq('is_active', true);
+
+            if (licenseError && licenseError.code !== '42P01') {
+              // 42P01 = relation does not exist, 이 경우는 테이블이 없는 것이므로 경고만 출력
+              console.warn('Failed to fetch license assignments for church', churchData.serial_id, licenseError);
+            }
+
+            if (!licenseError && licenseData) {
+              licensesAssigned = licenseData.length;
+            }
+          } catch (error) {
+            // user_gpt_licenses 테이블이 없는 경우 0으로 설정
+            console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다. 라이선스 할당 수를 0으로 설정합니다.');
+            licensesAssigned = 0;
+          }
+          const licensesAvailable = Math.max(0, licensesPurchased - licensesAssigned);
+
+          return {
+            church_id: churchData.serial_id,
+            church_name: churchData.name,
+            licenses_purchased: licensesPurchased,
+            licenses_active: licensesActive,
+            licenses_assigned: licensesAssigned,
+            licenses_available: licensesAvailable
+          };
+        }));
+
+        console.log('📊 Church stats result:', stats);
+        return { success: true, data: stats };
+      } catch (error) {
+        console.error('Get Church Stats Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Update church license count
+    updateChurchLicenseCount: async (churchId: number, licenseCount: number) => {
+      try {
+        console.log('📝 Updating church license count:', { churchId, licenseCount });
+
+        const { data, error } = await supabase
+          .from('churches')
+          .update({
+            gpt_licenses_purchased: licenseCount
+          })
+          .eq('serial_id', churchId)
+          .select();
+
+        if (error) {
+          throw error;
+        }
+
+        console.log('✅ License count updated:', data);
+        return { success: true, data };
+      } catch (error) {
+        console.error('Update Church License Count Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Get church licenses
+    getChurchLicenses: async (churchId: number) => {
+      try {
+        console.log('🔍 Get Church Licenses - Direct DB Query:', { churchId });
+
+        const { data: licenses, error } = await supabase
+          .from('user_gpt_licenses')
+          .select(`
+            id,
+            user_id,
+            church_id,
+            assigned_by,
+            assigned_at,
+            is_active,
+            users!user_gpt_licenses_user_id_fkey (
+              full_name,
+              email
+            ),
+            assigned_by_user:users!user_gpt_licenses_assigned_by_fkey (
+              full_name
+            )
+          `)
+          .eq('church_id', churchId)
+          .order('assigned_at', { ascending: false });
+
+        if (error) {
+          if (error.code === '42P01') {
+            // 테이블이 없는 경우 빈 배열 반환
+            console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다.');
+            return { success: true, data: [] };
+          }
+          throw error;
+        }
+
+        // Transform data to match expected format
+        const transformedLicenses = licenses.map((license) => {
+          // TypeScript 타입 안전성을 위한 타입 단언
+          const user = license.users as { full_name?: string; email?: string } | null;
+          const assignedByUser = license.assigned_by_user as { full_name?: string } | null;
+
+          return {
+            id: license.id,
+            user_id: license.user_id.toString(),
+            church_id: license.church_id,
+            user_name: user?.full_name || '알 수 없음',
+            user_email: user?.email || '알 수 없음',
+            assigned_by: assignedByUser?.full_name || '알 수 없음',
+            assigned_at: license.assigned_at,
+            is_active: license.is_active
+          };
+        });
+
+        console.log('📄 Church licenses result:', transformedLicenses);
+        return { success: true, data: transformedLicenses };
+      } catch (error) {
+        console.error('Get Church Licenses Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Get church admins for license assignment
+    getChurchAdmins: async (churchId: number) => {
+      try {
+        console.log('🔍 Get Church Admins - Simple users query:', { churchId });
+
+        // Simple direct query to users table
+        const { data: admins, error: adminsError } = await supabase
+          .from('users')
+          .select('id, full_name, email, role')
+          .eq('church_id', churchId)
+          .in('role', ['admin', 'church_super_admin'])
+          .eq('is_active', true)
+          .order('full_name');
+
+        if (adminsError) {
+          console.error('Users query error:', adminsError);
+          throw adminsError;
+        }
+
+        console.log('📋 Raw users data:', admins);
+
+        // 라이선스 정보는 나중에 처리하고, 일단 기본 사용자 정보만 반환
+        const transformedAdmins = (admins || []).map((admin) => ({
+          id: admin.id?.toString() || 'unknown',
+          name: admin.full_name || '이름 없음',
+          email: admin.email || '이메일 없음',
+          role: admin.role || 'unknown',
+          has_gpt_license: false, // 일단 기본값으로 설정
+          license_assigned_at: null
+        }));
+
+        console.log('👥 Church admins result:', transformedAdmins);
+        return { success: true, data: transformedAdmins };
+      } catch (error) {
+        console.error('Get Church Admins Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Assign license to user
+    assignLicense: async (userId: string, churchId: number) => {
+      try {
+        console.log('🔍 Assign License - Direct DB Query:', { userId, churchId });
+
+        // Get current user to set as assigned_by
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user?.id) {
+          throw new Error('Current user not found');
+        }
+
+        // Check if license already exists for this user in this church
+        const { data: existingLicense, error: checkError } = await supabase
+          .from('user_gpt_licenses')
+          .select('id')
+          .eq('user_id', parseInt(userId))
+          .eq('church_id', churchId)
+          .eq('is_active', true)
+          .single();
+
+        if (checkError && checkError.code === '42P01') {
+          throw new Error('라이선스 관리 기능을 사용하기 위해 먼저 데이터베이스 테이블을 생성해야 합니다.');
+        }
+
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          throw checkError;
+        }
+
+        if (existingLicense) {
+          throw new Error('이 사용자는 이미 GPT 라이선스를 보유하고 있습니다.');
+        }
+
+        // Insert new license
+        const { data: newLicense, error: insertError } = await supabase
+          .from('user_gpt_licenses')
+          .insert({
+            user_id: parseInt(userId),
+            church_id: churchId,
+            assigned_by: currentUser.user.id,
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        console.log('✅ License assigned successfully:', newLicense);
+        return { success: true, data: newLicense };
+      } catch (error) {
+        console.error('Assign License Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Revoke license by license ID
+    revokeLicense: async (licenseId: string) => {
+      try {
+        console.log('🔍 Revoke License - Direct DB Query:', { licenseId });
+
+        const { data: revokedLicense, error } = await supabase
+          .from('user_gpt_licenses')
+          .update({ is_active: false, updated_at: 'now()' })
+          .eq('id', licenseId)
+          .eq('is_active', true)
+          .select()
+          .single();
+
+        if (error) {
+          if (error.code === '42P01') {
+            throw new Error('라이선스 관리 기능을 사용하기 위해 먼저 데이터베이스 테이블을 생성해야 합니다.');
+          }
+          if (error.code === 'PGRST116') {
+            throw new Error('라이선스를 찾을 수 없거나 이미 취소되었습니다.');
+          }
+          throw error;
+        }
+
+        console.log('✅ License revoked successfully:', revokedLicense);
+        return { success: true, data: revokedLicense };
+      } catch (error) {
+        console.error('Revoke License Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Revoke license by user ID
+    revokeLicenseByUser: async (userId: string) => {
+      try {
+        console.log('🔍 Revoke License by User - Direct DB Query:', { userId });
+
+        const { data: revokedLicenses, error } = await supabase
+          .from('user_gpt_licenses')
+          .update({ is_active: false, updated_at: 'now()' })
+          .eq('user_id', parseInt(userId))
+          .eq('is_active', true)
+          .select();
+
+        if (error) {
+          if (error.code === '42P01') {
+            throw new Error('라이선스 관리 기능을 사용하기 위해 먼저 데이터베이스 테이블을 생성해야 합니다.');
+          }
+          throw error;
+        }
+
+        if (!revokedLicenses || revokedLicenses.length === 0) {
+          throw new Error('해당 사용자의 활성 라이선스를 찾을 수 없습니다.');
+        }
+
+        console.log('✅ User licenses revoked successfully:', revokedLicenses);
+        return { success: true, data: revokedLicenses };
+      } catch (error) {
+        console.error('Revoke License by User Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+
+    // Get user license status
+    getUserLicenseStatus: async (userId: string, churchId: number) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/gpt-licenses/user-status?user_id=${userId}&church_id=${churchId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { success: true, data: data.data };
+      } catch (error) {
+        console.error('Get User License Status API Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
       }
     }
   }

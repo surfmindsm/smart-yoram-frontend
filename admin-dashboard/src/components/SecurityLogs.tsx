@@ -40,16 +40,25 @@ interface LoginRecord {
 }
 
 interface ActivityLog {
-  id: number;
+  id: string;
   timestamp: string;
   user_id: string;
   user_name: string;
   action: string;
   resource: string;
-  target_name?: string;
-  page_name: string;
+  resource_id?: string;
   ip_address: string;
-  sensitive_data_count: number;
+  user_agent?: string;
+  church_id?: number;
+  details?: {
+    page_name?: string;
+    target_name?: string;
+    sensitive_data_count?: number;
+    page_path?: string;
+    session_id?: string;
+    sensitive_data?: string[];
+    [key: string]: any;
+  };
 }
 
 const SecurityLogs: React.FC = () => {
@@ -308,8 +317,47 @@ const SecurityLogs: React.FC = () => {
             className="flex items-center gap-2"
             onClick={async () => {
               try {
+                console.log('🔍 테이블 확인 시작...');
+                const result = await supabaseApiService.securityLogs.checkAndCreateTables();
+                console.log('테이블 확인 결과:', result);
+
+                if (result.data) {
+                  const { security_logs_exists, activity_logs_exists } = result.data;
+                  alert(`테이블 확인 완료!\n- security_logs: ${security_logs_exists ? '✅ 존재' : '❌ 없음'}\n- activity_logs: ${activity_logs_exists ? '✅ 존재' : '❌ 없음'}`);
+                }
+              } catch (error) {
+                console.error('테이블 확인 실패:', error);
+                alert('테이블 확인에 실패했습니다. 콘솔을 확인해주세요.');
+              }
+            }}
+          >
+            🔍 테이블 확인
+          </Button>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={async () => {
+              try {
+                console.log('🏛️ 테스트 교회 데이터 생성 시작...');
+                await supabaseApiService.securityLogs.createTestChurchData();
+                alert('테스트 교회 데이터가 생성되었습니다. Church ID 7 문제가 해결되었습니다.');
+                window.location.reload();
+              } catch (error) {
+                console.error('테스트 교회 데이터 생성 실패:', error);
+                alert('테스트 교회 데이터 생성에 실패했습니다. 콘솔을 확인해주세요.');
+              }
+            }}
+          >
+            🏛️ Church ID 7 추가
+          </Button>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={async () => {
+              try {
                 console.log('🧪 테스트 로그 생성 시작...');
                 await supabaseApiService.securityLogs.createTestLoginLog();
+                await supabaseApiService.securityLogs.createTestActivityLog();
                 alert('테스트 로그가 생성되었습니다. 페이지를 새로고침해주세요.');
               } catch (error) {
                 console.error('테스트 로그 생성 실패:', error);
@@ -646,12 +694,12 @@ const SecurityLogs: React.FC = () => {
                           <TableCell>
                             <Badge variant="outline">{log.resource}</Badge>
                           </TableCell>
-                          <TableCell>{log.target_name || '-'}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{log.page_name}</TableCell>
+                          <TableCell>{log.details?.target_name || '-'}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{log.details?.page_name || '-'}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="flex items-center gap-1">
                               <Shield className="w-3 h-3" />
-                              {log.sensitive_data_count}개
+                              {log.details?.sensitive_data_count || 0}개
                             </Badge>
                           </TableCell>
                         </TableRow>

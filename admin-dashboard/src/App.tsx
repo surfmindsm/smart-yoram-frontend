@@ -90,6 +90,11 @@ const CommunityApplicationManagement = lazy(() => import('./components/Community
 // Admin Role Management
 const AdminRoleManagement = lazy(() => import('./components/AdminRoleManagement'));
 
+// Church Management
+const ChurchManagement = lazy(() => import('./components/ChurchManagement'));
+const GptLicenseManagement = lazy(() => import('./components/GptLicenseManagement'));
+const ChurchGptLicenseAssignment = lazy(() => import('./components/ChurchGptLicenseAssignment'));
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -420,6 +425,21 @@ function App() {
           <Route path="admin-roles" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminRoleManagement />
+            </Suspense>
+          } />
+          <Route path="church-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchManagement />
+            </Suspense>
+          } />
+          <Route path="gpt-license-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <GptLicenseManagement />
+            </Suspense>
+          } />
+          <Route path="church-gpt-license-assignment" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchGptLicenseAssignment />
             </Suspense>
           } />
           <Route path="ai-tools" element={

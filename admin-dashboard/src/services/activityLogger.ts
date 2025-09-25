@@ -1,5 +1,4 @@
 // 개인정보 접근 활동 자동 로깅 시스템
-import { api } from './api';
 
 export interface ActivityLog {
   action: 'view' | 'create' | 'update' | 'delete' | 'search' | 'login' | 'logout';
@@ -240,13 +239,16 @@ class ActivityLogger {
   // 로그 큐 처리
   private async processQueue() {
     if (this.isLogging || this.logQueue.length === 0) return;
-    
+
     this.isLogging = true;
     const logs = [...this.logQueue];
     this.logQueue = [];
 
     try {
-      await api.post('/auth/activity-logs', { logs });
+      // Supabase API를 사용하여 활동 로그 저장
+      for (const log of logs) {
+        await this.saveActivityLogToSupabase(log);
+      }
       console.log(`📋 ${logs.length}개의 활동 로그가 기록되었습니다`);
     } catch (error) {
       console.error('활동 로그 전송 실패:', error);
@@ -254,6 +256,54 @@ class ActivityLogger {
       this.logQueue.unshift(...logs);
     } finally {
       this.isLogging = false;
+    }
+  }
+
+  // Supabase에 활동 로그 저장
+  private async saveActivityLogToSupabase(logEntry: any) {
+    try {
+      const { supabaseAuthService } = await import('./supabaseAuthService');
+      const currentUser = await supabaseAuthService.getCurrentUser();
+
+      if (!currentUser?.user) {
+        console.warn('사용자 인증 정보가 없어 활동 로그를 저장할 수 없습니다.');
+        return;
+      }
+
+      const { supabase } = await import('../lib/supabase');
+
+      // activity_logs 테이블에 저장 (스키마에 맞게 수정)
+      const { error } = await supabase
+        .from('activity_logs')
+        .insert({
+          user_id: currentUser.user.id,
+          user_name: currentUser.user.full_name || currentUser.user.name || '알 수 없음',
+          user_email: currentUser.user.email,
+          action: logEntry.action,
+          resource: logEntry.resource,
+          resource_id: logEntry.target_id?.toString() || null,
+          ip_address: logEntry.ip_address || '알 수 없음',
+          user_agent: logEntry.user_agent || navigator.userAgent,
+          church_id: currentUser.user.church_id || null,
+          details: {
+            page_path: logEntry.page_path,
+            page_name: logEntry.page_name,
+            target_name: logEntry.target_name || null,
+            session_id: logEntry.session_id,
+            sensitive_data: logEntry.sensitive_data || [],
+            sensitive_data_count: logEntry.sensitive_data?.length || 0,
+            ...logEntry.details
+          },
+          timestamp: logEntry.timestamp
+        });
+
+      if (error) {
+        console.error('활동 로그 저장 실패:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Supabase 활동 로그 저장 중 오류:', error);
+      throw error;
     }
   }
 

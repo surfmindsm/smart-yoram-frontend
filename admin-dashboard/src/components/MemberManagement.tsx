@@ -146,14 +146,6 @@ const MemberManagement: React.FC = () => {
     spiritual_grade: 'all'
   });
 
-  // Member limit states
-  const [memberLimitInfo, setMemberLimitInfo] = useState<{
-    canAddMember: boolean;
-    currentMemberCount: number;
-    memberLimit: number | null;
-    subscriptionPlan: string;
-    subscriptionStatus: string;
-  } | null>(null);
 
   const [newMember, setNewMember] = useState({
     name: '',
@@ -172,21 +164,8 @@ const MemberManagement: React.FC = () => {
       activityLogger.logPageAccess('/member-management', '교인 관리');
     }
     fetchMembers();
-    fetchMemberLimitInfo();
   }, [appliedSearchTerm, statusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
 
-  const fetchMemberLimitInfo = async () => {
-    try {
-      const currentUserData = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUserData?.user?.church_id || 9998;
-
-      const { data } = await supabaseApiService.churches.checkMemberLimit(userChurchId);
-      setMemberLimitInfo(data);
-    } catch (error) {
-      console.warn('교인 제한 정보 조회 실패:', error);
-      setMemberLimitInfo(null);
-    }
-  };
 
   const fetchMembers = async () => {
     console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
@@ -811,36 +790,16 @@ const MemberManagement: React.FC = () => {
             엑셀 템플릿 다운로드
           </Button>
           <Button
-            onClick={() => {
-              if (memberLimitInfo && !memberLimitInfo.canAddMember) {
-                alert(`교인 등록 제한에 도달했습니다.\n현재: ${memberLimitInfo.currentMemberCount}명 / 최대: ${memberLimitInfo.memberLimit}명\n\n유료 플랜으로 업그레이드하면 무제한으로 교인을 등록할 수 있습니다.`);
-                return;
-              }
-              setShowExcelImportModal(true);
-            }}
-            disabled={memberLimitInfo ? !memberLimitInfo.canAddMember : false}
+            onClick={() => setShowExcelImportModal(true)}
             variant="outline"
-            className={cn(
-              "flex items-center gap-2",
-              memberLimitInfo && !memberLimitInfo.canAddMember && "opacity-50 cursor-not-allowed"
-            )}
+            className="flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
             엑셀 일괄 등록
           </Button>
           <Button
-            onClick={() => {
-              if (memberLimitInfo && !memberLimitInfo.canAddMember) {
-                alert(`교인 등록 제한에 도달했습니다.\n현재: ${memberLimitInfo.currentMemberCount}명 / 최대: ${memberLimitInfo.memberLimit}명\n\n유료 플랜으로 업그레이드하면 무제한으로 교인을 등록할 수 있습니다.`);
-                return;
-              }
-              setShowAddMemberModal(true);
-            }}
-            disabled={memberLimitInfo ? !memberLimitInfo.canAddMember : false}
-            className={cn(
-              "flex items-center gap-2",
-              memberLimitInfo && !memberLimitInfo.canAddMember && "opacity-50 cursor-not-allowed"
-            )}
+            onClick={() => setShowAddMemberModal(true)}
+            className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             교인 추가
@@ -848,46 +807,6 @@ const MemberManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Member Limit Information */}
-      {memberLimitInfo && (
-        <Card className={cn(
-          "border-2",
-          memberLimitInfo.canAddMember
-            ? "border-green-200 bg-green-50/50"
-            : "border-orange-200 bg-orange-50/50"
-        )}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-3 h-3 rounded-full",
-                  memberLimitInfo.canAddMember ? "bg-green-500" : "bg-orange-500"
-                )} />
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    교인 등록 현황: {memberLimitInfo.currentMemberCount}명
-                    {memberLimitInfo.memberLimit && ` / ${memberLimitInfo.memberLimit}명`}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    구독 플랜: {memberLimitInfo.subscriptionPlan === 'trial' || !memberLimitInfo.subscriptionPlan ? '무료' : '유료'} |
-                    상태: {memberLimitInfo.subscriptionStatus === 'active' ? '활성' : '비활성'}
-                  </p>
-                </div>
-              </div>
-              {!memberLimitInfo.canAddMember && memberLimitInfo.memberLimit && (
-                <Badge variant="destructive" className="text-xs">
-                  등록 제한 도달
-                </Badge>
-              )}
-            </div>
-            {!memberLimitInfo.canAddMember && memberLimitInfo.memberLimit && (
-              <p className="text-xs text-orange-700 mt-2">
-                ⚠️ 무료 플랜은 {memberLimitInfo.memberLimit}명까지 등록 가능합니다. 유료 플랜으로 업그레이드하면 무제한 등록이 가능합니다.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Search and Filter */}
       <Card className="border-muted">

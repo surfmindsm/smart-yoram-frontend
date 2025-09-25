@@ -46,7 +46,9 @@ import {
   ChevronRight,
   UserCheck2,
   ShoppingCart,
-  User
+  User,
+  Key,
+  UserCog
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -310,8 +312,12 @@ const Layout: React.FC = () => {
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
         ...(isSystemAdmin ? [
           { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
-          { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 }
+          { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 },
+          { path: '/church-management', name: '교회 관리', Icon: Church },
+          { path: '/gpt-license-management', name: 'GPT 라이선스 관리', Icon: Key }
         ] : []),
+        // Church Super Admin에게만 GPT 라이선스 할당 메뉴 표시
+        ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/church-gpt-license-assignment', name: 'GPT 라이선스 할당', Icon: UserCog }] : []),
         // Church Super Admin에게만 권한 관리 메뉴 표시
         ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield }] : []),
       ],
