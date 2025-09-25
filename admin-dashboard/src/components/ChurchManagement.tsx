@@ -48,6 +48,7 @@ const ChurchManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [subscriptionUpdateLoading, setSubscriptionUpdateLoading] = useState<Record<number, boolean>>({});
   const [planFilter, setPlanFilter] = useState('all');
   const [selectedChurch, setSelectedChurch] = useState<Church | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -70,17 +71,10 @@ const ChurchManagement: React.FC = () => {
   const fetchChurches = async () => {
     try {
       setLoading(true);
-      console.log('🏛️ 교회 목록 조회 시작');
+      console.log('🏛️ 교회 목록 조회 시작 (구독 정보 포함)');
 
-      const { data, error } = await supabaseApiService.supabase
-        .from('churches')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('교회 목록 조회 오류:', error);
-        throw error;
-      }
+      // 구독 정보를 포함한 교회 조회
+      const { data } = await supabaseApiService.churches.getAllWithSubscription();
 
       console.log('✅ 교회 목록 조회 성공:', data?.length, '개');
       setChurches(data || []);
@@ -130,6 +124,50 @@ const ChurchManagement: React.FC = () => {
   const handleViewDetails = (church: Church) => {
     setSelectedChurch(church);
     setShowDetailModal(true);
+  };
+
+  // 구독 상태 업데이트 및 member_limit 자동 적용
+  const updateSubscription = async (churchId: number, plan: string, status: string) => {
+    setSubscriptionUpdateLoading(prev => ({ ...prev, [churchId]: true }));
+    try {
+      await supabaseApiService.churches.updateSubscriptionAndLimit(churchId, plan, status);
+      alert('구독 상태가 업데이트되고 교인 제한이 자동 적용되었습니다.');
+      fetchChurches(); // 목록 새로고침
+    } catch (error) {
+      console.error('구독 업데이트 실패:', error);
+      alert('구독 업데이트에 실패했습니다.');
+    } finally {
+      setSubscriptionUpdateLoading(prev => ({ ...prev, [churchId]: false }));
+    }
+  };
+
+  // 전체 교회 정책 일괄 적용
+  const applySubscriptionPolicy = async () => {
+    if (!window.confirm('모든 교회에 구독 정책을 일괄 적용하시겠습니까?\n\n- trial/null → 500명 제한\n- active 유료 → 무제한')) return;
+
+    setLoading(true);
+    try {
+      let updatedCount = 0;
+      for (const church of churches) {
+        try {
+          await supabaseApiService.churches.updateSubscriptionAndLimit(
+            church.serial_id,
+            church.subscription_plan || 'trial',
+            church.subscription_status || 'inactive'
+          );
+          updatedCount++;
+        } catch (error) {
+          console.warn(`교회 ${church.name} 업데이트 실패:`, error);
+        }
+      }
+      alert(`${updatedCount}개 교회의 구독 정책이 적용되었습니다.`);
+      fetchChurches();
+    } catch (error) {
+      console.error('일괄 업데이트 실패:', error);
+      alert('일괄 업데이트에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveChurch = async () => {
@@ -238,10 +276,20 @@ const ChurchManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교회 관리</h2>
-        <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
-          <RefreshCw className="w-4 h-4" />
-          새로고침
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={applySubscriptionPolicy}
+            variant="default"
+            className="flex items-center gap-2"
+          >
+            <CreditCard className="w-4 h-4" />
+            구독 정책 일괄 적용
+          </Button>
+          <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            새로고침
+          </Button>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -396,24 +444,47 @@ const ChurchManagement: React.FC = () => {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleViewDetails(church)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Eye className="w-4 h-4" />
-                      상세보기
-                    </Button>
-                    <Button
-                      onClick={() => handleEditChurch(church)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Edit className="w-4 h-4" />
-                      편집
-                    </Button>
+                    {/* 구독 상태 빠른 업데이트 버튼 */}
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        onClick={() => updateSubscription(church.serial_id, 'trial', 'inactive')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs px-2 py-1 h-auto"
+                        disabled={subscriptionUpdateLoading[church.serial_id]}
+                      >
+                        {subscriptionUpdateLoading[church.serial_id] ? '처리중...' : '무료(500명)'}
+                      </Button>
+                      <Button
+                        onClick={() => updateSubscription(church.serial_id, 'premium', 'active')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs px-2 py-1 h-auto"
+                        disabled={subscriptionUpdateLoading[church.serial_id]}
+                      >
+                        {subscriptionUpdateLoading[church.serial_id] ? '처리중...' : '유료(무제한)'}
+                      </Button>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        onClick={() => handleViewDetails(church)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="w-4 h-4" />
+                        상세보기
+                      </Button>
+                      <Button
+                        onClick={() => handleEditChurch(church)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
+                        <Edit className="w-4 h-4" />
+                        편집
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

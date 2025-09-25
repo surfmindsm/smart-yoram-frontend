@@ -2051,6 +2051,46 @@ export const supabaseApiService = {
 
   // Churches API
   churches: {
+    // Get all churches with subscription info
+    getAllWithSubscription: async () => {
+      try {
+        console.log('🏛️ [교회 구독 정보] 전체 교회 조회 시작');
+
+        const { data, error } = await supabase
+          .from('churches')
+          .select(`
+            id,
+            serial_id,
+            name,
+            address,
+            phone,
+            email,
+            pastor_name,
+            established_date,
+            denomination,
+            subscription_plan,
+            subscription_status,
+            subscription_end_date,
+            member_limit,
+            created_at,
+            updated_at,
+            is_active
+          `)
+          .order('serial_id', { ascending: true });
+
+        if (error) {
+          console.error('🏛️ [교회 구독 정보] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [교회 구독 정보] 조회 성공:', data?.length, '개 교회');
+        return { data };
+      } catch (error) {
+        console.error('🏛️ [교회 구독 정보] 조회 실패:', error);
+        throw error;
+      }
+    },
+
     getById: async (churchId: number) => {
       try {
         console.log('🏛️ [교회 정보 API] 교회 정보 조회 시작:', churchId);
@@ -2151,6 +2191,43 @@ export const supabaseApiService = {
         };
       } catch (error) {
         console.error('👥 [교인 제한 확인 API] 실패:', error);
+        throw error;
+      }
+    },
+
+    // Update church subscription and member limit
+    updateSubscriptionAndLimit: async (churchId: number, subscriptionPlan: string, subscriptionStatus: string) => {
+      try {
+        console.log('💳 [구독 업데이트] 시작:', { churchId, subscriptionPlan, subscriptionStatus });
+
+        // 구독 상태에 따른 member_limit 결정
+        let memberLimit;
+        if (!subscriptionPlan || subscriptionPlan === 'trial' || subscriptionStatus !== 'active') {
+          memberLimit = 500; // 무료 플랜 제한
+        } else {
+          memberLimit = null; // 유료 플랜 무제한
+        }
+
+        const { data, error } = await supabase
+          .from('churches')
+          .update({
+            subscription_plan: subscriptionPlan,
+            subscription_status: subscriptionStatus,
+            member_limit: memberLimit,
+            updated_at: new Date().toISOString()
+          })
+          .eq('serial_id', churchId)
+          .select();
+
+        if (error) {
+          console.error('💳 [구독 업데이트] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [구독 업데이트] 성공:', data);
+        return { data: data[0] };
+      } catch (error) {
+        console.error('💳 [구독 업데이트] 실패:', error);
         throw error;
       }
     },
