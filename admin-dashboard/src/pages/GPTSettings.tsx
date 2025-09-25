@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider, Alert, AlertDescription, AlertTitle } from '@/components/ui3';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider, Alert, AlertDescription, AlertTitle } from '@/components/ui3/index';
 import { Loader2, AlertCircle, CheckCircle2, Settings, Key, Brain, DollarSign } from 'lucide-react';
 import { churchConfigService } from '../services/api';
 
