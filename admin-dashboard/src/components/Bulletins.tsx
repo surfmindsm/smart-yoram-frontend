@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
 import { Calendar, FileText, Plus, Edit2, Trash2, Upload } from 'lucide-react';
-import { useToast } from './ui/use-toast';
+import { useToast } from "@/components/ui3";
 
 interface Bulletin {
   id: number;

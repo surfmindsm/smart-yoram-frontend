@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui3";
 import { Plus, Settings, AlertCircle } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
 

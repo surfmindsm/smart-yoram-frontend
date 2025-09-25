@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Info, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
+import { Button } from "@/components/ui3";
 import { announcementService, Announcement } from '../services/announcementService';
 
 interface AnnouncementModalProps {

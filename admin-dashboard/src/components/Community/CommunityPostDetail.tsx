@@ -18,7 +18,7 @@ import {
   Tag,
   MessageCircle
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { supabase } from '../../lib/supabase';
 import { supabaseApiService } from '../../services/supabaseApiService';

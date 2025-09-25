@@ -5,8 +5,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
-import { Label } from './ui/label';
+} from "@/components/ui3";
+import { Label } from "@/components/ui3";
 
 interface AnnouncementCategory {
   label: string;

@@ -15,8 +15,8 @@ import {
   Smartphone,
   MessageCircle
 } from 'lucide-react';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
+import { Card, CardContent } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
 import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
 import PasswordChangeModal from './PasswordChangeModal';

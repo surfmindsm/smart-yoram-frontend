@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Slider } from '../components/ui/slider';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider, Alert, AlertDescription, AlertTitle } from '@/components/ui3';
 import { Loader2, AlertCircle, CheckCircle2, Settings, Key, Brain, DollarSign } from 'lucide-react';
 import { churchConfigService } from '../services/api';
 

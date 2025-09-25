@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
+import { Button } from "@/components/ui3";
+import { Card, CardContent } from "@/components/ui3";
 import { cn } from '../lib/utils';
 import { agentService, analyticsService, churchConfigService, promptService } from '../services/api';
 import {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { communityService, MusicSeeker } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import {
   Search,

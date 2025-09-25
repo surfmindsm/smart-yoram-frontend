@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Alert, AlertDescription } from './ui/alert';
+import { Button } from "@/components/ui3";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
+import { Alert, AlertDescription } from "@/components/ui3";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
 

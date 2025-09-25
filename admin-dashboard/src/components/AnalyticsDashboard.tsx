@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
+import { Button } from "@/components/ui3";
 import { cn } from '../lib/utils';
 import { analyticsService } from '../services/api';
 import {

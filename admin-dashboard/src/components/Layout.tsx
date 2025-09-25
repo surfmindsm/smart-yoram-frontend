@@ -51,8 +51,8 @@ import {
   UserCog
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
 import {
   isCommunityAdmin,
   isSuperAdmin,

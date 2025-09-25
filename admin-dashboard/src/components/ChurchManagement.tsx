@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Textarea } from './ui/textarea';
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
 import {
   Search,
   Edit,

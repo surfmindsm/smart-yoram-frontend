@@ -2,11 +2,11 @@ import React, { useState, useEffect, memo } from 'react';
 import { attendanceService, memberService, authService } from '../services/api';
 import { Calendar, Users, User, Check, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
 
 interface Member {
   id: number;

@@ -34,13 +34,13 @@ import {
   Shield
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from './ui/dialog';
-import { Textarea } from './ui/textarea';
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
+import { Card, CardContent } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';

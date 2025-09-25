@@ -6,7 +6,7 @@ import {
   MapPin,
   Briefcase
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { communityService, JobPost } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';

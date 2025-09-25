@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChatMessage, Agent, ChatHistory } from '../../types/chat';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { Bot, Send, Download, FileText, FileCode, FileImage, File } from 'lucide-react';
 import MessageList from './MessageList';
 

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from "@/components/ui3";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
 import { AlertTriangle, Plus, Edit2, Trash2, BookOpen, Eye, EyeOff, BarChart3 } from 'lucide-react';
-import { Alert, AlertDescription } from './ui/alert';
+import { Alert, AlertDescription } from "@/components/ui3";
 import { api } from '../services/api';
 
 interface DailyVerse {

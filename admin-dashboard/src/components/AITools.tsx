@@ -10,7 +10,7 @@ import {
   PenTool,
   MessageSquare
 } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from "@/components/ui3";
 
 interface AITool {
   id: string;

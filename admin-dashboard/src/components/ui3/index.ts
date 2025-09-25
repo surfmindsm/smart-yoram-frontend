@@ -168,3 +168,8 @@ export {
 export { Toaster } from './toaster'
 export { Toggle, toggleVariants } from './toggle'
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip'
+
+// Additional exports
+export { useToast, toast } from '../../hooks/use-toast'
+export { SimpleTabs } from '../ui/simple-tabs'
+export { Combobox } from '../ui/combobox'

@@ -6,7 +6,7 @@ import {
   Image as ImageIcon,
   Gift
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { communityService, SharingItem } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';

@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Star
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { api, getApiUrl } from '../../services/api';
 import { communityService } from '../../services/communityService';
 import { supabase } from '../../lib/supabase';

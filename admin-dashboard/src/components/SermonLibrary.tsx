@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
+import { Card, CardContent } from "@/components/ui3";
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
 import {
   Library,
   Plus,

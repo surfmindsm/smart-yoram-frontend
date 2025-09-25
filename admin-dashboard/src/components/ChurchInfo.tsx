@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
+import { Button } from "@/components/ui3";
+import { Card, CardContent } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Alert, AlertDescription } from "@/components/ui3";
 import { Building2, Phone, Mail, MapPin, Edit2, Calendar, Users } from 'lucide-react';
 
 interface Church {

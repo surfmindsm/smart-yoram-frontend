@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
+import { Button } from "@/components/ui3";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Alert, AlertDescription } from "@/components/ui3";
 import { UserPlus, ArrowLeft, Mail } from 'lucide-react';
 
 const Login: React.FC = () => {

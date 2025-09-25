@@ -15,12 +15,12 @@ import {
   Users,
   Eye
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Badge } from './ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui3";
 import { Pagination } from './common/Pagination';
 import { StandardPagination } from '../types';
 import { supabaseApiService } from '../services/supabaseApiService';

@@ -10,7 +10,7 @@ import {
   CheckCircle,
   HandHeart
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from "@/components/ui3";
 import { communityService, PrayerRequest } from '../../services/communityService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 

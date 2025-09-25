@@ -6,7 +6,7 @@ import PrivateRoute from './components/PrivateRoute';
 import SermonLibrary from './components/SermonLibrary';
 import SupabaseTest from './components/SupabaseTest';
 import { ToastProvider } from './contexts/ToastContext';
-import { ToastContainer } from './components/ui/Toast';
+import { Toaster } from '@/components/ui3';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -484,7 +484,7 @@ function App() {
           } />
         </Route>
       </Routes>
-      <ToastContainer />
+      <Toaster />
     </Router>
     </ToastProvider>
   );

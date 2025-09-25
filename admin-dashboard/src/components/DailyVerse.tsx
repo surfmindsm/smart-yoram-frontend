@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Button } from "@/components/ui3";
+import { Input } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
+import { Badge } from "@/components/ui3";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { BookOpen, Plus, Edit, Trash2, Save, X, Calendar } from 'lucide-react';
 

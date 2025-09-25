@@ -1,10 +1,10 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 import BaseAITool from './BaseAITool';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from "@/components/ui3";
+import { Label } from "@/components/ui3";
+import { Textarea } from "@/components/ui3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
 import { generateAIToolContent, generateAutoFillSuggestions } from '../../services/aiToolsService';
 
 interface SermonInputs {
