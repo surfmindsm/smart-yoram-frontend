@@ -8,7 +8,7 @@ import {
   BarChart3,
   UserPlus
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import {
   LineChart,
   Line,

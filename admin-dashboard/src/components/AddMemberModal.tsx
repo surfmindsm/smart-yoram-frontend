@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { Textarea } from "./ui";
 import { 
   ContactRound, 
   Briefcase, 

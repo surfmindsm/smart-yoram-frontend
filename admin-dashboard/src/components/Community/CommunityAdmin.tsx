@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   Shield
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { communityService } from '../../services/communityService';
 
 // 관리자가 보는 모든 게시글 인터페이스

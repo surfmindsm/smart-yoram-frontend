@@ -17,14 +17,14 @@ import {
   CalendarDays,
   Edit
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui3";
-import { SimpleTabs } from "@/components/ui3";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui";
+import { SimpleTabs } from "./ui";
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { Combobox } from "@/components/ui3";
+import { Combobox } from "./ui";
 
 // 백엔드 API 응답 타입 정의
 interface Member {

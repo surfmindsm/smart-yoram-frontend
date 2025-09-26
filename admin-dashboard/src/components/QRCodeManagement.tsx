@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Button } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Button } from "./ui";
+import { Badge } from "./ui";
+import { Alert, AlertTitle, AlertDescription } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
 import { cn } from '../lib/utils';
 import { Plus, User } from 'lucide-react';
 

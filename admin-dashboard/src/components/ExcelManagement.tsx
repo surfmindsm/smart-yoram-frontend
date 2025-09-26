@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Alert, AlertDescription, AlertTitle } from "./ui";
+import { Badge } from "./ui";
 import { FileSpreadsheet, Download, Upload, Users, BarChart3, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 

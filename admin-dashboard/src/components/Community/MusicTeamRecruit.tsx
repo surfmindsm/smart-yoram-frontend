@@ -10,7 +10,7 @@ import {
   Drum,
   Piano
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { communityService, MusicRecruitment } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';

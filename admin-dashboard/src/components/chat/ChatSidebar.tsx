@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChatHistory, Agent } from '../../types/chat';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { Bot, MoreVertical, Edit, Trash2, Star } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

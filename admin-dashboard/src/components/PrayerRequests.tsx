@@ -22,7 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Card, CardContent } from "@/components/ui3";
+import { Card, CardContent } from "./ui";
 
 interface PrayerRequest {
   id: string;

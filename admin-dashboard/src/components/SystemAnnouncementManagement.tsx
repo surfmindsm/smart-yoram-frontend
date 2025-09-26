@@ -12,13 +12,13 @@ import {
   Users,
   Globe
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Textarea } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Badge } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui";
 import { announcementService, Announcement, AnnouncementCreate, Church } from '../services/announcementService';
 
 const SystemAnnouncementManagement: React.FC = () => {

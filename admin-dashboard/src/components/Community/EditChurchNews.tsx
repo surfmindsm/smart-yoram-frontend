@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Bell, Star, Megaphone } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { communityService, ChurchNews } from '../../services/communityService';
 
 const EditChurchNews: React.FC = () => {

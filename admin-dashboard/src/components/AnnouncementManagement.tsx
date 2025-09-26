@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Pin, Filter } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { Button } from "@/components/ui3";
-import { useToast } from "@/components/ui3";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Checkbox } from "@/components/ui3";
+import { Button } from "./ui";
+import { useToast } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Badge } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
+import { Checkbox } from "./ui";
 import {
   Dialog,
   DialogContent,
@@ -16,14 +16,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui3";
+} from "./ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui3";
+} from "./ui";
 
 // 로컬 Announcement 인터페이스 (백엔드 API 응답에 맞게 수정)
 interface LocalAnnouncement {

@@ -5,7 +5,7 @@ import {
   Plus,
   Calendar
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { communityService } from '../../services/communityService';
 
 const CreateItemRequest: React.FC = () => {

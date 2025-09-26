@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Card, CardContent } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Combobox } from "@/components/ui3";
-import { SimpleTabs } from "@/components/ui3";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Card, CardContent } from "./ui";
+import { Badge } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Combobox } from "./ui";
+import { SimpleTabs } from "./ui";
 import { 
   Search, 
   Filter, 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { 
   Save, 
   X, 

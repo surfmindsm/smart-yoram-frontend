@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Clock, MapPin, Users, Monitor } from 'lucide-react';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Switch } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui3";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui3";
-import { toast } from "@/components/ui3";
+import { Button } from "../ui";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui";
+import { Input } from "../ui";
+import { Label } from "../ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
+import { Switch } from "../ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
+import { toast } from "../ui";
 import { supabaseApiService } from '../../services/supabaseApiService';
 
 interface WorshipService {

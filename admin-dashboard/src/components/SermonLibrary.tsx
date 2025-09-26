@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui3";
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
+import { Card, CardContent } from "./ui";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
 import {
   Library,
   Plus,

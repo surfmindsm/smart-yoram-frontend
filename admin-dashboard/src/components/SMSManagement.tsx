@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Checkbox } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Checkbox } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Textarea } from "./ui";
+import { Badge } from "./ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui";
 import { MessageSquare, Send } from 'lucide-react';
 
 interface Member {

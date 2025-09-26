@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Pin } from 'lucide-react';
 import { announcementService } from '../services/api';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Badge } from "./ui";
 import { CategorySelect, CategoryBadge, CATEGORIES } from './AnnouncementCategories';
-import { SimpleTabs } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Checkbox } from "@/components/ui3";
+import { SimpleTabs } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
+import { Checkbox } from "./ui";
 import {
   Dialog,
   DialogContent,
@@ -17,14 +17,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui3";
+} from "./ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui3";
+} from "./ui";
 
 interface Announcement {
   id: number;

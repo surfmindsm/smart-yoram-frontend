@@ -10,7 +10,7 @@ import {
   Heart,
   Share
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, ChurchEvent } from '../../services/communityService';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';

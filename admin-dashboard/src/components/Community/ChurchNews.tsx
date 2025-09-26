@@ -12,7 +12,7 @@ import {
   Bell,
   Star
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
 import { ChurchNews as ChurchNewsType, communityService } from '../../services/communityService';
 import { ChurchNewsListOptions } from '../../types/church-events';

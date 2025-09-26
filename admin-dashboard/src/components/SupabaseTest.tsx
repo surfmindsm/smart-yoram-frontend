@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 
 const SupabaseTest: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { Badge } from "./ui";
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 

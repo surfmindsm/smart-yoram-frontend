@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Send, History, Users, User, Bell, Image, Clock } from 'lucide-react';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui3";
-import { RadioGroup, RadioGroupItem } from "@/components/ui3";
-import { Checkbox } from "@/components/ui3";
-import { toast } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui";
+import { RadioGroup, RadioGroupItem } from "./ui";
+import { Checkbox } from "./ui";
+import { toast } from "./ui";
+import { Badge } from "./ui";
 
 interface Member {
   id: number;

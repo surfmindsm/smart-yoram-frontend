@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Download, Loader, Sparkles } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 
 interface BaseAIToolProps {
   title: string;

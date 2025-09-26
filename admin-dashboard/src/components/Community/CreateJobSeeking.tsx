@@ -9,7 +9,7 @@ import {
   Award,
   MapPin
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { communityService } from '../../services/communityService';
 
 const CreateJobSeeking: React.FC = () => {

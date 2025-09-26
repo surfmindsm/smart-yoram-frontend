@@ -6,7 +6,7 @@ import {
   MapPin,
   HandHeart
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, RequestItem } from '../../services/communityService';

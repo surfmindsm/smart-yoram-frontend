@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Badge } from "@/components/ui3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui";
 import { Plus, Settings, AlertCircle } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
 
@@ -34,7 +29,7 @@ interface ChurchAdmin {
   email: string;
   role: string;
   has_gpt_license: boolean;
-  license_assigned_at: string | null | undefined;
+  license_assigned_at?: string | null;
 }
 
 export default function GptLicenseManagement() {

@@ -13,7 +13,7 @@ import {
   MapPin,
   Award
 } from 'lucide-react';
-import { Button } from "@/components/ui3";
+import { Button } from "../ui";
 import { communityService } from '../../services/communityService';
 import { supabaseApiService } from '../../services/supabaseApiService';
 

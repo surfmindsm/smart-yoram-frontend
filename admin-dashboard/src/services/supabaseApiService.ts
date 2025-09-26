@@ -4519,7 +4519,7 @@ export const supabaseApiService = {
           email: admin.email || '이메일 없음',
           role: admin.role || 'unknown',
           has_gpt_license: false, // 일단 기본값으로 설정
-          license_assigned_at: null
+          license_assigned_at: null as string | null
         }));
 
         console.log('👥 Church admins result:', transformedAdmins);

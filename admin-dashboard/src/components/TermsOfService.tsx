@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 
 const TermsOfService: React.FC = () => {
   return (

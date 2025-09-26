@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui3";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Label } from "@/components/ui3";
-import { Alert, AlertDescription } from "@/components/ui3";
+import { Button } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Input } from "./ui";
+import { Label } from "./ui";
+import { Alert, AlertDescription } from "./ui";
 import { X, Eye, EyeOff } from 'lucide-react';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 

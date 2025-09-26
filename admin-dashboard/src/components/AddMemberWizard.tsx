@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui3";
-import { Input } from "@/components/ui3";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui3";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui3";
-import { Textarea } from "@/components/ui3";
-import { Separator } from "@/components/ui3";
+import { Button } from "./ui";
+import { Input } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Textarea } from "./ui";
+import { Separator } from "./ui";
 import { ArrowLeft, ArrowRight, Check, ContactRound, Briefcase, Church, Heart, Plus, Trash2, UserPlus, MapPin, Car } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';

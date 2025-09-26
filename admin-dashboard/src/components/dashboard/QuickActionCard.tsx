@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from "@/components/ui3";
+import { Card, CardContent } from "../ui";
 import { cn } from '../../lib/utils';
 
 interface QuickActionCardProps {
