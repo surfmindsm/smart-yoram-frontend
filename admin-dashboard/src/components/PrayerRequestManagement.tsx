@@ -874,7 +874,7 @@ const PrayerRequestManagement: React.FC = () => {
               </Button>
               <Button
                 onClick={handleRecordSubmit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1"
                 disabled={!prayerRecord.trim()}
               >
                 <BookOpen className="h-4 w-4 mr-2" />

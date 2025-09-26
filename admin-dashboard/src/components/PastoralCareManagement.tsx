@@ -2523,9 +2523,8 @@ const PastoralCareManagement: React.FC = () => {
               <Button variant="outline" onClick={() => setShowRecordDetailModal(false)}>
                 취소
               </Button>
-              <Button 
+              <Button
                 onClick={handleUpdateNotes}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 일지 저장
@@ -2692,9 +2691,8 @@ const PastoralCareManagement: React.FC = () => {
               <Button variant="outline" onClick={() => setShowAdminRegistrationModal(false)}>
                 취소
               </Button>
-              <Button 
+              <Button
                 onClick={handleAdminRegistration}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 등록하기

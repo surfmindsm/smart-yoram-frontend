@@ -480,7 +480,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
 
               {/* 문의하기 버튼 */}
               <Button
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 flex items-center justify-center gap-2"
                 onClick={handleContactModalOpen}
               >
                 <MessageCircle className="h-4 w-4" />

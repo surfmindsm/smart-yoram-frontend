@@ -227,14 +227,11 @@ const PrayerRequests: React.FC = () => {
                   조회 {request.view_count}
                 </Button>
 
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={() => handlePrayFor(request.id)}
-                  className={`flex items-center gap-1 ${
-                    request.status === 'answered' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
+                  variant={request.status === 'answered' ? 'destructive' : 'default'}
+                  className="flex items-center gap-1"
                 >
                   {request.status === 'answered' ? (
                     <>

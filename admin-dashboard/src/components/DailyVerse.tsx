@@ -163,7 +163,6 @@ const DailyVerse: React.FC = () => {
         </div>
         <Button
           onClick={() => setShowForm(true)}
-          className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           새 말씀 추가
@@ -252,7 +251,7 @@ const DailyVerse: React.FC = () => {
               </div>
 
               <div className="flex space-x-3 pt-4">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit">
                   <Save className="h-4 w-4 mr-2" />
                   {editingId ? '수정' : '저장'}
                 </Button>

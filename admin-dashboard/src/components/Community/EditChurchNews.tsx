@@ -232,7 +232,6 @@ const EditChurchNews: React.FC = () => {
             type="submit"
             form="news-form"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
