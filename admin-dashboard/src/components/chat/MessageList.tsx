@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { cn } from '../../lib/utils';
-import { Button } from '../ui';
+import { Button } from '../ui/button';
 
 // Query type 라벨 변환 함수
 const getQueryTypeLabel = (queryType: string) => {

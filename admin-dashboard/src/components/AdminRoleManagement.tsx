@@ -19,7 +19,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { Card, CardContent, Button } from "./ui";
+import { Card, CardContent, Button } from "./ui/index";
 
 interface User {
   id: string;
