@@ -296,13 +296,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.qualifications.map((qual, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                     {qual}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeQualification(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -328,13 +330,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.requirements.map((req, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
                     {req}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeRequirement(index)}
-                      className="ml-1 text-green-600 hover:text-green-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-green-600 hover:text-green-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -360,13 +364,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.benefits.map((benefit, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
                     {benefit}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeBenefit(index)}
-                      className="ml-1 text-purple-600 hover:text-purple-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-purple-600 hover:text-purple-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>

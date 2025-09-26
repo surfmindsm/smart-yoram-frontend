@@ -222,10 +222,10 @@ const PrayerRequests: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-3">
-                <button className="flex items-center text-sm text-gray-500 hover:text-blue-500">
+                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-500">
                   <MessageCircle className="h-4 w-4 mr-1" />
                   조회 {request.view_count}
-                </button>
+                </Button>
 
                 <Button 
                   size="sm" 

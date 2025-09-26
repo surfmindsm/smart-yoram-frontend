@@ -489,13 +489,13 @@ const PrayerRequests: React.FC = () => {
             <option value="false">비공개</option>
           </select>
 
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+            className="flex items-center"
           >
             <Plus className="h-4 w-4 mr-2" />
             새 요청
-          </button>
+          </Button>
         </div>
         </CardContent>
       </Card>
@@ -601,42 +601,50 @@ const PrayerRequests: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <button
+                        <Button
                           onClick={() => handlePray(request)}
-                          className="text-red-600 hover:text-red-900"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
                           title="기도하기"
                         >
                           <Heart className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => {
                             setSelectedRequest(request);
                             setShowDetailModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900"
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-900 h-8 w-8 p-0"
                           title="상세보기"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
+                        </Button>
                         {request.status === 'active' && (
-                          <button
+                          <Button
                             onClick={() => {
                               setSelectedRequest(request);
                               setShowAnswerModal(true);
                             }}
-                            className="text-green-600 hover:text-green-900"
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-600 hover:text-green-900 h-8 w-8 p-0"
                             title="응답처리"
                           >
                             <CheckCircle className="h-4 w-4" />
-                          </button>
+                          </Button>
                         )}
-                        <button
+                        <Button
                           onClick={() => handleDeleteRequest(request)}
-                          className="text-red-600 hover:text-red-900"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
                           title="삭제"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -653,12 +661,14 @@ const PrayerRequests: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">새 기도요청 등록</h2>
-              <button
+              <Button
                 onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600 h-8 w-8 p-0"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4">
@@ -749,18 +759,19 @@ const PrayerRequests: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                variant="outline"
+                className="flex-1"
               >
                 취소
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleCreateRequest}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                className="flex-1"
               >
                 등록
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -772,12 +783,14 @@ const PrayerRequests: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">기도요청 상세</h2>
-              <button
+              <Button
                 onClick={() => setShowDetailModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600 h-8 w-8 p-0"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4">
@@ -908,12 +921,14 @@ const PrayerRequests: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">기도응답 처리</h2>
-              <button
+              <Button
                 onClick={() => setShowAnswerModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600 h-8 w-8 p-0"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4">
@@ -945,18 +960,19 @@ const PrayerRequests: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
                 onClick={() => setShowAnswerModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                variant="outline"
+                className="flex-1"
               >
                 취소
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleMarkAsAnswered}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                className="flex-1 bg-green-600 hover:bg-green-700"
               >
                 응답처리
-              </button>
+              </Button>
             </div>
           </div>
         </div>

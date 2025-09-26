@@ -300,13 +300,15 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 {formData.requirements.map((req, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                     {req}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeRequirement(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>

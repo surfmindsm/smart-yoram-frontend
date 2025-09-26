@@ -401,13 +401,15 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
                   </div>
                   
                   {/* 삭제 버튼 */}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2 rounded-full h-6 w-6 p-0"
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </Button>
                   
                   {/* 대표 이미지 표시 */}
                   {mainImageIndex === index && (
@@ -418,13 +420,15 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
                   
                   {/* 대표 이미지 설정 버튼 */}
                   {mainImageIndex !== index && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setMainImage(index)}
-                      className="absolute top-1 left-1 bg-black bg-opacity-50 text-white rounded px-1 text-xs hover:bg-opacity-70"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-1 left-1 bg-black bg-opacity-50 text-white rounded px-1 text-xs hover:bg-opacity-70 h-auto"
                     >
                       대표
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
@@ -571,29 +575,35 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               className="max-w-full max-h-full object-contain"
             />
             
-            <button
+            <Button
               onClick={() => setSelectedImageIndex(null)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
             >
               <X className="h-6 w-6" />
-            </button>
+            </Button>
             
             {imageFiles.length > 1 && (
               <>
-                <button
+                <Button
                   onClick={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                   disabled={selectedImageIndex === 0}
                 >
                   <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedImageIndex(Math.min(imageFiles.length - 1, selectedImageIndex + 1))}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                   disabled={selectedImageIndex === imageFiles.length - 1}
                 >
                   <ChevronRight className="h-6 w-6" />
-                </button>
+                </Button>
               </>
             )}
             

@@ -625,7 +625,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                           <p className="text-xs text-gray-500">첨부된 포트폴리오 자료</p>
                         </div>
                       </div>
-                      <button
+                      <Button
                         onClick={() => {
                           try {
                             if (post.portfolioFile.startsWith('data:application/json;charset=utf-8,')) {
@@ -696,13 +696,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                             alert('파일 다운로드에 실패했습니다.');
                           }
                         }}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                        size="sm"
+                        className="text-blue-600 bg-blue-50 hover:bg-blue-100"
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         다운로드
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -724,28 +725,34 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
             />
             
             {/* 닫기 버튼 */}
-            <button
+            <Button
               onClick={closeImageModal}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
             >
               <X className="h-6 w-6" />
-            </button>
+            </Button>
             
             {/* 네비게이션 버튼들 */}
             {post.images.length > 1 && (
               <>
-                <button
+                <Button
                   onClick={() => navigateImage('prev')}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                 >
                   <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => navigateImage('next')}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                 >
                   <ChevronRight className="h-6 w-6" />
-                </button>
+                </Button>
               </>
             )}
             
@@ -764,12 +771,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between p-6 border-b">
               <h3 className="text-lg font-semibold text-gray-900">교회 문의하기</h3>
-              <button
+              <Button
                 onClick={() => setShowContactModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600 h-8 w-8 p-0"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
 
             {/* 모달 내용 */}
@@ -798,12 +807,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                         <span className="text-blue-800 flex-1">
                           {churchInfo.phone}
                         </span>
-                        <button
+                        <Button
                           onClick={() => copyToClipboard(churchInfo.phone, '전화번호')}
-                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 px-2 py-0.5 rounded"
+                          variant="outline"
+                          size="sm"
+                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border-blue-300 h-6 px-2"
                         >
                           복사
-                        </button>
+                        </Button>
                       </div>
                     ) : !loadingChurch && (
                       <div className="flex items-center text-sm text-gray-500">
@@ -819,12 +830,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                         <span className="text-blue-800 break-all flex-1">
                           {churchInfo.email}
                         </span>
-                        <button
+                        <Button
                           onClick={() => copyToClipboard(churchInfo.email, '이메일')}
-                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 px-2 py-0.5 rounded"
+                          variant="outline"
+                          size="sm"
+                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border-blue-300 h-6 px-2"
                         >
                           복사
-                        </button>
+                        </Button>
                       </div>
                     ) : !loadingChurch && (
                       <div className="flex items-center text-sm text-gray-500">
@@ -840,12 +853,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                         <span className="text-blue-800 flex-1">
                           {churchInfo.address}
                         </span>
-                        <button
+                        <Button
                           onClick={() => copyToClipboard(churchInfo.address, '주소')}
-                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 px-2 py-0.5 rounded"
+                          variant="outline"
+                          size="sm"
+                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 border-blue-300 h-6 px-2"
                         >
                           복사
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -864,12 +879,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                         <div className="text-sm font-medium text-gray-700">전화번호</div>
                         <div className="text-blue-600 font-medium">{post.contactInfo}</div>
                       </div>
-                      <button
+                      <Button
                         onClick={() => copyToClipboard(post.contactInfo!, '연락처')}
-                        className="text-xs text-gray-500 hover:text-gray-700 border border-gray-300 px-2 py-1 rounded"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-gray-500 hover:text-gray-700 h-6 px-2"
                       >
                         복사
-                      </button>
+                      </Button>
                     </div>
                   )}
 
@@ -880,12 +897,14 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
                         <div className="text-sm font-medium text-gray-700">이메일</div>
                         <div className="text-blue-600 font-medium break-all">{post.email}</div>
                       </div>
-                      <button
+                      <Button
                         onClick={() => copyToClipboard(post.email!, '이메일')}
-                        className="text-xs text-gray-500 hover:text-gray-700 border border-gray-300 px-2 py-1 rounded"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-gray-500 hover:text-gray-700 h-6 px-2"
                       >
                         복사
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>

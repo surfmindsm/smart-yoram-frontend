@@ -460,32 +460,24 @@ const SecurityLogs: React.FC = () => {
 
       {/* 탭 네비게이션 */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
-        <button
+        <Button
           onClick={() => setActiveTab('login')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'login'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          variant={activeTab === 'login' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'login' ? 'shadow-sm' : ''}
         >
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            로그인 기록
-          </div>
-        </button>
-        <button
+          <Shield className="w-4 h-4 mr-2" />
+          로그인 기록
+        </Button>
+        <Button
           onClick={() => setActiveTab('activity')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'activity'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          variant={activeTab === 'activity' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'activity' ? 'shadow-sm' : ''}
         >
-          <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4" />
-            활동 로그
-          </div>
-        </button>
+          <Eye className="w-4 h-4 mr-2" />
+          활동 로그
+        </Button>
       </div>
 
       {/* 필터 및 검색 */}

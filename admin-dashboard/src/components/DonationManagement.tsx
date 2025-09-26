@@ -1320,40 +1320,48 @@ const DonationManagement: React.FC = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-2 px-2">
-                        <button
+                        <Button
                           onClick={() => handleSort('offeredOn')}
-                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
                         >
                           <span>날짜</span>
                           {getSortIcon('offeredOn')}
-                        </button>
+                        </Button>
                       </th>
                       <th className="text-left py-2 px-2">
-                        <button
+                        <Button
                           onClick={() => handleSort('donorName')}
-                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
                         >
                           <span>기부자</span>
                           {getSortIcon('donorName')}
-                        </button>
+                        </Button>
                       </th>
                       <th className="text-left py-2 px-2">
-                        <button
+                        <Button
                           onClick={() => handleSort('fundType')}
-                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
                         >
                           <span>헌금 유형</span>
                           {getSortIcon('fundType')}
-                        </button>
+                        </Button>
                       </th>
                       <th className="text-right py-2 px-4">
-                        <button
+                        <Button
                           onClick={() => handleSort('amount')}
-                          className="flex items-center space-x-1 hover:text-blue-600 transition-colors ml-auto"
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal ml-auto"
                         >
                           <span>금액</span>
                           {getSortIcon('amount')}
-                        </button>
+                        </Button>
                       </th>
                       <th className="text-left py-2 px-4">적요</th>
                       <th className="text-center py-2 px-4">작업</th>

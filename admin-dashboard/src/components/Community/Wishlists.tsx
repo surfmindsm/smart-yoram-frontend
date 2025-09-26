@@ -207,12 +207,11 @@ const Wishlists: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <button
+          <Button
             onClick={() => fetchWishlists(currentPage)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             다시 시도
-          </button>
+          </Button>
         </div>
       </div>
     );

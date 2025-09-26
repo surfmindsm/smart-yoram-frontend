@@ -521,13 +521,15 @@ const CreateChurchNews: React.FC = () => {
                       className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
                     >
                       #{tag}
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
                       >
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </div>

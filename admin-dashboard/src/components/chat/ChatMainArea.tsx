@@ -165,15 +165,16 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
               <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">💡 이런 질문을 해보세요:</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {secretaryQuestions.map((question, index) => (
-                  <button
+                  <Button
                     key={index}
                     onClick={() => setInputValue(question)}
-                    className="p-4 text-left border border-slate-200 rounded-xl hover:border-primary/40 hover:bg-primary/10 transition-all group"
+                    variant="outline"
+                    className="p-4 text-left h-auto justify-start rounded-xl hover:border-primary/40 hover:bg-primary/10 transition-all group"
                   >
                     <div className="text-sm text-slate-700 group-hover:text-primary">
                       {question}
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -248,34 +249,38 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                   </Button>
                   {/* 다운로드 드롭다운 메뉴 */}
                   <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                    <button
+                    <Button
                       onClick={() => onDownload('txt')}
-                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      variant="ghost"
+                      className="flex items-center w-full justify-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 h-auto"
                     >
                       <FileText className="h-4 w-4 mr-3 text-slate-500" />
                       텍스트 파일 (.txt)
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => onDownload('md')}
-                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      variant="ghost"
+                      className="flex items-center w-full justify-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 h-auto"
                     >
                       <FileCode className="h-4 w-4 mr-3 text-slate-500" />
                       마크다운 (.md)
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => onDownload('pdf')}
-                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      variant="ghost"
+                      className="flex items-center w-full justify-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 h-auto"
                     >
                       <FileImage className="h-4 w-4 mr-3 text-slate-500" />
                       PDF 파일 (.pdf)
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => onDownload('docx')}
-                      className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      variant="ghost"
+                      className="flex items-center w-full justify-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 h-auto"
                     >
                       <File className="h-4 w-4 mr-3 text-slate-500" />
                       워드 문서 (.docx)
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

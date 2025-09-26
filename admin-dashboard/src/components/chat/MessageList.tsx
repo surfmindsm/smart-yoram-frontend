@@ -126,16 +126,18 @@ const MessageList: React.FC<MessageListProps> = memo(({ messages, isLoading, mes
               "mt-2 opacity-0 group-hover:opacity-100 transition-opacity",
               message.role === 'user' ? "text-right" : "text-left"
             )}>
-              <button
+              <Button
                 onClick={() => {
                   const textContent = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
                   navigator.clipboard.writeText(textContent);
                 }}
-                className="inline-flex items-center px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                variant="ghost"
+                size="sm"
+                className="inline-flex items-center px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-auto"
               >
                 <Copy className="w-3 h-3 mr-1" />
                 복사
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -80,28 +80,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* 탭 헤더 */}
       <div className="border-b border-slate-200">
         <div className="flex">
-          <button
+          <Button
             onClick={() => setActiveTab('history')}
+            variant="ghost"
             className={cn(
-              "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+              "flex-1 px-4 py-3 text-sm font-medium transition-colors rounded-none",
               activeTab === 'history'
                 ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
             히스토리
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setActiveTab('agents')}
+            variant="ghost"
             className={cn(
-              "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+              "flex-1 px-4 py-3 text-sm font-medium transition-colors rounded-none",
               activeTab === 'agents'
                 ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
             에이전트
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -185,15 +187,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     
                     {/* 더보기 메뉴 버튼 */}
                     <div className="absolute right-2 top-3">
-                      <button
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleMenu(chat.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 h-6 w-6"
                       >
                         <MoreVertical className="h-3 w-3 text-slate-400" />
-                      </button>
+                      </Button>
                       
                       {/* 드롭다운 메뉴 */}
                       {openMenuId === chat.id && (
@@ -201,24 +205,26 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                           className="absolute right-0 top-6 bg-white border border-slate-200 rounded-md shadow-lg z-10 min-w-32"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
+                          <Button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               handleStartEditTitle(chat.id, chat.title);
                             }}
-                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center"
+                            variant="ghost"
+                            className="w-full justify-start px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 h-auto"
                           >
                             <Edit className="h-3 w-3 mr-2" />
                             이름 변경
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               onDeleteChat(chat.id, chat.title);
                             }}
-                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                            variant="ghost"
+                            className="w-full justify-start px-3 py-2 text-sm text-red-600 hover:bg-red-50 h-auto"
                           >
                             <Trash2 className="h-3 w-3 mr-2" />
                             삭제

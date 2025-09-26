@@ -182,12 +182,14 @@ const AnalyticsDashboard: React.FC = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 rounded-md">
           <div className="flex items-center justify-between">
             <span className="text-sm">{error}</span>
-            <button 
+            <Button
               onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-600"
+              variant="ghost"
+              size="sm"
+              className="text-red-400 hover:text-red-600 h-6 w-6 p-0"
             >
               ✕
-            </button>
+            </Button>
           </div>
         </div>
       )}
