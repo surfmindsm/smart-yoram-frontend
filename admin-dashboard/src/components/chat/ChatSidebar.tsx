@@ -228,7 +228,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                           >
                             <Trash2 className="h-3 w-3 mr-2" />
                             삭제
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
