@@ -164,7 +164,7 @@ export {
   ToastClose,
   ToastTitle,
   ToastDescription
-} from './toast'
+} from './Toast'
 export { Toaster } from './toaster'
 export { Toggle, toggleVariants } from './toggle'
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip'
