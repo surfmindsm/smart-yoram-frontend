@@ -56,7 +56,7 @@ export const announcementService = {
   // 대상 교회 목록 조회 (시스템 관리자용)
   getChurches: async (): Promise<Church[]> => {
     try {
-      const response = await api.get(getApiUrl('/system-announcements/churches'));
+      const response = await supabaseApiService.systemAnnouncements.getChurches();
       return response.data || [];
     } catch (error: any) {
       console.error('교회 목록 조회 실패:', error);
@@ -67,8 +67,25 @@ export const announcementService = {
   // 시스템 공지사항 관리 조회 (시스템 관리자용)
   getSystemAnnouncementsAdmin: async (): Promise<Announcement[]> => {
     try {
-      const response = await api.get(getApiUrl('/system-announcements/admin'));
-      return response.data.announcements || [];
+      const response = await supabaseApiService.systemAnnouncements.getAdmin();
+      // Supabase 데이터를 Announcement 인터페이스에 맞게 변환
+      const announcements = (response.data || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        category: 'system',
+        priority: item.priority as 'urgent' | 'important' | 'normal',
+        target_type: (item.target_churches ? 'specific' : 'all') as 'all' | 'specific' | 'single',
+        target_church_ids: item.target_churches ? JSON.parse(item.target_churches) : undefined,
+        is_active: item.is_active,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        created_by: item.created_by,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        type: 'system' as 'system' | 'church'
+      }));
+      return announcements;
     } catch (error: any) {
       console.error('시스템 공지사항 관리 조회 실패:', error);
       return [];

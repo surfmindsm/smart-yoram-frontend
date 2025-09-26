@@ -100,13 +100,18 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md border-muted">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Church Round 관리자</CardTitle>
-          <CardDescription className="text-center">
-            {step === 'login'
-              ? '관리자 계정으로 로그인하세요'
-              : '이메일로 전송된 인증 코드를 입력하세요'
-            }
-          </CardDescription>
+          <div className="flex justify-center">
+            <img
+              src="/logo_type3_white.png"
+              alt="Church Round"
+              className="h-16"
+            />
+          </div>
+          {step === 'email-verification' && (
+            <CardDescription className="text-center">
+              이메일로 전송된 인증 코드를 입력하세요
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           {step === 'login' ? (

@@ -340,9 +340,11 @@ const Layout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold text-slate-900">
-              {isCommunityOnlyUser ? 'Church Round 커뮤니티' : 'Church Round 관리자'}
-            </h1>
+            <img
+              src="/logo_type4_white.png"
+              alt="Church Round"
+              className="h-8"
+            />
           </div>
           <div className="flex items-center space-x-4">
             {/* 최근 접속 기록 버튼 */}
