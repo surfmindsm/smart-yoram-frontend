@@ -96,8 +96,8 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
         </Button>
         
         <div className="flex items-center mb-4">
-          <div className="p-3 bg-sky-50 rounded-lg mr-4">
-            <IconComponent className="h-8 w-8 text-sky-600" />
+          <div className="p-3 bg-primary/10 rounded-lg mr-4">
+            <IconComponent className="h-8 w-8 text-primary" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
@@ -227,7 +227,7 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <Loader className="w-8 h-8 animate-spin text-sky-600 mx-auto mb-4" />
+                  <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
                   <p className="text-slate-600">AI가 콘텐츠를 생성하고 있습니다...</p>
                 </div>
               </div>

@@ -311,7 +311,7 @@ const PrayerRequestManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -327,7 +327,7 @@ const PrayerRequestManagement: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 bg-sky-600 hover:bg-sky-700 text-white"
+            className="flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white"
           >
             <Plus className="h-4 w-4" />
             <span>기도 요청 등록</span>
@@ -490,7 +490,7 @@ const PrayerRequestManagement: React.FC = () => {
             <input
               type="text"
               placeholder="기도 요청 내용으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -502,7 +502,7 @@ const PrayerRequestManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">상태</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -516,7 +516,7 @@ const PrayerRequestManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">유형</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
@@ -533,7 +533,7 @@ const PrayerRequestManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">공개 설정</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={visibilityFilter}
                 onChange={(e) => setVisibilityFilter(e.target.value)}
               >
@@ -911,7 +911,7 @@ const PrayerRequestManagement: React.FC = () => {
                     value={newRequest.requesterName}
                     onChange={(e) => setNewRequest({...newRequest, requesterName: e.target.value})}
                     placeholder="이름을 입력하세요"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     disabled={newRequest.isAnonymous}
                   />
                 </div>
@@ -926,7 +926,7 @@ const PrayerRequestManagement: React.FC = () => {
                     value={newRequest.requesterPhone}
                     onChange={(e) => setNewRequest({...newRequest, requesterPhone: e.target.value})}
                     placeholder="010-1234-5678"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
               </div>
@@ -939,7 +939,7 @@ const PrayerRequestManagement: React.FC = () => {
                 <select
                   value={newRequest.prayerType}
                   onChange={(e) => setNewRequest({...newRequest, prayerType: e.target.value as any})}
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="general">일반</option>
                   <option value="healing">치유</option>
@@ -959,7 +959,7 @@ const PrayerRequestManagement: React.FC = () => {
                   value={newRequest.prayerContent}
                   onChange={(e) => setNewRequest({...newRequest, prayerContent: e.target.value})}
                   placeholder="기도 요청 내용을 상세히 입력해주세요..."
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   rows={5}
                 />
               </div>
@@ -978,7 +978,7 @@ const PrayerRequestManagement: React.FC = () => {
                           requesterName: e.target.checked ? '익명' : ''
                         });
                       }}
-                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="rounded border-slate-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm text-slate-700">익명 요청</span>
                   </label>
@@ -1023,7 +1023,7 @@ const PrayerRequestManagement: React.FC = () => {
               </Button>
               <Button
                 onClick={handleCreateRequest}
-                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                className="flex-1 bg-primary hover:bg-primary/90 text-white"
                 disabled={isCreating || !newRequest.requesterName.trim() || !newRequest.prayerContent.trim()}
               >
                 {isCreating ? (

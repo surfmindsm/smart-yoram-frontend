@@ -945,7 +945,7 @@ const PastoralCareManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -961,7 +961,6 @@ const PastoralCareManagement: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Button
             onClick={() => setShowAdminRegistrationModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             직접 등록
@@ -1171,7 +1170,7 @@ const PastoralCareManagement: React.FC = () => {
             <input
               type="text"
               placeholder="신청자 이름 또는 내용으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -1200,7 +1199,6 @@ const PastoralCareManagement: React.FC = () => {
                   <Button
                     size="sm"
                     onClick={loadLocationBasedRequests}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Target className="h-3 w-3 mr-1" />
                     검색
@@ -1292,7 +1290,7 @@ const PastoralCareManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">상태</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -1308,7 +1306,7 @@ const PastoralCareManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">우선순위</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
               >
@@ -1323,7 +1321,7 @@ const PastoralCareManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">유형</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
@@ -1338,7 +1336,7 @@ const PastoralCareManagement: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">긴급 여부</label>
               <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={urgentFilter}
                 onChange={(e) => setUrgentFilter(e.target.value)}
               >
@@ -1505,7 +1503,7 @@ const PastoralCareManagement: React.FC = () => {
                               e.stopPropagation();
                               handleSchedule(request);
                             }}
-                            className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             일정조율
                           </button>
@@ -1596,7 +1594,7 @@ const PastoralCareManagement: React.FC = () => {
                   <input
                     type="text"
                     placeholder="성명으로 검색..."
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={personFilter}
                     onChange={(e) => setPersonFilter(e.target.value)}
                   />
@@ -1610,7 +1608,7 @@ const PastoralCareManagement: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={dateFromFilter}
                   onChange={(e) => setDateFromFilter(e.target.value)}
                 />
@@ -1623,7 +1621,7 @@ const PastoralCareManagement: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={dateToFilter}
                   onChange={(e) => setDateToFilter(e.target.value)}
                 />
@@ -1637,7 +1635,7 @@ const PastoralCareManagement: React.FC = () => {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">전체</option>
                   <option value="high">긴급</option>
@@ -1942,7 +1940,7 @@ const PastoralCareManagement: React.FC = () => {
                   type="date"
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -1954,7 +1952,7 @@ const PastoralCareManagement: React.FC = () => {
                   type="time"
                   value={scheduledTime}
                   onChange={(e) => setScheduledTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -2004,7 +2002,7 @@ const PastoralCareManagement: React.FC = () => {
                 <select
                   value={assignedPastorId}
                   onChange={(e) => setAssignedPastorId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">담당자 선택</option>
                   <option value="pastor1">김목사</option>
@@ -2062,7 +2060,7 @@ const PastoralCareManagement: React.FC = () => {
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="예: 해당 날짜에 이미 다른 일정이 있어 심방이 어렵습니다. 다른 날짜로 다시 신청해주시기 바랍니다."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   rows={4}
                 />
               </div>
@@ -2105,7 +2103,7 @@ const PastoralCareManagement: React.FC = () => {
                 <textarea
                   value={completionNotes}
                   onChange={(e) => setCompletionNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   rows={4}
                   placeholder="심방 내용과 기도제목을 기록해주세요..."
                 />
@@ -2354,7 +2352,7 @@ const PastoralCareManagement: React.FC = () => {
                   value={completionNotes}
                   onChange={(e) => setCompletionNotes(e.target.value)}
                   placeholder="예:&#10;- 신청자 건강 상태: 수술 후 회복 중, 기력 회복됨&#10;- 가정 상황: 자녀 진학 문제로 고민 중&#10;- 기도 제목: 완전한 회복과 가정의 평안&#10;- 후속 조치: 2주 후 전화 안부 확인 예정&#10;- 기타: 교회 출석 재개 의지 확인함"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   rows={8}
                 />
               </div>
@@ -2378,10 +2376,11 @@ const PastoralCareManagement: React.FC = () => {
               <Button variant="outline" onClick={() => setShowCompletionModal(false)}>
                 취소
               </Button>
-              <Button 
-                onClick={handleSaveCompletion} 
+              <Button
+                onClick={handleSaveCompletion}
                 disabled={!completionNotes.trim()}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+                variant="outline"
               >
                 심방 완료 처리
               </Button>
@@ -2494,7 +2493,7 @@ const PastoralCareManagement: React.FC = () => {
                   value={editingNotes}
                   onChange={(e) => setEditingNotes(e.target.value)}
                   placeholder="심방을 통해 확인한 내용, 기도 제목, 후속 조치 사항 등을 기록해주세요."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   rows={6}
                 />
                 <p className="text-xs text-slate-500 mt-1">

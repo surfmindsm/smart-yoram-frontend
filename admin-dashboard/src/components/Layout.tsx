@@ -302,7 +302,6 @@ const Layout: React.FC = () => {
         }
       ],
       items: [
-        { path: '/community', name: '커뮤니티 홈', Icon: Home },
         ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
       ],
     },
@@ -432,7 +431,7 @@ const Layout: React.FC = () => {
                             className={cn(
                               "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
                               isActive
-                                ? "bg-sky-50 text-sky-700"
+                                ? "bg-primary/10 text-primary"
                                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                             )}
                           >
@@ -473,7 +472,7 @@ const Layout: React.FC = () => {
                                         className={cn(
                                           "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
                                           isActive
-                                            ? "bg-sky-50 text-sky-700"
+                                            ? "bg-primary/10 text-primary"
                                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                                         )}
                                       >

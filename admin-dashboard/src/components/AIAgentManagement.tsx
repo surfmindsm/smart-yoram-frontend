@@ -717,7 +717,7 @@ const AIAgentManagement: React.FC = () => {
                       ].map((question) => (
                         <button
                           key={question}
-                          className="p-3 text-left border border-slate-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
+                          className="p-3 text-left border border-slate-200 rounded-lg hover:border-primary/40 hover:bg-primary/10 transition-colors"
                         >
                           <div className="text-sm text-slate-700">{question}</div>
                         </button>
@@ -735,11 +735,11 @@ const AIAgentManagement: React.FC = () => {
                   <input
                     type="text"
                     placeholder="메시지를 입력하세요..."
-                    className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
-                  <button className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg">
+                  <Button>
                     전송
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -773,7 +773,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="예: 설교 도우미"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={editingAgent.name}
                   onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
                 />
@@ -786,7 +786,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={editingAgent.category}
                       onChange={(e) => setEditingAgent({ ...editingAgent, category: e.target.value })}
                     >
@@ -807,7 +807,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={editingAgent.icon}
                       onChange={(e) => setEditingAgent({ ...editingAgent, icon: e.target.value })}
                     >
@@ -831,7 +831,7 @@ const AIAgentManagement: React.FC = () => {
                 </label>
                 <textarea
                   placeholder="에이전트의 역할을 한 줄로 설명해주세요"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={editingAgent.description}
                   onChange={(e) => setEditingAgent({ ...editingAgent, description: e.target.value })}
                 />
@@ -844,7 +844,7 @@ const AIAgentManagement: React.FC = () => {
                 <textarea
                   placeholder="에이전트의 기능과 특징을 자세히 설명해주세요"
                   rows={4}
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   value={editingAgent.detailedDescription}
                   onChange={(e) => setEditingAgent({ ...editingAgent, detailedDescription: e.target.value })}
                 />
@@ -858,7 +858,7 @@ const AIAgentManagement: React.FC = () => {
                   onClick={() => setEditingAgent({ ...editingAgent, isActive: !editingAgent.isActive })}
                   className={cn(
                     "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    editingAgent.isActive ? "bg-sky-600" : "bg-slate-200"
+                    editingAgent.isActive ? "bg-primary" : "bg-slate-200"
                   )}
                 >
                   <span
@@ -924,7 +924,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="예: 설교 도우미"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newAgent.name}
                   onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
                 />
@@ -937,7 +937,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={newAgent.category}
                       onChange={(e) => setNewAgent({ ...newAgent, category: e.target.value })}
                     >
@@ -958,7 +958,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={newAgent.icon}
                       onChange={(e) => setNewAgent({ ...newAgent, icon: e.target.value })}
                     >
@@ -980,7 +980,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="에이전트의 역할을 한 줄로 설명해주세요"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newAgent.description}
                   onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })}
                 />
@@ -993,7 +993,7 @@ const AIAgentManagement: React.FC = () => {
                 <textarea
                   placeholder="에이전트의 기능과 특징을 자세히 설명해주세요"
                   rows={4}
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   value={newAgent.detailedDescription}
                   onChange={(e) => setNewAgent({ ...newAgent, detailedDescription: e.target.value })}
                 />
@@ -1020,7 +1020,7 @@ const AIAgentManagement: React.FC = () => {
                           announcements: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">공지사항</div>
@@ -1039,7 +1039,7 @@ const AIAgentManagement: React.FC = () => {
                           attendances: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">출석현황</div>
@@ -1058,7 +1058,7 @@ const AIAgentManagement: React.FC = () => {
                           members: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">교인현황</div>
@@ -1077,7 +1077,7 @@ const AIAgentManagement: React.FC = () => {
                           worship_services: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">예배정보</div>
@@ -1096,7 +1096,7 @@ const AIAgentManagement: React.FC = () => {
                           pastoral_care_requests: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">심방 신청</div>
@@ -1115,7 +1115,7 @@ const AIAgentManagement: React.FC = () => {
                           prayer_requests: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">중보 기도 요청</div>
@@ -1131,7 +1131,7 @@ const AIAgentManagement: React.FC = () => {
                   onClick={() => setNewAgent({ ...newAgent, immediateActivation: !newAgent.immediateActivation })}
                   className={cn(
                     "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    newAgent.immediateActivation ? "bg-sky-600" : "bg-slate-200"
+                    newAgent.immediateActivation ? "bg-primary" : "bg-slate-200"
                   )}
                 >
                   <span
@@ -1197,8 +1197,9 @@ const AIAgentManagement: React.FC = () => {
                 취소
               </Button>
               <Button
+                variant="destructive"
                 onClick={confirmDeleteAgent}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1"
               >
                 삭제
               </Button>

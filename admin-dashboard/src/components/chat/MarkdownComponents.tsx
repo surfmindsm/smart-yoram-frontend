@@ -48,7 +48,7 @@ export const markdownComponents = {
     </blockquote>
   ),
   a: ({ children, href, ...props }: { children?: React.ReactNode; href?: string; [key: string]: any }) => (
-    <a href={href} className="text-sky-600 hover:text-sky-800 underline" target="_blank" rel="noopener noreferrer" {...props}>
+    <a href={href} className="text-primary hover:text-primary underline" target="_blank" rel="noopener noreferrer" {...props}>
       {children}
     </a>
   ),

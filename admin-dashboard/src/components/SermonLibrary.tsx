@@ -420,7 +420,7 @@ const SermonLibrary: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Library className="w-6 h-6 text-sky-600" />
+          <Library className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold text-slate-900">설교 자료 관리</h1>
         </div>
         <div className="flex space-x-2">
@@ -458,7 +458,7 @@ const SermonLibrary: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-sky-600">{stats.total_materials}</div>
+              <div className="text-2xl font-bold text-primary">{stats.total_materials}</div>
               <div className="text-sm text-slate-500">총 자료 수</div>
             </CardContent>
           </Card>
@@ -496,7 +496,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[120px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[120px]"
             >
               <option value="">전체 카테고리</option>
               {categories.map(category => (
@@ -507,7 +507,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedAuthor}
               onChange={(e) => setSelectedAuthor(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[110px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[110px]"
             >
               <option value="">전체 설교자</option>
               {authors.map(author => (
@@ -518,7 +518,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedFileType}
               onChange={(e) => setSelectedFileType(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[100px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[100px]"
             >
               <option value="">전체 형식</option>
               <option value="pdf">PDF</option>

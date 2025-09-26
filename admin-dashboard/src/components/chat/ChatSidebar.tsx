@@ -85,7 +85,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             className={cn(
               "flex-1 px-4 py-3 text-sm font-medium transition-colors",
               activeTab === 'history'
-                ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
@@ -96,7 +96,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             className={cn(
               "flex-1 px-4 py-3 text-sm font-medium transition-colors",
               activeTab === 'agents'
-                ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
@@ -110,7 +110,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div className="p-4 border-b border-slate-200">
           <Button 
             onClick={onNewChat}
-            className="w-full bg-sky-600 hover:bg-sky-700 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-white"
           >
             새 대화 시작
           </Button>
@@ -135,7 +135,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     className={cn(
                       "p-3 rounded-lg transition-colors mb-2 relative group",
                       currentChatId === chat.id 
-                        ? "bg-sky-50 border-l-2 border-sky-500" 
+                        ? "bg-primary/10 border-l-2 border-primary" 
                         : "hover:bg-slate-50"
                     )}
                   >
@@ -168,7 +168,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 handleCancelEdit();
                               }
                             }}
-                            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -263,7 +263,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   className={cn(
                     "p-3 rounded-lg transition-colors mb-2 relative group",
                     currentChatId === chat.id 
-                      ? "bg-sky-50 border-l-2 border-sky-500" 
+                      ? "bg-primary/10 border-l-2 border-primary" 
                       : "hover:bg-slate-50"
                   )}
                 >
@@ -296,7 +296,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                               handleCancelEdit();
                             }
                           }}
-                          className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                           autoFocus
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -368,13 +368,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 className={cn(
                   "p-3 rounded-lg border transition-colors mb-3 cursor-pointer",
                   selectedAgent?.id === agent.id 
-                    ? "bg-sky-50 border-sky-200" 
+                    ? "bg-primary/10 border-primary/30" 
                     : "border-slate-200 hover:bg-slate-50"
                 )}
               >
                 <div className="flex items-center mb-2">
-                  <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3">
-                    <Bot className="w-4 h-4 text-sky-600" />
+                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mr-3">
+                    <Bot className="w-4 h-4 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900">

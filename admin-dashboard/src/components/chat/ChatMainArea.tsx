@@ -104,8 +104,8 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         {/* 통일된 ChatGPT 스타일 첫 화면 */}
         <div className="w-full max-w-4xl">
           <div className="text-center mb-12">
-            <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Bot className="w-10 h-10 text-sky-600" />
+            <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Bot className="w-10 h-10 text-primary" />
             </div>
             {selectedAgentForChat ? (
               // 에이전트가 선택된 경우
@@ -113,7 +113,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">
                   {selectedAgentForChat.name}
                 </h1>
-                <div className="inline-flex px-4 py-2 rounded-full text-sm font-medium bg-sky-100 text-sky-800 mb-4">
+                <div className="inline-flex px-4 py-2 rounded-full text-sm font-medium bg-primary/20 text-primary-foreground mb-4">
                   {selectedAgentForChat.category}
                 </div>
                 <p className="text-lg text-slate-600 max-w-2xl mx-auto">
@@ -145,7 +145,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 ? `${selectedAgentForChat.name}에게 질문해보세요...`
                 : "무엇을 도와드릴까요? 질문을 입력하거나 아래 추천 에이전트를 선택해보세요..."
               }
-              className="w-full px-6 py-4 pr-16 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-sky-500 bg-white shadow-lg text-slate-700 placeholder-slate-400 text-lg"
+              className="w-full px-6 py-4 pr-16 border-2 border-slate-200 rounded-2xl resize-none focus:outline-none focus:border-primary bg-white shadow-lg text-slate-700 placeholder-slate-400 text-lg"
               rows={3}
               disabled={isLoading}
               autoFocus
@@ -153,7 +153,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
             <Button
               onClick={handleSendWithFocus}
               disabled={!inputValue.trim() || isLoading}
-              className="absolute bottom-4 right-4 w-10 h-10 p-0 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 rounded-xl"
+              className="absolute bottom-4 right-4 w-10 h-10 p-0 bg-primary hover:bg-primary/90 disabled:bg-slate-300 rounded-xl"
             >
               <Send className="h-5 w-5" />
             </Button>
@@ -168,9 +168,9 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                   <button
                     key={index}
                     onClick={() => setInputValue(question)}
-                    className="p-4 text-left border border-slate-200 rounded-xl hover:border-sky-300 hover:bg-sky-50 transition-all group"
+                    className="p-4 text-left border border-slate-200 rounded-xl hover:border-primary/40 hover:bg-primary/10 transition-all group"
                   >
-                    <div className="text-sm text-slate-700 group-hover:text-sky-700">
+                    <div className="text-sm text-slate-700 group-hover:text-primary">
                       {question}
                     </div>
                   </button>
@@ -186,17 +186,17 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 <div
                   key={agent.id}
                   onClick={() => onStartAgentChat(agent)}
-                  className="p-6 bg-white border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-md transition-all cursor-pointer group"
+                  className="p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
                 >
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center group-hover:bg-sky-200 transition-colors">
-                      <Bot className="w-6 h-6 text-sky-600" />
+                    <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                      <Bot className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-sky-700 transition-colors">
+                      <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-primary transition-colors">
                         {agent.name}
                       </h3>
-                      <p className="text-sm text-sky-600 mb-2">
+                      <p className="text-sm text-primary mb-2">
                         {agent.category}
                         {agent.category === 'secretary' && (
                           <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
@@ -303,7 +303,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={onKeyPress}
                 placeholder="메시지를 입력하세요..."
-                className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary resize-none"
                 rows={1}
                 style={{ minHeight: '44px', maxHeight: '120px' }}
                 autoFocus
@@ -311,7 +311,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
               <Button
                 onClick={handleSendWithFocus}
                 disabled={!inputValue.trim() || isLoading}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg disabled:opacity-50"
+                className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -326,11 +326,11 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   if (activeTab === 'agents' && selectedAgent) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-md mx-auto">
-        <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-6">
-          <Bot className="w-10 h-10 text-sky-600" />
+        <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-6">
+          <Bot className="w-10 h-10 text-primary" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedAgent.name}</h2>
-        <div className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800 mb-4">
+        <div className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary-foreground mb-4">
           {selectedAgent.category}
         </div>
         <p className="text-slate-600 text-center leading-relaxed mb-8 max-w-sm">
@@ -338,7 +338,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         </p>
         <Button
           onClick={() => onStartAgentChat(selectedAgent)}
-          className="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium text-base"
+          className="px-8 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-base"
         >
           대화 시작하기
         </Button>

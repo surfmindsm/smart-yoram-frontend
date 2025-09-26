@@ -1,5 +1,6 @@
 import React from 'react';
 import { DeleteConfirmModal as DeleteConfirmModalType } from '../../types/chat';
+import { Button } from '../ui';
 
 interface DeleteConfirmModalProps {
   modal: DeleteConfirmModalType;
@@ -74,31 +75,24 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         )}
         
         <div className="flex justify-end space-x-3">
-          <button
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={isDeleting}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              isDeleting 
-                ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
-                : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-            }`}
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
             onClick={onConfirm}
             disabled={isDeleting}
-            className={`px-4 py-2 text-white rounded-md transition-colors flex items-center justify-center space-x-2 min-w-[80px] ${
-              isDeleting 
-                ? 'bg-red-400 cursor-not-allowed' 
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
+            className="min-w-[80px]"
           >
             {isDeleting && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
             )}
             <span>{isDeleting ? '삭제 중...' : '삭제'}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

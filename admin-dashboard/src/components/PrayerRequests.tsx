@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Card, CardContent } from "./ui";
+import { Button } from "./ui";
 
 interface PrayerRequest {
   id: string;
@@ -869,31 +870,33 @@ const PrayerRequests: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
                 onClick={() => handlePray(selectedRequest)}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
+                className="flex items-center bg-red-600 text-white hover:bg-red-700 border-red-600 hover:border-red-700"
+                variant="outline"
               >
                 <Heart className="h-4 w-4 mr-2" />
                 기도하기
-              </button>
+              </Button>
               {selectedRequest.status === 'active' && (
-                <button
+                <Button
                   onClick={() => {
                     setShowDetailModal(false);
                     setShowAnswerModal(true);
                   }}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+                  className="flex items-center bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
+                  variant="outline"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   응답처리
-                </button>
+                </Button>
               )}
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setShowDetailModal(false)}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
               >
                 닫기
-              </button>
+              </Button>
             </div>
           </div>
         </div>
