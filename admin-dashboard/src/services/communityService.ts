@@ -967,10 +967,57 @@ export const communityService = {
       // community/requests function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = data.data.map((item: any): RequestItem => {
+        const transformedData = await Promise.all(data.data.map(async (item: any): Promise<RequestItem> => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || null;
+          if (item.church_id === 9998) {
+            churchAddress = '-';
+            console.log(`✅ [물품요청] 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
 
           return {
             id: item.id,
@@ -978,7 +1025,7 @@ export const communityService = {
             description: item.description || item.content,
             category: item.category,
             urgency: item.urgency || 'normal',
-            location: item.location,
+            location: churchAddress,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
             contactInfo: item.contact_info || item.contactInfo,
@@ -995,7 +1042,7 @@ export const communityService = {
             view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || `사용자${item.author_id}` || '익명'
+            userName: userName
           };
         });
 
@@ -1157,9 +1204,56 @@ export const communityService = {
         console.log('💰 필터링된 물품판매 아이템들:', paidItems.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
 
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = paidItems.map((item: any): OfferItem => {
+        const transformedData = await Promise.all(paidItems.map(async (item: any): Promise<OfferItem> => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ [물품판매] 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || null;
+          if (item.church_id === 9998) {
+            churchAddress = '-';
+            console.log(`✅ [물품판매] 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ [물품판매] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
 
           return {
             id: item.id,
@@ -1176,7 +1270,7 @@ export const communityService = {
               `https://api.surfmind-team.com/static/community/images/${img}`
             ),
             church: churchName,
-            location: item.location,
+            location: churchAddress,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
             contactInfo: item.contact_info || item.contactInfo, // 기존 필드 (호환성 유지)
@@ -1185,7 +1279,7 @@ export const communityService = {
             view_count: item.view_count || 0, // 조회수
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || `사용자${item.author_id}` || '익명' // 통일된 필드명 사용
+            userName: userName
           };
         });
 
@@ -2809,6 +2903,33 @@ export const communityService = {
         console.error('👥 Supabase users 조회 실패:', error);
       }
 
+      // 교회 주소 정보도 병렬로 조회
+      const churchIds = data.map((item: any) => item.church_id);
+      const uniqueChurchIds = Array.from(new Set(churchIds.filter(id => id && id !== 9998)));
+      console.log('🏛️ 고유 church_id들:', uniqueChurchIds);
+
+      const churchesData: { [key: number]: string } = {};
+
+      if (uniqueChurchIds.length > 0) {
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { data: churchesResponse, error } = await supabase
+            .from('churches')
+            .select('serial_id, address, name')
+            .in('serial_id', uniqueChurchIds);
+
+          console.log('🏛️ Supabase churches 테이블 조회 결과:', churchesResponse);
+
+          if (churchesResponse && !error) {
+            churchesResponse.forEach((church: any) => {
+              churchesData[church.serial_id] = church.address || church.name || null;
+            });
+          }
+        } catch (error) {
+          console.error('🏛️ Supabase churches 조회 실패:', error);
+        }
+      }
+
       console.log('👥 매핑된 사용자 데이터:', usersData);
 
       // 백엔드 형식을 프론트엔드 형식으로 변환
@@ -2819,6 +2940,14 @@ export const communityService = {
         // 사용자명 매핑 (users 테이블에서 조회한 full_name)
         const authorName = usersData[item.author_id] || `사용자${item.author_id}`;
 
+        // 교회 주소 매핑 (church_id 9998은 "-")
+        let churchAddress = item.location;
+        if (item.church_id === 9998) {
+          churchAddress = '-';
+        } else if (item.church_id && churchesData[item.church_id]) {
+          churchAddress = churchesData[item.church_id];
+        }
+
         return {
           id: item.id,
           title: item.title,
@@ -2826,7 +2955,7 @@ export const communityService = {
           category: item.category,
           isUrgent: item.is_urgent || false,
           eventDate: item.event_date,
-          location: item.location,
+          location: churchAddress,
           attachments: item.attachments || [],
           authorId: item.author_id,
           authorName: authorName,
