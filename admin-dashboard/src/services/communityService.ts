@@ -2006,16 +2006,65 @@ export const communityService = {
 
       // music-teams function returns array directly
       if (response.data && Array.isArray(response.data)) {
-        const transformedData = response.data.map((item: any) => {
+        const transformedData = await Promise.all(response.data.map(async (item: any) => {
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ [찬양팀모집] 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || null;
+          if (item.church_id === 9998) {
+            churchAddress = '-';
+            console.log(`✅ [찬양팀모집] 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ [찬양팀모집] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
+
           return {
             ...item,
             church: churchName,
             churchName: churchName,
-            userName: item.author_name || '익명',
+            location: churchAddress,
+            userName: userName,
             createdAt: formatCreatedAt(item.created_at || item.createdAt)
           };
-        });
+        }));
         return transformedData;
       }
 
