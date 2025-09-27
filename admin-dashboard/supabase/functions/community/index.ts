@@ -287,7 +287,7 @@ serve(async (req) => {
 
         console.log('🎁 [무료나눔] 쿼리 파라미터:', { category, status, search, skip, limit });
 
-        // 기본 쿼리 구성
+        // 기본 쿼리 구성 - 먼저 간단한 쿼리로 테스트
         let query = supabaseClient
           .from('community_sharing')
           .select('*')
@@ -316,9 +316,51 @@ serve(async (req) => {
 
         console.log('✅ [무료나눔] 조회 성공:', data?.length || 0, '개');
 
+        // 디버깅: 첫 번째 아이템 확인
+        if (data && data.length > 0) {
+          console.log('🔍 [무료나눔] 첫 번째 아이템:', {
+            id: data[0].id,
+            author_id: data[0].author_id,
+            title: data[0].title
+          });
+        }
+
+        // 각 아이템에 대해 사용자 정보를 별도로 조회
+        const transformedData = await Promise.all(data?.map(async (item) => {
+          let author_name = '익명';
+
+          if (item.author_id) {
+            try {
+              // users 테이블에서 사용자 정보 조회
+              const { data: userData, error: userError } = await supabaseClient
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !userError) {
+                author_name = userData.full_name || userData.email || '익명';
+                console.log(`👤 사용자 ${item.author_id} 조회 성공:`, author_name);
+              } else {
+                console.log(`❌ 사용자 ${item.author_id} 조회 실패:`, userError);
+              }
+            } catch (error) {
+              console.log(`❌ 사용자 ${item.author_id} 조회 에러:`, error);
+            }
+          }
+
+          return {
+            ...item,
+            author_name,
+            church_name: null // 교회 정보는 나중에 추가
+          };
+        }) || []);
+
+        console.log('✅ [무료나눔] 데이터 변환 완료. 샘플:', transformedData[0]?.author_name);
+
         return new Response(JSON.stringify({
           success: true,
-          data: data || []
+          data: transformedData
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -349,7 +391,16 @@ serve(async (req) => {
       try {
         const { data, error } = await supabaseClient
           .from('community_sharing')
-          .select('*')
+          .select(`
+            *,
+            users:author_id (
+              full_name,
+              email
+            ),
+            churches:church_id (
+              name
+            )
+          `)
           .eq('id', sharingId)
           .single();
 
@@ -366,9 +417,16 @@ serve(async (req) => {
 
         console.log('✅ [무료나눔] 상세 조회 성공:', data?.title);
 
+        // 조인된 데이터를 평탄화하여 author_name과 church_name 추가
+        const transformedData = {
+          ...data,
+          author_name: data.users?.full_name || data.users?.email || '익명',
+          church_name: data.churches?.name || null
+        };
+
         return new Response(JSON.stringify({
           success: true,
-          data: data
+          data: transformedData
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });

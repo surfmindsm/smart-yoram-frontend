@@ -728,8 +728,8 @@ export const communityService = {
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
       const functionUrl = queryParams.toString()
-        ? `community-sharing?${queryParams.toString()}`
-        : 'community-sharing';
+        ? `community/sharing?${queryParams.toString()}`
+        : 'community/sharing';
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
         method: 'GET'
@@ -740,13 +740,62 @@ export const communityService = {
         throw error;
       }
 
-      // community-sharing function returns array directly
-      if (data && Array.isArray(data)) {
+      // community/sharing function returns object with data array
+      if (data && data.success && Array.isArray(data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = data.map((item: any): SharingItem => {
+        const transformedData = await Promise.all(data.data.map(async (item: any): Promise<SharingItem> => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || null; // 기본값은 기존 location 필드
+
+          if (item.church_id === 9998) {
+            // 협력사의 경우 "-"로 표시
+            churchAddress = '-';
+            console.log(`✅ 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
 
           return {
             id: item.id,
@@ -758,7 +807,7 @@ export const communityService = {
             images: item.images || [],
             church: churchName,
             church_id: churchId,
-            location: item.location,
+            location: churchAddress,
             contactPhone: item.contact_phone || '',
             contactEmail: item.contact_email || '',
             contactInfo: item.contact_info || '', // 기존 필드 (호환성 유지)
@@ -767,12 +816,13 @@ export const communityService = {
             view_count: item.view_count || 0, // 조회수
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: item.author_name || `사용자${item.author_id}` || '익명' // 통일된 필드명 사용
+            userName: userName // 직접 조회한 사용자 이름 사용
           };
-        });
+        }));
 
         // 조회수 로그
         console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));
+        console.log('🔍 작성자 이름 확인:', transformedData.slice(0, 3).map((item: SharingItem) => `ID ${item.id}: author_name=${JSON.stringify(data.data.find((d: any) => d.id === item.id)?.author_name)}, userName=${item.userName}`));
 
         return transformedData;
       }
@@ -839,7 +889,7 @@ export const communityService = {
       };
 
       console.log('📤 백엔드로 전송할 데이터:', backendData);
-      const { data, error } = await supabaseApiService.supabase.functions.invoke('community-sharing', {
+      const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
       });
@@ -900,8 +950,8 @@ export const communityService = {
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
       const functionUrl = queryParams.toString()
-        ? `community-requests?${queryParams.toString()}`
-        : 'community-requests';
+        ? `community/requests?${queryParams.toString()}`
+        : 'community/requests';
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
         method: 'GET'
@@ -914,10 +964,10 @@ export const communityService = {
 
       console.log('✅ 물품요청 Edge Function 응답:', data);
 
-      // community-requests function returns array directly
-      if (data && Array.isArray(data)) {
+      // community/requests function returns object with data array
+      if (data && data.success && Array.isArray(data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = data.map((item: any): RequestItem => {
+        const transformedData = data.data.map((item: any): RequestItem => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
@@ -1008,7 +1058,7 @@ export const communityService = {
       };
 
       console.log('📤 백엔드로 전송할 물품요청 데이터:', backendData);
-      const { data, error } = await supabaseApiService.supabase.functions.invoke('community-requests', {
+      const { data, error } = await supabaseApiService.supabase.functions.invoke('community/requests', {
         method: 'POST',
         body: backendData
       });
@@ -1066,8 +1116,8 @@ export const communityService = {
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
       const functionUrl = queryParams.toString()
-        ? `community-sharing?${queryParams.toString()}`
-        : 'community-sharing';
+        ? `community/sharing?${queryParams.toString()}`
+        : 'community/sharing';
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
         method: 'GET'
@@ -1080,17 +1130,17 @@ export const communityService = {
 
       console.log('✅ 물품판매 Edge Function 응답:', data);
 
-      // community-sharing function returns array directly
-      if (data && Array.isArray(data)) {
-        console.log('🔍 모든 아이템 is_free 상태:', data.map(item => ({ id: item.id, title: item.title, is_free: item.is_free, type: typeof item.is_free, stringified: JSON.stringify(item.is_free) })));
+      // community/sharing function returns object with data array
+      if (data && data.success && Array.isArray(data.data)) {
+        console.log('🔍 모든 아이템 is_free 상태:', data.data.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free, type: typeof item.is_free, stringified: JSON.stringify(item.is_free) })));
 
         // 각 아이템 개별 확인
-        data.forEach((item, index) => {
+        data.data.forEach((item: any, index: number) => {
           console.log(`아이템 ${index}: id=${item.id}, title="${item.title}", is_free=${item.is_free} (${typeof item.is_free})`);
         });
 
         // is_free=false 인 아이템만 필터링 (물품판매) - 다양한 경우 고려
-        const paidItems = data.filter(item => {
+        const paidItems = data.data.filter((item: any) => {
           const isFree = item.is_free;
           console.log(`아이템 ${item.id} 필터링 검사: is_free=${isFree} (${typeof isFree})`);
 
@@ -1104,7 +1154,7 @@ export const communityService = {
           console.log(`아이템 ${item.id} 필터링 결과: ${isFalse ? '포함' : '제외'}`);
           return isFalse;
         });
-        console.log('💰 필터링된 물품판매 아이템들:', paidItems.map(item => ({ id: item.id, title: item.title, is_free: item.is_free })));
+        console.log('💰 필터링된 물품판매 아이템들:', paidItems.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
 
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         const transformedData = paidItems.map((item: any): OfferItem => {
@@ -1200,7 +1250,7 @@ export const communityService = {
       };
 
       console.log('📤 백엔드로 전송할 물품판매 데이터:', backendData);
-      const { data, error } = await supabaseApiService.supabase.functions.invoke('community-sharing', {
+      const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
       });
