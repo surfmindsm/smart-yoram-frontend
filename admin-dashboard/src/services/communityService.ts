@@ -938,36 +938,14 @@ export const communityService = {
     limit?: number;
   }): Promise<RequestItem[]> => {
     try {
-      console.log('📝 물품요청 조회 Supabase Edge Function 호출 중...', params);
+      console.log('📝 물품요청 조회 API 호출 중...', params);
+      const response = await api.get(getApiUrl('/community/item-requests'), { params });
+      console.log('✅ 물품요청 API 응답:', response.data);
 
-      // Supabase Edge Function 사용
-      const queryParams = new URLSearchParams();
-      if (params?.category && params.category !== 'all') queryParams.set('category', params.category);
-      if (params?.urgency && params.urgency !== 'all') queryParams.set('urgency', params.urgency);
-      if (params?.status && params.status !== 'all') queryParams.set('status', params.status);
-      if (params?.search) queryParams.set('search', params.search);
-      if (params?.skip) queryParams.set('skip', params.skip.toString());
-      if (params?.limit) queryParams.set('limit', params.limit.toString());
-
-      const functionUrl = queryParams.toString()
-        ? `community/requests?${queryParams.toString()}`
-        : 'community/requests';
-
-      const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
-        method: 'GET'
-      });
-
-      if (error) {
-        console.error('❌ 물품요청 조회 실패:', error);
-        throw error;
-      }
-
-      console.log('✅ 물품요청 Edge Function 응답:', data);
-
-      // community/requests function returns object with data array
-      if (data && data.success && Array.isArray(data.data)) {
+      // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = await Promise.all(data.data.map(async (item: any): Promise<RequestItem> => {
+        const transformedData = await Promise.all(response.data.data.map(async (item: any): Promise<RequestItem> => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
@@ -1050,11 +1028,94 @@ export const communityService = {
         return transformedData;
       }
 
+      // 직접 배열이 반환되는 경우
+      if (Array.isArray(response.data)) {
+        const transformedData = await Promise.all(response.data.map(async (item: any): Promise<RequestItem> => {
+          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+          const churchId = (item.church_id === 9998) ? undefined : item.church_id;
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || null;
+          if (item.church_id === 9998) {
+            churchAddress = '-';
+            console.log(`✅ [물품요청] 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
+
+          return {
+            id: item.id,
+            title: item.title,
+            description: item.description || item.content,
+            category: item.category,
+            urgency: item.urgency || 'normal',
+            location: churchAddress,
+            contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
+            contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
+            contactInfo: item.contact_info || item.contactInfo,
+            rewardType: item.reward_type || 'none',
+            rewardAmount: item.reward_amount || 0,
+            images: parseJsonArray(item.images, []).map((img: string) =>
+              typeof img === 'string' && img.startsWith('http') ? img :
+              `https://api.surfmind-team.com/static/community/images/${img}`
+            ),
+            church: churchName,
+            church_id: churchId,
+            status: item.status,
+            createdAt: formatCreatedAt(item.created_at || item.createdAt),
+            view_count: item.view_count || 0,
+            likes: item.likes || 0,
+            comments: item.comments || 0,
+            userName: userName
+          };
+        }));
+        return transformedData;
+      }
+
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 Supabase API 응답 구조:', data);
+      console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
-      console.error('❌ 물품요청 조회 실패 (Supabase API):', error);
+      console.error('❌ 물품요청 조회 실패:', error);
       return []; // 에러 발생 시 빈 배열 반환
     }
   },
