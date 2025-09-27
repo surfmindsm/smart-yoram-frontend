@@ -1580,11 +1580,58 @@ export const communityService = {
       // job-posts function returns array directly
       if (data && Array.isArray(data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = data.map((item: any): JobPost => {
+        const transformedData = await Promise.all(data.map(async (item: any): Promise<JobPost> => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
           const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
           const rawPosition = item.job_type || item.position || '미정';
           const transformedPosition = rawPosition === '일반' ? '기타' : rawPosition;
+
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
+
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+                console.log(`✅ [구인공고] 사용자 ${item.author_id} 조회 성공:`, userName);
+              } else {
+                console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 실패:`, error);
+                userName = `사용자${item.author_id}`;
+              }
+            } catch (error) {
+              console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 에러:`, error);
+              userName = `사용자${item.author_id}`;
+            }
+          }
+
+          // 교회 주소 정보를 직접 조회
+          let churchAddress = item.location || '';
+          if (item.church_id === 9998) {
+            churchAddress = '-';
+            console.log(`✅ [구인공고] 협력사 주소: "-"`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('serial_id', item.church_id)
+                .single();
+
+              if (churchData && !error) {
+                churchAddress = churchData.address || churchData.name || churchAddress;
+                console.log(`✅ [구인공고] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+              } else {
+                console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 에러:`, error);
+            }
+          }
 
           return {
             id: item.id,
@@ -1600,7 +1647,7 @@ export const communityService = {
             qualifications: parseJsonArray(item.requirements, []),
             // responsibilities: parseJsonArray(item.responsibilities, []),
             requiredDocuments: parseJsonArray(item.required_documents, []),
-            location: item.location || '',
+            location: churchAddress,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || '').phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || '').email,
             contactInfo: item.contact_info || '',
@@ -1610,13 +1657,13 @@ export const communityService = {
             likes: item.likes || 0,
             comments: item.comments || 0,
             applications: item.applications || 0,
-            userName: item.author_name || `사용자${item.author_id}` || '익명',
+            userName: userName,
             company: item.company_name || churchName || '',
             church: churchName,
             deadline: item.application_deadline,
             status: item.status
           };
-        });
+        }));
 
         console.log('✅ 변환된 구인공고 데이터:', transformedData.length, '개');
         return transformedData;
