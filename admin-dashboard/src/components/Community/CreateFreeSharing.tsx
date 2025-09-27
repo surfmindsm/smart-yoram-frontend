@@ -7,6 +7,11 @@ import {
   Plus
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Input } from "../ui";
+import { Label } from "../ui";
+import { Textarea } from "../ui";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 
@@ -27,12 +32,21 @@ const CreateFreeSharing: React.FC = () => {
     images: [] as string[]
   });
 
-  const categories = [
-    '가구', '전자제품', '도서', '의류', '장난감', '생활용품', '기타'
+  const categories: SelectOption[] = [
+    { value: 'furniture', label: '가구' },
+    { value: 'electronics', label: '전자제품' },
+    { value: 'books', label: '도서' },
+    { value: 'clothing', label: '의류' },
+    { value: 'toys', label: '장난감' },
+    { value: 'household', label: '생활용품' },
+    { value: 'other', label: '기타' }
   ];
 
-  const conditions = [
-    '새 상품', '거의 새것', '사용감 있음', '수리 필요'
+  const conditions: SelectOption[] = [
+    { value: 'new', label: '새 상품' },
+    { value: 'like_new', label: '거의 새것' },
+    { value: 'used', label: '사용감 있음' },
+    { value: 'repair_needed', label: '수리 필요' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,36 +98,35 @@ const CreateFreeSharing: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* 헤더 */}
-      <div className="flex items-center mb-6">
+      <div className="flex items-center gap-4 mb-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/community/free-sharing')}
-          className="flex items-center gap-2 mr-4"
+          className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
           목록으로
         </Button>
-        <h1 className="text-2xl font-bold text-gray-900">무료 나눔(드림) 등록</h1>
+        <h1 className="text-3xl font-bold">무료 나눔(드림) 등록</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          {/* 기본 정보 */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">기본 정보</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>기본 정보</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             
             {/* 제목 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                제목 *
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="title">제목 *</Label>
+              <Input
+                id="title"
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="나눔할 물품의 제목을 입력하세요"
                 required
               />
@@ -121,80 +134,60 @@ const CreateFreeSharing: React.FC = () => {
 
             {/* 카테고리와 상태 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  카테고리 *
-                </label>
-                <select
+              <div className="space-y-2">
+                <Label htmlFor="category">카테고리 *</Label>
+                <CustomSelect
+                  options={categories}
                   value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">카테고리 선택</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, category: value})}
+                  placeholder="카테고리 선택"
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  상품 상태 *
-                </label>
-                <select
+              <div className="space-y-2">
+                <Label htmlFor="condition">상품 상태 *</Label>
+                <CustomSelect
+                  options={conditions}
                   value={formData.condition}
-                  onChange={(e) => setFormData({...formData, condition: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">상태 선택</option>
-                  {conditions.map(condition => (
-                    <option key={condition} value={condition}>{condition}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, condition: value})}
+                  placeholder="상태 선택"
+                />
               </div>
             </div>
 
             {/* 수량과 지역 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  수량
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="quantity">수량</Label>
+                <Input
+                  id="quantity"
                   type="number"
                   value={formData.quantity}
                   onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   min="1"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  지역
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="location">지역</Label>
+                <Input
+                  id="location"
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="거래 가능한 지역을 입력하세요"
                 />
               </div>
             </div>
 
             {/* 상세 설명 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                상세 설명 *
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="description">상세 설명 *</Label>
+              <Textarea
+                id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="물품에 대한 자세한 설명을 입력하세요"
                 required
               />
@@ -202,38 +195,37 @@ const CreateFreeSharing: React.FC = () => {
 
             {/* 연락처 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  연락처 <span className="text-red-500">*</span>
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">연락처 <span className="text-red-500">*</span></Label>
+                <Input
+                  id="contactPhone"
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  이메일 (선택)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail">이메일 (선택)</Label>
+                <Input
+                  id="contactEmail"
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* 이미지 업로드 */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">이미지</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>이미지</CardTitle>
+          </CardHeader>
+          <CardContent>
           
           <div className="space-y-4">
             <div>
@@ -283,10 +275,11 @@ const CreateFreeSharing: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* 제출 버튼 */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end gap-4">
           <Button
             type="button"
             variant="outline"

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from "../ui";
 import { Spinner } from "../ui/spinner";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 
 const CreateItemRequest: React.FC = () => {
@@ -28,14 +29,20 @@ const CreateItemRequest: React.FC = () => {
     maxBudget: ''
   });
 
-  const categories = [
-    '가구', '전자제품', '도서', '악기', '스포츠용품', '생활용품', '기타'
+  const categories: SelectOption[] = [
+    { value: 'furniture', label: '가구' },
+    { value: 'electronics', label: '전자제품' },
+    { value: 'books', label: '도서' },
+    { value: 'instruments', label: '악기' },
+    { value: 'sports', label: '스포츠용품' },
+    { value: 'household', label: '생활용품' },
+    { value: 'other', label: '기타' }
   ];
 
-  const urgencyOptions = [
-    { value: 'low', label: '여유', color: 'text-green-600' },
-    { value: 'medium', label: '보통', color: 'text-orange-600' },
-    { value: 'high', label: '긴급', color: 'text-red-600' }
+  const urgencyOptions: SelectOption[] = [
+    { value: 'low', label: '여유' },
+    { value: 'medium', label: '보통' },
+    { value: 'high', label: '긴급' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,17 +135,12 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   카테고리 *
                 </label>
-                <select
+                <CustomSelect
+                  options={categories}
                   value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">카테고리 선택</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, category: value})}
+                  placeholder="카테고리 선택"
+                />
               </div>
             </div>
 
@@ -161,17 +163,12 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   우선순위
                 </label>
-                <select
+                <CustomSelect
+                  options={urgencyOptions}
                   value={formData.urgency}
-                  onChange={(e) => setFormData({...formData, urgency: e.target.value as 'high' | 'medium' | 'low'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {urgencyOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, urgency: value as 'high' | 'medium' | 'low'})}
+                  placeholder="우선순위 선택"
+                />
               </div>
             </div>
 

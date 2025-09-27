@@ -348,7 +348,7 @@ const Attendance: React.FC = () => {
                 className="whitespace-nowrap"
               >
                 {updating === -1 ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
                 ) : (
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                 )}
@@ -362,7 +362,7 @@ const Attendance: React.FC = () => {
       {/* Members Grid */}
       {loading ? (
         <div className="text-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
           <p className="text-muted-foreground">로딩 중...</p>
         </div>
       ) : (

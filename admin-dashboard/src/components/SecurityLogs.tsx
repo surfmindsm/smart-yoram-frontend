@@ -378,7 +378,7 @@ const SecurityLogs: React.FC = () => {
             onClick={handleRefresh}
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
             새로고침
           </Button>
         </div>

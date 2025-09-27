@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from "../ui";
 import { Spinner } from "../ui/spinner";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 
 const CreateJobPosting: React.FC = () => {
@@ -34,11 +35,19 @@ const CreateJobPosting: React.FC = () => {
   const [qualificationInput, setQualificationInput] = useState('');
   const [benefitInput, setBenefitInput] = useState('');
 
-  const positions = [
-    '목사', '전도사', '교육전도사', '찬양팀 리더', '교육부 교사', '행정간사', '청년부 담당', '유아부 교사', '기타'
+  const positions: SelectOption[] = [
+    { value: 'pastor', label: '목사' },
+    { value: 'evangelist', label: '전도사' },
+    { value: 'education_evangelist', label: '교육전도사' },
+    { value: 'worship_leader', label: '찬양팀 리더' },
+    { value: 'teacher', label: '교육부 교사' },
+    { value: 'admin', label: '행정간사' },
+    { value: 'youth_manager', label: '청년부 담당' },
+    { value: 'infant_teacher', label: '유아부 교사' },
+    { value: 'other', label: '기타' }
   ];
 
-  const jobTypes = [
+  const jobTypes: SelectOption[] = [
     { value: 'full-time', label: '상근직' },
     { value: 'part-time', label: '비상근직' },
     { value: 'volunteer', label: '봉사직' }
@@ -173,32 +182,24 @@ const CreateJobPosting: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   직책 *
                 </label>
-                <select
+                <CustomSelect
+                  options={positions}
                   value={formData.position}
-                  onChange={(e) => setFormData({...formData, position: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">직책 선택</option>
-                  {positions.map(position => (
-                    <option key={position} value={position}>{position}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, position: value})}
+                  placeholder="직책 선택"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   고용 형태
                 </label>
-                <select
+                <CustomSelect
+                  options={jobTypes}
                   value={formData.jobType}
-                  onChange={(e) => setFormData({...formData, jobType: e.target.value as 'full-time' | 'part-time' | 'volunteer'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {jobTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, jobType: value as 'full-time' | 'part-time' | 'volunteer'})}
+                  placeholder="고용 형태 선택"
+                />
               </div>
             </div>
 

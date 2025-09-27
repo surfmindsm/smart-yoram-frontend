@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui';
 import communityService from '../../services/communityService';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 interface ChurchEventFormData {
   title: string;
@@ -43,29 +44,29 @@ const CreateChurchEvents: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = [
-    '예배/집회',
-    '교육/세미나',
-    '봉사활동',
-    '문화행사',
-    '야외활동',
-    '선교활동',
-    '기타'
+  const categories: SelectOption[] = [
+    { value: 'worship', label: '예배/집회' },
+    { value: 'education', label: '교육/세미나' },
+    { value: 'volunteer', label: '봉사활동' },
+    { value: 'cultural', label: '문화행사' },
+    { value: 'outdoor', label: '야외활동' },
+    { value: 'mission', label: '선교활동' },
+    { value: 'other', label: '기타' }
   ];
 
-  const ageRestrictions = [
-    '제한없음',
-    '유아 (0-7세)',
-    '아동 (8-13세)',
-    '청소년 (14-19세)',
-    '청년 (20-35세)',
-    '중년 (36-55세)',
-    '장년 (56세 이상)'
+  const ageRestrictions: SelectOption[] = [
+    { value: 'none', label: '제한없음' },
+    { value: 'infant', label: '유아 (0-7세)' },
+    { value: 'child', label: '아동 (8-13세)' },
+    { value: 'teenager', label: '청소년 (14-19세)' },
+    { value: 'young-adult', label: '청년 (20-35세)' },
+    { value: 'middle-age', label: '중년 (36-55세)' },
+    { value: 'senior', label: '장년 (56세 이상)' }
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({
@@ -83,6 +84,13 @@ const CreateChurchEvents: React.FC = () => {
         [name]: value
       }));
     }
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,20 +207,13 @@ const CreateChurchEvents: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 카테고리 <span className="text-red-500">*</span>
               </label>
-              <select
-                name="category"
+              <CustomSelect
+                options={categories}
                 value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">카테고리를 선택하세요</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => handleSelectChange('category', value)}
+                placeholder="카테고리를 선택하세요"
+                className="w-full"
+              />
             </div>
 
             <div>
@@ -275,18 +276,13 @@ const CreateChurchEvents: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 연령 제한
               </label>
-              <select
-                name="age_restriction"
+              <CustomSelect
+                options={ageRestrictions}
                 value={formData.age_restriction}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {ageRestrictions.map((age) => (
-                  <option key={age} value={age}>
-                    {age}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => handleSelectChange('age_restriction', value)}
+                placeholder="연령 제한 선택"
+                className="w-full"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

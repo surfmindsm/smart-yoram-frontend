@@ -14,10 +14,10 @@ const spinnerVariants = cva(
         xl: "h-12 w-12",
       },
       variant: {
-        default: "text-red-500",
-        muted: "text-red-400",
-        white: "text-red-100",
-        destructive: "text-red-600",
+        default: "text-primary",
+        muted: "text-primary/70",
+        white: "text-primary-foreground",
+        destructive: "text-destructive",
       },
     },
     defaultVariants: {

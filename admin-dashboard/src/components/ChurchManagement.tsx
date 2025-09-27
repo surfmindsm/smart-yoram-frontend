@@ -239,7 +239,8 @@ const ChurchManagement: React.FC = () => {
   const getMemberLimitInfo = (church: Church) => {
     const currentCount = memberCounts[church.serial_id] || 0;
     const limit = church.member_limit || 100;
-    const isUnlimited = church.subscription_plan && church.subscription_plan !== 'trial' && church.subscription_status === 'active';
+    const isUnlimited = church.member_limit === -1 ||
+      (church.subscription_plan && church.subscription_plan !== 'trial' && church.subscription_status === 'active');
 
     if (isUnlimited) {
       return `${currentCount}명 (무제한)`;
@@ -266,7 +267,7 @@ const ChurchManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+        <RefreshCw className="w-6 h-6 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">교회 정보를 불러오는 중...</span>
       </div>
     );

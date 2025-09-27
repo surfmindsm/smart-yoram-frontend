@@ -298,7 +298,9 @@ const ChurchInfo: React.FC = () => {
                       <Users className="w-4 h-4" />
                       교인 수 제한
                     </h4>
-                    <p className="text-foreground">{church.member_limit}명</p>
+                    <p className="text-foreground">
+                      {church.member_limit === -1 ? '무제한' : `${church.member_limit}명`}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
