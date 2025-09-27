@@ -14,6 +14,7 @@ import {
   Award
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 import { supabaseApiService } from '../../services/supabaseApiService';
 
@@ -371,7 +372,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       {uploadingFile ? (
                         <>
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                          <Spinner size="default" />
                           <p className="mb-2 text-sm text-gray-500">파일 업로드 중...</p>
                         </>
                       ) : (
@@ -483,7 +484,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

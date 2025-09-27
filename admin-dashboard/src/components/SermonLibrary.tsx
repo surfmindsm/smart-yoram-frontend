@@ -23,6 +23,7 @@ import {
   List
 } from 'lucide-react';
 import { sermonLibraryService } from '../services/api';
+import { Spinner } from './ui/spinner';
 
 interface SermonMaterial {
   id: number;
@@ -823,10 +824,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>등록 중...</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text="등록 중..." />
                   ) : (
                     <div className="flex items-center space-x-1">
                       <Plus className="w-4 h-4" />
@@ -993,10 +991,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)} className="min-w-[120px]">
                   {uploading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>{editingMaterial ? '수정 중...' : '업로드 중...'}</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text={editingMaterial ? '수정 중...' : '업로드 중...'} />
                   ) : (
                     <div className="flex items-center space-x-1">
                       {editingMaterial ? (
@@ -1099,10 +1094,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>수정 중...</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text="수정 중..." />
                   ) : (
                     <div className="flex items-center space-x-1">
                       <Edit className="w-4 h-4" />

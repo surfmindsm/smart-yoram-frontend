@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Search, Trash2, Image as ImageIcon, MapPin } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import { useToast } from '../../contexts/ToastContext';
@@ -195,7 +196,7 @@ const Wishlists: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Spinner size="lg" />
           <p className="text-gray-600">찜한 글을 불러오는 중...</p>
         </div>
       </div>

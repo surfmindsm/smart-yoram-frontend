@@ -8,6 +8,7 @@ import { Textarea } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Checkbox } from "./ui";
 import { Alert, AlertDescription } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -638,7 +639,7 @@ const CommunitySignupNew: React.FC = () => {
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Spinner size="sm" variant="white" className="mr-2" />
                       신청서 제출 중...
                     </>
                   ) : (

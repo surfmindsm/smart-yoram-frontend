@@ -19,6 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { supabase } from '../../lib/supabase';
 import { supabaseApiService } from '../../services/supabaseApiService';
@@ -279,7 +280,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
     return (
       <div className="p-6">
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <Spinner size="default" />
           <span className="ml-2 text-gray-500">상세 정보를 불러오는 중...</span>
         </div>
       </div>

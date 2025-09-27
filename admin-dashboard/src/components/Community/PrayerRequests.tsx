@@ -11,6 +11,7 @@ import {
   HandHeart
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService, PrayerRequest } from '../../services/communityService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
@@ -156,8 +157,7 @@ const PrayerRequests: React.FC = () => {
       {/* 기도 요청 목록 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">기도 요청 목록을 불러오는 중...</p>
+          <Spinner size="xl" />
         </div>
       ) : (
         <div className="space-y-4">

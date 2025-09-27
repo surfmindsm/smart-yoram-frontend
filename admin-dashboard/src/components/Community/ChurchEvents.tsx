@@ -11,6 +11,7 @@ import {
   Share
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, ChurchEvent } from '../../services/communityService';
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
@@ -143,7 +144,7 @@ const ChurchEvents: React.FC = () => {
       {/* 행사 목록 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Spinner size="default" />
           <p className="text-gray-600">교회 행사 목록을 불러오는 중...</p>
         </div>
       ) : (

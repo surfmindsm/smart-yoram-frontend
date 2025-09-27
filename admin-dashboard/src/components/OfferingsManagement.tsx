@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui';
 import { cn } from '../lib/utils';
+import { Spinner } from './ui/spinner';
 
 interface Offering {
   id: string;
@@ -515,8 +516,7 @@ const OfferingsManagement: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         {loading ? (
           <div className="p-6 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">로딩 중...</p>
+            <Spinner size="lg" text="로딩 중..." />
           </div>
         ) : filteredOfferings.length === 0 ? (
           <div className="p-6 text-center">

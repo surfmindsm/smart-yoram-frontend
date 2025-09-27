@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Bell, Star, Megaphone } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService, ChurchNews } from '../../services/communityService';
 
 const EditChurchNews: React.FC = () => {
@@ -203,7 +204,7 @@ const EditChurchNews: React.FC = () => {
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Spinner size="xl" />
       </div>
     );
   }
@@ -234,7 +235,7 @@ const EditChurchNews: React.FC = () => {
             disabled={loading}
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <Spinner size="sm" variant="white" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}

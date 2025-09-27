@@ -8,6 +8,7 @@ import {
   BarChart3,
   UserPlus
 } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import {
   LineChart,
@@ -173,7 +174,7 @@ const StatisticsDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
+        <Spinner size="xl" />
       </div>
     );
   }

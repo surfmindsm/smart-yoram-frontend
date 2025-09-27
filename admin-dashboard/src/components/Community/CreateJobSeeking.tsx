@@ -10,6 +10,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 
 const CreateJobSeeking: React.FC = () => {
@@ -507,7 +508,7 @@ const CreateJobSeeking: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 {resume ? '지원서와 이력서 업로드 중...' : '지원서 등록 중...'}
               </>
             ) : !isFormValid() ? (

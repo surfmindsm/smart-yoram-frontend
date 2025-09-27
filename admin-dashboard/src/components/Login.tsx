@@ -8,6 +8,7 @@ import { Input } from "./ui";
 import { Label } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { UserPlus, ArrowLeft, Mail } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -150,7 +151,7 @@ const Login: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? '로그인 중...' : '로그인'}
+                {loading ? <Spinner size="sm" text="로그인 중..." /> : '로그인'}
               </Button>
             </form>
           ) : (
@@ -204,7 +205,7 @@ const Login: React.FC = () => {
                     className="flex-1"
                     disabled={loading || emailVerificationCode.length !== 6}
                   >
-                    {loading ? '인증 중...' : '인증 완료'}
+                    {loading ? <Spinner size="sm" text="인증 중..." /> : '인증 완료'}
                   </Button>
                 </div>
               </form>

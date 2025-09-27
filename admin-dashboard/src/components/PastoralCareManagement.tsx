@@ -6,6 +6,7 @@ import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Combobox } from "./ui";
 import { SimpleTabs } from "./ui";
@@ -945,7 +946,7 @@ const PastoralCareManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Spinner size="xl" />
       </div>
     );
   }

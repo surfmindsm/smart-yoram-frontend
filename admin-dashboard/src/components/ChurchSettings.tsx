@@ -6,6 +6,7 @@ import {
   Settings, Key, Database, TestTube, CheckCircle, AlertCircle,
   Eye, EyeOff, Plus, Trash2, Edit3
 } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 
 interface DbConnection {
   id: string;
@@ -439,7 +440,7 @@ const ChurchSettings: React.FC = () => {
                           <AlertCircle className="h-5 w-5 text-red-500" />
                         )}
                         {connection.status === 'testing' && (
-                          <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <Spinner size="sm" />
                         )}
                       </div>
                     </div>

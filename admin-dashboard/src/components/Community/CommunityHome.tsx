@@ -13,6 +13,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { communityService, RecentPost } from '../../services/communityService';
+import { Spinner } from '../ui/spinner';
 
 const CommunityHome: React.FC = () => {
   // 통계 데이터 (API에서 로드)
@@ -273,7 +274,7 @@ const CommunityHome: React.FC = () => {
               </div>
             ) : loading ? (
               <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <Spinner size="default" />
                 <p className="text-gray-500">데이터를 불러오는 중...</p>
               </div>
             ) : (

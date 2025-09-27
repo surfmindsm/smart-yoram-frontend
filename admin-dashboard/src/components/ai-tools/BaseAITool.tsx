@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Download, Loader, Sparkles } from 'lucide-react';
+import { Spinner } from '../ui/spinner';
 import { Button } from "../ui";
 
 interface BaseAIToolProps {
@@ -132,7 +133,7 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
                   >
                     {isAutoFilling ? (
                       <>
-                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        <Spinner size="sm" />
                         AI가 자동 입력 중...
                       </>
                     ) : (
@@ -227,7 +228,7 @@ const BaseAITool: React.FC<BaseAIToolProps> = ({
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <Loader className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                  <Spinner size="lg" />
                   <p className="text-slate-600">AI가 콘텐츠를 생성하고 있습니다...</p>
                 </div>
               </div>

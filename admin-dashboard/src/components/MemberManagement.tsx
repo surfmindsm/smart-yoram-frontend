@@ -41,6 +41,7 @@ import { Card, CardContent } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "./ui";
 import { Textarea } from "./ui";
+import { Spinner } from "./ui/spinner";
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
@@ -772,7 +773,7 @@ const MemberManagement: React.FC = () => {
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
+      <Spinner size="xl" />
     </div>;
   }
 
@@ -1301,7 +1302,7 @@ const MemberManagement: React.FC = () => {
                     disabled={smsLoading === selectedMember?.id || !selectedMember?.phone}
                   >
                     {smsLoading === selectedMember?.id ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <Spinner size="sm" variant="white" />
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
@@ -1318,7 +1319,7 @@ const MemberManagement: React.FC = () => {
                       disabled={roleChangeLoading}
                     >
                       {roleChangeLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <Spinner size="sm" variant="white" />
                       ) : (
                         <Shield className="w-4 h-4" />
                       )}
@@ -1942,7 +1943,7 @@ const MemberManagement: React.FC = () => {
               >
                 {isImporting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner size="sm" variant="white" />
                     등록 중...
                   </>
                 ) : (

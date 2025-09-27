@@ -9,6 +9,7 @@ import {
   ChevronDown, X, BookOpen, Heart, Calendar,
   GraduationCap, FileText, AlertCircle
 } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 
 interface Agent {
   id: string;
@@ -1174,10 +1175,7 @@ const AIAgentManagement: React.FC = () => {
                 className="bg-slate-800 hover:bg-slate-900 text-white disabled:opacity-50"
               >
                 {creating ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>AI 프롬프트 생성 중...</span>
-                  </div>
+                  <Spinner size="sm" variant="white" text="AI 프롬프트 생성 중..." />
                 ) : (
                   '생성'
                 )}

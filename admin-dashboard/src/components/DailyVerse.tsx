@@ -4,6 +4,7 @@ import { Button } from "./ui";
 import { Input } from "./ui";
 import { Textarea } from "./ui";
 import { Badge } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { BookOpen, Plus, Edit, Trash2, Save, X, Calendar } from 'lucide-react';
 
@@ -142,7 +143,7 @@ const DailyVerse: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <Spinner size="default" className="mx-auto mb-4" />
             <p className="text-gray-500">오늘의 말씀을 불러오는 중...</p>
           </div>
         </div>

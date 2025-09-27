@@ -20,6 +20,7 @@ import {
   Shield
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 
 // 관리자가 보는 모든 게시글 인터페이스
@@ -314,7 +315,7 @@ const CommunityAdmin: React.FC = () => {
       {/* 게시글 목록 */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <Spinner size="default" />
           <span className="ml-2 text-gray-500">게시글을 불러오는 중...</span>
         </div>
       ) : filteredPosts.length > 0 ? (

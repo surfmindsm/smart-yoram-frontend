@@ -21,6 +21,7 @@ import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { Pagination } from './common/Pagination';
 import { StandardPagination } from '../types';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -550,7 +551,7 @@ const SecurityLogs: React.FC = () => {
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Spinner size="default" />
                 <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
               </div>
             ) : filteredLoginRecords.length === 0 ? (
@@ -640,7 +641,7 @@ const SecurityLogs: React.FC = () => {
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Spinner size="default" />
                 <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
               </div>
             ) : filteredActivityLogs.length === 0 ? (

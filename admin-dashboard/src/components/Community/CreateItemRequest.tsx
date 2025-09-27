@@ -6,6 +6,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 
 const CreateItemRequest: React.FC = () => {
@@ -306,7 +307,7 @@ const CreateItemRequest: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

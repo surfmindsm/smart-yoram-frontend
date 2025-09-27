@@ -19,6 +19,7 @@ import { Textarea } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { announcementService, Announcement, AnnouncementCreate, Church } from '../services/announcementService';
 
 const SystemAnnouncementManagement: React.FC = () => {
@@ -396,7 +397,7 @@ const SystemAnnouncementManagement: React.FC = () => {
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <Spinner size="lg" />
               <p className="text-muted-foreground mt-2">로딩 중...</p>
             </div>
           ) : announcements.length === 0 ? (

@@ -393,10 +393,10 @@ const Layout: React.FC = () => {
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed left-0 top-16 h-full bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
           isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
         )}>
-          <nav className="p-4 space-y-6">
+          <nav className="p-4 space-y-4 pb-8">
             {/* Main Menu Groups */}
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex}>

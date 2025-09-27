@@ -24,6 +24,7 @@ import {
 import { cn } from '../lib/utils';
 import { Card, CardContent } from "./ui";
 import { Button } from "./ui";
+import { Spinner } from "./ui/spinner";
 
 interface PrayerRequest {
   id: string;
@@ -504,7 +505,7 @@ const PrayerRequests: React.FC = () => {
       <Card className="border-muted">
         {loading ? (
           <div className="p-6 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <Spinner size="default" className="inline-block" />
             <p className="mt-2 text-gray-600">로딩 중...</p>
           </div>
         ) : filteredRequests.length === 0 ? (
