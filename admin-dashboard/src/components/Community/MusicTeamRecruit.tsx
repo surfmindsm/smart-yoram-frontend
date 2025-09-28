@@ -160,7 +160,7 @@ const MusicTeamRecruit: React.FC = () => {
       render: (value) => TableRenderers.church(value)
     },
     {
-      key: 'author_name',
+      key: 'userName',
       title: '작성자',
       render: (value) => TableRenderers.user(value)
     },
