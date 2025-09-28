@@ -118,6 +118,41 @@ const Layout: React.FC = () => {
     }));
   };
 
+  // 경로 변경 시 관련 메뉴 그룹 자동 확장
+  useEffect(() => {
+    const currentPath = location.pathname;
+
+    // 커뮤니티 경로인 경우 관련 그룹들 확장
+    if (currentPath.startsWith('/community')) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        '커뮤니티': true
+      }));
+
+      // 커뮤니티 서브그룹 확장
+      if (currentPath.includes('/free-sharing') || currentPath.includes('/item-sale') || currentPath.includes('/item-request')) {
+        setExpandedSubGroups(prev => ({
+          ...prev,
+          '커뮤니티-물품 거래': true
+        }));
+      }
+
+      if (currentPath.includes('/job-posting') || currentPath.includes('/music-team-recruit') || currentPath.includes('/music-team-seeking')) {
+        setExpandedSubGroups(prev => ({
+          ...prev,
+          '커뮤니티-인력 매칭': true
+        }));
+      }
+
+      if (currentPath.includes('/church-news') || currentPath.includes('/my-posts') || currentPath.includes('/wishlists')) {
+        setExpandedSubGroups(prev => ({
+          ...prev,
+          '커뮤니티-소식 · 관리': true
+        }));
+      }
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
 
@@ -424,7 +459,8 @@ const Layout: React.FC = () => {
                     {/* Regular Items */}
                     <div className="space-y-1">
                       {group.items && group.items.map((item) => {
-                        const isActive = location.pathname === item.path;
+                        const isActive = location.pathname === item.path ||
+                          (item.path.startsWith('/community') && location.pathname.startsWith(item.path));
 
                         return (
                           <Link
@@ -465,7 +501,8 @@ const Layout: React.FC = () => {
                               {expandedSubGroups[subGroupKey] && (
                                 <div className="space-y-1">
                                   {subGroup.items.map((item) => {
-                                    const isActive = location.pathname === item.path;
+                                    const isActive = location.pathname === item.path ||
+                                      location.pathname.startsWith(item.path);
 
                                     return (
                                       <Link
