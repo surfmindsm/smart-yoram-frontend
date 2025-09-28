@@ -64,20 +64,9 @@ import {
   isChurchAdmin
 } from '../utils/userPermissions';
 
-interface MenuSubGroup {
-  title: string;
-  items: Array<{
-    path: string;
-    name: string;
-    Icon: React.ComponentType<any>;
-  }>;
-}
-
 interface MenuGroup {
   title: string;
-  hasSubGroups?: boolean;
-  subGroups?: MenuSubGroup[];
-  items?: Array<{
+  items: Array<{
     path: string;
     name: string;
     Icon: React.ComponentType<any>;
@@ -100,7 +89,6 @@ const Layout: React.FC = () => {
     '커뮤니티': true, // 커뮤니티 섹션은 기본으로 열어두기
     '보안 & 시스템': false
   });
-  const [expandedSubGroups, setExpandedSubGroups] = useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -111,45 +99,17 @@ const Layout: React.FC = () => {
     }));
   };
 
-  const toggleSubGroup = (subGroupKey: string) => {
-    setExpandedSubGroups(prev => ({
-      ...prev,
-      [subGroupKey]: !prev[subGroupKey]
-    }));
-  };
 
   // 경로 변경 시 관련 메뉴 그룹 자동 확장
   useEffect(() => {
     const currentPath = location.pathname;
 
-    // 커뮤니티 경로인 경우 관련 그룹들 확장
+    // 커뮤니티 경로인 경우 커뮤니티 그룹 확장
     if (currentPath.startsWith('/community')) {
       setExpandedGroups(prev => ({
         ...prev,
         '커뮤니티': true
       }));
-
-      // 커뮤니티 서브그룹 확장
-      if (currentPath.includes('/free-sharing') || currentPath.includes('/item-sale') || currentPath.includes('/item-request')) {
-        setExpandedSubGroups(prev => ({
-          ...prev,
-          '커뮤니티-물품 거래': true
-        }));
-      }
-
-      if (currentPath.includes('/job-posting') || currentPath.includes('/music-team-recruit') || currentPath.includes('/music-team-seeking')) {
-        setExpandedSubGroups(prev => ({
-          ...prev,
-          '커뮤니티-인력 매칭': true
-        }));
-      }
-
-      if (currentPath.includes('/church-news') || currentPath.includes('/my-posts') || currentPath.includes('/wishlists')) {
-        setExpandedSubGroups(prev => ({
-          ...prev,
-          '커뮤니티-소식 · 관리': true
-        }));
-      }
     }
   }, [location.pathname]);
 
@@ -309,34 +269,16 @@ const Layout: React.FC = () => {
     },
     {
       title: '커뮤니티',
-      hasSubGroups: true,
-      subGroups: [
-        {
-          title: '물품 거래',
-          items: [
-            { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
-            { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
-            { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
-          ]
-        },
-        {
-          title: '인력 매칭',
-          items: [
-            { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
-            { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
-            { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
-          ]
-        },
-        {
-          title: '소식 · 관리',
-          items: [
-            { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
-            { path: '/community/my-posts', name: '내 글 관리', Icon: User },
-            { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
-          ]
-        }
-      ],
       items: [
+        { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
+        { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
+        { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
+        { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
+        { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
+        { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
+        { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
+        { path: '/community/my-posts', name: '내 글 관리', Icon: User },
+        { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
         ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
       ],
     },
@@ -459,8 +401,7 @@ const Layout: React.FC = () => {
                     {/* Regular Items */}
                     <div className="space-y-1">
                       {group.items && group.items.map((item) => {
-                        const isActive = location.pathname === item.path ||
-                          (item.path.startsWith('/community') && location.pathname.startsWith(item.path));
+                        const isActive = location.pathname === item.path;
 
                         return (
                           <Link
@@ -479,53 +420,6 @@ const Layout: React.FC = () => {
                       })}
                     </div>
 
-                    {/* Sub Groups */}
-                    {group.hasSubGroups && group.subGroups && (
-                      <div className="ml-4 space-y-4 mt-2">
-                        {group.subGroups.map((subGroup, subIndex) => {
-                          const subGroupKey = `${group.title}-${subGroup.title}`;
-                          return (
-                            <div key={subIndex}>
-                              <button
-                                onClick={() => toggleSubGroup(subGroupKey)}
-                                className="w-full flex items-center justify-between mb-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-                              >
-                                <span>{subGroup.title}</span>
-                                {expandedSubGroups[subGroupKey] ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                              </button>
-
-                              {expandedSubGroups[subGroupKey] && (
-                                <div className="space-y-1">
-                                  {subGroup.items.map((item) => {
-                                    const isActive = location.pathname === item.path ||
-                                      location.pathname.startsWith(item.path);
-
-                                    return (
-                                      <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        className={cn(
-                                          "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                          isActive
-                                            ? "bg-primary/10 text-primary"
-                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                                        )}
-                                      >
-                                        {item.name}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </>
                 )}
               </div>
