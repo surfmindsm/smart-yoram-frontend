@@ -269,6 +269,8 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             backendFieldKey = 'contact_phone';
           } else if (field.key === 'contactEmail') {
             backendFieldKey = 'contact_email';
+          } else if (field.key === 'description' && config.type === 'church-news') {
+            backendFieldKey = 'content'; // church-news에서는 description을 content로 매핑
           }
 
           // 이메일이 비어있으면 필드를 전송하지 않음
