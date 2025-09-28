@@ -239,18 +239,15 @@ const Wishlists: React.FC = () => {
               className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
-        </div>
-      </div>
 
-      {/* 필터들 */}
-      <div className="mb-4 flex gap-4">
-        {/* 게시물 타입 선택 */}
-        <CustomSelect
-          options={postTypeOptions}
-          value={selectedPostType}
-          onChange={setSelectedPostType}
-          className="w-auto"
-        />
+          {/* 게시물 타입 필터 */}
+          <CustomSelect
+            options={postTypeOptions}
+            value={selectedPostType}
+            onChange={setSelectedPostType}
+            className="w-auto"
+          />
+        </div>
       </div>
 
       <CommunityTable
