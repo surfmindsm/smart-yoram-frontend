@@ -278,22 +278,6 @@ export const itemSaleConfig: PostTypeConfig = {
       maxLength: 50
     },
     {
-      key: 'church',
-      label: '교회명',
-      type: 'text',
-      placeholder: '소속 교회명을 입력해주세요',
-      required: true,
-      maxLength: 50
-    },
-    {
-      key: 'location',
-      label: '거래 지역',
-      type: 'text',
-      placeholder: '거래 가능한 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
-    },
-    {
       key: 'contactInfo',
       label: '연락처',
       type: 'tel',
