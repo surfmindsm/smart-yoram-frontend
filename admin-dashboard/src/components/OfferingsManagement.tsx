@@ -18,7 +18,9 @@ import {
   CalendarDays,
   Users
 } from 'lucide-react';
+import { Button } from './ui';
 import { cn } from '../lib/utils';
+import { Spinner } from './ui/spinner';
 
 interface Offering {
   id: string;
@@ -491,21 +493,22 @@ const OfferingsManagement: React.FC = () => {
             placeholder="종료일"
           />
 
-          <button
+          <Button
+            variant="outline"
             onClick={exportToCSV}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center"
+            className="flex items-center bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
           >
             <Download className="h-4 w-4 mr-2" />
             내보내기
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+            className="flex items-center"
           >
             <Plus className="h-4 w-4 mr-2" />
             새 헌금
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -513,8 +516,7 @@ const OfferingsManagement: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         {loading ? (
           <div className="p-6 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">로딩 중...</p>
+            <Spinner size="lg" text="로딩 중..." />
           </div>
         ) : filteredOfferings.length === 0 ? (
           <div className="p-6 text-center">
@@ -710,18 +712,19 @@ const OfferingsManagement: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="flex-1"
               >
                 취소
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleCreateOffering}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                className="flex-1"
               >
                 등록
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -795,22 +798,23 @@ const OfferingsManagement: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
                 onClick={() => {
                   setShowDetailModal(false);
                   openEditModal(selectedOffering);
                 }}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+                className="flex items-center bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
+                variant="outline"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 수정
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setShowDetailModal(false)}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
               >
                 닫기
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -897,18 +901,20 @@ const OfferingsManagement: React.FC = () => {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setShowEditModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="flex-1"
               >
                 취소
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleEditOffering}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                className="flex-1 bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
+                variant="outline"
               >
                 수정
-              </button>
+              </Button>
             </div>
           </div>
         </div>

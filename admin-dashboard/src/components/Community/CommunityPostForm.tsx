@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { 
+import {
   ArrowLeft,
   Plus,
   Image as ImageIcon,
   X,
   ChevronLeft,
   ChevronRight,
-  Star
+  Star,
+  Trash
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
+import CustomSelect from '../common/CustomSelect';
 import { api, getApiUrl } from '../../services/api';
 import { communityService } from '../../services/communityService';
 import { supabase } from '../../lib/supabase';
@@ -267,6 +269,8 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             backendFieldKey = 'contact_phone';
           } else if (field.key === 'contactEmail') {
             backendFieldKey = 'contact_email';
+          } else if (field.key === 'description' && config.type === 'church-news') {
+            backendFieldKey = 'content'; // church-news에서는 description을 content로 매핑
           }
 
           // 이메일이 비어있으면 필드를 전송하지 않음
@@ -364,7 +368,7 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               )}
             </label>
             
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 pt-2 px-2 -mx-2">
               {/* 이미지 업로드 버튼 */}
               <div className="flex-shrink-0">
                 <label className="block">
@@ -387,44 +391,48 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
 
               {/* 선택된 이미지들 */}
               {imageFiles.map((file, index) => (
-                <div key={index} className="flex-shrink-0 relative">
+                <div key={index} className="flex-shrink-0 relative group">
                   <img
                     src={URL.createObjectURL(file)}
                     alt={`미리보기 ${index + 1}`}
                     className="w-32 h-32 object-cover rounded-lg cursor-pointer"
                     onClick={() => setSelectedImageIndex(index)}
                   />
-                  
+
                   {/* 파일 크기 표시 */}
                   <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 rounded">
                     {formatFileSize(file.size)}
                   </div>
-                  
+
                   {/* 삭제 버튼 */}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2 rounded-full h-6 w-6 p-0 z-10 shadow-lg opacity-90 hover:opacity-100"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
+                    <Trash className="h-3 w-3" />
+                  </Button>
                   
                   {/* 대표 이미지 표시 */}
                   {mainImageIndex === index && (
-                    <div className="absolute top-1 left-1 bg-yellow-500 text-white rounded-full p-1">
+                    <div className="absolute top-1 left-1 bg-yellow-500 text-white rounded-full p-1 z-10 shadow-lg">
                       <Star className="h-3 w-3" />
                     </div>
                   )}
-                  
+
                   {/* 대표 이미지 설정 버튼 */}
                   {mainImageIndex !== index && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setMainImage(index)}
-                      className="absolute top-1 left-1 bg-black bg-opacity-50 text-white rounded px-1 text-xs hover:bg-opacity-70"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-1 left-1 bg-black bg-opacity-50 text-white rounded px-1 text-xs hover:bg-opacity-70 h-auto z-10 shadow-lg"
                     >
                       대표
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
@@ -439,18 +447,12 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <select
+            <CustomSelect
+              options={field.options || []}
               value={value}
-              onChange={(e) => handleInputChange(field.key, e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required={field.required}
-            >
-              {field.options?.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleInputChange(field.key, value)}
+              placeholder={`${field.label} 선택`}
+            />
           </div>
         );
         
@@ -476,7 +478,22 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             )}
           </div>
         );
-        
+
+      case 'date':
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <DatePicker
+              value={value}
+              onChange={(newValue) => handleInputChange(field.key, newValue)}
+              placeholder={field.placeholder || "날짜를 선택해주세요"}
+            />
+          </div>
+        );
+
       default:
         return (
           <div key={field.key}>
@@ -571,34 +588,83 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               className="max-w-full max-h-full object-contain"
             />
             
-            <button
-              onClick={() => setSelectedImageIndex(null)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            {/* 우상단 버튼들 */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              {/* 삭제 버튼 */}
+              <Button
+                onClick={() => {
+                  removeImage(selectedImageIndex);
+                  if (selectedImageIndex >= imageFiles.length - 1) {
+                    setSelectedImageIndex(Math.max(0, selectedImageIndex - 1));
+                  }
+                  if (imageFiles.length <= 1) {
+                    setSelectedImageIndex(null);
+                  }
+                }}
+                variant="destructive"
+                size="sm"
+                className="text-white hover:text-gray-300 bg-red-600 hover:bg-red-700 rounded-full h-10 w-10 p-0"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+
+              {/* 닫기 버튼 */}
+              <Button
+                onClick={() => setSelectedImageIndex(null)}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
             
             {imageFiles.length > 1 && (
               <>
-                <button
+                <Button
                   onClick={() => setSelectedImageIndex(Math.max(0, selectedImageIndex - 1))}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                   disabled={selectedImageIndex === 0}
                 >
                   <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedImageIndex(Math.min(imageFiles.length - 1, selectedImageIndex + 1))}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full h-10 w-10 p-0"
                   disabled={selectedImageIndex === imageFiles.length - 1}
                 >
                   <ChevronRight className="h-6 w-6" />
-                </button>
+                </Button>
               </>
             )}
             
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
-              {selectedImageIndex + 1} / {imageFiles.length}
+            {/* 하단 정보 영역 */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+              {/* 이미지 번호 */}
+              <div className="text-white bg-black bg-opacity-50 px-3 py-1 rounded">
+                {selectedImageIndex + 1} / {imageFiles.length}
+              </div>
+
+              {/* 대표 이미지 설정/표시 */}
+              {mainImageIndex === selectedImageIndex ? (
+                <div className="flex items-center gap-1 bg-yellow-500 text-white px-3 py-1 rounded">
+                  <Star className="h-4 w-4" />
+                  <span className="text-sm">대표 이미지</span>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => setMainImage(selectedImageIndex)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white bg-black bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded text-sm"
+                >
+                  대표로 설정
+                </Button>
+              )}
             </div>
           </div>
         </div>

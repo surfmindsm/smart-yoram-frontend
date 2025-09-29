@@ -13,6 +13,7 @@ export const FORM_TYPE_MAPPING = {
   'job-seeking': 'common' as FormType,
   'music-team-recruit': 'common' as FormType,
   'music-team-seeking': 'common' as FormType,
+  'church-news': 'common' as FormType,
   
   // 전용 폼 필요 (복잡한 UI/UX가 필요한 타입들)
   'church-events': 'custom' as FormType,
@@ -96,22 +97,6 @@ export const freeSharingConfig: PostTypeConfig = {
       ]
     },
     {
-      key: 'church',
-      label: '교회명',
-      type: 'text',
-      placeholder: '소속 교회명을 입력해주세요',
-      required: true,
-      maxLength: 50
-    },
-    {
-      key: 'location',
-      label: '지역',
-      type: 'text',
-      placeholder: '거래 희망 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
-    },
-    {
       key: 'contactPhone',
       label: '연락처',
       type: 'tel',
@@ -177,7 +162,7 @@ export const itemRequestConfig: PostTypeConfig = {
     },
     {
       key: 'neededDate',
-      label: '구매 희망일',
+      label: '필요일',
       type: 'date',
       required: false
     },
@@ -291,22 +276,6 @@ export const itemSaleConfig: PostTypeConfig = {
       type: 'text',
       placeholder: '예: 2023년 3월, 작년, 6개월 전',
       required: false,
-      maxLength: 50
-    },
-    {
-      key: 'church',
-      label: '교회명',
-      type: 'text',
-      placeholder: '소속 교회명을 입력해주세요',
-      required: true,
-      maxLength: 50
-    },
-    {
-      key: 'location',
-      label: '거래 지역',
-      type: 'text',
-      placeholder: '거래 가능한 지역을 입력해주세요',
-      required: true,
       maxLength: 50
     },
     {
@@ -743,7 +712,152 @@ export const musicTeamSeekingConfig: PostTypeConfig = {
   ]
 };
 
-// 교회 행사 설정
+// 교회 행사 설정 (행사 소식)
+export const churchNewsConfig: PostTypeConfig = {
+  type: 'church-news',
+  title: '행사 소식 등록',
+  submitEndpoint: '/community/church-news',
+  successMessage: '행사 소식이 성공적으로 등록되었습니다!',
+  listPath: '/community/church-news',
+  fields: [
+    {
+      key: 'images',
+      label: '행사 이미지',
+      type: 'images',
+      required: false
+    },
+    {
+      key: 'category',
+      label: '카테고리',
+      type: 'select',
+      required: true,
+      options: [
+        // 예배/집회 관련
+        { value: '특별예배', label: '특별예배/연합예배' },
+        { value: '부흥회', label: '부흥회/말씀집회' },
+        { value: '기도회', label: '기도회/철야기도회' },
+        { value: '성례식', label: '성찬식/세례식' },
+        // 교육/양육 행사
+        { value: '성경공부', label: '성경공부/제자훈련' },
+        { value: '세미나', label: '세미나/워크숍' },
+        { value: '수련회', label: '수련회/성경학교' },
+        { value: '신앙강좌', label: '신앙강좌/성경퀴즈' },
+        // 친교/봉사 행사
+        { value: '친교행사', label: '바자회/플리마켓' },
+        { value: '체육행사', label: '야유회/체육대회' },
+        { value: '봉사활동', label: '지역봉사/선교행사' },
+        { value: '전도행사', label: '전도집회/노방전도' },
+        // 문화/미디어 행사
+        { value: '찬양행사', label: '찬양집회/음악회' },
+        { value: '공연행사', label: '연극/뮤지컬' },
+        { value: '미디어행사', label: '방송/음향 박람회' },
+        { value: '전시행사', label: '영상/사진 전시' },
+        // 기타 공동체 행사
+        { value: '창립기념', label: '창립기념행사' },
+        { value: '절기행사', label: '절기행사(성탄/부활절)' },
+        { value: '예식행사', label: '결혼예배/장례예배' },
+        { value: '리더십', label: '리더십수련회/임직식' },
+        { value: '기타', label: '기타' }
+      ]
+    },
+    {
+      key: 'title',
+      label: '제목',
+      type: 'text',
+      placeholder: '행사 소식의 제목을 입력하세요',
+      required: true,
+      maxLength: 100
+    },
+    {
+      key: 'description',
+      label: '내용',
+      type: 'textarea',
+      placeholder: '행사 소식의 상세 내용을 입력하세요',
+      required: true,
+      maxLength: 1000
+    },
+    {
+      key: 'priority',
+      label: '우선순위',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'normal', label: '일반' },
+        { value: 'important', label: '중요' },
+        { value: 'urgent', label: '긴급' }
+      ]
+    },
+    {
+      key: 'eventDate',
+      label: '행사일',
+      type: 'date',
+      required: false
+    },
+    {
+      key: 'eventTime',
+      label: '행사 시간',
+      type: 'time',
+      required: false
+    },
+    {
+      key: 'location',
+      label: '장소',
+      type: 'text',
+      placeholder: '행사가 열리는 장소',
+      required: false,
+      maxLength: 100
+    },
+    {
+      key: 'organizer',
+      label: '주최자/부서',
+      type: 'text',
+      placeholder: '행사를 주최하는 부서나 담당자',
+      required: true,
+      maxLength: 50
+    },
+    {
+      key: 'targetAudience',
+      label: '대상',
+      type: 'text',
+      placeholder: '예: 전체, 청년부, 장년부 등',
+      required: false,
+      maxLength: 50
+    },
+    {
+      key: 'participationFee',
+      label: '참가비',
+      type: 'text',
+      placeholder: '예: 무료, 10,000원 등',
+      required: false,
+      maxLength: 50
+    },
+    {
+      key: 'contactPerson',
+      label: '담당자',
+      type: 'text',
+      placeholder: '문의 담당자 이름',
+      required: false,
+      maxLength: 50
+    },
+    {
+      key: 'contactPhone',
+      label: '연락처',
+      type: 'tel',
+      placeholder: '010-0000-0000',
+      required: false
+    },
+    {
+      key: 'contactEmail',
+      label: '이메일',
+      type: 'email',
+      placeholder: 'contact@church.com',
+      required: false,
+      validation: validateEmail
+    }
+  ]
+};
+
+// 교회 행사 설정 (기존)
 export const churchEventsConfig: PostTypeConfig = {
   type: 'church-events',
   title: '교회 행사 등록',
@@ -858,7 +972,8 @@ export const commonFormConfigs = {
   'job-posting': jobPostingConfig,
   'job-seeking': jobSeekingConfig,
   'music-team-recruit': musicTeamRecruitConfig,
-  'music-team-seeking': musicTeamSeekingConfig
+  'music-team-seeking': musicTeamSeekingConfig,
+  'church-news': churchNewsConfig
 };
 
 // 전용 폼 설정들 (custom form types - 참고용으로만 유지)

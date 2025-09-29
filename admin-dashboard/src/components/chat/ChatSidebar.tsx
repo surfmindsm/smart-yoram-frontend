@@ -80,28 +80,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* 탭 헤더 */}
       <div className="border-b border-slate-200">
         <div className="flex">
-          <button
+          <Button
             onClick={() => setActiveTab('history')}
+            variant="ghost"
             className={cn(
-              "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+              "flex-1 px-4 py-3 text-sm font-medium transition-colors rounded-none",
               activeTab === 'history'
-                ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
             히스토리
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setActiveTab('agents')}
+            variant="ghost"
             className={cn(
-              "flex-1 px-4 py-3 text-sm font-medium transition-colors",
+              "flex-1 px-4 py-3 text-sm font-medium transition-colors rounded-none",
               activeTab === 'agents'
-                ? "text-sky-600 border-b-2 border-sky-600 bg-sky-50"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
             에이전트
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -110,7 +112,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div className="p-4 border-b border-slate-200">
           <Button 
             onClick={onNewChat}
-            className="w-full bg-sky-600 hover:bg-sky-700 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-white"
           >
             새 대화 시작
           </Button>
@@ -135,7 +137,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     className={cn(
                       "p-3 rounded-lg transition-colors mb-2 relative group",
                       currentChatId === chat.id 
-                        ? "bg-sky-50 border-l-2 border-sky-500" 
+                        ? "bg-primary/10 border-l-2 border-primary" 
                         : "hover:bg-slate-50"
                     )}
                   >
@@ -168,7 +170,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 handleCancelEdit();
                               }
                             }}
-                            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -185,15 +187,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     
                     {/* 더보기 메뉴 버튼 */}
                     <div className="absolute right-2 top-3">
-                      <button
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleMenu(chat.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 h-6 w-6"
                       >
                         <MoreVertical className="h-3 w-3 text-slate-400" />
-                      </button>
+                      </Button>
                       
                       {/* 드롭다운 메뉴 */}
                       {openMenuId === chat.id && (
@@ -201,28 +205,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                           className="absolute right-0 top-6 bg-white border border-slate-200 rounded-md shadow-lg z-10 min-w-32"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
+                          <Button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               handleStartEditTitle(chat.id, chat.title);
                             }}
-                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center"
+                            variant="ghost"
+                            className="w-full justify-start px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 h-auto"
                           >
                             <Edit className="h-3 w-3 mr-2" />
                             이름 변경
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               onDeleteChat(chat.id, chat.title);
                             }}
-                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                            variant="ghost"
+                            className="w-full justify-start px-3 py-2 text-sm text-red-600 hover:bg-red-50 h-auto"
                           >
                             <Trash2 className="h-3 w-3 mr-2" />
                             삭제
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -263,7 +269,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   className={cn(
                     "p-3 rounded-lg transition-colors mb-2 relative group",
                     currentChatId === chat.id 
-                      ? "bg-sky-50 border-l-2 border-sky-500" 
+                      ? "bg-primary/10 border-l-2 border-primary" 
                       : "hover:bg-slate-50"
                   )}
                 >
@@ -296,7 +302,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                               handleCancelEdit();
                             }
                           }}
-                          className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                           autoFocus
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -313,15 +319,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   
                   {/* 더보기 메뉴 버튼 */}
                   <div className="absolute right-2 top-3">
-                    <button
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleMenu(chat.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 h-6 w-6"
                     >
                       <MoreVertical className="h-3 w-3 text-slate-400" />
-                    </button>
+                    </Button>
                     
                     {/* 드롭다운 메뉴 */}
                     {openMenuId === chat.id && (
@@ -329,28 +337,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         className="absolute right-0 top-6 bg-white border border-slate-200 rounded-md shadow-lg z-10 min-w-32"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
+                        <Button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleStartEditTitle(chat.id, chat.title);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center"
+                          variant="ghost"
+                          className="w-full justify-start px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 h-auto"
                         >
                           <Edit className="h-3 w-3 mr-2" />
                           이름 변경
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onDeleteChat(chat.id, chat.title);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                          variant="ghost"
+                          className="w-full justify-start px-3 py-2 text-sm text-red-600 hover:bg-red-50 h-auto"
                         >
                           <Trash2 className="h-3 w-3 mr-2" />
                           삭제
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -368,13 +378,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 className={cn(
                   "p-3 rounded-lg border transition-colors mb-3 cursor-pointer",
                   selectedAgent?.id === agent.id 
-                    ? "bg-sky-50 border-sky-200" 
+                    ? "bg-primary/10 border-primary/30" 
                     : "border-slate-200 hover:bg-slate-50"
                 )}
               >
                 <div className="flex items-center mb-2">
-                  <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center mr-3">
-                    <Bot className="w-4 h-4 text-sky-600" />
+                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mr-3">
+                    <Bot className="w-4 h-4 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900">

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "./ui";
 import { Badge } from "./ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { MessageSquare, Send } from 'lucide-react';
 
 interface Member {
@@ -290,7 +291,7 @@ const SMSManagement: React.FC = () => {
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Spinner size="sm" variant="white" className="mr-2" />
                       발송 중...
                     </>
                   ) : (

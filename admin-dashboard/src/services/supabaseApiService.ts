@@ -288,6 +288,83 @@ export const supabaseApiService = {
       };
     },
 
+    // 시스템 공지사항 관리 조회 (시스템 관리자용) - Supabase 직접 쿼리 사용
+    getAdmin: async () => {
+      try {
+        console.log('📢 [시스템 공지사항] 관리자 조회 시작');
+
+        const { data, error } = await supabase
+          .from('system_announcements')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('📢 [시스템 공지사항] 조회 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [시스템 공지사항] 조회 성공:', data?.length || 0, '개');
+        return { data: data || [] };
+      } catch (error) {
+        console.error('📢 [시스템 공지사항] 조회 실패:', error);
+        // 폴백 데이터 제공
+        return {
+          data: [
+            {
+              id: 1,
+              title: "시스템 업데이트 공지",
+              content: "Supabase 마이그레이션이 완료되었습니다.",
+              priority: "important",
+              start_date: "2024-01-15",
+              end_date: null,
+              target_churches: null,
+              is_active: true,
+              is_pinned: false,
+              created_by: 1,
+              author_name: "시스템 관리자",
+              created_at: "2024-01-15T09:00:00Z",
+              updated_at: "2024-01-15T09:00:00Z"
+            }
+          ]
+        };
+      }
+    },
+
+    // 교회 목록 조회 - Supabase 직접 쿼리 사용
+    getChurches: async () => {
+      try {
+        console.log('🏛️ [교회 목록] 조회 시작');
+
+        const { data, error } = await supabase
+          .from('churches')
+          .select('id, name, pastor_name, address, member_count')
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) {
+          console.error('🏛️ [교회 목록] 조회 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [교회 목록] 조회 성공:', data?.length || 0, '개');
+        return { data: data || [] };
+      } catch (error) {
+        console.error('🏛️ [교회 목록] 조회 실패:', error);
+        // 폴백 데이터 제공
+        return {
+          data: [
+            {
+              id: 9998,
+              name: "테스트 교회",
+              pastor_name: "김목사",
+              address: "서울시 강남구",
+              member_count: 100
+            }
+          ]
+        };
+      }
+    },
+
     markAsRead: async (announcementId: number) => {
       // Edge Functions not deployed yet, use fallback
       console.log('🔄 Using fallback for mark as read');
@@ -2242,47 +2319,33 @@ export const supabaseApiService = {
         const churchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
         console.log('📍 현재 사용자의 교회 ID:', churchId);
 
-        // 2. 로컬 스토리지에서 교회 정보 확인
-        const cachedChurch = localStorage.getItem(`church_${churchId}`);
-        if (cachedChurch) {
-          console.log('💾 캐시된 교회 정보 사용');
-          return JSON.parse(cachedChurch);
+        if (!churchId || churchId === 0) {
+          // super_admin의 경우 기본 교회 정보 반환
+          console.log('🔑 super_admin 사용자 - fallback 데이터 사용');
+          const fallbackChurch = supabaseApiService.churches._generateFallbackData(6);
+          return fallbackChurch;
         }
 
-        // 3. Edge Function 호출 시도 (조건부)
-        const shouldTryEdgeFunction = false; // 현재는 CORS 문제로 비활성화
+        // 2. Supabase 직접 쿼리로 교회 정보 조회
+        const { data, error } = await supabase
+          .from('churches')
+          .select('*')
+          .eq('id', churchId)
+          .single();
 
-        if (shouldTryEdgeFunction) {
-          const token = await supabaseAuthService.getToken();
-          if (token) {
-            try {
-              const { data, error } = await supabase.functions.invoke('churches/my', {
-                method: 'GET',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-
-              if (!error && data) {
-                console.log('✅ [교회 정보 API] Edge Function 조회 성공:', data);
-                // 캐시에 저장
-                localStorage.setItem(`church_${churchId}`, JSON.stringify(data));
-                return data;
-              }
-            } catch (edgeError) {
-              console.warn('⚠️ Edge Function 호출 실패, fallback 사용:', edgeError);
-            }
-          }
+        if (error) {
+          console.error('🏛️ [교회 정보 API] 조회 오류:', error);
+          // fallback 데이터 사용
+          const fallbackChurch = supabaseApiService.churches._generateFallbackData(churchId);
+          console.log('🔄 fallback 데이터 사용:', fallbackChurch.name);
+          return fallbackChurch;
         }
 
-        // 4. 동적 fallback 데이터 생성
-        const fallbackChurch = supabaseApiService.churches._generateFallbackData(churchId);
-        console.log('🔄 동적 fallback 데이터 생성:', fallbackChurch.name);
+        console.log('✅ [교회 정보 API] 조회 성공:', data);
 
         // 캐시에 저장
-        localStorage.setItem(`church_${churchId}`, JSON.stringify(fallbackChurch));
-        return fallbackChurch;
+        localStorage.setItem(`church_${churchId}`, JSON.stringify(data));
+        return data;
 
       } catch (error) {
         console.error('🏛️ [교회 정보 API] 조회 실패:', error);
@@ -2434,66 +2497,49 @@ export const supabaseApiService = {
       try {
         console.log('🏛️ [교회 정보 API] 교회 정보 수정 시작:', churchId, updateData);
 
-        // Edge Function 호출 시도 (조건부)
-        const shouldTryEdgeFunction = false; // CORS 문제로 비활성화
+        // 1. 현재 사용자 정보 가져오기
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        const userChurchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
+        const userRole = currentUser?.user?.role || currentUser?.profile?.role;
+        console.log('📍 현재 사용자의 교회 ID:', userChurchId, '권한:', userRole);
 
-        if (shouldTryEdgeFunction) {
-          const token = await supabaseAuthService.getToken();
-          if (token) {
-            try {
-              const { data, error } = await supabase.functions.invoke(`churches/${churchId}`, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: updateData
-              });
+        // 2. 권한 검증: super_admin이거나 사용자가 속한 교회만 수정 가능
 
-              if (!error && data) {
-                console.log('✅ [교회 정보 API] Edge Function 수정 성공:', data);
-                return data;
-              }
-            } catch (edgeError) {
-              console.warn('⚠️ Edge Function 수정 실패, 로컬 시뮬레이션 사용:', edgeError);
-            }
-          }
+        if (userRole !== 'super_admin' && (!userChurchId || userChurchId !== churchId)) {
+          throw new Error('해당 교회 정보를 수정할 권한이 없습니다.');
         }
 
-        // 로컬 업데이트 시뮬레이션
-        console.log('🔄 로컬 업데이트 시뮬레이션 - 수정된 교회 정보 반환');
+        // super_admin의 경우 churchId를 그대로 사용, 일반 사용자는 userChurchId 사용
+        const targetChurchId = userRole === 'super_admin' ? churchId : userChurchId;
 
-        // 기존 교회 데이터 가져오기
-        const existingChurch = supabaseApiService.churches._generateFallbackData(churchId);
+        // 3. Supabase 직접 쿼리로 교회 정보 수정
+        const { data, error } = await supabase
+          .from('churches')
+          .update({
+            name: updateData.name,
+            address: updateData.address,
+            phone: updateData.phone,
+            email: updateData.email,
+            pastor_name: updateData.pastor_name,
+            business_no: updateData.business_no,
+            district_scheme: updateData.district_scheme,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', targetChurchId)
+          .select()
+          .single();
 
-        const updatedChurch = {
-          ...existingChurch,
-          name: updateData.name || existingChurch.name,
-          address: updateData.address || existingChurch.address,
-          phone: updateData.phone || existingChurch.phone,
-          email: updateData.email || existingChurch.email,
-          pastor_name: updateData.pastor_name || existingChurch.pastor_name,
-          member_limit: 100,
-          is_active: true,
-          created_at: '2025-07-30 09:27:05.869685+00',
-          updated_at: new Date().toISOString(),
-          subscription_plan: null,
-          gpt_api_key: 'YOUR_OPENAI_API_KEY',
-          gpt_model: 'gpt-4o-mini',
-          max_tokens: 2000,
-          temperature: 0.7,
-          gpt_last_test: null,
-          max_agents: null,
-          monthly_token_limit: null,
-          current_month_tokens: 119003,
-          current_month_cost: 0.669329125,
-          business_no: null,
-          rrn_encrypted: null,
-          district_scheme: null
-        };
+        if (error) {
+          console.error('🏛️ [교회 정보 API] 수정 오류:', error);
+          throw new Error(error.message);
+        }
 
-        console.log('✅ [교회 정보 API] 로컬 수정 완료:', updatedChurch);
-        return updatedChurch;
+        console.log('✅ [교회 정보 API] 수정 성공:', data);
+
+        // 캐시 삭제
+        localStorage.removeItem(`church_${targetChurchId}`);
+
+        return data;
       } catch (error) {
         console.error('🏛️ [교회 정보 API] 수정 실패:', error);
         throw error;

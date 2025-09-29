@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
-  Plus,
-  Calendar
+  Plus
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
+import { Spinner } from "../ui/spinner";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 
 const CreateItemRequest: React.FC = () => {
@@ -27,14 +28,20 @@ const CreateItemRequest: React.FC = () => {
     maxBudget: ''
   });
 
-  const categories = [
-    '가구', '전자제품', '도서', '악기', '스포츠용품', '생활용품', '기타'
+  const categories: SelectOption[] = [
+    { value: 'furniture', label: '가구' },
+    { value: 'electronics', label: '전자제품' },
+    { value: 'books', label: '도서' },
+    { value: 'instruments', label: '악기' },
+    { value: 'sports', label: '스포츠용품' },
+    { value: 'household', label: '생활용품' },
+    { value: 'other', label: '기타' }
   ];
 
-  const urgencyOptions = [
-    { value: 'low', label: '여유', color: 'text-green-600' },
-    { value: 'medium', label: '보통', color: 'text-orange-600' },
-    { value: 'high', label: '긴급', color: 'text-red-600' }
+  const urgencyOptions: SelectOption[] = [
+    { value: 'low', label: '여유' },
+    { value: 'medium', label: '보통' },
+    { value: 'high', label: '긴급' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,11 +72,6 @@ const CreateItemRequest: React.FC = () => {
     }
   };
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -127,17 +129,12 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   카테고리 *
                 </label>
-                <select
+                <CustomSelect
+                  options={categories}
                   value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">카테고리 선택</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, category: value})}
+                  placeholder="카테고리 선택"
+                />
               </div>
             </div>
 
@@ -160,17 +157,12 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   우선순위
                 </label>
-                <select
+                <CustomSelect
+                  options={urgencyOptions}
                   value={formData.urgency}
-                  onChange={(e) => setFormData({...formData, urgency: e.target.value as 'high' | 'medium' | 'low'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {urgencyOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, urgency: value as 'high' | 'medium' | 'low'})}
+                  placeholder="우선순위 선택"
+                />
               </div>
             </div>
 
@@ -180,17 +172,11 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   필요일 *
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.neededDate}
-                    onChange={(e) => setFormData({...formData, neededDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min={getTodayDate()}
-                    required
-                  />
-                  <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
+                <DatePicker
+                  value={formData.neededDate}
+                  onChange={(value) => setFormData({...formData, neededDate: value})}
+                  placeholder="필요일을 선택해주세요"
+                />
               </div>
 
               <div>
@@ -306,7 +292,7 @@ const CreateItemRequest: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

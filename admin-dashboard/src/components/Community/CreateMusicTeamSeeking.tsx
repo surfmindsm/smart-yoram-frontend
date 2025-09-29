@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   Plus,
   Upload,
@@ -14,8 +14,10 @@ import {
   Award
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 import { supabaseApiService } from '../../services/supabaseApiService';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 const CreateMusicTeamSeeking: React.FC = () => {
   const navigate = useNavigate();
@@ -39,18 +41,29 @@ const CreateMusicTeamSeeking: React.FC = () => {
 
   const [locationInput, setLocationInput] = useState('');
 
-  const teamTypeOptions = [
-    '현재 솔로 활동', '찬양팀', '워십팀', '어쿠스틱 팀',
-    '밴드', '오케스트라', '합창단', '무용팀', '기타'
+  const teamTypeOptions: SelectOption[] = [
+    { value: 'solo', label: '현재 솔로 활동' },
+    { value: 'praise-team', label: '찬양팀' },
+    { value: 'worship-team', label: '워십팀' },
+    { value: 'acoustic-team', label: '어쿠스틱 팀' },
+    { value: 'band', label: '밴드' },
+    { value: 'orchestra', label: '오케스트라' },
+    { value: 'choir', label: '합창단' },
+    { value: 'dance-team', label: '무용팀' },
+    { value: 'other', label: '기타' }
   ];
 
   const dayOptions = [
     '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'
   ];
 
-  const timeOptions = [
-    '오전 (9:00-12:00)', '오후 (13:00-18:00)', '저녁 (18:00-21:00)', 
-    '야간 (21:00-23:00)', '상시 가능', '협의 후 결정'
+  const timeOptions: SelectOption[] = [
+    { value: 'morning', label: '오전 (9:00-12:00)' },
+    { value: 'afternoon', label: '오후 (13:00-18:00)' },
+    { value: 'evening', label: '저녁 (18:00-21:00)' },
+    { value: 'night', label: '야간 (21:00-23:00)' },
+    { value: 'anytime', label: '상시 가능' },
+    { value: 'negotiate', label: '협의 후 결정' }
   ];
 
   const getTeamTypeIcon = (teamType: string) => {
@@ -226,17 +239,13 @@ const CreateMusicTeamSeeking: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 팀 형태 *
               </label>
-              <select
+              <CustomSelect
+                options={teamTypeOptions}
                 value={formData.teamType}
-                onChange={(e) => setFormData({...formData, teamType: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">팀 형태를 선택하세요</option>
-                {teamTypeOptions.map(teamType => (
-                  <option key={teamType} value={teamType}>{teamType}</option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({...formData, teamType: value})}
+                placeholder="팀 형태를 선택하세요"
+                className="w-full"
+              />
             </div>
 
             {/* 연주 경력 */}
@@ -327,16 +336,13 @@ const CreateMusicTeamSeeking: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 활동 가능 시간대
               </label>
-              <select
+              <CustomSelect
+                options={timeOptions}
                 value={formData.availableTime}
-                onChange={(e) => setFormData({...formData, availableTime: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">시간대를 선택하세요</option>
-                {timeOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({...formData, availableTime: value})}
+                placeholder="시간대를 선택하세요"
+                className="w-full"
+              />
             </div>
           </div>
         </div>
@@ -371,7 +377,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       {uploadingFile ? (
                         <>
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                          <Spinner size="default" />
                           <p className="mb-2 text-sm text-gray-500">파일 업로드 중...</p>
                         </>
                       ) : (
@@ -483,7 +489,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

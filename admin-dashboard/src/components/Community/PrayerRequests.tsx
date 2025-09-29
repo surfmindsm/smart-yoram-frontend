@@ -11,6 +11,8 @@ import {
   HandHeart
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Input } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService, PrayerRequest } from '../../services/communityService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
@@ -127,13 +129,13 @@ const PrayerRequests: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
+            <Input
               type="text"
               placeholder="제목이나 내용으로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10"
             />
           </div>
 
@@ -156,8 +158,7 @@ const PrayerRequests: React.FC = () => {
       {/* 기도 요청 목록 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">기도 요청 목록을 불러오는 중...</p>
+          <Spinner size="xl" />
         </div>
       ) : (
         <div className="space-y-4">
@@ -222,19 +223,16 @@ const PrayerRequests: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-3">
-                <button className="flex items-center text-sm text-gray-500 hover:text-blue-500">
+                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-500">
                   <MessageCircle className="h-4 w-4 mr-1" />
                   조회 {request.view_count}
-                </button>
+                </Button>
 
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={() => handlePrayFor(request.id)}
-                  className={`flex items-center gap-1 ${
-                    request.status === 'answered' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
+                  variant={request.status === 'answered' ? 'destructive' : 'default'}
+                  className="flex items-center gap-1"
                 >
                   {request.status === 'answered' ? (
                     <>

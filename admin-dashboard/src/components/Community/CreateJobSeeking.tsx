@@ -10,6 +10,8 @@ import {
   MapPin
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 
 const CreateJobSeeking: React.FC = () => {
@@ -35,12 +37,25 @@ const CreateJobSeeking: React.FC = () => {
   const [certificationInput, setCertificationInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
 
-  const ministryFields = [
-    '목회', '교육', '찬양', '청년', '유아부', '아동부', '중고등부', '선교', '상담', '행정', '기타'
+  const ministryFields: SelectOption[] = [
+    { value: 'pastoral', label: '목회' },
+    { value: 'education', label: '교육' },
+    { value: 'worship', label: '찬양' },
+    { value: 'youth', label: '청년' },
+    { value: 'infant', label: '유아부' },
+    { value: 'children', label: '아동부' },
+    { value: 'teen', label: '중고등부' },
+    { value: 'mission', label: '선교' },
+    { value: 'counseling', label: '상담' },
+    { value: 'admin', label: '행정' },
+    { value: 'other', label: '기타' }
   ];
 
-  const availabilityOptions = [
-    '상근 가능', '비상근 가능', '봉사직 희망', '협의 가능'
+  const availabilityOptions: SelectOption[] = [
+    { value: 'full_time', label: '상근 가능' },
+    { value: 'part_time', label: '비상근 가능' },
+    { value: 'volunteer', label: '봉사직 희망' },
+    { value: 'negotiable', label: '협의 가능' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -216,16 +231,14 @@ const CreateJobSeeking: React.FC = () => {
                 사역 분야 <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2 mb-2">
-                <select
-                  value={ministryFieldInput}
-                  onChange={(e) => setMinistryFieldInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">사역 분야 선택</option>
-                  {ministryFields.map(field => (
-                    <option key={field} value={field}>{field}</option>
-                  ))}
-                </select>
+                <div className="flex-1">
+                  <CustomSelect
+                    options={ministryFields}
+                    value={ministryFieldInput}
+                    onChange={(value) => setMinistryFieldInput(value)}
+                    placeholder="사역 분야 선택"
+                  />
+                </div>
                 <Button type="button" onClick={addMinistryField} disabled={!ministryFieldInput}>
                   추가
                 </Button>
@@ -352,16 +365,12 @@ const CreateJobSeeking: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 근무 가능 형태
               </label>
-              <select
+              <CustomSelect
+                options={availabilityOptions}
                 value={formData.availability}
-                onChange={(e) => setFormData({...formData, availability: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">선택하세요</option>
-                {availabilityOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({...formData, availability: value})}
+                placeholder="선택하세요"
+              />
             </div>
           </div>
         </div>
@@ -507,7 +516,7 @@ const CreateJobSeeking: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 {resume ? '지원서와 이력서 업로드 중...' : '지원서 등록 중...'}
               </>
             ) : !isFormValid() ? (

@@ -8,6 +8,7 @@ import { Input } from "./ui";
 import { Label } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { UserPlus, ArrowLeft, Mail } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -100,13 +101,18 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md border-muted">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Church Round 관리자</CardTitle>
-          <CardDescription className="text-center">
-            {step === 'login'
-              ? '관리자 계정으로 로그인하세요'
-              : '이메일로 전송된 인증 코드를 입력하세요'
-            }
-          </CardDescription>
+          <div className="flex justify-center">
+            <img
+              src="/logo_type3_white.png"
+              alt="Church Round"
+              className="h-16"
+            />
+          </div>
+          {step === 'email-verification' && (
+            <CardDescription className="text-center">
+              이메일로 전송된 인증 코드를 입력하세요
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           {step === 'login' ? (
@@ -145,7 +151,7 @@ const Login: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? '로그인 중...' : '로그인'}
+                {loading ? <Spinner size="sm" text="로그인 중..." /> : '로그인'}
               </Button>
             </form>
           ) : (
@@ -199,7 +205,7 @@ const Login: React.FC = () => {
                     className="flex-1"
                     disabled={loading || emailVerificationCode.length !== 6}
                   >
-                    {loading ? '인증 중...' : '인증 완료'}
+                    {loading ? <Spinner size="sm" text="인증 중..." /> : '인증 완료'}
                   </Button>
                 </div>
               </form>

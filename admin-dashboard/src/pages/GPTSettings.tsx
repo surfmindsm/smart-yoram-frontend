@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider, Alert, AlertDescription, AlertTitle } from '../components/ui';
 import { Loader2, AlertCircle, CheckCircle2, Settings, Key, Brain, DollarSign } from 'lucide-react';
+import { Spinner } from '../components/ui/spinner';
 import { churchConfigService } from '../services/api';
 
 interface GPTConfig {
@@ -140,7 +141,7 @@ const GPTSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Spinner size="xl" />
       </div>
     );
   }
@@ -328,7 +329,7 @@ const GPTSettings: React.FC = () => {
 
             {/* Submit Button */}
             <Button type="submit" disabled={saving} className="w-full">
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saving && <Spinner size="sm" />}
               {saving ? '저장 중...' : '설정 저장'}
             </Button>
           </form>

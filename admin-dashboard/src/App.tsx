@@ -6,7 +6,9 @@ import PrivateRoute from './components/PrivateRoute';
 import SermonLibrary from './components/SermonLibrary';
 import SupabaseTest from './components/SupabaseTest';
 import { ToastProvider } from './contexts/ToastContext';
+import { SpinnerProvider } from './contexts/SpinnerContext';
 import { Toaster } from './components/ui';
+import { Spinner } from './components/ui/spinner';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -98,14 +100,15 @@ const ChurchGptLicenseAssignment = lazy(() => import('./components/ChurchGptLice
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <Spinner size="lg" />
   </div>
 );
 
 function App() {
   return (
     <ToastProvider>
-      <Router>
+      <SpinnerProvider>
+        <Router>
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/supabase-test" element={<SupabaseTest />} />
@@ -484,8 +487,9 @@ function App() {
           } />
         </Route>
       </Routes>
-      <Toaster />
-    </Router>
+        <Toaster />
+        </Router>
+      </SpinnerProvider>
     </ToastProvider>
   );
 }

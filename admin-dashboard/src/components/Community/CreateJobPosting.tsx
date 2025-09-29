@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   Plus,
-  Calendar,
   DollarSign,
   MapPin
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
+import { Spinner } from "../ui/spinner";
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
 
 const CreateJobPosting: React.FC = () => {
@@ -33,11 +34,19 @@ const CreateJobPosting: React.FC = () => {
   const [qualificationInput, setQualificationInput] = useState('');
   const [benefitInput, setBenefitInput] = useState('');
 
-  const positions = [
-    '목사', '전도사', '교육전도사', '찬양팀 리더', '교육부 교사', '행정간사', '청년부 담당', '유아부 교사', '기타'
+  const positions: SelectOption[] = [
+    { value: 'pastor', label: '목사' },
+    { value: 'evangelist', label: '전도사' },
+    { value: 'education_evangelist', label: '교육전도사' },
+    { value: 'worship_leader', label: '찬양팀 리더' },
+    { value: 'teacher', label: '교육부 교사' },
+    { value: 'admin', label: '행정간사' },
+    { value: 'youth_manager', label: '청년부 담당' },
+    { value: 'infant_teacher', label: '유아부 교사' },
+    { value: 'other', label: '기타' }
   ];
 
-  const jobTypes = [
+  const jobTypes: SelectOption[] = [
     { value: 'full-time', label: '상근직' },
     { value: 'part-time', label: '비상근직' },
     { value: 'volunteer', label: '봉사직' }
@@ -124,11 +133,6 @@ const CreateJobPosting: React.FC = () => {
     });
   };
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -172,32 +176,24 @@ const CreateJobPosting: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   직책 *
                 </label>
-                <select
+                <CustomSelect
+                  options={positions}
                   value={formData.position}
-                  onChange={(e) => setFormData({...formData, position: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">직책 선택</option>
-                  {positions.map(position => (
-                    <option key={position} value={position}>{position}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, position: value})}
+                  placeholder="직책 선택"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   고용 형태
                 </label>
-                <select
+                <CustomSelect
+                  options={jobTypes}
                   value={formData.jobType}
-                  onChange={(e) => setFormData({...formData, jobType: e.target.value as 'full-time' | 'part-time' | 'volunteer'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {jobTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({...formData, jobType: value as 'full-time' | 'part-time' | 'volunteer'})}
+                  placeholder="고용 형태 선택"
+                />
               </div>
             </div>
 
@@ -241,17 +237,11 @@ const CreateJobPosting: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 지원 마감일 *
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min={getTodayDate()}
-                  required
-                />
-                <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
+              <DatePicker
+                value={formData.deadline}
+                onChange={(value) => setFormData({...formData, deadline: value})}
+                placeholder="지원 마감일을 선택해주세요"
+              />
             </div>
           </div>
         </div>
@@ -296,13 +286,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.qualifications.map((qual, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                     {qual}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeQualification(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -328,13 +320,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.requirements.map((req, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
                     {req}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeRequirement(index)}
-                      className="ml-1 text-green-600 hover:text-green-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-green-600 hover:text-green-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -360,13 +354,15 @@ const CreateJobPosting: React.FC = () => {
                 {formData.benefits.map((benefit, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
                     {benefit}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeBenefit(index)}
-                      className="ml-1 text-purple-600 hover:text-purple-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-purple-600 hover:text-purple-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -436,7 +432,7 @@ const CreateJobPosting: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

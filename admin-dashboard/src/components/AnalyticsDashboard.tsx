@@ -167,7 +167,7 @@ const AnalyticsDashboard: React.FC = () => {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as 'day' | 'week' | 'month' | 'current_month')}
-              className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="week">최근 7일</option>
               <option value="current_month">이번 달</option>
@@ -182,12 +182,14 @@ const AnalyticsDashboard: React.FC = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 rounded-md">
           <div className="flex items-center justify-between">
             <span className="text-sm">{error}</span>
-            <button 
+            <Button
               onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-600"
+              variant="ghost"
+              size="sm"
+              className="text-red-400 hover:text-red-600 h-6 w-6 p-0"
             >
               ✕
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -340,7 +342,7 @@ const AnalyticsDashboard: React.FC = () => {
                         </p>
                       </div>
                       <div className="ml-4 flex items-center">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary-foreground">
                           {query.count}회
                         </span>
                       </div>
@@ -388,7 +390,7 @@ const AnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* 요약 인사이트 */}
-          <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-6 border border-sky-200">
+          <div className="bg-gradient-to-r from-primary/10 to-blue-50 rounded-lg p-6 border border-primary/30">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">📊 이번 달 인사이트</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg">

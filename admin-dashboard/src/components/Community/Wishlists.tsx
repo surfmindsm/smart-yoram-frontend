@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Search, Trash2, Image as ImageIcon, MapPin } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import { useToast } from '../../contexts/ToastContext';
@@ -195,7 +196,7 @@ const Wishlists: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Spinner size="lg" />
           <p className="text-gray-600">찜한 글을 불러오는 중...</p>
         </div>
       </div>
@@ -207,12 +208,11 @@ const Wishlists: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <button
+          <Button
             onClick={() => fetchWishlists(currentPage)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             다시 시도
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -239,18 +239,15 @@ const Wishlists: React.FC = () => {
               className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
-        </div>
-      </div>
 
-      {/* 필터들 */}
-      <div className="mb-4 flex gap-4">
-        {/* 게시물 타입 선택 */}
-        <CustomSelect
-          options={postTypeOptions}
-          value={selectedPostType}
-          onChange={setSelectedPostType}
-          className="w-auto"
-        />
+          {/* 게시물 타입 필터 */}
+          <CustomSelect
+            options={postTypeOptions}
+            value={selectedPostType}
+            onChange={setSelectedPostType}
+            className="w-auto"
+          />
+        </div>
       </div>
 
       <CommunityTable

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
   Plus,
-  Calendar,
   Clock,
   Music,
   Guitar,
@@ -12,8 +11,10 @@ import {
   Piano,
   MapPin
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
+import CustomSelect, { SelectOption } from '../common/CustomSelect';
 
 const CreateMusicTeamRecruit: React.FC = () => {
   const navigate = useNavigate();
@@ -35,13 +36,30 @@ const CreateMusicTeamRecruit: React.FC = () => {
 
   const [requirementInput, setRequirementInput] = useState('');
 
-  const eventTypes = [
-    '주일예배', '수요예배', '새벽예배', '특별예배', '부흥회', '찬양집회', 
-    '결혼식', '장례식', '수련회', '콘서트', '기타'
+  const eventTypes: SelectOption[] = [
+    { value: 'sunday-service', label: '주일예배' },
+    { value: 'wednesday-service', label: '수요예배' },
+    { value: 'dawn-service', label: '새벽예배' },
+    { value: 'special-service', label: '특별예배' },
+    { value: 'revival', label: '부흥회' },
+    { value: 'praise-meeting', label: '찬양집회' },
+    { value: 'wedding', label: '결혼식' },
+    { value: 'funeral', label: '장례식' },
+    { value: 'retreat', label: '수련회' },
+    { value: 'concert', label: '콘서트' },
+    { value: 'other', label: '기타' }
   ];
 
-  const teamTypeOptions = [
-    '현재 솔로 활동', '찬양팀', '워십팀', '어쿠스틱 팀', '밴드', '오케스트라', '합창단', '무용팀', '기타'
+  const teamTypeOptions: SelectOption[] = [
+    { value: 'solo', label: '현재 솔로 활동' },
+    { value: 'praise-team', label: '찬양팀' },
+    { value: 'worship-team', label: '워십팀' },
+    { value: 'acoustic-team', label: '어쿠스틱 팀' },
+    { value: 'band', label: '밴드' },
+    { value: 'orchestra', label: '오케스트라' },
+    { value: 'choir', label: '합창단' },
+    { value: 'dance-team', label: '무용팀' },
+    { value: 'other', label: '기타' }
   ];
 
 
@@ -129,11 +147,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
     });
   };
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -176,17 +189,13 @@ const CreateMusicTeamRecruit: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 행사 유형 *
               </label>
-              <select
+              <CustomSelect
+                options={eventTypes}
                 value={formData.eventType}
-                onChange={(e) => setFormData({...formData, eventType: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">행사 유형 선택</option>
-                {eventTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({...formData, eventType: value})}
+                placeholder="행사 유형 선택"
+                className="w-full"
+              />
             </div>
 
             {/* 모집 팀 형태 */}
@@ -194,17 +203,13 @@ const CreateMusicTeamRecruit: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 모집 팀 형태 *
               </label>
-              <select
+              <CustomSelect
+                options={teamTypeOptions}
                 value={formData.teamTypes[0] || ''}
-                onChange={(e) => setFormData({...formData, teamTypes: e.target.value ? [e.target.value] : []})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">팀 형태 선택</option>
-                {teamTypeOptions.map(teamType => (
-                  <option key={teamType} value={teamType}>{teamType}</option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({...formData, teamTypes: value ? [value] : []})}
+                placeholder="팀 형태 선택"
+                className="w-full"
+              />
             </div>
 
             {/* 행사 일정 */}
@@ -213,16 +218,11 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   행사 날짜
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.eventDate}
-                    onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min={getTodayDate()}
-                  />
-                  <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
+                <DatePicker
+                  value={formData.eventDate}
+                  onChange={(value) => setFormData({...formData, eventDate: value})}
+                  placeholder="행사 날짜를 선택해주세요"
+                />
               </div>
 
               <div>
@@ -300,13 +300,15 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 {formData.requirements.map((req, index) => (
                   <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                     {req}
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeRequirement(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -391,7 +393,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <Spinner size="sm" variant="white" />
                 등록 중...
               </>
             ) : (

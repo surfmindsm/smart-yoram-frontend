@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 import { 
   communityApplicationService, 
   CommunityApplication, 
@@ -411,7 +412,7 @@ const CommunityApplicationManagement: React.FC = () => {
                           disabled={processingId === application.id || loading}
                         >
                           {processingId === application.id ? (
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            <Spinner size="sm" />
                           ) : (
                             <CheckCircle className="w-4 h-4 mr-1" />
                           )}
@@ -427,7 +428,7 @@ const CommunityApplicationManagement: React.FC = () => {
                           disabled={processingId === application.id || loading}
                         >
                           {processingId === application.id ? (
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            <Spinner size="sm" />
                           ) : (
                             <XCircle className="w-4 h-4 mr-1" />
                           )}
@@ -443,7 +444,7 @@ const CommunityApplicationManagement: React.FC = () => {
 
           {loading && (filteredApplications || []).length === 0 && (
             <div className="text-center py-12">
-              <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
+              <Spinner size="xl" variant="muted" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">데이터를 불러오는 중...</h3>
             </div>
           )}

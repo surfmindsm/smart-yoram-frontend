@@ -14,6 +14,15 @@ export {
 export { Button, buttonVariants } from './button'
 export { Calendar } from './calendar'
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card'
+export { DatePicker } from './date-picker'
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle
+} from './chart'
 export { Checkbox } from './checkbox'
 export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible'
 export {
@@ -142,6 +151,7 @@ export {
   SheetDescription
 } from './sheet'
 export { Skeleton } from './skeleton'
+export { Spinner } from './spinner'
 export { Slider } from './slider'
 export { Switch } from './switch'
 export {

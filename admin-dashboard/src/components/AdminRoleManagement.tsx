@@ -19,7 +19,8 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, Button } from "./ui/index";
+import { Spinner } from "./ui/spinner";
 
 interface User {
   id: string;
@@ -164,7 +165,7 @@ const AdminRoleManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <Spinner size="default" />
       </div>
     );
   }
@@ -296,32 +297,38 @@ const AdminRoleManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {editingUser === user.id ? (
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
                             onClick={() => setEditingUser(null)}
-                            className="text-muted-foreground hover:text-foreground"
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
                           >
                             <X className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
                             onClick={() => setEditingUser(user.id)}
-                            className="text-primary hover:text-primary/80"
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary/80 h-8 w-8 p-0"
                             disabled={user.id === currentUser.id}
                             title="역할 변경"
                           >
                             <Edit3 className="w-4 h-4" />
-                          </button>
+                          </Button>
                           {/* 자신이 아니고 Church Super Admin 권한이 있으면 관리자 해제 버튼 표시 */}
                           {user.id !== currentUser.id && isChurchSuperAdmin(currentUser) && (
-                            <button
+                            <Button
                               onClick={() => handleRemoveAdmin(user.id, user.full_name || user.name || '사용자')}
-                              className="text-destructive hover:text-destructive/80 ml-2"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive/80 ml-2 h-8 w-8 p-0"
                               title="관리자 권한 해제"
                             >
                               <X className="w-4 h-4" />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       )}

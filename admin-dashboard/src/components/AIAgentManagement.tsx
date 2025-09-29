@@ -9,6 +9,7 @@ import {
   ChevronDown, X, BookOpen, Heart, Calendar,
   GraduationCap, FileText, AlertCircle
 } from 'lucide-react';
+import { Spinner } from './ui/spinner';
 
 interface Agent {
   id: string;
@@ -450,9 +451,10 @@ const AIAgentManagement: React.FC = () => {
 
       {/* 탭 */}
       <div className="flex border-b border-muted">
-        <button
+        <Button
+          variant="ghost"
           className={cn(
-            "px-6 py-3 font-medium text-sm border-b-2 transition-colors",
+            "px-6 py-3 font-medium text-sm border-b-2 transition-colors rounded-none",
             activeTab === 'agents'
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -460,10 +462,11 @@ const AIAgentManagement: React.FC = () => {
           onClick={() => setActiveTab('agents')}
         >
           에이전트 관리
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           className={cn(
-            "px-6 py-3 font-medium text-sm border-b-2 transition-colors",
+            "px-6 py-3 font-medium text-sm border-b-2 transition-colors rounded-none",
             activeTab === 'templates'
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -471,7 +474,7 @@ const AIAgentManagement: React.FC = () => {
           onClick={() => setActiveTab('templates')}
         >
           템플릿 관리
-        </button>
+        </Button>
       </div>
 
       {activeTab === 'agents' && (
@@ -535,35 +538,38 @@ const AIAgentManagement: React.FC = () => {
               </div>
             </div>
             <div className="relative">
-              <button
-                className="flex items-center gap-2 px-4 py-2 border border-muted rounded-md bg-background hover:bg-muted/50 text-foreground"
+              <Button
+                variant="outline"
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="flex items-center gap-2"
               >
                 {selectedCategory}
                 <ChevronDown className="h-4 w-4" />
-              </button>
+              </Button>
               {showCategoryDropdown && (
                 <div className="absolute top-full mt-1 w-48 bg-background border border-muted rounded-md shadow-lg z-10">
-                  <button
-                    className="w-full px-4 py-2 text-left hover:bg-muted/50 text-foreground"
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
                     onClick={() => {
                       setSelectedCategory('모든 카테고리');
                       setShowCategoryDropdown(false);
                     }}
                   >
                     모든 카테고리
-                  </button>
+                  </Button>
                   {categories.map((category) => (
-                    <button
+                    <Button
                       key={category}
-                      className="w-full px-4 py-2 text-left hover:bg-muted/50 text-foreground"
+                      variant="ghost"
+                      className="w-full justify-start"
                       onClick={() => {
                         setSelectedCategory(category);
                         setShowCategoryDropdown(false);
                       }}
                     >
                       {category}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -599,37 +605,40 @@ const AIAgentManagement: React.FC = () => {
                         </div>
                       </div>
                       <div className="relative">
-                        <button
-                          className="text-muted-foreground hover:text-foreground p-1"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveAgentMenu(activeAgentMenu === agent.id ? null : agent.id);
                           }}
                         >
                           <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        </Button>
                         {activeAgentMenu === agent.id && (
                           <div className="absolute right-0 top-full mt-1 w-40 bg-background border border-muted rounded-md shadow-lg z-20">
-                            <button
-                              className="w-full px-3 py-2 text-left hover:bg-muted/50 flex items-center gap-2 text-sm text-foreground"
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditAgent(agent);
                               }}
                             >
-                              <Settings className="h-4 w-4" />
+                              <Settings className="h-4 w-4 mr-2" />
                               수정
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left hover:bg-red-50 flex items-center gap-2 text-sm text-destructive"
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-sm text-destructive hover:bg-red-50"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteAgent(agent.id);
                               }}
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              <MoreHorizontal className="h-4 w-4 mr-2" />
                               삭제
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -645,13 +654,15 @@ const AIAgentManagement: React.FC = () => {
                       <div className="text-sm">
                         <span className="text-foreground">활성화</span>
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleAgentStatus(agent.id);
                         }}
                         className={cn(
-                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors p-0",
                           agent.isActive ? "bg-primary" : "bg-muted"
                         )}
                       >
@@ -661,7 +672,7 @@ const AIAgentManagement: React.FC = () => {
                             agent.isActive ? "translate-x-6" : "translate-x-1"
                           )}
                         />
-                      </button>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -678,12 +689,12 @@ const AIAgentManagement: React.FC = () => {
             {/* 헤더 */}
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <div className="flex items-center gap-3">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleBackToAgentList}
-                  className="text-slate-600 hover:text-slate-800"
                 >
                   ← 돌아가기
-                </button>
+                </Button>
                 <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
                   <span className="text-sm">{selectedAgentForChat.icon}</span>
                 </div>
@@ -715,12 +726,13 @@ const AIAgentManagement: React.FC = () => {
                         '사용법을 설명해주세요',
                         '예시를 보여주세요'
                       ].map((question) => (
-                        <button
+                        <Button
                           key={question}
-                          className="p-3 text-left border border-slate-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
+                          variant="outline"
+                          className="p-3 text-left h-auto flex-col items-start hover:border-primary/40 hover:bg-primary/10 transition-colors"
                         >
                           <div className="text-sm text-slate-700">{question}</div>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -735,11 +747,11 @@ const AIAgentManagement: React.FC = () => {
                   <input
                     type="text"
                     placeholder="메시지를 입력하세요..."
-                    className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
-                  <button className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg">
+                  <Button>
                     전송
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -753,12 +765,13 @@ const AIAgentManagement: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">에이전트 수정</h2>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowEditModal(false)}
-                className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
 
             <p className="text-slate-600 mb-6">
@@ -773,7 +786,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="예: 설교 도우미"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={editingAgent.name}
                   onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
                 />
@@ -786,7 +799,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={editingAgent.category}
                       onChange={(e) => setEditingAgent({ ...editingAgent, category: e.target.value })}
                     >
@@ -807,7 +820,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={editingAgent.icon}
                       onChange={(e) => setEditingAgent({ ...editingAgent, icon: e.target.value })}
                     >
@@ -831,7 +844,7 @@ const AIAgentManagement: React.FC = () => {
                 </label>
                 <textarea
                   placeholder="에이전트의 역할을 한 줄로 설명해주세요"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={editingAgent.description}
                   onChange={(e) => setEditingAgent({ ...editingAgent, description: e.target.value })}
                 />
@@ -844,7 +857,7 @@ const AIAgentManagement: React.FC = () => {
                 <textarea
                   placeholder="에이전트의 기능과 특징을 자세히 설명해주세요"
                   rows={4}
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   value={editingAgent.detailedDescription}
                   onChange={(e) => setEditingAgent({ ...editingAgent, detailedDescription: e.target.value })}
                 />
@@ -854,11 +867,13 @@ const AIAgentManagement: React.FC = () => {
 
               <div className="flex items-center justify-between py-4">
                 <label className="text-sm font-medium text-slate-900">활성화</label>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setEditingAgent({ ...editingAgent, isActive: !editingAgent.isActive })}
                   className={cn(
-                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    editingAgent.isActive ? "bg-sky-600" : "bg-slate-200"
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors p-0",
+                    editingAgent.isActive ? "bg-primary" : "bg-slate-200"
                   )}
                 >
                   <span
@@ -867,7 +882,7 @@ const AIAgentManagement: React.FC = () => {
                       editingAgent.isActive ? "translate-x-6" : "translate-x-1"
                     )}
                   />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -904,12 +919,13 @@ const AIAgentManagement: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">새 에이전트 생성</h2>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
 
             <p className="text-slate-600 mb-6">
@@ -924,7 +940,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="예: 설교 도우미"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newAgent.name}
                   onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
                 />
@@ -937,7 +953,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={newAgent.category}
                       onChange={(e) => setNewAgent({ ...newAgent, category: e.target.value })}
                     >
@@ -958,7 +974,7 @@ const AIAgentManagement: React.FC = () => {
                   </label>
                   <div className="relative">
                     <select
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white"
                       value={newAgent.icon}
                       onChange={(e) => setNewAgent({ ...newAgent, icon: e.target.value })}
                     >
@@ -980,7 +996,7 @@ const AIAgentManagement: React.FC = () => {
                 <input
                   type="text"
                   placeholder="에이전트의 역할을 한 줄로 설명해주세요"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newAgent.description}
                   onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })}
                 />
@@ -993,7 +1009,7 @@ const AIAgentManagement: React.FC = () => {
                 <textarea
                   placeholder="에이전트의 기능과 특징을 자세히 설명해주세요"
                   rows={4}
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                   value={newAgent.detailedDescription}
                   onChange={(e) => setNewAgent({ ...newAgent, detailedDescription: e.target.value })}
                 />
@@ -1020,7 +1036,7 @@ const AIAgentManagement: React.FC = () => {
                           announcements: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">공지사항</div>
@@ -1039,7 +1055,7 @@ const AIAgentManagement: React.FC = () => {
                           attendances: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">출석현황</div>
@@ -1058,7 +1074,7 @@ const AIAgentManagement: React.FC = () => {
                           members: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">교인현황</div>
@@ -1077,7 +1093,7 @@ const AIAgentManagement: React.FC = () => {
                           worship_services: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">예배정보</div>
@@ -1096,7 +1112,7 @@ const AIAgentManagement: React.FC = () => {
                           pastoral_care_requests: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">심방 신청</div>
@@ -1115,7 +1131,7 @@ const AIAgentManagement: React.FC = () => {
                           prayer_requests: e.target.checked
                         }
                       })}
-                      className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-slate-900">중보 기도 요청</div>
@@ -1127,11 +1143,13 @@ const AIAgentManagement: React.FC = () => {
 
               <div className="flex items-center justify-between py-4">
                 <label className="text-sm font-medium text-slate-900">즉시 활성화</label>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setNewAgent({ ...newAgent, immediateActivation: !newAgent.immediateActivation })}
                   className={cn(
-                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    newAgent.immediateActivation ? "bg-sky-600" : "bg-slate-200"
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors p-0",
+                    newAgent.immediateActivation ? "bg-primary" : "bg-slate-200"
                   )}
                 >
                   <span
@@ -1140,7 +1158,7 @@ const AIAgentManagement: React.FC = () => {
                       newAgent.immediateActivation ? "translate-x-6" : "translate-x-1"
                     )}
                   />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1157,10 +1175,7 @@ const AIAgentManagement: React.FC = () => {
                 className="bg-slate-800 hover:bg-slate-900 text-white disabled:opacity-50"
               >
                 {creating ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>AI 프롬프트 생성 중...</span>
-                  </div>
+                  <Spinner size="sm" variant="white" text="AI 프롬프트 생성 중..." />
                 ) : (
                   '생성'
                 )}
@@ -1176,12 +1191,13 @@ const AIAgentManagement: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">에이전트 삭제</h3>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={cancelDeleteAgent}
-                className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-6 w-6" />
-              </button>
+              </Button>
             </div>
             
             <p className="text-slate-600 mb-6">
@@ -1197,8 +1213,9 @@ const AIAgentManagement: React.FC = () => {
                 취소
               </Button>
               <Button
+                variant="destructive"
                 onClick={confirmDeleteAgent}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1"
               >
                 삭제
               </Button>

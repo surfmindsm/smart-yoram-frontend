@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { supabaseApiService } from '../services/supabaseApiService';
 import { loginHistoryService } from '../services/api';
 import AnnouncementModal from './AnnouncementModal';
 import {
@@ -64,20 +65,9 @@ import {
   isChurchAdmin
 } from '../utils/userPermissions';
 
-interface MenuSubGroup {
-  title: string;
-  items: Array<{
-    path: string;
-    name: string;
-    Icon: React.ComponentType<any>;
-  }>;
-}
-
 interface MenuGroup {
   title: string;
-  hasSubGroups?: boolean;
-  subGroups?: MenuSubGroup[];
-  items?: Array<{
+  items: Array<{
     path: string;
     name: string;
     Icon: React.ComponentType<any>;
@@ -87,6 +77,7 @@ interface MenuGroup {
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string} | null>(null);
+  const [churchInfo, setChurchInfo] = useState<{gpt_licenses_active?: number, gpt_api_key?: string} | null>(null);
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
@@ -100,9 +91,16 @@ const Layout: React.FC = () => {
     '커뮤니티': true, // 커뮤니티 섹션은 기본으로 열어두기
     '보안 & 시스템': false
   });
-  const [expandedSubGroups, setExpandedSubGroups] = useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
   const location = useLocation();
+
+  // GPT 사용 권한 확인 함수
+  const hasGPTAccess = () => {
+    return churchInfo && (
+      (churchInfo.gpt_licenses_active && churchInfo.gpt_licenses_active > 0) ||
+      (churchInfo.gpt_api_key && churchInfo.gpt_api_key !== null)
+    );
+  };
 
   const toggleGroup = (groupTitle: string) => {
     setExpandedGroups(prev => ({
@@ -111,12 +109,19 @@ const Layout: React.FC = () => {
     }));
   };
 
-  const toggleSubGroup = (subGroupKey: string) => {
-    setExpandedSubGroups(prev => ({
-      ...prev,
-      [subGroupKey]: !prev[subGroupKey]
-    }));
-  };
+
+  // 경로 변경 시 관련 메뉴 그룹 자동 확장
+  useEffect(() => {
+    const currentPath = location.pathname;
+
+    // 커뮤니티 경로인 경우 커뮤니티 그룹 확장
+    if (currentPath.startsWith('/community')) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        '커뮤니티': true
+      }));
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
@@ -145,6 +150,27 @@ const Layout: React.FC = () => {
         console.log('📝 처리된 사용자 정보:', processedUser);
 
         setUserInfo(processedUser);
+
+        // 교회 정보 가져오기 (GPT 권한 확인용)
+        if (user.church_id) {
+          try {
+            console.log('🏛️ 교회 정보 조회 시작, church_id:', user.church_id);
+            const { data: churchData, error: churchError } = await supabaseApiService.supabase
+              .from('churches')
+              .select('gpt_licenses_active, gpt_api_key')
+              .eq('id', user.church_id)
+              .single();
+
+            if (churchError) {
+              console.error('❌ 교회 정보 조회 실패:', churchError);
+            } else {
+              console.log('✅ 교회 정보 조회 성공:', churchData);
+              setChurchInfo(churchData);
+            }
+          } catch (churchError) {
+            console.error('❌ 교회 정보 가져오기 오류:', churchError);
+          }
+        }
 
         // 최근 로그인 기록 가져오기 (일단 스킵 - 기존 API 의존성)
         try {
@@ -263,7 +289,8 @@ const Layout: React.FC = () => {
         { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
       ],
     },
-    {
+    // GPT 권한이 있는 경우에만 AI 기능 메뉴 표시
+    ...(hasGPTAccess() ? [{
       title: 'AI 기능 (Premium)',
       items: [
         { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
@@ -271,38 +298,19 @@ const Layout: React.FC = () => {
         { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
         { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
       ],
-    },
+    }] : []),
     {
       title: '커뮤니티',
-      hasSubGroups: true,
-      subGroups: [
-        {
-          title: '물품 거래',
-          items: [
-            { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
-            { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
-            { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
-          ]
-        },
-        {
-          title: '인력 매칭',
-          items: [
-            { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
-            { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
-            { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
-          ]
-        },
-        {
-          title: '소식 · 관리',
-          items: [
-            { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
-            { path: '/community/my-posts', name: '내 글 관리', Icon: User },
-            { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
-          ]
-        }
-      ],
       items: [
-        { path: '/community', name: '커뮤니티 홈', Icon: Home },
+        { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
+        { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
+        { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
+        { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
+        { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
+        { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
+        { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
+        { path: '/community/my-posts', name: '내 글 관리', Icon: User },
+        { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
         ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
       ],
     },
@@ -341,9 +349,11 @@ const Layout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold text-slate-900">
-              {isCommunityOnlyUser ? 'Church Round 커뮤니티' : 'Church Round 관리자'}
-            </h1>
+            <img
+              src="/logo_type4_white.png"
+              alt="Church Round"
+              className="h-8"
+            />
           </div>
           <div className="flex items-center space-x-4">
             {/* 최근 접속 기록 버튼 */}
@@ -392,10 +402,10 @@ const Layout: React.FC = () => {
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed left-0 top-16 h-full bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
           isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
         )}>
-          <nav className="p-4 space-y-6">
+          <nav className="p-4 space-y-4 pb-8">
             {/* Main Menu Groups */}
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
@@ -432,7 +442,7 @@ const Layout: React.FC = () => {
                             className={cn(
                               "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
                               isActive
-                                ? "bg-sky-50 text-sky-700"
+                                ? "bg-primary/10 text-primary"
                                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                             )}
                           >
@@ -442,52 +452,6 @@ const Layout: React.FC = () => {
                       })}
                     </div>
 
-                    {/* Sub Groups */}
-                    {group.hasSubGroups && group.subGroups && (
-                      <div className="ml-4 space-y-4 mt-2">
-                        {group.subGroups.map((subGroup, subIndex) => {
-                          const subGroupKey = `${group.title}-${subGroup.title}`;
-                          return (
-                            <div key={subIndex}>
-                              <button
-                                onClick={() => toggleSubGroup(subGroupKey)}
-                                className="w-full flex items-center justify-between mb-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-                              >
-                                <span>{subGroup.title}</span>
-                                {expandedSubGroups[subGroupKey] ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                              </button>
-
-                              {expandedSubGroups[subGroupKey] && (
-                                <div className="space-y-1">
-                                  {subGroup.items.map((item) => {
-                                    const isActive = location.pathname === item.path;
-
-                                    return (
-                                      <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        className={cn(
-                                          "flex items-center px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                          isActive
-                                            ? "bg-sky-50 text-sky-700"
-                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                                        )}
-                                      >
-                                        {item.name}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </>
                 )}
               </div>

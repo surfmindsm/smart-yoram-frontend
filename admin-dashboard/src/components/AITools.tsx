@@ -129,15 +129,15 @@ const AITools: React.FC = () => {
               onClick={() => handleToolClick(tool.id)}
             >
               <div className="flex items-center mb-4">
-                <div className="p-2 bg-sky-50 rounded-lg mr-3 group-hover:bg-sky-100 transition-colors">
-                  <IconComponent className="h-6 w-6 text-sky-600" />
+                <div className="p-2 bg-primary/10 rounded-lg mr-3 group-hover:bg-primary/20 transition-colors">
+                  <IconComponent className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
                   {tool.category}
                 </span>
               </div>
               
-              <h3 className="text-lg font-semibold text-slate-900 mb-2 group-hover:text-sky-700 transition-colors">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2 group-hover:text-primary transition-colors">
                 {tool.title}
               </h3>
               
@@ -149,7 +149,7 @@ const AITools: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                  className="w-full text-primary hover:text-primary hover:bg-primary/10"
                 >
                   도구 사용하기 →
                 </Button>

@@ -8,37 +8,63 @@ import {
   BarChart3,
   UserPlus
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Spinner } from './ui/spinner';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent
+} from "./ui";
+import type { ChartConfig } from "./ui/chart";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   BarChart,
   Bar,
   PieChart,
   Pie,
   Cell,
-  Legend,
   ComposedChart
 } from 'recharts';
 
-// 차트 색상 팔레트
-const COLORS = {
-  primary: '#2563eb',
-  secondary: '#7c3aed',
-  success: '#16a34a',
-  warning: '#d97706',
-  danger: '#dc2626',
-  info: '#0891b2',
-  muted: '#6b7280'
-};
 
-const GENDER_COLORS = ['#2563eb', '#3b82f6', '#6b7280']; // 블루 계열로 통일
-const AGE_COLORS = ['#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#e0e7ff']; // 블루 그라데이션
+// shadcn chart 설정
+const genderChartConfig = {
+  남성: {
+    label: "남성",
+    color: "hsl(var(--chart-1))",
+  },
+  여성: {
+    label: "여성",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
+
+const ageChartConfig = {
+  count: {
+    label: "인원수",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
+
+const memberGrowthConfig = {
+  new_members: {
+    label: "신규 교인",
+    color: "hsl(var(--chart-1))",
+  },
+  total_members: {
+    label: "총 교인 수",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
 
 
 interface Demographics {
@@ -173,7 +199,7 @@ const StatisticsDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
+        <Spinner size="xl" />
       </div>
     );
   }
@@ -207,43 +233,41 @@ const StatisticsDashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={demographics.gender_distribution.filter(item => item.count > 0)}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry: any) => `${entry.gender}: ${entry.count}명 (${entry.percentage.toFixed(1)}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {demographics.gender_distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number, name, props: any) => [
-                        `${value}명 (${props.payload.percentage.toFixed(1)}%)`,
-                        props.payload.gender
-                      ]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <ChartContainer
+                config={genderChartConfig}
+                className="mx-auto aspect-square max-h-[300px]"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={demographics.gender_distribution.filter(item => item.count > 0)}
+                    dataKey="count"
+                    nameKey="gender"
+                    innerRadius={60}
+                    strokeWidth={5}
+                  >
+                    <Cell fill="var(--color-남성)" />
+                    <Cell fill="var(--color-여성)" />
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+              <div className="mt-4 grid grid-cols-2 gap-4">
                 {demographics.gender_distribution.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: GENDER_COLORS[index % GENDER_COLORS.length] }}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {item.gender}: {item.count}명
-                    </span>
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: index === 0 ? 'hsl(var(--chart-1))' : 'hsl(var(--chart-2))' }}
+                      />
+                      <span className="text-sm font-medium">{item.gender}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{item.count}명</div>
+                      <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -261,48 +285,43 @@ const StatisticsDashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={demographics.age_distribution.filter(item => item.count > 0)}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis
-                      dataKey="age_group"
-                      className="text-xs"
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis className="text-xs" />
-                    <Tooltip
-                      formatter={(value: number, name, props: any) => [
-                        `${value}명 (${props.payload.percentage.toFixed(1)}%)`,
-                        '인원 수'
-                      ]}
-                      labelFormatter={(label) => `${label}`}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill={COLORS.secondary}
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {demographics.age_distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={AGE_COLORS[index % AGE_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <ChartContainer config={ageChartConfig}>
+                <BarChart
+                  data={demographics.age_distribution.filter(item => item.count > 0)}
+                  margin={{
+                    left: 12,
+                    right: 12,
+                    top: 12,
+                    bottom: 12,
+                  }}
+                >
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="age_group"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--color-count)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                 {demographics.age_distribution.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: AGE_COLORS[index % AGE_COLORS.length] }}
-                      />
-                      <span className="text-muted-foreground">{item.age_group}</span>
+                  <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/30">
+                    <span className="text-muted-foreground text-xs">{item.age_group}</span>
+                    <div className="text-right">
+                      <div className="font-medium">{item.count}명</div>
+                      <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
                     </div>
-                    <span className="font-medium">{item.count}명</span>
                   </div>
                 ))}
               </div>
@@ -323,78 +342,82 @@ const StatisticsDashboard: React.FC = () => {
               </CardTitle>
               <div className="text-sm text-muted-foreground flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-blue-600" />
+                  <Users className="h-4 w-4" />
                   현재 교인: {memberGrowth.total_current_members}명
                 </span>
                 <span className="flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <TrendingUp className="h-4 w-4" />
                   조회 기간: {memberGrowth.period_months}개월
                 </span>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={memberGrowth.growth_data.slice(-12)}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis
-                    dataKey="month"
-                    className="text-xs"
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis yAxisId="left" className="text-xs" />
-                  <YAxis yAxisId="right" orientation="right" className="text-xs" />
-                  <Tooltip
-                    formatter={(value: number, name) => {
-                      if (name === 'new_members') return [`+${value}명`, '신규 교인'];
-                      if (name === 'total_members') return [`${value}명`, '총 교인 수'];
-                      return [value, name];
-                    }}
-                    labelFormatter={(label) => `${label}`}
-                  />
-                  <Legend />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="new_members"
-                    name="신규 교인"
-                    fill={COLORS.secondary}
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="total_members"
-                    name="총 교인 수"
-                    stroke={COLORS.primary}
-                    strokeWidth={2}
-                    dot={{ fill: COLORS.primary, r: 4 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+            <ChartContainer
+              config={memberGrowthConfig}
+              className="min-h-[300px] w-full"
+            >
+              <ComposedChart
+                data={memberGrowth.growth_data.slice(-12)}
+                margin={{
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  bottom: 12,
+                }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(5)} // YYYY-MM -> MM
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="new_members"
+                  fill="var(--color-new_members)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Line
+                  dataKey="total_members"
+                  type="monotone"
+                  stroke="var(--color-total_members)"
+                  strokeWidth={2}
+                  dot={{
+                    fill: "var(--color-total_members)",
+                  }}
+                  activeDot={{
+                    r: 6,
+                  }}
+                />
+              </ComposedChart>
+            </ChartContainer>
 
             {/* 요약 통계 */}
             <div className="mt-6 grid grid-cols-3 gap-4">
-              <div className="text-center">
+              <div className="text-center p-4 rounded-lg bg-green-50 border border-green-200">
                 <div className="text-2xl font-bold text-green-600">
                   +{memberGrowth.growth_data.reduce((sum, item) => sum + item.new_members, 0)}
                 </div>
-                <div className="text-sm text-muted-foreground">총 신규 교인</div>
+                <div className="text-sm text-green-700">총 신규 교인</div>
               </div>
-              <div className="text-center">
+              <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
                 <div className="text-2xl font-bold text-blue-600">
                   {memberGrowth.total_current_members}명
                 </div>
-                <div className="text-sm text-muted-foreground">현재 총 교인</div>
+                <div className="text-sm text-blue-700">현재 총 교인</div>
               </div>
-              <div className="text-center">
+              <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">
                   {memberGrowth.growth_data.slice(-3).reduce((sum, item) => sum + item.new_members, 0)}
                 </div>
-                <div className="text-sm text-muted-foreground">최근 3개월 신규</div>
+                <div className="text-sm text-purple-700">최근 3개월 신규</div>
               </div>
             </div>
           </CardContent>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { canAccessAdminDashboard, isMember, normalizeRole } from '../utils/userPermissions';
+import { Button } from './ui';
+import { Spinner } from './ui/spinner';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -57,7 +59,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <Spinner size="xl" />
       </div>
     );
   }
@@ -82,16 +84,15 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
             관리자 페이지에 접근할 수 있는 권한이 없습니다.<br />
             교회 관리자에게 문의해주세요.
           </p>
-          <button
+          <Button
             onClick={() => {
               localStorage.removeItem('supabase_session');
               localStorage.removeItem('access_token');
               window.location.href = '/login';
             }}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
           >
             다른 계정으로 로그인
-          </button>
+          </Button>
         </div>
       </div>
     );

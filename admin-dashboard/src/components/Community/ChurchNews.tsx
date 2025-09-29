@@ -13,6 +13,7 @@ import {
   Star
 } from 'lucide-react';
 import { Button } from "../ui";
+import { Spinner } from "../ui/spinner";
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
 import { ChurchNews as ChurchNewsType, communityService } from '../../services/communityService';
 import { ChurchNewsListOptions } from '../../types/church-events';
@@ -257,7 +258,7 @@ const ChurchNews: React.FC = () => {
           {/* New 버튼 */}
           <Button
             onClick={() => navigate('/community/church-news/create')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             New
@@ -279,7 +280,7 @@ const ChurchNews: React.FC = () => {
       {/* 컨텐츠 */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <Spinner size="default" />
         </div>
       ) : newsItems.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">

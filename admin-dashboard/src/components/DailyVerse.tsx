@@ -4,6 +4,7 @@ import { Button } from "./ui";
 import { Input } from "./ui";
 import { Textarea } from "./ui";
 import { Badge } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { BookOpen, Plus, Edit, Trash2, Save, X, Calendar } from 'lucide-react';
 
@@ -142,7 +143,7 @@ const DailyVerse: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <Spinner size="default" className="mx-auto mb-4" />
             <p className="text-gray-500">오늘의 말씀을 불러오는 중...</p>
           </div>
         </div>
@@ -163,7 +164,6 @@ const DailyVerse: React.FC = () => {
         </div>
         <Button
           onClick={() => setShowForm(true)}
-          className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           새 말씀 추가
@@ -252,7 +252,7 @@ const DailyVerse: React.FC = () => {
               </div>
 
               <div className="flex space-x-3 pt-4">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit">
                   <Save className="h-4 w-4 mr-2" />
                   {editingId ? '수정' : '저장'}
                 </Button>

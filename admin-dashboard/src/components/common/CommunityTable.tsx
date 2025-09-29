@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { Pagination } from './Pagination';
+import { Spinner } from '../ui/spinner';
 
 export interface TableColumn {
   key: string;
@@ -84,7 +85,7 @@ export const CommunityTable: React.FC<CommunityTableProps> = ({
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <Spinner size="default" />
         <span className="ml-2 text-gray-500">데이터를 불러오는 중...</span>
       </div>
     );

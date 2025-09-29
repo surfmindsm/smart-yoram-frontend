@@ -21,6 +21,7 @@ import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui";
+import { Spinner } from "./ui/spinner";
 import { Pagination } from './common/Pagination';
 import { StandardPagination } from '../types';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -377,7 +378,7 @@ const SecurityLogs: React.FC = () => {
             onClick={handleRefresh}
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
             새로고침
           </Button>
         </div>
@@ -460,32 +461,24 @@ const SecurityLogs: React.FC = () => {
 
       {/* 탭 네비게이션 */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
-        <button
+        <Button
           onClick={() => setActiveTab('login')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'login'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          variant={activeTab === 'login' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'login' ? 'shadow-sm' : ''}
         >
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            로그인 기록
-          </div>
-        </button>
-        <button
+          <Shield className="w-4 h-4 mr-2" />
+          로그인 기록
+        </Button>
+        <Button
           onClick={() => setActiveTab('activity')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'activity'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          variant={activeTab === 'activity' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'activity' ? 'shadow-sm' : ''}
         >
-          <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4" />
-            활동 로그
-          </div>
-        </button>
+          <Eye className="w-4 h-4 mr-2" />
+          활동 로그
+        </Button>
       </div>
 
       {/* 필터 및 검색 */}
@@ -558,7 +551,7 @@ const SecurityLogs: React.FC = () => {
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Spinner size="default" />
                 <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
               </div>
             ) : filteredLoginRecords.length === 0 ? (
@@ -648,7 +641,7 @@ const SecurityLogs: React.FC = () => {
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Spinner size="default" />
                 <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
               </div>
             ) : filteredActivityLogs.length === 0 ? (

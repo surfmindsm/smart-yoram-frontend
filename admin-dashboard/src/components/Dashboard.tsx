@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from "./ui";
 import { Badge } from "./ui";
+import { Button } from "./ui";
 import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
 import PasswordChangeModal from './PasswordChangeModal';
@@ -175,13 +176,12 @@ const Dashboard = React.memo(() => {
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-destructive mb-4">{error}</p>
-              <button
+              <Button
                 onClick={fetchDashboardData}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                 disabled={loading}
               >
                 {loading ? '다시 로딩 중...' : '다시 시도'}
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>

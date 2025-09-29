@@ -23,6 +23,7 @@ import {
   List
 } from 'lucide-react';
 import { sermonLibraryService } from '../services/api';
+import { Spinner } from './ui/spinner';
 
 interface SermonMaterial {
   id: number;
@@ -420,7 +421,7 @@ const SermonLibrary: React.FC = () => {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Library className="w-6 h-6 text-sky-600" />
+          <Library className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold text-slate-900">설교 자료 관리</h1>
         </div>
         <div className="flex space-x-2">
@@ -458,7 +459,7 @@ const SermonLibrary: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-sky-600">{stats.total_materials}</div>
+              <div className="text-2xl font-bold text-primary">{stats.total_materials}</div>
               <div className="text-sm text-slate-500">총 자료 수</div>
             </CardContent>
           </Card>
@@ -496,7 +497,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[120px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[120px]"
             >
               <option value="">전체 카테고리</option>
               {categories.map(category => (
@@ -507,7 +508,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedAuthor}
               onChange={(e) => setSelectedAuthor(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[110px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[110px]"
             >
               <option value="">전체 설교자</option>
               {authors.map(author => (
@@ -518,7 +519,7 @@ const SermonLibrary: React.FC = () => {
             <select
               value={selectedFileType}
               onChange={(e) => setSelectedFileType(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 min-w-[100px]"
+              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary min-w-[100px]"
             >
               <option value="">전체 형식</option>
               <option value="pdf">PDF</option>
@@ -823,10 +824,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>등록 중...</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text="등록 중..." />
                   ) : (
                     <div className="flex items-center space-x-1">
                       <Plus className="w-4 h-4" />
@@ -993,10 +991,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={uploading || (!editingMaterial && !uploadFile)} className="min-w-[120px]">
                   {uploading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>{editingMaterial ? '수정 중...' : '업로드 중...'}</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text={editingMaterial ? '수정 중...' : '업로드 중...'} />
                   ) : (
                     <div className="flex items-center space-x-1">
                       {editingMaterial ? (
@@ -1099,10 +1094,7 @@ const SermonLibrary: React.FC = () => {
                 </Button>
                 <Button type="submit" disabled={creating} className="min-w-[120px]">
                   {creating ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>수정 중...</span>
-                    </div>
+                    <Spinner size="sm" variant="white" text="수정 중..." />
                   ) : (
                     <div className="flex items-center space-x-1">
                       <Edit className="w-4 h-4" />
