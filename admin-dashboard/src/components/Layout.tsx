@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { supabaseApiService } from '../services/supabaseApiService';
 import { loginHistoryService } from '../services/api';
 import AnnouncementModal from './AnnouncementModal';
 import {
@@ -76,6 +77,7 @@ interface MenuGroup {
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string} | null>(null);
+  const [churchInfo, setChurchInfo] = useState<{gpt_licenses_active?: number, gpt_api_key?: string} | null>(null);
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
@@ -91,6 +93,14 @@ const Layout: React.FC = () => {
   });
   const navigate = useNavigate();
   const location = useLocation();
+
+  // GPT 사용 권한 확인 함수
+  const hasGPTAccess = () => {
+    return churchInfo && (
+      (churchInfo.gpt_licenses_active && churchInfo.gpt_licenses_active > 0) ||
+      (churchInfo.gpt_api_key && churchInfo.gpt_api_key !== null)
+    );
+  };
 
   const toggleGroup = (groupTitle: string) => {
     setExpandedGroups(prev => ({
@@ -140,6 +150,27 @@ const Layout: React.FC = () => {
         console.log('📝 처리된 사용자 정보:', processedUser);
 
         setUserInfo(processedUser);
+
+        // 교회 정보 가져오기 (GPT 권한 확인용)
+        if (user.church_id) {
+          try {
+            console.log('🏛️ 교회 정보 조회 시작, church_id:', user.church_id);
+            const { data: churchData, error: churchError } = await supabaseApiService.supabase
+              .from('churches')
+              .select('gpt_licenses_active, gpt_api_key')
+              .eq('id', user.church_id)
+              .single();
+
+            if (churchError) {
+              console.error('❌ 교회 정보 조회 실패:', churchError);
+            } else {
+              console.log('✅ 교회 정보 조회 성공:', churchData);
+              setChurchInfo(churchData);
+            }
+          } catch (churchError) {
+            console.error('❌ 교회 정보 가져오기 오류:', churchError);
+          }
+        }
 
         // 최근 로그인 기록 가져오기 (일단 스킵 - 기존 API 의존성)
         try {
@@ -258,7 +289,8 @@ const Layout: React.FC = () => {
         { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
       ],
     },
-    {
+    // GPT 권한이 있는 경우에만 AI 기능 메뉴 표시
+    ...(hasGPTAccess() ? [{
       title: 'AI 기능 (Premium)',
       items: [
         { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
@@ -266,7 +298,7 @@ const Layout: React.FC = () => {
         { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
         { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
       ],
-    },
+    }] : []),
     {
       title: '커뮤니티',
       items: [
