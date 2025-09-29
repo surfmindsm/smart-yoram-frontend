@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
-  Calendar,
   Clock,
   Music,
   Guitar,
@@ -12,7 +11,7 @@ import {
   Piano,
   MapPin
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
 import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
@@ -148,11 +147,6 @@ const CreateMusicTeamRecruit: React.FC = () => {
     });
   };
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -224,16 +218,11 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   행사 날짜
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.eventDate}
-                    onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min={getTodayDate()}
-                  />
-                  <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
+                <DatePicker
+                  value={formData.eventDate}
+                  onChange={(value) => setFormData({...formData, eventDate: value})}
+                  placeholder="행사 날짜를 선택해주세요"
+                />
               </div>
 
               <div>

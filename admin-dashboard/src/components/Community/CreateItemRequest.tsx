@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
-  Plus,
-  Calendar
+  Plus
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
 import { Spinner } from "../ui/spinner";
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
@@ -73,11 +72,6 @@ const CreateItemRequest: React.FC = () => {
     }
   };
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -178,17 +172,11 @@ const CreateItemRequest: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   필요일 *
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.neededDate}
-                    onChange={(e) => setFormData({...formData, neededDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min={getTodayDate()}
-                    required
-                  />
-                  <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
+                <DatePicker
+                  value={formData.neededDate}
+                  onChange={(value) => setFormData({...formData, neededDate: value})}
+                  placeholder="필요일을 선택해주세요"
+                />
               </div>
 
               <div>

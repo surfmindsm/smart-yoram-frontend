@@ -9,7 +9,7 @@ import {
   Star,
   Trash
 } from 'lucide-react';
-import { Button } from "../ui";
+import { Button, DatePicker } from "../ui";
 import CustomSelect from '../common/CustomSelect';
 import { api, getApiUrl } from '../../services/api';
 import { communityService } from '../../services/communityService';
@@ -478,7 +478,22 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             )}
           </div>
         );
-        
+
+      case 'date':
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <DatePicker
+              value={value}
+              onChange={(newValue) => handleInputChange(field.key, newValue)}
+              placeholder={field.placeholder || "날짜를 선택해주세요"}
+            />
+          </div>
+        );
+
       default:
         return (
           <div key={field.key}>

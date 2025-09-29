@@ -162,7 +162,7 @@ export const itemRequestConfig: PostTypeConfig = {
     },
     {
       key: 'neededDate',
-      label: '구매 희망일',
+      label: '필요일',
       type: 'date',
       required: false
     },
