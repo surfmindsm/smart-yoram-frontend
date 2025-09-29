@@ -3320,7 +3320,7 @@ export const supabaseApiService = {
           console.error('📱📧 [초대] DB 업데이트 오류:', updateError);
         }
 
-        // users 테이블에도 사용자 생성 (로그인 가능하도록)
+        // users 테이블에 사용자 생성 (기존 createFromMember 로직 활용)
         try {
           // 먼저 member 정보 조회
           const { data: memberData } = await supabase
@@ -3330,41 +3330,45 @@ export const supabaseApiService = {
             .single();
 
           if (memberData && email) {
-            // 기존 users 테이블에 같은 이메일이 있는지 확인
+            console.log('👤 [users 테이블 생성] 시작:', { email, name: memberData.name });
+
+            // users 테이블에 이미 존재하는지 확인
             const { data: existingUser } = await supabase
               .from('users')
               .select('id')
               .eq('email', email)
               .single();
 
-            if (!existingUser) {
+            if (existingUser) {
+              console.log('ℹ️ [users 테이블] 이미 존재하는 사용자:', email);
+            } else {
               // users 테이블에 새 사용자 생성
-              const { error: userInsertError } = await supabase
+              const { data: newUser, error: usersError } = await supabase
                 .from('users')
                 .insert({
                   email: email,
-                  name: memberData.name || username,
+                  username: email.split('@')[0],
                   full_name: memberData.name || username,
-                  hashed_password: temporaryPassword, // 임시 비밀번호 저장
+                  hashed_password: temporaryPassword,
                   church_id: memberData.church_id || 0,
                   role: 'member',
                   is_active: true,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
-                });
+                })
+                .select()
+                .single();
 
-              if (userInsertError) {
-                console.error('👤 [초대] users 테이블 생성 오류:', userInsertError);
+              if (usersError) {
+                console.error('👤 [users 테이블 생성] 실패:', usersError);
               } else {
-                console.log('✅ [초대] users 테이블에 사용자 생성 성공');
+                console.log('✅ [users 테이블 생성] 성공:', newUser?.email);
               }
-            } else {
-              console.log('ℹ️ [초대] users 테이블에 이미 사용자 존재');
             }
           }
         } catch (userCreateError) {
-          console.error('👤 [초대] users 테이블 생성 실패:', userCreateError);
-          // users 테이블 생성 실패는 초대 전체를 실패로 처리하지 않음
+          console.error('👤 [사용자 생성] 전체 실패:', userCreateError);
+          // 사용자 생성 실패는 초대 전체를 실패로 처리하지 않음 (SMS/이메일 발송은 성공했으므로)
         }
 
         const successMessage = [];
