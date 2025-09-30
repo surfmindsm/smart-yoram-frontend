@@ -21,10 +21,11 @@ import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui";
 import { SimpleTabs } from "./ui";
+import { Combobox } from "./ui";
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { Combobox } from "./ui";
+import { supabase } from '../lib/supabase';
 
 // 백엔드 API 응답 타입 정의
 interface Member {
@@ -164,7 +165,7 @@ const DonationManagement: React.FC = () => {
         ...prev,
         churchName: churchInfo.name || '',
         churchAddress: churchInfo.address || '',
-        churchRegNo: churchInfo.business_registration_number || ''
+        churchRegNo: churchInfo.business_no || ''
       }));
     } else {
       // 교회 정보가 없을 때는 조용히 패스
@@ -304,15 +305,40 @@ const DonationManagement: React.FC = () => {
         membersResponse = [];
       }
 
-      // 교회 정보는 임시로 고정값 사용 (Financial Service API 인증 문제로 인해)
+      // 현재 로그인한 사용자의 교회 정보 가져오기
       let churchData: any = {
         id: 6,
         name: '기본 교회',
         address: '서울특별시 강남구',
-        business_registration_number: '123-45-67890'
+        business_no: '123-45-67890'
       };
 
-      console.log('🏛️ 임시 교회 정보 사용:', churchData);
+      try {
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (currentUser?.user?.church_id) {
+          // Supabase에서 교회 정보 가져오기
+          const { data: churchInfo, error } = await supabase
+            .from('churches')
+            .select('*')
+            .eq('id', currentUser.user.church_id)
+            .single();
+
+          if (churchInfo && !error) {
+            churchData = {
+              id: churchInfo.id,
+              name: churchInfo.name || churchInfo.church_name || '교회명 없음',
+              address: churchInfo.address || churchInfo.church_address || '',
+              business_no: churchInfo.business_no ||
+                                            churchInfo.registration_number ||
+                                            churchInfo.tax_number || ''
+            };
+            console.log('✅ Supabase에서 교회 정보 가져오기 성공:', churchData);
+          }
+        }
+      } catch (error) {
+        console.error('교회 정보 가져오기 실패:', error);
+      }
+
       setChurchInfo(churchData);
 
       // 교회 정보를 영수증 폼에 반영
@@ -320,7 +346,7 @@ const DonationManagement: React.FC = () => {
         ...prev,
         churchName: churchData.name || '',
         churchAddress: churchData.address || '',
-        churchRegNo: churchData.business_registration_number || ''
+        churchRegNo: churchData.business_no || ''
       }));
       // 응답 정규화 - API별로 다른 구조 확인
       

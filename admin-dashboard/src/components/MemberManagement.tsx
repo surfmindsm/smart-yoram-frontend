@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
+import { supabase } from '../lib/supabase';
 import { Pagination } from './common/Pagination';
 import axios from 'axios';
 import {
@@ -313,54 +314,61 @@ const MemberManagement: React.FC = () => {
     if (!selectedMember) return;
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // Supabase Storage를 사용하여 파일 업로드
+      const fileExt = file.name.split('.').pop();
+      const fileName = `member-profiles/${selectedMember.id}/${Date.now()}.${fileExt}`;
 
-      const token = localStorage.getItem('access_token');
-      console.log('🔍 Photo upload debug:', {
-        memberId: selectedMember.id,
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0,
-        endpoint: `/members/${selectedMember.id}/upload-photo`,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        hasFile: !!file,
-        formDataEntries: Array.from(formData.entries()),
-        tokenFirst10: token ? token.substring(0, 10) + '...' : null
-      });
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('member-photos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-      // Test if token works with a simple API call first
-      try {
-        const testResponse = await axios.get(
-          `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
+      if (uploadError) {
+        // 버킷이 없으면 생성
+        if (uploadError.message.includes('not found')) {
+          const { error: createBucketError } = await supabase.storage.createBucket('member-photos', {
+            public: true,
+            allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
+          });
+
+          if (createBucketError) {
+            throw new Error('프로필 사진 저장소 생성 실패: ' + createBucketError.message);
           }
-        );
-        console.log('✅ Token works - member data retrieved:', testResponse.status);
-      } catch (testError) {
-        console.error('❌ Token test failed:', testError);
-        alert('토큰이 유효하지 않습니다. 다시 로그인해주세요.');
-        return;
+
+          // 다시 시도
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('member-photos')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (retryError) {
+            throw retryError;
+          }
+        } else {
+          throw uploadError;
+        }
       }
 
-      // Try direct axios call without api instance
-      const response = await axios.post(
-        `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}/upload-photo`, 
-        formData, 
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      // 공개 URL 가져오기
+      const { data: { publicUrl } } = supabase.storage
+        .from('member-photos')
+        .getPublicUrl(fileName);
 
-      console.log('✅ Photo upload response:', response.data);
-      console.log('🔄 Updating member photo URL:', response.data.profile_photo_url);
+      // members 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from('members')
+        .update({ profile_photo_url: publicUrl })
+        .eq('id', selectedMember.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      console.log('✅ Photo upload success:', publicUrl);
 
       // 사진 업로드 로그 기록
       activityLogger.log({
@@ -374,42 +382,16 @@ const MemberManagement: React.FC = () => {
       });
 
       // Update member in list
-      const updatedMembers = members.map(m => 
-        m.id === selectedMember.id 
-          ? { ...m, profile_photo_url: response.data.profile_photo_url }
+      const updatedMembers = members.map(m =>
+        m.id === selectedMember.id
+          ? { ...m, profile_photo_url: publicUrl }
           : m
       );
-      
-      console.log('📝 Updated members array:', updatedMembers.find(m => m.id === selectedMember.id));
+
       setMembers(updatedMembers);
-      
+
       // Also update selectedMember for immediate UI feedback
-      setSelectedMember(prev => prev ? { ...prev, profile_photo_url: response.data.profile_photo_url } : prev);
-      
-      // Verify if the photo was actually saved in DB by re-fetching the member
-      setTimeout(async () => {
-        try {
-          const verifyResponse = await axios.get(
-            `https://api.surfmind-team.com/api/v1/members/${selectedMember.id}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            }
-          );
-          console.log('🔍 DB verification - member data after upload:', verifyResponse.data);
-          console.log('🔍 DB verification - profile_photo_url:', verifyResponse.data.profile_photo_url);
-          
-          if (!verifyResponse.data.profile_photo_url) {
-            console.error('❌ Photo URL not saved to database!');
-            alert('경고: 사진 업로드는 성공했지만 데이터베이스 저장에 실패했을 수 있습니다.');
-          } else {
-            console.log('✅ Photo URL successfully saved to database');
-          }
-        } catch (error) {
-          console.error('DB verification failed:', error);
-        }
-      }, 1000); // 1초 후 검증
+      setSelectedMember(prev => prev ? { ...prev, profile_photo_url: publicUrl } : prev);
       
       setShowPhotoModal(false);
       alert('프로필 사진이 업로드되었습니다.');

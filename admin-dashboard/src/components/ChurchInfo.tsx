@@ -200,6 +200,17 @@ const ChurchInfo: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    사업자등록번호
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="000-00-00000"
+                    value={formData.business_no}
+                    onChange={(e) => setFormData({ ...formData, business_no: e.target.value })}
+                  />
+                </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-foreground mb-2">
                     <MapPin className="w-4 h-4 inline mr-1" />
@@ -251,6 +262,12 @@ const ChurchInfo: React.FC = () => {
                   이메일
                 </h3>
                 <p className="mt-1 text-lg text-foreground">{church?.email || '-'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  사업자등록번호
+                </h3>
+                <p className="mt-1 text-lg text-foreground">{church?.business_no || '-'}</p>
               </div>
               <div className="md:col-span-2">
                 <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
