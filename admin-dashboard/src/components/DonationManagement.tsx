@@ -22,6 +22,7 @@ import { Input } from "./ui";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui";
 import { SimpleTabs } from "./ui";
 import { Combobox } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { financialService, memberService, churchService } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
@@ -1473,15 +1474,21 @@ const DonationManagement: React.FC = () => {
           {/* 컨트롤 바 */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md"
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(Number(value))}
               >
-                {[2024, 2023, 2022, 2021, 2020].map(year => (
-                  <option key={year} value={year}>{year}년</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="년도 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[2024, 2023, 2022, 2021, 2020].map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}년
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -1794,15 +1801,21 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
-                <select
+                <Select
                   value={newDonation.fundType}
-                  onChange={(e) => setNewDonation({ ...newDonation, fundType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  onValueChange={(value) => setNewDonation({ ...newDonation, fundType: value })}
                 >
-                  {FUND_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="헌금 유형 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FUND_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -1870,15 +1883,21 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
-                <select
+                <Select
                   value={editingDonation.fundType}
-                  onChange={(e) => setEditingDonation({ ...editingDonation, fundType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  onValueChange={(value) => setEditingDonation({ ...editingDonation, fundType: value })}
                 >
-                  {FUND_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="헌금 유형 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FUND_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -1934,15 +1953,21 @@ const DonationManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">귀속연도</label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(Number(value))}
                   >
-                    {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 1 - i).map(year => (
-                      <option key={year} value={year}>{year}년</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="년도 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 1 - i).map(year => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}년
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
