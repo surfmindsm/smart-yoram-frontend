@@ -516,14 +516,16 @@ const MemberManagement: React.FC = () => {
 
   const handleSaveMember = async () => {
     if (!selectedMember) return;
-    
+
     try {
       // Preserve profile_photo_url from selectedMember to prevent overwriting
+      const { organization_name, ...memberDataWithoutOrgName } = editedMember;
+
       const memberDataToSave = {
-        ...editedMember,
+        ...memberDataWithoutOrgName,
         profile_photo_url: selectedMember.profile_photo_url
       };
-      
+
       console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
       
       const response = await supabaseApiService.members.update(memberDataToSave);
