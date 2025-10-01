@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Textarea } from "./ui";
-import { 
-  ContactRound, 
-  Briefcase, 
-  Church, 
-  Heart, 
-  Plus, 
-  Trash2, 
-  UserPlus, 
-  MapPin, 
+import {
+  ContactRound,
+  Briefcase,
+  Church,
+  Heart,
+  Plus,
+  Trash2,
+  UserPlus,
+  MapPin,
   Save,
   X,
   Camera
@@ -21,6 +21,8 @@ import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
+import { organizationService } from '../services/organizationService';
+import { ChurchOrganization } from '../types/organization';
 
 interface AddMemberModalProps {
   open: boolean;
@@ -28,20 +30,22 @@ interface AddMemberModalProps {
   onMemberAdded?: () => void;
 }
 
-const AddMemberModal: React.FC<AddMemberModalProps> = ({ 
-  open, 
+const AddMemberModal: React.FC<AddMemberModalProps> = ({
+  open,
   onOpenChange,
-  onMemberAdded 
+  onMemberAdded
 }) => {
   const [loading, setLoading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
+  const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   
   const [formData, setFormData] = useState({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-    // 사역 정보  
-    position: '', district: '', department_code: '', position_code: '', appointed_on: '',
+    // 사역 정보
+    position: '', district: '', organization_id: '', department_code: '', position_code: '', appointed_on: '',
     ordination_church: '', workplace: '', workplace_phone: '',
     // 개인 정보
     address: '', marital_status: '', spouse_name: '', married_on: '',
@@ -144,11 +148,47 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     setProfilePhotoPreview(null);
   };
 
+  // Load organizations
+  useEffect(() => {
+    if (open) {
+      loadOrganizations();
+    }
+  }, [open]);
+
+  const loadOrganizations = async () => {
+    try {
+      setLoadingOrganizations(true);
+      const result = await supabaseAuthService.getCurrentUser();
+      if (result?.user?.church_id) {
+        const orgResult = await organizationService.getOrganizations(result.user.church_id);
+        // Flatten the tree structure
+        const flatOrgs = flattenOrganizations(orgResult.organizations);
+        setOrganizations(flatOrgs);
+      }
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+    } finally {
+      setLoadingOrganizations(false);
+    }
+  };
+
+  // Helper function to flatten organization tree
+  const flattenOrganizations = (orgs: ChurchOrganization[], level: number = 0): ChurchOrganization[] => {
+    let result: ChurchOrganization[] = [];
+    orgs.forEach(org => {
+      result.push({ ...org, level });
+      if (org.children && org.children.length > 0) {
+        result = result.concat(flattenOrganizations(org.children, level + 1));
+      }
+    });
+    return result;
+  };
+
   const handleClose = () => {
     // Reset form when closing
     setFormData({
       name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-      position: '', district: '', department_code: '', position_code: '', appointed_on: '',
+      position: '', district: '', organization_id: '', department_code: '', position_code: '', appointed_on: '',
       ordination_church: '', workplace: '', workplace_phone: '',
       address: '', marital_status: '', spouse_name: '', married_on: '',
       // 새로 추가된 필드들 리셋
@@ -198,15 +238,16 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
       }
       const memberData = {
         // 기존 필드들
-        name: formData.name, 
-        name_eng: formData.name_eng, 
+        name: formData.name,
+        name_eng: formData.name_eng,
         email: formData.email,
-        gender: formData.gender, 
-        birthdate: formData.birthdate || null, 
+        gender: formData.gender,
+        birthdate: formData.birthdate || null,
         phone: formData.phone,
-        address: formData.address, 
-        position: formData.position, 
+        address: formData.address,
+        position: formData.position,
         district: formData.district,
+        organization_id: formData.organization_id || null,
         department_code: formData.department_code,
         position_code: formData.position_code,
         appointed_on: formData.appointed_on || null,
@@ -500,14 +541,26 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                     />
                   </div>
 
-                  {/* 구역 */}
+                  {/* 조직 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">구역</label>
-                    <Input
-                      value={formData.district}
-                      onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
-                      placeholder="1구역, 2구역 등"
-                    />
+                    <label className="block text-sm font-medium text-foreground mb-1">조직</label>
+                    <Select
+                      value={formData.organization_id || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, organization_id: value === 'none' ? '' : value }))}
+                      disabled={loadingOrganizations}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingOrganizations ? "조직 불러오는 중..." : "조직 선택"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">없음</SelectItem>
+                        {organizations.map(org => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {'\u00A0'.repeat(org.level * 2)}{org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* 부서 */}

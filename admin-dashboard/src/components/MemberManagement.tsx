@@ -46,6 +46,8 @@ import { Spinner } from "./ui/spinner";
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
+import { organizationService } from '../services/organizationService';
+import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
 
 interface Member {
   id: number;
@@ -58,6 +60,8 @@ interface Member {
   address: string | null;
   position: string | null;
   district: string | null;
+  organization_id?: string | null;
+  organization_name?: string | null;
   church_id: number;
   profile_photo_url: string | null;
   member_status: string;
@@ -133,6 +137,10 @@ const MemberManagement: React.FC = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleChangeLoading, setRoleChangeLoading] = useState(false);
 
+  // 조직 관련 상태
+  const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('all');
+
   // Advanced search states
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [advancedSearchData, setAdvancedSearchData] = useState({
@@ -167,6 +175,36 @@ const MemberManagement: React.FC = () => {
     }
     fetchMembers();
   }, [appliedSearchTerm, statusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
+
+  // Helper function to flatten organization tree
+  const flattenOrganizations = (orgs: ChurchOrganization[], level: number = 0): ChurchOrganization[] => {
+    let result: ChurchOrganization[] = [];
+    orgs.forEach(org => {
+      result.push({ ...org, level });
+      if (org.children && org.children.length > 0) {
+        result = result.concat(flattenOrganizations(org.children, level + 1));
+      }
+    });
+    return result;
+  };
+
+  // 조직 목록 불러오기
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const result = await supabaseAuthService.getCurrentUser();
+        if (result?.user?.church_id) {
+          const orgResult = await organizationService.getOrganizations(result.user.church_id);
+          // Flatten the tree structure
+          const flatOrgs = flattenOrganizations(orgResult.organizations);
+          setOrganizations(flatOrgs);
+        }
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      }
+    };
+    fetchOrganizations();
+  }, []);
 
 
   const fetchMembers = async () => {
@@ -918,13 +956,13 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th 
+                <th
                   className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                  onClick={() => handleSort('district')}
+                  onClick={() => handleSort('organization_name')}
                 >
                   <span className="flex items-center gap-1">
-                    구역
-                    {sortField === 'district' && (
+                    조직
+                    {sortField === 'organization_name' && (
                       sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                     )}
                   </span>
@@ -983,7 +1021,7 @@ const MemberManagement: React.FC = () => {
                     {member.position || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {member.district || '-'}
+                    {member.organization_name || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge variant={getStatusBadgeVariant(member.member_status)}>
@@ -1532,15 +1570,26 @@ const MemberManagement: React.FC = () => {
 
                       {/* 구역 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">구역</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">조직</label>
                         {isEditMode ? (
-                          <Input
-                            value={editedMember.district || ''}
-                            onChange={(e) => setEditedMember({...editedMember, district: e.target.value})}
-                            placeholder="1구역, 2구역 등"
-                          />
+                          <Select
+                            value={editedMember.organization_id || 'none'}
+                            onValueChange={(value) => setEditedMember({...editedMember, organization_id: value === 'none' ? null : value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="조직 선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">없음</SelectItem>
+                              {organizations.map(org => (
+                                <SelectItem key={org.id} value={org.id}>
+                                  {'\u00A0'.repeat(org.level * 2)}{org.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.district || '-'}</p>
+                          <p className="text-sm text-muted-foreground">{selectedMember.organization_name || '-'}</p>
                         )}
                       </div>
 

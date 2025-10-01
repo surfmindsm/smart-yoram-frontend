@@ -4,8 +4,25 @@ import { verify } from 'https://deno.land/x/djwt@v2.8/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+}
+
+// 임시 토큰 파싱 함수 (temp_token_{user_id}_{timestamp} 형식)
+function parseTempToken(token: string) {
+  try {
+    if (token.startsWith('temp_token_')) {
+      const parts = token.replace('temp_token_', '').split('_');
+      if (parts.length >= 1) {
+        const userId = parseInt(parts[0]);
+        return { user_id: userId };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('임시 토큰 파싱 실패:', error);
+    return null;
+  }
 }
 
 // JWT 토큰 검증 함수
@@ -19,7 +36,7 @@ async function verifyJWT(token: string) {
       false,
       ['sign', 'verify']
     );
-    
+
     const payload = await verify(token, key);
     return payload;
   } catch (error) {
@@ -40,11 +57,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // JWT 토큰 검증
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    // JWT 토큰 검증 - X-Custom-Auth 헤더에서 토큰 가져오기
+    const customAuthToken = req.headers.get('X-Custom-Auth');
+    if (!customAuthToken) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized: No X-Custom-Auth token' }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -52,8 +69,13 @@ serve(async (req) => {
       )
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const payload = await verifyJWT(token);
+    // 임시 토큰 파싱 시도
+    let payload = parseTempToken(customAuthToken);
+
+    // 임시 토큰이 아니면 JWT 검증 시도
+    if (!payload) {
+      payload = await verifyJWT(customAuthToken);
+    }
 
     if (!payload) {
       return new Response(
@@ -65,7 +87,36 @@ serve(async (req) => {
       )
     }
 
-    const churchId = payload.church_id;
+    // church_id 가져오기 (JWT에서 직접 or user_id로 조회)
+    let churchId = payload.church_id;
+    console.log('🔍 JWT payload:', JSON.stringify(payload));
+    console.log('🔍 Initial churchId from payload:', churchId);
+
+    if (!churchId && payload.user_id) {
+      // church_id가 없으면 user_id로 조회
+      console.log('🔍 Fetching church_id for user_id:', payload.user_id);
+      const { data: user, error: userError } = await supabaseClient
+        .from('users')
+        .select('church_id')
+        .eq('id', payload.user_id)
+        .single();
+
+      if (userError || !user) {
+        console.error('❌ 사용자 조회 실패:', userError);
+        return new Response(
+          JSON.stringify({ error: 'User not found' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      churchId = user.church_id;
+      console.log('✅ Fetched church_id from users table:', churchId);
+    }
+
+    console.log('🎯 Final churchId:', churchId);
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
     const memberId = pathParts[pathParts.length - 1];
@@ -75,11 +126,13 @@ serve(async (req) => {
         if (memberId && memberId !== 'members') {
           // 특정 멤버 조회
           const { data: member, error } = await supabaseClient
-            .from('users')
-            .select('*')
+            .from('members')
+            .select(`
+              *,
+              organization:church_organizations(name)
+            `)
             .eq('id', memberId)
             .eq('church_id', churchId)
-            .eq('role', 'member')
             .single();
 
           if (error) {
@@ -93,20 +146,33 @@ serve(async (req) => {
             )
           }
 
-          return new Response(JSON.stringify(member), {
+          // organization_name 필드 추가
+          const memberWithOrgName = {
+            ...member,
+            organization_name: member?.organization?.name || null,
+            organization: undefined
+          };
+
+          return new Response(JSON.stringify(memberWithOrgName), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         } else {
-          // 전체 멤버 목록 조회
+          // 전체 멤버 목록 조회 (organization_name 포함)
+          console.log('📋 Querying members table with church_id:', churchId);
           const { data: members, error } = await supabaseClient
-            .from('users')
-            .select('*')
+            .from('members')
+            .select(`
+              *,
+              organization:church_organizations(name)
+            `)
             .eq('church_id', churchId)
-            .eq('role', 'member')
             .order('created_at', { ascending: false });
 
+          console.log('📊 Query result - members count:', members?.length || 0);
+          console.log('📊 Query error:', error);
+
           if (error) {
-            console.error('멤버 목록 조회 실패:', error);
+            console.error('❌ 멤버 목록 조회 실패:', error);
             return new Response(
               JSON.stringify({ error: error.message }),
               {
@@ -116,7 +182,16 @@ serve(async (req) => {
             )
           }
 
-          return new Response(JSON.stringify(members), {
+          // organization_name 필드 추가
+          const membersWithOrgName = members?.map(member => ({
+            ...member,
+            organization_name: member.organization?.name || null,
+            organization: undefined  // 중첩 객체 제거
+          })) || [];
+
+          console.log('✅ Returning members with org names:', membersWithOrgName.length);
+
+          return new Response(JSON.stringify(membersWithOrgName), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
@@ -125,13 +200,15 @@ serve(async (req) => {
         // 새 멤버 생성
         const memberData = await req.json();
         memberData.church_id = churchId;
-        memberData.role = 'member';
         memberData.created_at = new Date().toISOString();
 
         const { data: newMember, error: createError } = await supabaseClient
-          .from('users')
+          .from('members')
           .insert(memberData)
-          .select()
+          .select(`
+            *,
+            organization:church_organizations(name)
+          `)
           .single();
 
         if (createError) {
@@ -145,7 +222,14 @@ serve(async (req) => {
           )
         }
 
-        return new Response(JSON.stringify(newMember), {
+        // organization_name 필드 추가
+        const memberWithOrgName = {
+          ...newMember,
+          organization_name: newMember?.organization?.name || null,
+          organization: undefined
+        };
+
+        return new Response(JSON.stringify(memberWithOrgName), {
           status: 201,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -168,12 +252,14 @@ serve(async (req) => {
         updateData.updated_at = new Date().toISOString();
 
         const { data: updatedMember, error: updateError } = await supabaseClient
-          .from('users')
+          .from('members')
           .update(updateData)
           .eq('id', memberId)
           .eq('church_id', churchId)
-          .eq('role', 'member')
-          .select()
+          .select(`
+            *,
+            organization:church_organizations(name)
+          `)
           .single();
 
         if (updateError) {
@@ -187,7 +273,14 @@ serve(async (req) => {
           )
         }
 
-        return new Response(JSON.stringify(updatedMember), {
+        // organization_name 필드 추가
+        const updatedMemberWithOrgName = {
+          ...updatedMember,
+          organization_name: updatedMember?.organization?.name || null,
+          organization: undefined
+        };
+
+        return new Response(JSON.stringify(updatedMemberWithOrgName), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
@@ -204,11 +297,10 @@ serve(async (req) => {
         }
 
         const { error: deleteError } = await supabaseClient
-          .from('users')
+          .from('members')
           .delete()
           .eq('id', memberId)
-          .eq('church_id', churchId)
-          .eq('role', 'member');
+          .eq('church_id', churchId);
 
         if (deleteError) {
           console.error('멤버 삭제 실패:', deleteError);

@@ -49,7 +49,8 @@ import {
   ShoppingCart,
   User,
   Key,
-  UserCog
+  UserCog,
+  Building2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -259,6 +260,7 @@ const Layout: React.FC = () => {
       title: '교인 관리',
       items: [
         { path: '/member-management', name: '교인 관리', Icon: Users },
+        { path: '/organization-management', name: '조직 관리', Icon: Building2 },
         { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },

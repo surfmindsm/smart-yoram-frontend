@@ -45,15 +45,12 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        const error = null;
 
-        if (error) {
-          console.error('👥 [교인 API] 오류:', error);
-          throw error;
-        }
+        // Edge Function이 배열을 직접 반환하므로 data 자체가 배열
+        const members = Array.isArray(data) ? data : (data?.data || []);
 
-        console.log('✅ [교인 API] 조회 성공:', data?.data?.length || 0, '명');
-        return { data: data?.data || [] };
+        console.log('✅ [교인 API] 조회 성공:', members.length, '명');
+        return { data: members };
       } catch (error) {
         console.error('👥 [교인 API] 조회 실패:', error);
         // Use fallback mock data if Edge Function fails
@@ -127,9 +124,21 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
+        // Extract member ID from memberData
+        const memberId = memberData.id;
+        if (!memberId) {
+          throw new Error('Member ID is required for update');
+        }
+
+        // Remove id from the data to be sent (should not be in the update payload)
+        const { id, ...updateData } = memberData;
+
         // Use direct fetch instead of supabase.functions.invoke for PUT requests
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-        const functionsUrl = `${supabaseUrl}/functions/v1/members`;
+        const functionsUrl = `${supabaseUrl}/functions/v1/members/${memberId}`;
+
+        console.log('👥 [교인 수정 API] URL:', functionsUrl);
+        console.log('👥 [교인 수정 API] 수정 데이터:', updateData);
 
         const response = await fetch(functionsUrl, {
           method: 'PUT',
@@ -138,11 +147,12 @@ export const supabaseApiService = {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(memberData)
+          body: JSON.stringify(updateData)
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('👥 [교인 수정 API] HTTP 오류:', response.status, errorText);
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
@@ -156,8 +166,9 @@ export const supabaseApiService = {
 
         console.log('✅ [교인 수정 API] 성공:', data);
         return { data };
-      } catch (error) {
+      } catch (error: any) {
         console.error('👥 [교인 수정 API] 실패:', error);
+        console.error('👥 [교인 수정 API] 에러 상세:', error.message);
         throw error;
       }
     },

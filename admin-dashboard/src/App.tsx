@@ -36,6 +36,7 @@ const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
+const OrganizationManagement = lazy(() => import('./components/OrganizationManagement'));
 const GPTSettings = lazy(() => import('./pages/GPTSettings'));
 const SecurityLogs = lazy(() => import('./components/SecurityLogs'));
 
@@ -152,6 +153,11 @@ function App() {
           <Route path="member-management" element={
             <Suspense fallback={<LoadingSpinner />}>
               <MemberManagement />
+            </Suspense>
+          } />
+          <Route path="organization-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <OrganizationManagement />
             </Suspense>
           } />
           <Route path="add-member" element={
