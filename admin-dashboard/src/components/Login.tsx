@@ -253,27 +253,30 @@ const Login: React.FC = () => {
                   </p>
                 </div>
 
-                {/* 교회 가입 신청 버튼 */}
-                <Button
-                  type="button"
-                  variant="default"
-                  className="w-full"
-                  onClick={handleChurchSignupClick}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  교회 가입 신청
-                </Button>
+                {/* 가입 신청 버튼 - 2열 그리드 */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* 교회 가입 신청 버튼 */}
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="h-24 flex flex-col items-center justify-center space-y-2"
+                    onClick={handleChurchSignupClick}
+                  >
+                    <UserPlus className="w-6 h-6" />
+                    <span className="text-sm font-semibold">교회 가입 신청</span>
+                  </Button>
 
-                {/* 커뮤니티 가입 신청 버튼 */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleCommunitySignupClick}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  커뮤니티 가입 신청
-                </Button>
+                  {/* 커뮤니티 가입 신청 버튼 */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-24 flex flex-col items-center justify-center space-y-2"
+                    onClick={handleCommunitySignupClick}
+                  >
+                    <UserPlus className="w-6 h-6" />
+                    <span className="text-sm font-semibold">커뮤니티 가입 신청</span>
+                  </Button>
+                </div>
 
                 <p className="text-xs text-muted-foreground pt-2">
                   교회 관리자는 '교회 가입 신청'을 이용해주세요

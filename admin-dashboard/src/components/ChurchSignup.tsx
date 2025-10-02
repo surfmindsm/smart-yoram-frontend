@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui"
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Checkbox } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { Spinner } from "./ui/spinner";
@@ -15,15 +16,16 @@ import { supabaseApiService } from '../services/supabaseApiService';
 interface SignupFormData {
   churchName: string;
   pastorName: string;
+  denomination: string;
+  establishedYear: string;
+  address: string;
+  phone: string;
   adminName: string;
+  adminPhone: string;
   email: string;
   emailVerificationCode: string;
-  phone: string;
-  address: string;
-  website: string;
-  establishedYear: string;
-  denomination: string;
   memberCount: string;
+  website: string;
   attachments: File[];
   agreeTerms: boolean;
   agreePrivacy: boolean;
@@ -34,15 +36,16 @@ const ChurchSignup: React.FC = () => {
   const [formData, setFormData] = useState<SignupFormData>({
     churchName: '',
     pastorName: '',
+    denomination: '',
+    establishedYear: '',
+    address: '',
+    phone: '',
     adminName: '',
+    adminPhone: '',
     email: '',
     emailVerificationCode: '',
-    phone: '',
-    address: '',
-    website: '',
-    establishedYear: '',
-    denomination: '',
     memberCount: '',
+    website: '',
     attachments: [],
     agreeTerms: false,
     agreePrivacy: false,
@@ -56,7 +59,51 @@ const ChurchSignup: React.FC = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [emailVerificationLoading, setEmailVerificationLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const navigate = useNavigate();
+
+  const denominations = [
+    '기독교대한감리회',
+    '기독교대한성결교회',
+    '기독교대한하나님의성회(여의도순복음)',
+    '기독교대한하나님의성회(서대문)',
+    '기독교대한하나님의성회(광명)',
+    '기독교대한하나님의성회(순복음)',
+    '기독교한국루터회',
+    '기독교한국침례회',
+    '대한예수교장로회(개혁)',
+    '대한예수교장로회(개혁총연)',
+    '대한예수교장로회(고신)',
+    '대한예수교장로회(대신)',
+    '대한예수교장로회(대신수호)',
+    '대한예수교장로회(백석)',
+    '대한예수교장로회(백석대신)',
+    '대한예수교장로회(보수)',
+    '대한예수교장로회(서서울)',
+    '대한예수교장로회(순장)',
+    '대한예수교장로회(에덴)',
+    '대한예수교장로회(통합)',
+    '대한예수교장로회(합동)',
+    '대한예수교장로회(합동보수)',
+    '대한예수교장로회(합신)',
+    '대한예수교장로회(호헌)',
+    '대한예수교장로회(기타)',
+    '대한예수교침례회',
+    '성결교회(대한성결)',
+    '성결교회(예수교성결)',
+    '성결교회(나성)',
+    '성결교회(기타)',
+    '예수교대한하나님의교회',
+    '예수교대한성결교회',
+    '예수교한국침례회',
+    '한국기독교장로회',
+    '한국구세군',
+    '한국루터회',
+    '한국복음교회',
+    '한국침례회',
+    '독립교회',
+    '무교단'
+  ];
 
   const handleInputChange = (field: keyof SignupFormData, value: string | boolean | File[]) => {
     setFormData(prev => ({
@@ -75,6 +122,44 @@ const ChurchSignup: React.FC = () => {
     }
 
     handleInputChange('attachments', files);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const validationResult = churchApplicationService.validateFiles(files);
+
+    if (!validationResult.isValid) {
+      setError(validationResult.error || '파일 검증에 실패했습니다.');
+      return;
+    }
+
+    handleInputChange('attachments', files);
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    const newFiles = formData.attachments.filter((_, index) => index !== indexToRemove);
+    handleInputChange('attachments', newFiles);
   };
 
   const sendEmailVerification = async () => {
@@ -137,7 +222,8 @@ const ChurchSignup: React.FC = () => {
     }
 
     const requiredFields = [
-      'churchName', 'pastorName', 'adminName', 'email', 'phone', 'address'
+      'churchName', 'pastorName', 'denomination', 'establishedYear', 'address', 'phone',
+      'adminName', 'adminPhone', 'email'
     ];
 
     for (const field of requiredFields) {
@@ -175,11 +261,14 @@ const ChurchSignup: React.FC = () => {
   const getFieldLabel = (field: string): string => {
     const labels: { [key: string]: string } = {
       churchName: '교회명',
-      pastorName: '담임 목사님 이름',
-      adminName: '계정 사용자 이름',
-      email: '이메일',
-      phone: '연락처',
-      address: '교회 주소'
+      pastorName: '담임 목사명',
+      denomination: '교단/교파',
+      establishedYear: '설립연도',
+      address: '교회 주소',
+      phone: '교회 대표 번호',
+      adminName: '계정 사용자명',
+      adminPhone: '계정 사용자 연락처',
+      email: '계정 사용자 이메일'
     };
     return labels[field] || field;
   };
@@ -294,7 +383,7 @@ const ChurchSignup: React.FC = () => {
               )}
 
               {/* 기본 정보 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">기본 정보</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -309,46 +398,96 @@ const ChurchSignup: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="pastorName">담임 목사님 이름 *</Label>
+                    <Label htmlFor="pastorName">담임 목사명 *</Label>
                     <Input
                       id="pastorName"
                       value={formData.pastorName}
                       onChange={(e) => handleInputChange('pastorName', e.target.value)}
                       placeholder="홍길동 목사"
                     />
-                    <p className="text-xs text-gray-500 mt-1">교회의 담임 목사님 성함</p>
                   </div>
 
                   <div>
-                    <Label htmlFor="adminName">계정 사용자 이름 *</Label>
+                    <Label htmlFor="denomination">교단/교파 *</Label>
+                    <Select
+                      value={formData.denomination}
+                      onValueChange={(value) => handleInputChange('denomination', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="선택해주세요" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {denominations.map((denomination) => (
+                          <SelectItem key={denomination} value={denomination}>
+                            {denomination}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="establishedYear">설립연도 *</Label>
+                    <Input
+                      id="establishedYear"
+                      type="number"
+                      value={formData.establishedYear}
+                      onChange={(e) => handleInputChange('establishedYear', e.target.value)}
+                      placeholder="예: 1990"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="address">교회 주소 *</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="서울시 강남구 ..."
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="phone">교회 대표 번호 *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="02-1234-5678"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 계정 정보 (최고 관리자) */}
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold">계정 정보 (최고 관리자)</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="adminName">계정 사용자명 *</Label>
                     <Input
                       id="adminName"
                       value={formData.adminName}
                       onChange={(e) => handleInputChange('adminName', e.target.value)}
                       placeholder="김관리 집사"
                     />
-                    <p className="text-xs text-gray-500 mt-1">실제 시스템을 관리할 사용자 이름</p>
                   </div>
 
                   <div>
-                    <Label htmlFor="phone">연락처 *</Label>
+                    <Label htmlFor="adminPhone">계정 사용자 연락처 *</Label>
                     <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      id="adminPhone"
+                      value={formData.adminPhone}
+                      onChange={(e) => handleInputChange('adminPhone', e.target.value)}
                       placeholder="010-0000-0000"
                     />
                   </div>
-                </div>
-              </div>
 
-              {/* 계정 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">계정 정보</h3>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="email">이메일 (로그인 ID) *</Label>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="email">계정 사용자 이메일 (로그인 ID) *</Label>
                     <div className="flex gap-2">
                       <Input
                         id="email"
@@ -388,7 +527,7 @@ const ChurchSignup: React.FC = () => {
                   </div>
 
                   {emailVerificationSent && !emailVerified && (
-                    <div>
+                    <div className="md:col-span-2">
                       <Label htmlFor="emailVerificationCode">이메일 인증 코드 *</Label>
                       <div className="flex gap-2">
                         <Input
@@ -417,46 +556,13 @@ const ChurchSignup: React.FC = () => {
                 </div>
               </div>
 
-              {/* 교회 상세 정보 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">교회 상세 정보</h3>
+              {/* 추가 정보 */}
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold">추가 정보</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label htmlFor="address">교회 주소 *</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      placeholder="서울시 강남구 ..."
-                    />
-                  </div>
-
                   <div>
-                    <Label htmlFor="denomination">교단/교파</Label>
-                    <Input
-                      id="denomination"
-                      value={formData.denomination}
-                      onChange={(e) => handleInputChange('denomination', e.target.value)}
-                      placeholder="예: 예장통합, 기장, 순복음 등"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="establishedYear">설립연도</Label>
-                    <Input
-                      id="establishedYear"
-                      type="number"
-                      value={formData.establishedYear}
-                      onChange={(e) => handleInputChange('establishedYear', e.target.value)}
-                      placeholder="예: 1990"
-                      min="1900"
-                      max={new Date().getFullYear()}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="memberCount">교인 수 (대략)</Label>
+                    <Label htmlFor="memberCount">교인 수 (교적부 등록 예정)</Label>
                     <Input
                       id="memberCount"
                       type="number"
@@ -466,8 +572,8 @@ const ChurchSignup: React.FC = () => {
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <Label htmlFor="website">웹사이트</Label>
+                  <div>
+                    <Label htmlFor="website">홈페이지 (따로 없으면 유튜브 주소 가능)</Label>
                     <Input
                       id="website"
                       type="url"
@@ -480,37 +586,77 @@ const ChurchSignup: React.FC = () => {
               </div>
 
               {/* 첨부파일 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold">첨부파일</h3>
+
                 <div>
-                  <Label htmlFor="attachments">첨부파일</Label>
-                  <div className="mt-1">
-                    <Input
-                      id="attachments"
-                      type="file"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
-                    />
-                    <p className="text-sm text-gray-500 mt-2">
+                  <input
+                    id="attachments"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+
+                  <div
+                    onClick={() => document.getElementById('attachments')?.click()}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
+                      isDragging
+                        ? 'border-primary bg-primary/10 scale-105'
+                        : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+                    }`}
+                  >
+                    <Upload className={`w-12 h-12 mx-auto mb-4 transition-colors ${
+                      isDragging ? 'text-primary' : 'text-gray-400'
+                    }`} />
+                    <p className={`text-base font-medium mb-2 ${
+                      isDragging ? 'text-primary' : 'text-gray-700'
+                    }`}>
+                      {isDragging ? '파일을 여기에 놓으세요' : '파일을 드래그하여 업로드하거나 클릭하세요'}
+                    </p>
+                    <p className="text-sm text-gray-500">
                       교회 등록증, 교회 소개자료 등 (최대 5개, 각 5MB 이하)
                     </p>
                     {formData.attachments.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <p className="text-sm text-primary font-medium mt-3">
+                        {formData.attachments.length}개 파일 선택됨
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.attachments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">선택된 파일:</p>
+                      <div className="space-y-1">
                         {formData.attachments.map((file, index) => (
-                          <div key={index} className="text-sm text-gray-600 flex items-center">
-                            <Upload className="w-4 h-4 mr-1" />
-                            {file.name} ({(file.size / 1024).toFixed(1)}KB)
+                          <div key={index} className="text-sm text-gray-600 flex items-center bg-white p-2 rounded border group hover:border-red-300">
+                            <Upload className="w-4 h-4 mr-2 text-gray-400" />
+                            <span className="flex-1">{file.name}</span>
+                            <span className="text-gray-400 mr-2">({(file.size / 1024).toFixed(1)}KB)</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveFile(index)}
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* 약관 동의 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">약관 동의</h3>
 
                 <div className="space-y-3">
