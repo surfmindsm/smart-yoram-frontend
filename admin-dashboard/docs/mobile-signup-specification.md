@@ -334,9 +334,68 @@ Ghost 버튼
 
 ## 4. API 엔드포인트
 
-### 4.1 교회 가입 신청
+### 4.1 이메일 인증 (Supabase Edge Function)
 
-**엔드포인트**: `POST /api/v1/church/applications`
+모든 이메일 인증은 Supabase Edge Function을 통해 처리됩니다.
+
+**이메일 인증 코드 발송**:
+```typescript
+// Supabase Edge Function: email-verification
+POST https://<project-ref>.supabase.co/functions/v1/email-verification
+
+{
+  "email": "user@example.com",
+  "action": "send"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "인증 코드가 이메일로 전송되었습니다."
+}
+```
+
+**이메일 인증 코드 확인**:
+```typescript
+POST https://<project-ref>.supabase.co/functions/v1/email-verification
+
+{
+  "email": "user@example.com",
+  "action": "verify",
+  "code": "123456"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "이메일 인증이 완료되었습니다."
+}
+```
+
+**이메일 중복 체크**:
+```typescript
+// Supabase 직접 쿼리 (클라이언트)
+const { data } = await supabase
+  .from('users')
+  .select('email')
+  .eq('email', email)
+  .single();
+
+// 또는 supabaseApiService 사용
+const exists = await supabaseApiService.emailVerification.checkEmailExists(email);
+```
+
+---
+
+### 4.2 교회 가입 신청
+
+**신청서 제출**: `POST https://api.surfmind-team.com/api/v1/church/applications`
+
+⚠️ **주의**: 현재 신청서 **제출**만 레거시 API를 사용하고, **조회/승인/반려**는 Supabase를 직접 사용합니다.
 
 **Request (FormData)**:
 ```javascript
@@ -378,15 +437,45 @@ Ghost 버튼
 }
 ```
 
-### 4.2 커뮤니티 가입 신청
+**신청서 조회/승인/반려**: Supabase 직접 접근 (`church_applications` 테이블)
 
-**엔드포인트**: `POST /api/v1/community/applications`
+```typescript
+// 목록 조회
+const { data } = await supabase
+  .from('church_applications')
+  .select('*')
+  .eq('status', 'pending');
+
+// 승인
+const { data } = await supabase
+  .from('church_applications')
+  .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+  .eq('id', applicationId);
+
+// 반려
+const { data } = await supabase
+  .from('church_applications')
+  .update({
+    status: 'rejected',
+    reviewed_at: new Date().toISOString(),
+    rejection_reason: reason
+  })
+  .eq('id', applicationId);
+```
+
+---
+
+### 4.3 커뮤니티 가입 신청
+
+**신청서 제출**: `POST https://api.surfmind-team.com/api/v1/community/applications`
+
+⚠️ **주의**: 현재 신청서 **제출**만 레거시 API를 사용하고, **조회/승인/반려**는 Supabase를 직접 사용합니다.
 
 **Request (FormData)**:
 ```javascript
 {
   // 필수 필드
-  applicant_type: string,
+  applicant_type: string, // 'company' | 'individual' | 'musician' | 'minister' | 'organization' | 'other'
   organization_name: string,
   contact_person: string,
   email: string,
@@ -397,6 +486,9 @@ Ghost 버튼
   agree_terms: boolean,
   agree_privacy: boolean,
   agree_marketing: boolean,
+
+  // 임시 비밀번호 (승인 후 실제 비밀번호 발송)
+  password: string, // 기본값: 'temp_password_will_be_sent_after_approval'
 
   // 선택 필드
   business_number?: string,
@@ -421,44 +513,30 @@ Ghost 버튼
 }
 ```
 
-### 4.3 이메일 인증
+**신청서 조회/승인/반려**: Supabase 직접 접근 (`community_applications` 테이블)
 
-**이메일 인증 코드 발송**: `POST /api/auth/send-verification-code`
-```json
-{
-  "email": "user@example.com"
-}
-```
+```typescript
+// 목록 조회
+const { data } = await supabase
+  .from('community_applications')
+  .select('*')
+  .eq('status', 'pending');
 
-**Response**:
-```json
-{
-  "success": true,
-  "message": "인증 코드가 발송되었습니다."
-}
-```
+// 승인
+const { data } = await supabase
+  .from('community_applications')
+  .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+  .eq('id', applicationId);
 
-**이메일 인증 코드 확인**: `POST /api/auth/verify-code`
-```json
-{
-  "email": "user@example.com",
-  "code": "123456"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "이메일 인증이 완료되었습니다."
-}
-```
-
-**이메일 중복 체크**: `GET /api/auth/check-email?email=user@example.com`
-```json
-{
-  "exists": false
-}
+// 반려
+const { data } = await supabase
+  .from('community_applications')
+  .update({
+    status: 'rejected',
+    reviewed_at: new Date().toISOString(),
+    rejection_reason: reason
+  })
+  .eq('id', applicationId);
 ```
 
 ### 4.4 에러 응답
@@ -624,15 +702,56 @@ Text Secondary: #6B7280 (회색)
 - Tailwind CSS 스타일링
 - Shadcn UI 컴포넌트 사용
 
-### 9.2 백엔드 API
-- Base URL: `https://api.surfmind-team.com/api/v1`
-- 인증 방식: 이메일 인증 코드 (6자리)
-- 파일 업로드: FormData 형식
-- 최대 파일 크기: 5MB
-- 최대 파일 개수: 5개
+### 9.2 백엔드 구현 (하이브리드)
 
-### 9.3 데이터베이스 테이블
-- `church_applications`: 교회 가입 신청 데이터
-- `community_applications`: 커뮤니티 가입 신청 데이터
-- `churches`: 승인된 교회 정보
-- `users`: 사용자 계정 정보
+**Supabase 사용 (Primary)**:
+- **이메일 인증**: Supabase Edge Function (`email-verification`)
+- **신청서 조회/승인/반려**: Supabase 직접 쿼리
+- **데이터베이스**: PostgreSQL (Supabase)
+- **파일 스토리지**: Supabase Storage (향후 마이그레이션 예정)
+
+**레거시 API 사용 (현재 유지)**:
+- **신청서 제출**: `https://api.surfmind-team.com/api/v1`
+  - `POST /church/applications`
+  - `POST /community/applications`
+- **파일 업로드**: FormData 형식
+- **최대 파일 크기**: 5MB
+- **최대 파일 개수**: 5개
+
+**인증 방식**:
+- 이메일 인증 코드 (6자리)
+- 승인 후 임시 비밀번호 이메일 발송
+
+### 9.3 Supabase 데이터베이스 테이블
+
+**`church_applications` (교회 가입 신청)**:
+- `id`: 신청 ID
+- `church_name`, `pastor_name`, `admin_name`: 교회 정보
+- `email`, `phone`, `address`: 연락처
+- `denomination`, `established_year`, `member_count`: 추가 정보
+- `status`: 'pending' | 'approved' | 'rejected'
+- `reviewed_at`, `reviewed_by`: 승인 정보
+- `attachments`: JSON 형식의 파일 목록
+
+**`community_applications` (커뮤니티 가입 신청)**:
+- `id`: 신청 ID
+- `applicant_type`: 신청자 유형
+- `organization_name`, `contact_person`: 조직 정보
+- `email`, `phone`, `address`: 연락처
+- `business_number`, `service_area`, `website`: 추가 정보
+- `status`: 'pending' | 'approved' | 'rejected'
+- `reviewed_at`, `reviewed_by`: 승인 정보
+- `attachments`: JSON 형식의 파일 목록
+
+**`churches` (교회 정보)**:
+- `id`: 교회 ID
+- `name`, `address`, `phone`, `email`: 교회 정보
+- `is_active`: 활성화 상태
+
+**`users` (사용자 계정)**:
+- `id`: 사용자 ID
+- `username`, `email`, `full_name`: 계정 정보
+- `church_id`: 소속 교회 (9998 = 무소속)
+- `role`: 'church_admin' | 'community_member'
+- `hashed_password`: 암호화된 비밀번호
+- `is_active`: 활성화 상태
