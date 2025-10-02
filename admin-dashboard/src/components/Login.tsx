@@ -258,7 +258,7 @@ const Login: React.FC = () => {
                   {/* 교회 가입 신청 버튼 */}
                   <Button
                     type="button"
-                    variant="default"
+                    variant="outline"
                     className="h-24 flex flex-col items-center justify-center space-y-2"
                     onClick={handleChurchSignupClick}
                   >
