@@ -57,6 +57,7 @@ const CommunitySignupNew: React.FC = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [emailVerificationLoading, setEmailVerificationLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const navigate = useNavigate();
 
   const applicantTypes = [
@@ -85,6 +86,44 @@ const CommunitySignupNew: React.FC = () => {
     }
 
     handleInputChange('attachments', files);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const validationResult = communityApplicationService.validateFiles(files);
+
+    if (!validationResult.isValid) {
+      setError(validationResult.error || '파일 검증에 실패했습니다.');
+      return;
+    }
+
+    handleInputChange('attachments', files);
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    const newFiles = formData.attachments.filter((_, index) => index !== indexToRemove);
+    handleInputChange('attachments', newFiles);
   };
 
   const sendEmailVerification = async () => {
@@ -318,7 +357,7 @@ const CommunitySignupNew: React.FC = () => {
               )}
 
               {/* 기본 정보 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">기본 정보</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -378,7 +417,7 @@ const CommunitySignupNew: React.FC = () => {
               </div>
 
               {/* 계정 정보 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">계정 정보</h3>
 
                 <div className="grid grid-cols-1 gap-4">
@@ -453,7 +492,7 @@ const CommunitySignupNew: React.FC = () => {
               </div>
 
               {/* 추가 정보 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">추가 정보</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,11 +546,13 @@ const CommunitySignupNew: React.FC = () => {
               </div>
 
               {/* 상세 소개 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold">상세 소개</h3>
+
                 <div>
                   <Label htmlFor="description">
-                    {formData.applicantType === 'church_admin' 
-                      ? '교회 소개 및 관리자 신청 사유' 
+                    {formData.applicantType === 'church_admin'
+                      ? '교회 소개 및 관리자 신청 사유'
                       : '상세 소개 및 이용 목적'} *
                   </Label>
                   <Textarea
@@ -528,40 +569,80 @@ const CommunitySignupNew: React.FC = () => {
               </div>
 
               {/* 첨부파일 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold">첨부파일</h3>
+
                 <div>
-                  <Label htmlFor="attachments">첨부파일</Label>
-                  <div className="mt-1">
-                    <Input
-                      id="attachments"
-                      type="file"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
-                    />
-                    <p className="text-sm text-gray-500 mt-2">
-                      {formData.applicantType === 'church_admin' 
+                  <input
+                    id="attachments"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+
+                  <div
+                    onClick={() => document.getElementById('attachments')?.click()}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
+                      isDragging
+                        ? 'border-primary bg-primary/10 scale-105'
+                        : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+                    }`}
+                  >
+                    <Upload className={`w-12 h-12 mx-auto mb-4 transition-colors ${
+                      isDragging ? 'text-primary' : 'text-gray-400'
+                    }`} />
+                    <p className={`text-base font-medium mb-2 ${
+                      isDragging ? 'text-primary' : 'text-gray-700'
+                    }`}>
+                      {isDragging ? '파일을 여기에 놓으세요' : '파일을 드래그하여 업로드하거나 클릭하세요'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {formData.applicantType === 'church_admin'
                         ? '교회 등록증, 교회 소개자료 등 (최대 5개, 각 5MB 이하)'
                         : '사업자등록증, 회사소개서, 포트폴리오 등 (최대 5개, 각 5MB 이하)'
                       }
                     </p>
                     {formData.attachments.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <p className="text-sm text-primary font-medium mt-3">
+                        {formData.attachments.length}개 파일 선택됨
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.attachments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">선택된 파일:</p>
+                      <div className="space-y-1">
                         {formData.attachments.map((file, index) => (
-                          <div key={index} className="text-sm text-gray-600 flex items-center">
-                            <Upload className="w-4 h-4 mr-1" />
-                            {file.name} ({(file.size / 1024).toFixed(1)}KB)
+                          <div key={index} className="text-sm text-gray-600 flex items-center bg-white p-2 rounded border group hover:border-red-300">
+                            <Upload className="w-4 h-4 mr-2 text-gray-400" />
+                            <span className="flex-1">{file.name}</span>
+                            <span className="text-gray-400 mr-2">({(file.size / 1024).toFixed(1)}KB)</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveFile(index)}
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* 약관 동의 */}
-              <div className="space-y-4">
+              <div className="space-y-4 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold">약관 동의</h3>
                 
                 <div className="space-y-3">
