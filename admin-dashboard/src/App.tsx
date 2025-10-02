@@ -83,6 +83,9 @@ const BulletinContent = lazy(() => import('./components/ai-tools/BulletinContent
 // Community Signup - New Version with Password & Terms
 const CommunitySignupNew = lazy(() => import('./components/CommunitySignupNew'));
 
+// Church Signup
+const ChurchSignup = lazy(() => import('./components/ChurchSignup'));
+
 // Terms and Privacy
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
@@ -117,6 +120,12 @@ function App() {
         <Route path="/community-signup" element={
           <Suspense fallback={<LoadingSpinner />}>
             <CommunitySignupNew />
+          </Suspense>
+        } />
+        {/* Church Signup */}
+        <Route path="/church-signup" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <ChurchSignup />
           </Suspense>
         } />
         

@@ -93,8 +93,12 @@ const Login: React.FC = () => {
     setError('');
   };
 
-  const handleSignupClick = () => {
+  const handleCommunitySignupClick = () => {
     navigate('/community-signup');
+  };
+
+  const handleChurchSignupClick = () => {
+    navigate('/church-signup');
   };
 
   return (
@@ -242,21 +246,38 @@ const Login: React.FC = () => {
               <div className="text-center space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    커뮤니티 이용을 원하시나요?
+                    아직 계정이 없으신가요?
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    업체 관계자 및 외부 이용자는 신청 후 승인을 받아 이용하실 수 있습니다
+                    신청 후 승인을 받아 이용하실 수 있습니다
                   </p>
                 </div>
+
+                {/* 교회 가입 신청 버튼 */}
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  onClick={handleChurchSignupClick}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  교회 가입 신청
+                </Button>
+
+                {/* 커뮤니티 가입 신청 버튼 */}
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={handleSignupClick}
+                  onClick={handleCommunitySignupClick}
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
-                  커뮤니티 회원 신청
+                  커뮤니티 가입 신청
                 </Button>
+
+                <p className="text-xs text-muted-foreground pt-2">
+                  교회 관리자는 '교회 가입 신청'을 이용해주세요
+                </p>
               </div>
             </>
           )}

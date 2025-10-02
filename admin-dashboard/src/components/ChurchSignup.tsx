@@ -5,51 +5,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui"
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Checkbox } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
+import { churchApplicationService, ChurchApplicationRequest } from '../services/churchApplicationService';
 import { supabaseApiService } from '../services/supabaseApiService';
 
 interface SignupFormData {
-  applicantType: string;
-  organizationName: string;
-  contactPerson: string;
+  churchName: string;
+  pastorName: string;
+  adminName: string;
   email: string;
   emailVerificationCode: string;
   phone: string;
-  businessNumber: string;
   address: string;
-  description: string;
-  serviceArea: string;
   website: string;
+  establishedYear: string;
+  denomination: string;
+  memberCount: string;
   attachments: File[];
   agreeTerms: boolean;
   agreePrivacy: boolean;
   agreeMarketing: boolean;
 }
 
-const CommunitySignupNew: React.FC = () => {
+const ChurchSignup: React.FC = () => {
   const [formData, setFormData] = useState<SignupFormData>({
-    applicantType: '',
-    organizationName: '',
-    contactPerson: '',
+    churchName: '',
+    pastorName: '',
+    adminName: '',
     email: '',
     emailVerificationCode: '',
     phone: '',
-    businessNumber: '',
     address: '',
-    description: '',
-    serviceArea: '',
     website: '',
+    establishedYear: '',
+    denomination: '',
+    memberCount: '',
     attachments: [],
     agreeTerms: false,
     agreePrivacy: false,
     agreeMarketing: false
   });
-  
+
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -58,15 +57,6 @@ const CommunitySignupNew: React.FC = () => {
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [emailVerificationLoading, setEmailVerificationLoading] = useState(false);
   const navigate = useNavigate();
-
-  const applicantTypes = [
-    { value: 'company', label: '업체/회사' },
-    { value: 'individual', label: '개인사업자' },
-    { value: 'musician', label: '연주자/음악가' },
-    { value: 'minister', label: '사역자' },
-    { value: 'organization', label: '단체/기관' },
-    { value: 'other', label: '기타' }
-  ];
 
   const handleInputChange = (field: keyof SignupFormData, value: string | boolean | File[]) => {
     setFormData(prev => ({
@@ -77,7 +67,7 @@ const CommunitySignupNew: React.FC = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const validationResult = communityApplicationService.validateFiles(files);
+    const validationResult = churchApplicationService.validateFiles(files);
 
     if (!validationResult.isValid) {
       setError(validationResult.error || '파일 검증에 실패했습니다.');
@@ -103,7 +93,6 @@ const CommunitySignupNew: React.FC = () => {
     setEmailError('');
 
     try {
-      // 1단계: 이메일 중복 체크
       const emailExists = await supabaseApiService.emailVerification.checkEmailExists(formData.email);
 
       if (emailExists) {
@@ -111,7 +100,6 @@ const CommunitySignupNew: React.FC = () => {
         return;
       }
 
-      // 2단계: 중복이 아니면 인증 코드 발송
       await supabaseApiService.emailVerification.sendCode(formData.email);
       setEmailVerificationSent(true);
       setEmailError('');
@@ -143,16 +131,13 @@ const CommunitySignupNew: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    // 이메일 인증 확인
     if (!emailVerified) {
       setError('이메일 인증을 완료해주세요.');
       return false;
     }
 
-    // 필수 필드 검증
     const requiredFields = [
-      'applicantType', 'organizationName', 'contactPerson',
-      'email', 'phone', 'description'
+      'churchName', 'pastorName', 'adminName', 'email', 'phone', 'address'
     ];
 
     for (const field of requiredFields) {
@@ -162,21 +147,18 @@ const CommunitySignupNew: React.FC = () => {
       }
     }
 
-    // 이메일 유효성 검사
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('올바른 이메일 주소를 입력해주세요.');
       return false;
     }
 
-    // 전화번호 유효성 검사
     const phoneRegex = /^[0-9-+().\s]+$/;
     if (!phoneRegex.test(formData.phone)) {
       setError('올바른 전화번호 형식을 입력해주세요.');
       return false;
     }
 
-    // 필수 약관 동의 검사
     if (!formData.agreeTerms) {
       setError('서비스 이용약관에 동의해주세요.');
       return false;
@@ -192,12 +174,12 @@ const CommunitySignupNew: React.FC = () => {
 
   const getFieldLabel = (field: string): string => {
     const labels: { [key: string]: string } = {
-      applicantType: '신청자 유형',
-      organizationName: '단체/회사명',
-      contactPerson: '담당자명',
+      churchName: '교회명',
+      pastorName: '담임 목사님 이름',
+      adminName: '계정 사용자 이름',
       email: '이메일',
       phone: '연락처',
-      description: '상세 소개 및 신청 사유'
+      address: '교회 주소'
     };
     return labels[field] || field;
   };
@@ -212,39 +194,33 @@ const CommunitySignupNew: React.FC = () => {
 
     setLoading(true);
 
-    // church_admin을 임시로 organization으로 매핑 (백엔드 수정 전까지)
-    const mappedApplicantType = formData.applicantType === 'church_admin' 
-      ? 'organization' 
-      : formData.applicantType;
-
-    const requestData: CommunityApplicationRequest = {
-      applicant_type: mappedApplicantType as any,
-      organization_name: formData.organizationName,
-      contact_person: formData.contactPerson,
+    const requestData: ChurchApplicationRequest = {
+      church_name: formData.churchName,
+      pastor_name: formData.pastorName,
+      admin_name: formData.adminName,
       email: formData.email,
       phone: formData.phone,
-      description: formData.description,
-      business_number: formData.businessNumber || undefined,
-      address: formData.address || undefined,
-      service_area: formData.serviceArea || undefined,
-      website: formData.website || undefined,
-      attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
+      address: formData.address,
+      description: '',
       agree_terms: formData.agreeTerms,
       agree_privacy: formData.agreePrivacy,
-      agree_marketing: formData.agreeMarketing
+      agree_marketing: formData.agreeMarketing,
+      website: formData.website || undefined,
+      established_year: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
+      denomination: formData.denomination || undefined,
+      member_count: formData.memberCount ? parseInt(formData.memberCount) : undefined,
+      attachments: formData.attachments.length > 0 ? formData.attachments : undefined
     };
 
     try {
-      // 파일 첨부 기능이 다시 활성화됨
       console.log('🔍 전송할 데이터:', requestData);
-      const result = await communityApplicationService.submitApplication(requestData);
+      const result = await churchApplicationService.submitApplication(requestData);
       console.log('✅ 신청 완료:', result);
       setSuccess(true);
     } catch (err: any) {
       console.error('❌ 신청 실패:', err);
       console.error('❌ 전송한 데이터:', requestData);
-      
-      // 422 에러인 경우 상세 정보 표시
+
       if (err.response?.status === 422) {
         console.error('❌ 422 에러 상세:', err.response?.data);
         setError(`입력 데이터 오류: ${err.response?.data?.detail || err.message}`);
@@ -265,7 +241,7 @@ const CommunitySignupNew: React.FC = () => {
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
               <h2 className="text-2xl font-bold text-gray-900">신청 완료!</h2>
               <p className="text-gray-600">
-                커뮤니티 이용 신청이 성공적으로 제출되었습니다.<br />
+                교회 가입 신청이 성공적으로 제출되었습니다.<br />
                 관리자 검토 후 승인 결과를 이메일로 안내드리겠습니다.
               </p>
               <div className="pt-4">
@@ -293,13 +269,13 @@ const CommunitySignupNew: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             로그인으로 돌아가기
           </Button>
-          
+
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Church Round 커뮤니티 가입</CardTitle>
+              <CardTitle className="text-2xl">교회 관리자 가입</CardTitle>
               <CardDescription>
-                교회 관리자, 업체, 사역자 등 커뮤니티 회원으로 가입하여<br />
-                다양한 교회 관련 서비스를 이용해보세요.
+                Church Round 시스템으로 교회를 스마트하게 관리하세요.<br />
+                가입 승인 후 교회 관리 기능을 모두 이용하실 수 있습니다.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -309,7 +285,7 @@ const CommunitySignupNew: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              
+
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -320,49 +296,38 @@ const CommunitySignupNew: React.FC = () => {
               {/* 기본 정보 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">기본 정보</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="applicantType">신청자 유형 *</Label>
-                    <Select
-                      value={formData.applicantType}
-                      onValueChange={(value) => handleInputChange('applicantType', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="선택해주세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {applicantTypes.map(type => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="organizationName">
-                      {formData.applicantType === 'church_admin' ? '교회명' : '단체/회사명'} *
-                    </Label>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="churchName">교회명 *</Label>
                     <Input
-                      id="organizationName"
-                      value={formData.organizationName}
-                      onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                      placeholder={formData.applicantType === 'church_admin' ? '○○교회' : '단체나 회사명을 입력하세요'}
+                      id="churchName"
+                      value={formData.churchName}
+                      onChange={(e) => handleInputChange('churchName', e.target.value)}
+                      placeholder="○○교회"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="contactPerson">
-                      {formData.applicantType === 'church_admin' ? '담당 목사님/관리자' : '담당자명'} *
-                    </Label>
+                    <Label htmlFor="pastorName">담임 목사님 이름 *</Label>
                     <Input
-                      id="contactPerson"
-                      value={formData.contactPerson}
-                      onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                      placeholder="담당자 성함을 입력하세요"
+                      id="pastorName"
+                      value={formData.pastorName}
+                      onChange={(e) => handleInputChange('pastorName', e.target.value)}
+                      placeholder="홍길동 목사"
                     />
+                    <p className="text-xs text-gray-500 mt-1">교회의 담임 목사님 성함</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="adminName">계정 사용자 이름 *</Label>
+                    <Input
+                      id="adminName"
+                      value={formData.adminName}
+                      onChange={(e) => handleInputChange('adminName', e.target.value)}
+                      placeholder="김관리 집사"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">실제 시스템을 관리할 사용자 이름</p>
                   </div>
 
                   <div>
@@ -452,44 +417,52 @@ const CommunitySignupNew: React.FC = () => {
                 </div>
               </div>
 
-              {/* 추가 정보 */}
+              {/* 교회 상세 정보 */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">추가 정보</h3>
-                
+                <h3 className="text-lg font-semibold">교회 상세 정보</h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {formData.applicantType !== 'individual' && formData.applicantType !== 'church_admin' && (
-                    <div>
-                      <Label htmlFor="businessNumber">사업자등록번호</Label>
-                      <Input
-                        id="businessNumber"
-                        value={formData.businessNumber}
-                        onChange={(e) => handleInputChange('businessNumber', e.target.value)}
-                        placeholder="000-00-00000"
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <Label htmlFor="serviceArea">
-                      {formData.applicantType === 'church_admin' ? '교회 소재지' : '서비스 지역'}
-                    </Label>
-                    <Input
-                      id="serviceArea"
-                      value={formData.serviceArea}
-                      onChange={(e) => handleInputChange('serviceArea', e.target.value)}
-                      placeholder={formData.applicantType === 'church_admin' ? '서울시 강남구' : '서비스 제공 지역'}
-                    />
-                  </div>
-
                   <div className="md:col-span-2">
-                    <Label htmlFor="address">
-                      {formData.applicantType === 'church_admin' ? '교회 주소' : '주소'}
-                    </Label>
+                    <Label htmlFor="address">교회 주소 *</Label>
                     <Input
                       id="address"
                       value={formData.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
-                      placeholder="주소를 입력하세요"
+                      placeholder="서울시 강남구 ..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="denomination">교단/교파</Label>
+                    <Input
+                      id="denomination"
+                      value={formData.denomination}
+                      onChange={(e) => handleInputChange('denomination', e.target.value)}
+                      placeholder="예: 예장통합, 기장, 순복음 등"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="establishedYear">설립연도</Label>
+                    <Input
+                      id="establishedYear"
+                      type="number"
+                      value={formData.establishedYear}
+                      onChange={(e) => handleInputChange('establishedYear', e.target.value)}
+                      placeholder="예: 1990"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="memberCount">교인 수 (대략)</Label>
+                    <Input
+                      id="memberCount"
+                      type="number"
+                      value={formData.memberCount}
+                      onChange={(e) => handleInputChange('memberCount', e.target.value)}
+                      placeholder="예: 100"
                     />
                   </div>
 
@@ -503,27 +476,6 @@ const CommunitySignupNew: React.FC = () => {
                       placeholder="https://example.com"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* 상세 소개 */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="description">
-                    {formData.applicantType === 'church_admin' 
-                      ? '교회 소개 및 관리자 신청 사유' 
-                      : '상세 소개 및 이용 목적'} *
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder={formData.applicantType === 'church_admin'
-                      ? '교회에 대한 간단한 소개와 Church Round 시스템을 사용하고자 하는 이유를 적어주세요.'
-                      : '제공하시는 서비스나 이용 목적에 대해 상세히 작성해주세요.'
-                    }
-                    className="min-h-[120px]"
-                  />
                 </div>
               </div>
 
@@ -541,10 +493,7 @@ const CommunitySignupNew: React.FC = () => {
                       className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
                     />
                     <p className="text-sm text-gray-500 mt-2">
-                      {formData.applicantType === 'church_admin' 
-                        ? '교회 등록증, 교회 소개자료 등 (최대 5개, 각 5MB 이하)'
-                        : '사업자등록증, 회사소개서, 포트폴리오 등 (최대 5개, 각 5MB 이하)'
-                      }
+                      교회 등록증, 교회 소개자료 등 (최대 5개, 각 5MB 이하)
                     </p>
                     {formData.attachments.length > 0 && (
                       <div className="mt-2 space-y-1">
@@ -563,7 +512,7 @@ const CommunitySignupNew: React.FC = () => {
               {/* 약관 동의 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">약관 동의</h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-start space-x-2">
                     <Checkbox
@@ -657,4 +606,4 @@ const CommunitySignupNew: React.FC = () => {
   );
 };
 
-export default CommunitySignupNew;
+export default ChurchSignup;
