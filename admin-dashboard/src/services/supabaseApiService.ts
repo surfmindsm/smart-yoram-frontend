@@ -3210,6 +3210,36 @@ export const supabaseApiService = {
     }
   },
 
+  // Application Notification API
+  notifyApplication: {
+    send: async (type: 'church' | 'community', applicantEmail: string, applicantName: string, organizationName?: string, applicationId?: number) => {
+      try {
+        console.log('🔔 [신청 알림] 이메일 발송 시작:', { type, applicantEmail, applicantName });
+
+        const { data, error } = await supabase.functions.invoke('notify-application', {
+          body: {
+            type,
+            applicantEmail,
+            applicantName,
+            organizationName,
+            applicationId
+          }
+        });
+
+        if (error) {
+          console.error('🔔 [신청 알림] 오류:', error);
+          throw error;
+        }
+
+        console.log('✅ [신청 알림] 이메일 발송 성공:', data);
+        return { data };
+      } catch (error: any) {
+        console.error('🔔 [신청 알림] 발송 실패:', error);
+        throw new Error(error.message || '신청 알림 이메일 발송에 실패했습니다.');
+      }
+    }
+  },
+
   // Temporary Password Email API
   sendTempPassword: {
     send: async (email: string, temporaryPassword: string, contactPerson: string, organizationName?: string) => {

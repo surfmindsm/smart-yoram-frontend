@@ -389,6 +389,31 @@ const { data } = await supabase
 const exists = await supabaseApiService.emailVerification.checkEmailExists(email);
 ```
 
+**신청 알림 발송**:
+```typescript
+// Supabase Edge Function: notify-application
+POST https://<project-ref>.supabase.co/functions/v1/notify-application
+
+{
+  "type": "church" | "community",
+  "applicantEmail": "user@example.com",
+  "applicantName": "홍길동",
+  "organizationName": "○○교회",
+  "applicationId": 123
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "알림 이메일이 발송되었습니다.",
+  "emailId": "resend-email-id"
+}
+```
+
+⚠️ **주의**: 신청 알림 발송 실패는 신청 성공에 영향을 주지 않습니다. 알림 발송이 실패해도 신청은 정상적으로 완료됩니다.
+
 ---
 
 ### 4.2 교회 가입 신청
@@ -706,6 +731,8 @@ Text Secondary: #6B7280 (회색)
 
 **Supabase 사용 (Primary)**:
 - **이메일 인증**: Supabase Edge Function (`email-verification`)
+- **신청 알림**: Supabase Edge Function (`notify-application`)
+  - 신청 접수 시 `surfmind.sm@gmail.com`으로 알림 발송
 - **신청서 조회/승인/반려**: Supabase 직접 쿼리
 - **데이터베이스**: PostgreSQL (Supabase)
 - **파일 스토리지**: Supabase Storage (향후 마이그레이션 예정)

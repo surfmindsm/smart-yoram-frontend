@@ -305,6 +305,22 @@ const ChurchSignup: React.FC = () => {
       console.log('🔍 전송할 데이터:', requestData);
       const result = await churchApplicationService.submitApplication(requestData);
       console.log('✅ 신청 완료:', result);
+
+      // 신청 알림 이메일 발송
+      try {
+        await supabaseApiService.notifyApplication.send(
+          'church',
+          formData.email,
+          formData.adminName,
+          formData.churchName,
+          result.application_id
+        );
+        console.log('✅ 관리자 알림 이메일 발송 완료');
+      } catch (notifyError) {
+        console.error('⚠️ 알림 이메일 발송 실패 (신청은 완료됨):', notifyError);
+        // 알림 발송 실패해도 신청은 성공으로 처리
+      }
+
       setSuccess(true);
     } catch (err: any) {
       console.error('❌ 신청 실패:', err);

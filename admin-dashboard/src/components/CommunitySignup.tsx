@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Alert, AlertDescription } from "./ui";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
+import { supabaseApiService } from '../services/supabaseApiService';
 
 interface SignupFormData {
   applicantType: string;
@@ -125,8 +126,24 @@ const CommunitySignup: React.FC = () => {
 
       // API 호출
       const result = await communityApplicationService.submitApplication(requestData);
-      
+
       console.log('신청서 제출 성공:', result);
+
+      // 신청 알림 이메일 발송
+      try {
+        await supabaseApiService.notifyApplication.send(
+          'community',
+          formData.email,
+          formData.contactPerson,
+          formData.organizationName,
+          result.application_id
+        );
+        console.log('✅ 관리자 알림 이메일 발송 완료');
+      } catch (notifyError) {
+        console.error('⚠️ 알림 이메일 발송 실패 (신청은 완료됨):', notifyError);
+        // 알림 발송 실패해도 신청은 성공으로 처리
+      }
+
       setSuccess(true);
     } catch (err: any) {
       console.error('신청서 제출 실패:', err);
