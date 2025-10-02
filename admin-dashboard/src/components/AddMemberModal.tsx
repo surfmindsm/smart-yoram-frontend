@@ -237,76 +237,69 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         // 제한 확인 실패 시에도 등록은 계속 진행 (기존 동작 유지)
       }
       const memberData = {
-        // 기존 필드들
+        // 기존 필드들 (실제 DB 컬럼명에 맞춤)
         name: formData.name,
-        name_eng: formData.name_eng,
-        email: formData.email,
-        gender: formData.gender,
+        name_eng: formData.name_eng || null,
+        email: formData.email || null,
+        gender: formData.gender || null,
         birthdate: formData.birthdate || null,
-        phone: formData.phone,
-        address: formData.address,
-        position: formData.position,
-        district: formData.district,
+        phone: formData.phone || null,
+        address: formData.address || null,
+        position: formData.position || null,
+        district: formData.district || null,
         organization_id: formData.organization_id || null,
-        department_code: formData.department_code,
-        position_code: formData.position_code,
-        appointed_on: formData.appointed_on || null,
-        ordination_church: formData.ordination_church,
-        workplace: formData.workplace,
-        workplace_phone: formData.workplace_phone,
-        marital_status: formData.marital_status,
-        spouse_name: formData.spouse_name,
-        married_on: formData.married_on || null,
-        
+        department: formData.department_code || null,  // department_code -> department
+        marital_status: formData.marital_status || null,
+
         // 새로 추가된 25개 필드들
         // 교회 정보 확장
-        member_type: formData.member_type,
+        member_type: formData.member_type || null,
         confirmation_date: formData.confirmation_date || null,
-        sub_district: formData.sub_district,
-        age_group: formData.age_group,
-        
+        sub_district: formData.sub_district || null,
+        age_group: formData.age_group || null,
+
         // 지역 정보
-        region_1: formData.region_1,
-        region_2: formData.region_2,
-        region_3: formData.region_3,
-        postal_code: formData.postal_code,
-        
+        region_1: formData.region_1 || null,
+        region_2: formData.region_2 || null,
+        region_3: formData.region_3 || null,
+        postal_code: formData.postal_code || null,
+
         // 인도자 정보
         inviter3_member_id: formData.inviter3_member_id ? parseInt(formData.inviter3_member_id) : null,
-        
+
         // 연락 정보
         last_contact_date: formData.last_contact_date || null,
-        
+
         // 신앙 정보
-        spiritual_grade: formData.spiritual_grade,
-        
+        spiritual_grade: formData.spiritual_grade || null,
+
         // 직업 정보 확장
-        job_category: formData.job_category,
-        job_detail: formData.job_detail,
-        job_position: formData.job_position,
-        
+        job_category: formData.job_category || null,
+        job_detail: formData.job_detail || null,
+        job_position: formData.job_position || null,
+
         // 사역 정보 확장
         ministry_start_date: formData.ministry_start_date || null,
-        neighboring_church: formData.neighboring_church,
-        position_decision: formData.position_decision,
-        daily_activity: formData.daily_activity,
-        
+        neighboring_church: formData.neighboring_church || null,
+        position_decision: formData.position_decision || null,
+        daily_activity: formData.daily_activity || null,
+
         // 자유 필드들 (12개)
-        custom_field_1: formData.custom_field_1,
-        custom_field_2: formData.custom_field_2,
-        custom_field_3: formData.custom_field_3,
-        custom_field_4: formData.custom_field_4,
-        custom_field_5: formData.custom_field_5,
-        custom_field_6: formData.custom_field_6,
-        custom_field_7: formData.custom_field_7,
-        custom_field_8: formData.custom_field_8,
-        custom_field_9: formData.custom_field_9,
-        custom_field_10: formData.custom_field_10,
-        custom_field_11: formData.custom_field_11,
-        custom_field_12: formData.custom_field_12,
-        
+        custom_field_1: formData.custom_field_1 || null,
+        custom_field_2: formData.custom_field_2 || null,
+        custom_field_3: formData.custom_field_3 || null,
+        custom_field_4: formData.custom_field_4 || null,
+        custom_field_5: formData.custom_field_5 || null,
+        custom_field_6: formData.custom_field_6 || null,
+        custom_field_7: formData.custom_field_7 || null,
+        custom_field_8: formData.custom_field_8 || null,
+        custom_field_9: formData.custom_field_9 || null,
+        custom_field_10: formData.custom_field_10 || null,
+        custom_field_11: formData.custom_field_11 || null,
+        custom_field_12: formData.custom_field_12 || null,
+
         // 특별 사항
-        special_notes: formData.special_notes
+        special_notes: formData.special_notes || null
       };
 
       // church_id를 포함한 최종 멤버 데이터 생성
@@ -534,11 +527,25 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   {/* 직분 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">직분</label>
-                    <Input
-                      value={formData.position}
-                      onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                      placeholder="집사, 권사, 장로 등"
-                    />
+                    <Select
+                      value={formData.position || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, position: value === 'none' ? '' : value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="직분 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">없음</SelectItem>
+                        <SelectItem value="목사">목사</SelectItem>
+                        <SelectItem value="장로">장로</SelectItem>
+                        <SelectItem value="집사">집사</SelectItem>
+                        <SelectItem value="권사">권사</SelectItem>
+                        <SelectItem value="전도사">전도사</SelectItem>
+                        <SelectItem value="교사">교사</SelectItem>
+                        <SelectItem value="부장">부장</SelectItem>
+                        <SelectItem value="회장">회장</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* 조직 */}
@@ -566,11 +573,15 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   {/* 부서 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">부서</label>
-                    <Select value={formData.department_code} onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value }))}>
+                    <Select
+                      value={formData.department_code || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value === 'none' ? '' : value }))}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="부서 선택" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">없음</SelectItem>
                         {departmentCodes.map(dept => (
                           <SelectItem key={dept.code} value={dept.code}>{dept.label}</SelectItem>
                         ))}
@@ -578,38 +589,13 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                     </Select>
                   </div>
 
-                  {/* 직분 분류 */}
+                  {/* 구역 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직분 분류</label>
-                    <Select value={formData.position_code} onValueChange={(value) => setFormData(prev => ({ ...prev, position_code: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="직분 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {positionCodes.map(pos => (
-                          <SelectItem key={pos.code} value={pos.code}>{pos.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 임명일 */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">구역</label>
                     <Input
-                      type="date"
-                      value={formData.appointed_on}
-                      onChange={(e) => setFormData(prev => ({ ...prev, appointed_on: e.target.value }))}
-                    />
-                  </div>
-
-                  {/* 안수교회 */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">안수교회</label>
-                    <Input
-                      value={formData.ordination_church}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ordination_church: e.target.value }))}
-                      placeholder="중앙교회"
+                      value={formData.district}
+                      onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
+                      placeholder="1구역, 2구역 등"
                     />
                   </div>
                 </div>

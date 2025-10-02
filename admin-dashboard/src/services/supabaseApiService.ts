@@ -96,6 +96,8 @@ export const supabaseApiService = {
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('👥 [교인 생성 API] 에러 응답:', errorText);
+          console.error('👥 [교인 생성 API] 에러 상태 코드:', response.status);
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 

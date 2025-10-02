@@ -1560,11 +1560,25 @@ const MemberManagement: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">직분</label>
                         {isEditMode ? (
-                          <Input
-                            value={editedMember.position || ''}
-                            onChange={(e) => setEditedMember({...editedMember, position: e.target.value})}
-                            placeholder="집사, 권사, 장로 등"
-                          />
+                          <Select
+                            value={editedMember.position || 'none'}
+                            onValueChange={(value) => setEditedMember({...editedMember, position: value === 'none' ? null : value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="직분 선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">없음</SelectItem>
+                              <SelectItem value="목사">목사</SelectItem>
+                              <SelectItem value="장로">장로</SelectItem>
+                              <SelectItem value="집사">집사</SelectItem>
+                              <SelectItem value="권사">권사</SelectItem>
+                              <SelectItem value="전도사">전도사</SelectItem>
+                              <SelectItem value="교사">교사</SelectItem>
+                              <SelectItem value="부장">부장</SelectItem>
+                              <SelectItem value="회장">회장</SelectItem>
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <p className="text-sm text-muted-foreground">{selectedMember.position || '-'}</p>
                         )}
@@ -1621,8 +1635,8 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div>
 
-                      {/* 직분 코드 */}
-                      <div>
+                      {/* 직분 코드 - DB에 해당 컬럼 없음, 주석 처리 */}
+                      {/* <div>
                         <label className="block text-sm font-medium text-foreground mb-1">직분 분류</label>
                         {isEditMode ? (
                           <Select value={editedMember.position_code || ''} onValueChange={(value) => setEditedMember({...editedMember, position_code: value})}>
@@ -1639,13 +1653,13 @@ const MemberManagement: React.FC = () => {
                           </Select>
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            {selectedMember.position_code ? 
-                              ({'PASTOR': '목사', 'ELDER': '장로', 'DEACON': '집사', 'TEACHER': '교사', 'LEADER': '부장/회장'}[selectedMember.position_code] || selectedMember.position_code) 
+                            {selectedMember.position_code ?
+                              ({'PASTOR': '목사', 'ELDER': '장로', 'DEACON': '집사', 'TEACHER': '교사', 'LEADER': '부장/회장'}[selectedMember.position_code] || selectedMember.position_code)
                               : '-'
                             }
                           </p>
                         )}
-                      </div>
+                      </div> */}
 
                       {/* 임명일 */}
                       <div>

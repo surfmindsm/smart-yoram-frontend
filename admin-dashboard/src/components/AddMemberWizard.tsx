@@ -314,7 +314,8 @@ const AddMemberWizard: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  {/* 직분 분류 - DB에 해당 컬럼 없음, 주석 처리 */}
+                  {/* <div>
                     <label className="block text-sm font-medium text-foreground mb-1">직분 분류</label>
                     <Select value={formData.position_code} onValueChange={(value) => setFormData(prev => ({ ...prev, position_code: value }))}>
                       <SelectTrigger><SelectValue placeholder="직분 선택" /></SelectTrigger>
@@ -324,14 +325,32 @@ const AddMemberWizard: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">구역</label>
                     <Input value={formData.district} onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))} placeholder="1구역, 2구역 등" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">기타 직분</label>
-                    <Input value={formData.position} onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))} placeholder="권사, 기타 직분" />
+                    <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+                    <Select
+                      value={formData.position || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, position: value === 'none' ? '' : value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="직분 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">없음</SelectItem>
+                        <SelectItem value="목사">목사</SelectItem>
+                        <SelectItem value="장로">장로</SelectItem>
+                        <SelectItem value="집사">집사</SelectItem>
+                        <SelectItem value="권사">권사</SelectItem>
+                        <SelectItem value="전도사">전도사</SelectItem>
+                        <SelectItem value="교사">교사</SelectItem>
+                        <SelectItem value="부장">부장</SelectItem>
+                        <SelectItem value="회장">회장</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
