@@ -463,6 +463,9 @@ const MemberManagement: React.FC = () => {
       case 'active': return 'success' as const;
       case 'inactive': return 'warning' as const;
       case 'transferred': return 'destructive' as const;
+      case null:
+      case undefined:
+      case '': return 'success' as const;  // null/undefined는 기본적으로 활동(success)으로 처리
       default: return 'secondary' as const;
     }
   };
@@ -774,6 +777,9 @@ const MemberManagement: React.FC = () => {
       case 'active': return '활동';
       case 'inactive': return '비활동';
       case 'transferred': return '이전';
+      case null:
+      case undefined:
+      case '': return '활동';  // null/undefined는 기본적으로 활동으로 처리
       default: return status;
     }
   };

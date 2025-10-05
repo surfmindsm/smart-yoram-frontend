@@ -59,11 +59,13 @@ const CreateFreeSharing: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
       const sharingData = {
         ...formData,
         images: images,
         contactInfo: formData.contactPhone + (formData.contactEmail ? ` | ${formData.contactEmail}` : ''),
+        contactPhone: formData.contactPhone,  // 개별 필드로 전달
+        contactEmail: formData.contactEmail,  // 개별 필드로 전달
         status: 'available' as const
       };
 

@@ -457,6 +457,20 @@ serve(async (req) => {
         const requestData = await req.json();
         console.log('🎁 [무료나눔] 등록 데이터:', requestData);
 
+        // contact_info 생성: contact_phone과 contact_email이 있으면 합치기
+        let contactInfo = requestData.contact_info || '';
+        console.log('📞 [연락처] 원본 contact_info:', requestData.contact_info);
+        console.log('📞 [연락처] contact_phone:', requestData.contact_phone);
+        console.log('📞 [연락처] contact_email:', requestData.contact_email);
+
+        if (!contactInfo && requestData.contact_phone) {
+          contactInfo = requestData.contact_phone;
+          if (requestData.contact_email) {
+            contactInfo += ` | ${requestData.contact_email}`;
+          }
+          console.log('📞 [연락처] 생성된 contact_info:', contactInfo);
+        }
+
         const { data, error } = await supabaseClient
           .from('community_sharing')
           .insert([{
@@ -466,7 +480,7 @@ serve(async (req) => {
             category: requestData.category,
             condition: requestData.condition || 'good',
             location: requestData.location,
-            contact_info: requestData.contact_info,
+            contact_info: contactInfo,
             images: requestData.images || [],
             author_id: requestData.author_id,
             status: 'active'

@@ -250,6 +250,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         organization_id: formData.organization_id || null,
         department: formData.department_code || null,  // department_code -> department
         marital_status: formData.marital_status || null,
+        member_status: 'active',  // 신규 등록 시 항상 활동 상태
 
         // 새로 추가된 25개 필드들
         // 교회 정보 확장

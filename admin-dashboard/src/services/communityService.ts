@@ -875,20 +875,40 @@ export const communityService = {
         contactInfo: validateAndTrimField(itemData.contactInfo, FIELD_LIMITS.CONTACT_INFO, '연락처 정보')
       };
 
+      // 연락처 필드 추출
+      const contactPhone = (itemData as any).contact_phone || validatedData.contactPhone || (itemData as any).contactPhone || '';
+      const contactEmail = (itemData as any).contact_email || validatedData.contactEmail || (itemData as any).contactEmail || '';
+
+      // contact_info 생성: contact_phone과 contact_email 합치기
+      let contactInfo = validatedData.contactInfo || (itemData as any).contact_info || '';
+      if (!contactInfo && contactPhone) {
+        contactInfo = contactPhone;
+        if (contactEmail) {
+          contactInfo += ` | ${contactEmail}`;
+        }
+      }
+
       // 백엔드 API에 맞게 필드명 변환 (snake_case)
-      const backendData = {
+      const backendData: any = {
         ...validatedData,
-        contact_phone: itemData.contactPhone || '',
-        contact_email: itemData.contactEmail || '',
+        contact_info: contactInfo,
+        contact_phone: contactPhone,
+        contact_email: contactEmail,
         // 사용자 정보 추가
         church_id: churchId,
         author_id: authorId,
-        // 기존 camelCase 필드 제거
+        // 기존 camelCase 필드 제거 (snake_case는 유지)
+        contactInfo: undefined,
         contactPhone: undefined,
         contactEmail: undefined
       };
 
       console.log('📤 백엔드로 전송할 데이터:', backendData);
+      console.log('📞 연락처 필드 확인:', {
+        contact_phone: backendData.contact_phone,
+        contact_email: backendData.contact_email,
+        contact_info: backendData.contact_info
+      });
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
