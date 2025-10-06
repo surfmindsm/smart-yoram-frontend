@@ -757,8 +757,12 @@ export const communityService = {
 
       // Supabase functions.invoke()는 응답을 직접 파싱하므로
       // data가 배열이면 직접 사용, 객체면 data.data 사용
-      const responseData = Array.isArray(data) ? data : (data?.data || []);
-      console.log('📊 무료나눔 최종 데이터:', responseData.length, '개');
+      let responseData = Array.isArray(data) ? data : (data?.data || []);
+      console.log('📊 무료나눔 데이터 (필터 전):', responseData.length, '개');
+
+      // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
+      responseData = responseData.filter((item: any) => item.is_free === true);
+      console.log('📊 무료나눔 데이터 (is_free=true 필터 후):', responseData.length, '개');
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
@@ -1288,13 +1292,17 @@ export const communityService = {
 
       // Supabase functions.invoke()는 응답을 직접 파싱하므로
       // data가 배열이면 직접 사용, 객체면 data.data 사용
-      const responseData = Array.isArray(data) ? data : (data?.data || []);
-      console.log('📊 최종 데이터:', responseData.length, '개');
-      console.log('📊 is_free 분포:', responseData.map((item: any) => ({
+      let responseData = Array.isArray(data) ? data : (data?.data || []);
+      console.log('📊 최종 데이터 (필터 전):', responseData.length, '개');
+      console.log('📊 is_free 분포 (필터 전):', responseData.map((item: any) => ({
         id: item.id,
         title: item.title,
         is_free: item.is_free
       })));
+
+      // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
+      responseData = responseData.filter((item: any) => item.is_free === false);
+      console.log('📊 최종 데이터 (is_free=false 필터 후):', responseData.length, '개');
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
