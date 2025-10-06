@@ -525,6 +525,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
               <Button
                 className="flex-1 flex items-center justify-center gap-2"
                 onClick={handleContactModalOpen}
+                disabled={post.status === 'completed' || post.status === 'sold'}
               >
                 <MessageCircle className="h-4 w-4" />
                 문의하기
