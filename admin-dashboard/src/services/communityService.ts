@@ -1272,28 +1272,31 @@ export const communityService = {
             churchAddress = item.church_name;
           }
 
+          const parsedImages = parseJsonArray(item.images, []);
+          const processedImages = parsedImages.map((img: any) =>
+            typeof img === 'string' && img.startsWith('http') ? img :
+            `https://api.surfmind-team.com/static/community/images/${img}`
+          );
+
           return {
             id: item.id,
             title: item.title,
-            description: item.description || item.content, // Use description field from community_sharing table
+            description: item.description || item.content,
             category: item.category,
             condition: item.condition || '양호',
             price: item.price || 0,
             itemName: item.item_name || item.itemName || item.title,
             quantity: item.quantity || 1,
             deliveryMethod: item.delivery_method || item.deliveryMethod || '직거래',
-            images: parseJsonArray(item.images, []).map((img: string) =>
-              typeof img === 'string' && img.startsWith('http') ? img :
-              `https://api.surfmind-team.com/static/community/images/${img}`
-            ),
+            images: processedImages,
             church: churchName,
             location: churchAddress,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
-            contactInfo: item.contact_info || item.contactInfo, // 기존 필드 (호환성 유지)
+            contactInfo: item.contact_info || item.contactInfo,
             status: item.status,
-            createdAt: formatCreatedAt(item.created_at || item.createdAt), // 날짜 포맷 통일
-            view_count: item.view_count || 0, // 조회수
+            createdAt: formatCreatedAt(item.created_at || item.createdAt),
+            view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
             userName: userName
