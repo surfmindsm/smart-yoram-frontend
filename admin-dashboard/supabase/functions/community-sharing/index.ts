@@ -256,13 +256,21 @@ Deno.serve(async (req) => {
       // Create new sharing item
       const body = await req.json()
 
+      console.log('🎁 [POST] body:', body)
+      console.log('🎁 [POST] body.is_free:', body.is_free, 'typeof:', typeof body.is_free)
+
+      // is_free 값을 명시적으로 boolean으로 변환
+      // body.is_free가 명시적으로 true인 경우만 true, 그 외는 모두 false
+      const isFree = body.is_free === true ? true : false;
+      console.log('🎁 [POST] 변환된 is_free:', isFree, 'typeof:', typeof isFree)
+
       const insertData = {
         title: body.title,
         description: body.content || body.description,
         category: body.category || 'general',
         condition: body.condition || 'good',
         price: body.price || 0,
-        is_free: body.is_free === true, // 명시적으로 true인 경우만 true
+        is_free: isFree, // 명시적으로 변환된 boolean 값
         location: body.location,
         contact_info: body.contact_info || body.contactInfo,
         images: body.images || [],
@@ -271,16 +279,28 @@ Deno.serve(async (req) => {
         status: body.status || 'active'
       }
 
+      console.log('🎁 [POST] insertData:', insertData)
+      console.log('🎁 [POST] insertData.is_free 최종 확인:', insertData.is_free, 'type:', typeof insertData.is_free)
+
       const { data, error } = await supabaseClient
         .from('community_sharing')
         .insert([insertData])
         .select()
         .single()
 
+      console.log('🎁 [POST] INSERT 결과:', data)
+      console.log('🎁 [POST] INSERT 후 is_free:', data?.is_free)
+
       if (error) {
-        console.error('Database insert error:', error)
+        console.error('❌ Database insert error:', error)
+        console.error('❌ Error details:', JSON.stringify(error, null, 2))
+        console.error('❌ Insert data was:', JSON.stringify(insertData, null, 2))
         return new Response(
-          JSON.stringify({ error: 'Failed to create community sharing item' }),
+          JSON.stringify({
+            error: 'Failed to create community sharing item',
+            details: error.message,
+            code: error.code
+          }),
           {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }

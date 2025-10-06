@@ -1035,19 +1035,23 @@ export const communityService = {
       // 백엔드 API에 맞게 필드명 변환 (snake_case)
       const backendData: any = {
         ...validatedData,
+        is_free: true, // 무료나눔은 항상 true
+        price: 0, // 무료나눔은 가격이 0
         contact_info: contactInfo,
         contact_phone: contactPhone,
         contact_email: contactEmail,
         // 사용자 정보 추가
         church_id: churchId,
         author_id: authorId,
+        status: 'active',
         // 기존 camelCase 필드 제거 (snake_case는 유지)
         contactInfo: undefined,
         contactPhone: undefined,
         contactEmail: undefined
       };
 
-      // console.log('📤 백엔드로 전송할 데이터:', backendData);
+      console.log('📤 [무료나눔] 백엔드로 전송할 데이터:', backendData);
+      console.log('📤 [무료나눔] is_free 값:', backendData.is_free, '타입:', typeof backendData.is_free);
       // console.log('📞 연락처 필드 확인:', {
       //   contact_phone: backendData.contact_phone,
       //   contact_email: backendData.contact_email,
@@ -1060,15 +1064,16 @@ export const communityService = {
 
       if (error) {
         console.error('❌ 무료나눔 등록 실패:', error);
+        console.error('❌ 에러 전체:', JSON.stringify(error, null, 2));
         throw error;
       }
 
-      // console.log('✅ 무료 나눔 등록 API 응답:', data);
+      console.log('✅ 무료 나눔 등록 API 응답:', data);
       return data;
     } catch (error: any) {
-      console.error('❌ 무료 나눔 등록 실패:', error);
-      console.error('에러 응답:', error.response?.data);
-      console.error('상태 코드:', error.response?.status);
+      console.error('❌ 무료 나눔 등록 실패 (catch):', error);
+      console.error('❌ 에러 메시지:', error.message);
+      console.error('❌ 에러 전체:', JSON.stringify(error, null, 2));
       throw error;
     }
   },
@@ -1621,6 +1626,12 @@ export const communityService = {
       // console.log('🔢 변환된 author_id:', authorId);
 
       // 물품판매 특화 데이터 구성
+      console.log('📥 [물품판매] 받은 itemData:', itemData);
+      console.log('📥 [물품판매] contactPhone:', itemData.contactPhone);
+      console.log('📥 [물품판매] contactEmail:', itemData.contactEmail);
+      console.log('📥 [물품판매] contact_phone:', (itemData as any).contact_phone);
+      console.log('📥 [물품판매] contact_email:', (itemData as any).contact_email);
+
       const backendData = {
         title: itemData.title,
         description: itemData.description,
@@ -1630,15 +1641,16 @@ export const communityService = {
         is_free: false, // 물품판매는 항상 false
         location: itemData.location,
         contact_info: itemData.contactInfo || '',
-        contact_phone: itemData.contactPhone || '',
-        contact_email: itemData.contactEmail || '',
+        contact_phone: itemData.contactPhone || (itemData as any).contact_phone || '',
+        contact_email: itemData.contactEmail || (itemData as any).contact_email || '',
         images: itemData.images || [],
         church_id: churchId,
         author_id: authorId,
         status: 'active'
       };
 
-      // console.log('📤 백엔드로 전송할 물품판매 데이터:', backendData);
+      console.log('📤 [물품판매] 백엔드로 전송할 데이터:', backendData);
+      console.log('📤 [물품판매] is_free 값:', backendData.is_free, '타입:', typeof backendData.is_free);
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
@@ -1646,13 +1658,16 @@ export const communityService = {
 
       if (error) {
         console.error('❌ 물품판매 등록 실패:', error);
+        console.error('❌ 에러 전체:', JSON.stringify(error, null, 2));
         throw error;
       }
 
-      // console.log('✅ 물품판매 등록 API 응답:', data);
+      console.log('✅ 물품판매 등록 API 응답:', data);
       return data;
     } catch (error: any) {
-      console.error('❌ 물품판매 등록 실패:', error);
+      console.error('❌ 물품판매 등록 실패 (catch):', error);
+      console.error('❌ 에러 메시지:', error.message);
+      console.error('❌ 에러 전체:', JSON.stringify(error, null, 2));
       throw error;
     }
   },
