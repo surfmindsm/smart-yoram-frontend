@@ -746,23 +746,25 @@ export const communityService = {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         // Edge Function에서 이미 JOIN된 데이터를 사용하므로 추가 조회 불필요
         const transformedData = data.data.map((item: any): SharingItem => {
-          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
-          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티')
+          // Edge Function에서 JOIN된 교회 정보 사용
+          const churchData = item.church; // { id, name, address }
+          const churchName = (item.church_id === 9998)
             ? null
-            : (item.church_name || item.church || getChurchNameById(item.church_id));
+            : (churchData?.name || item.church_name || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
 
           // Edge Function에서 JOIN된 사용자 정보 사용
-          const userName = item.author_name || item.user_name || '익명';
+          const authorData = item.author; // { id, full_name, email }
+          const userName = authorData?.full_name || authorData?.email || item.author_name || item.user_name || '익명';
 
           // Edge Function에서 JOIN된 교회 주소 정보 사용
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-          } else if (item.church_address) {
-            churchAddress = item.church_address;
-          } else if (item.church_name) {
-            churchAddress = item.church_name;
+          } else if (churchData?.address) {
+            churchAddress = churchData.address;
+          } else if (churchData?.name) {
+            churchAddress = churchData.name;
           }
 
           return {
@@ -1247,29 +1249,32 @@ export const communityService = {
         throw error;
       }
 
-      // console.log('✅ 물품판매 Edge Function 응답:', data);
+      console.log('✅ 물품판매 Edge Function 응답:', data);
+      console.log('📊 is_free 값 확인:', data?.data?.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
 
       // community/sharing function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
         // Edge Function에서 이미 is_free=false로 필터링되어 반환됨
         // JOIN된 데이터를 사용하므로 추가 조회 불필요
         const transformedData = data.data.map((item: any): OfferItem => {
-          // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
-          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티')
+          // Edge Function에서 JOIN된 교회 정보 사용
+          const churchData = item.church; // { id, name, address }
+          const churchName = (item.church_id === 9998)
             ? null
-            : (item.church_name || item.church || getChurchNameById(item.church_id));
+            : (churchData?.name || item.church_name || getChurchNameById(item.church_id));
 
           // Edge Function에서 JOIN된 사용자 정보 사용
-          const userName = item.author_name || item.user_name || '익명';
+          const authorData = item.author; // { id, full_name, email }
+          const userName = authorData?.full_name || authorData?.email || item.author_name || item.user_name || '익명';
 
           // Edge Function에서 JOIN된 교회 주소 정보 사용
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-          } else if (item.church_address) {
-            churchAddress = item.church_address;
-          } else if (item.church_name) {
-            churchAddress = item.church_name;
+          } else if (churchData?.address) {
+            churchAddress = churchData.address;
+          } else if (churchData?.name) {
+            churchAddress = churchData.name;
           }
 
           const parsedImages = parseJsonArray(item.images, []);
