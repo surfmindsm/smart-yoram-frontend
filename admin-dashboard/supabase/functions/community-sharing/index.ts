@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
       const category = url.searchParams.get('category')
       const status = url.searchParams.get('status')
       const search = url.searchParams.get('search')
+      const isFreeParam = url.searchParams.get('is_free') // 'true', 'false', or null
 
       // Build query with JOIN to fetch user and church data in one query
       let query = supabaseClient
@@ -104,6 +105,11 @@ Deno.serve(async (req) => {
       }
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+      }
+      if (isFreeParam !== null) {
+        // Filter by is_free: 'true' or 'false'
+        const isFreeValue = isFreeParam === 'true'
+        query = query.eq('is_free', isFreeValue)
       }
 
       // Apply limit

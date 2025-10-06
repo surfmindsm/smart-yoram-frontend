@@ -721,6 +721,7 @@ export const communityService = {
     try {
       // Use Supabase Edge Function for sharing
       const queryParams = new URLSearchParams();
+      queryParams.set('is_free', 'true'); // 무료 나눔만 조회
       if (params?.category && params.category !== 'all') queryParams.set('category', params.category);
       if (params?.status) queryParams.set('status', params.status);
       if (params?.search) queryParams.set('search', params.search);
@@ -1226,6 +1227,7 @@ export const communityService = {
 
       // Supabase Edge Function을 사용하되 is_free=false 필터 추가
       const queryParams = new URLSearchParams();
+      queryParams.set('is_free', 'false'); // 물품 판매만 조회
       if (params?.category && params.category !== 'all') queryParams.set('category', params.category);
       // status 필터 제거 - 모든 상태의 아이템 조회
       if (params?.search) queryParams.set('search', params.search);
@@ -1249,80 +1251,25 @@ export const communityService = {
 
       // community/sharing function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
-        // console.log('🔍 모든 아이템 is_free 상태:', data.data.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free, type: typeof item.is_free, stringified: JSON.stringify(item.is_free) })));
-
-        // 각 아이템 개별 확인
-        data.data.forEach((item: any, index: number) => {
-          // console.log(`아이템 ${index}: id=${item.id}, title="${item.title}", is_free=${item.is_free} (${typeof item.is_free})`);
-        });
-
-        // is_free=false 인 아이템만 필터링 (물품판매) - 다양한 경우 고려
-        const paidItems = data.data.filter((item: any) => {
-          const isFree = item.is_free;
-          // console.log(`아이템 ${item.id} 필터링 검사: is_free=${isFree} (${typeof isFree})`);
-
-          // 여러 가지 false 조건 확인
-          const isFalse = isFree === false ||
-                         isFree === 'false' ||
-                         isFree === 0 ||
-                         isFree === '0' ||
-                         (!isFree && isFree !== null && isFree !== undefined); // falsy 값이지만 null/undefined가 아닌 경우
-
-          // console.log(`아이템 ${item.id} 필터링 결과: ${isFalse ? '포함' : '제외'}`);
-          return isFalse;
-        });
-        // console.log('💰 필터링된 물품판매 아이템들:', paidItems.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
-
-        // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = await Promise.all(paidItems.map(async (item: any): Promise<OfferItem> => {
+        // Edge Function에서 이미 is_free=false로 필터링되어 반환됨
+        // JOIN된 데이터를 사용하므로 추가 조회 불필요
+        const transformedData = data.data.map((item: any): OfferItem => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
-          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티')
+            ? null
+            : (item.church_name || item.church || getChurchNameById(item.church_id));
 
-          // 사용자 정보를 직접 조회
-          let userName = '익명';
-          if (item.author_id) {
-            try {
-              const { data: userData, error } = await supabaseApiService.supabase
-                .from('users')
-                .select('full_name, email')
-                .eq('id', item.author_id)
-                .single();
+          // Edge Function에서 JOIN된 사용자 정보 사용
+          const userName = item.author_name || item.user_name || '익명';
 
-              if (userData && !error) {
-                userName = userData.full_name || userData.email || '익명';
-                // console.log(`✅ [물품판매] 사용자 ${item.author_id} 조회 성공:`, userName);
-              } else {
-                // console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 실패:`, error);
-                userName = `사용자${item.author_id}`;
-              }
-            } catch (error) {
-              // console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 에러:`, error);
-              userName = `사용자${item.author_id}`;
-            }
-          }
-
-          // 교회 주소 정보를 직접 조회
+          // Edge Function에서 JOIN된 교회 주소 정보 사용
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-            // console.log(`✅ [물품판매] 협력사 주소: "-"`);
-          } else if (item.church_id) {
-            try {
-              const { data: churchData, error } = await supabaseApiService.supabase
-                .from('churches')
-                .select('address, name')
-                .eq('id', item.church_id)
-                .single();
-
-              if (churchData && !error) {
-                churchAddress = churchData.address || churchData.name || churchAddress;
-                // console.log(`✅ [물품판매] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
-              } else {
-                // console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 실패:`, error);
-              }
-            } catch (error) {
-              // console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 에러:`, error);
-            }
+          } else if (item.church_address) {
+            churchAddress = item.church_address;
+          } else if (item.church_name) {
+            churchAddress = item.church_name;
           }
 
           return {
