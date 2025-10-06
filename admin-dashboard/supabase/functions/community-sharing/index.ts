@@ -86,6 +86,8 @@ Deno.serve(async (req) => {
       const search = url.searchParams.get('search')
       const isFreeParam = url.searchParams.get('is_free') // 'true', 'false', or null
 
+      console.log('📥 Edge Function 요청:', { limit, category, status, search, isFreeParam })
+
       // Build query with JOIN to fetch user and church data in one query
       let query = supabaseClient
         .from('community_sharing')
@@ -109,6 +111,7 @@ Deno.serve(async (req) => {
       if (isFreeParam !== null) {
         // Filter by is_free: 'true' or 'false'
         const isFreeValue = isFreeParam === 'true'
+        console.log('🔍 is_free 필터 적용:', { isFreeParam, isFreeValue })
         query = query.eq('is_free', isFreeValue)
       }
 
@@ -116,6 +119,9 @@ Deno.serve(async (req) => {
       query = query.limit(limit)
 
       const { data, error } = await query
+
+      console.log('📊 DB 조회 결과:', data?.length, '개 항목')
+      console.log('📊 is_free 분포:', data?.map(item => ({ id: item.id, title: item.title, is_free: item.is_free })))
 
       if (error) {
         console.error('Database query error:', error)
