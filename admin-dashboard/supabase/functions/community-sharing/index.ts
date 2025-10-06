@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
         category: body.category || 'general',
         condition: body.condition || 'good',
         price: body.price || 0,
-        is_free: body.is_free !== false, // Default to true
+        is_free: body.is_free === true, // 명시적으로 true인 경우만 true
         location: body.location,
         contact_info: body.contact_info || body.contactInfo,
         images: body.images || [],
