@@ -728,9 +728,13 @@ export const communityService = {
       if (params?.skip) queryParams.set('skip', params.skip.toString());
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
+      // Supabase Edge Function invoke는 쿼리 파라미터를 URL에 직접 포함해야 함
+      const functionName = 'community-sharing';
       const functionUrl = queryParams.toString()
-        ? `community/sharing?${queryParams.toString()}`
-        : 'community/sharing';
+        ? `${functionName}?${queryParams.toString()}`
+        : functionName;
+
+      console.log('🔗 [무료나눔] Edge Function 호출 URL:', functionUrl);
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
         method: 'GET'
@@ -1236,9 +1240,13 @@ export const communityService = {
       if (params?.skip) queryParams.set('skip', params.skip.toString());
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
+      // Supabase Edge Function invoke는 쿼리 파라미터를 URL에 직접 포함해야 함
+      const functionName = 'community-sharing';
       const functionUrl = queryParams.toString()
-        ? `community/sharing?${queryParams.toString()}`
-        : 'community/sharing';
+        ? `${functionName}?${queryParams.toString()}`
+        : functionName;
+
+      console.log('🔗 [물품판매] Edge Function 호출 URL:', functionUrl);
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
         method: 'GET'
