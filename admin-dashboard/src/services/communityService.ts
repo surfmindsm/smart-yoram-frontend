@@ -895,6 +895,86 @@ export const communityService = {
     }
   },
 
+  // 단일 무료 나눔 아이템 조회 (상세 페이지용)
+  getSharingItemById: async (id: number): Promise<SharingItem | null> => {
+    try {
+      const functionName = 'community-sharing';
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+      const fullUrl = `${supabaseUrl}/functions/v1/${functionName}?id=${id}`;
+
+      console.log('🔍 [무료나눔 상세] Edge Function 호출:', fullUrl);
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('❌ 무료나눔 상세 조회 실패:', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      console.log('📦 [getSharingItemById] RAW 응답:', JSON.stringify(result, null, 2));
+
+      // Edge Function이 배열을 반환하는 경우 처리 (캐시 문제)
+      let item;
+      if (Array.isArray(result)) {
+        item = result.find((i: any) => i.id === id);
+        console.log('⚠️ [getSharingItemById] 배열 응답 받음, ID로 필터링:', item);
+      } else {
+        item = result.success ? result.data : result;
+      }
+
+      console.log('📦 [getSharingItemById] item 추출:', {
+        'result.success': result.success,
+        'result.data': result.data,
+        'item': item,
+        description: item?.description,
+        images: item?.images
+      });
+
+      if (!item) return null;
+
+      // church와 author 정보가 JOIN되어 있으므로 추가 조회 불필요
+      const churchName = (item.church_id === 9998) ? null : (item.church?.name || item.church_name);
+      const userName = item.author?.full_name || item.author?.email || item.author_name || item.user_name || '익명';
+
+      const transformed = {
+        id: item.id,
+        title: item.title,
+        description: item.description || item.content,
+        category: item.category,
+        condition: item.condition || '양호',
+        quantity: item.quantity || 1,
+        images: item.images || [],
+        church: churchName,
+        church_id: item.church_id === 9998 ? undefined : item.church_id,
+        location: item.church?.address || item.location || null,
+        contactPhone: item.contact_phone || '',
+        contactEmail: item.contact_email || '',
+        contactInfo: item.contact_info || '',
+        status: item.status,
+        createdAt: item.created_at || item.createdAt || null,
+        view_count: item.view_count || 0,
+        likes: item.likes || 0,
+        comments: item.comments || 0,
+        userName: userName
+      };
+
+      console.log('🔄 [getSharingItemById] 변환 결과:', transformed);
+
+      return transformed;
+    } catch (error: any) {
+      console.error('❌ 무료 나눔 상세 조회 실패:', error);
+      return null;
+    }
+  },
+
   createSharingItem: async (itemData: Partial<SharingItem>): Promise<SharingItem> => {
     try {
       // console.log('📝 무료 나눔 등록 API 호출 중...', itemData);

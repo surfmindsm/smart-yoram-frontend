@@ -80,13 +80,61 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       // Parse query parameters
       const url = new URL(req.url)
+      const id = url.searchParams.get('id') // 단일 아이템 조회
       const limit = parseInt(url.searchParams.get('limit') || '50', 10)
       const category = url.searchParams.get('category')
       const status = url.searchParams.get('status')
       const search = url.searchParams.get('search')
       const isFreeParam = url.searchParams.get('is_free') // 'true', 'false', or null
 
-      console.log('📥 Edge Function 요청:', { limit, category, status, search, isFreeParam })
+      console.log('📥 Edge Function 요청:', { id, limit, category, status, search, isFreeParam })
+
+      // 단일 아이템 조회
+      if (id) {
+        const { data, error } = await supabaseClient
+          .from('community_sharing')
+          .select(`
+            id, title, description, category, condition, price, is_free, quantity,
+            location, contact_info, contact_phone, contact_email, images,
+            view_count, likes, status, created_at, updated_at,
+            church_id, author_id,
+            author:users!author_id(id, full_name, email),
+            church:churches!church_id(id, name, address)
+          `)
+          .eq('id', id)
+          .single()
+
+        if (error) {
+          console.error('Database query error:', error)
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch item' }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        // Transform single item
+        const transformedItem = {
+          ...data,
+          is_free: data.is_free,
+          content: data.description,
+          church: data.church,
+          author: data.author,
+          author_name: data.author?.full_name || data.author?.email || '익명',
+          user_name: data.author?.full_name || data.author?.email || '익명',
+          church_name: data.church?.name || null,
+          church_address: data.church?.address || null
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, data: transformedItem }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
 
       // Build query with JOIN to fetch user and church data in one query
       let query = supabaseClient

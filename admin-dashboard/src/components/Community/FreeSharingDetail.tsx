@@ -19,13 +19,14 @@ const FreeSharingDetail: React.FC = () => {
   const fetchItemDetail = async (itemId: number) => {
     try {
       setLoading(true);
-      // 목록에서 해당 아이템 찾기 (임시 방법)
-      const items = await communityService.getSharingItems();
-      const foundItem = items.find(item => item.id === itemId);
+      // 단일 아이템 직접 조회 (성능 최적화)
+      const foundItem = await communityService.getSharingItemById(itemId);
 
       console.log('🔍 [FreeSharingDetail] 아이템 조회 결과:', {
         itemId,
-        foundItem,
+        foundItem: JSON.stringify(foundItem, null, 2),
+        description: foundItem?.description,
+        images: foundItem?.images,
         church_id: foundItem?.church_id || (foundItem as any)?.church_id,
         전체_필드: Object.keys(foundItem || {})
       });
