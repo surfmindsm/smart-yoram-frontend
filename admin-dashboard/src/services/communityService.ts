@@ -1301,7 +1301,7 @@ export const communityService = {
             comments: item.comments || 0,
             userName: userName
           };
-        }));
+        });
 
         // console.log('✅ 변환된 물품판매 데이터:', transformedData.length, '개');
         return transformedData;
