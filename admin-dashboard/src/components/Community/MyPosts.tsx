@@ -168,43 +168,15 @@ const MyPosts: React.FC = () => {
     }
   };
 
-  const handleMarkAsCompleted = async (post: MyPost) => {
-    if (!window.confirm('판매 완료로 변경하시겠습니까?')) return;
-
+  const handleStatusChange = async (post: MyPost, newStatus: string) => {
     try {
-      // 물품 관련 게시글의 상태를 'completed'로 변경
+      // 물품 관련 게시글의 상태 변경
       switch (post.type) {
         case 'community-sharing':
-          await communityService.updateSharingItemStatus(post.id, 'completed');
+          await communityService.updateSharingItemStatus(post.id, newStatus);
           break;
         case 'item-sale':
-          await communityService.updateOfferItemStatus(post.id, 'completed');
-          break;
-        default:
-          alert('판매 완료 처리가 지원되지 않는 게시글입니다.');
-          return;
-      }
-
-      // 성공하면 목록 새로고침
-      await fetchMyPosts();
-      alert('판매 완료로 변경되었습니다.');
-    } catch (error) {
-      console.error('상태 변경 실패:', error);
-      alert('상태 변경에 실패했습니다.');
-    }
-  };
-
-  const handleMarkAsActive = async (post: MyPost) => {
-    if (!window.confirm('다시 진행중으로 변경하시겠습니까?')) return;
-
-    try {
-      // 물품 관련 게시글의 상태를 'active'로 변경
-      switch (post.type) {
-        case 'community-sharing':
-          await communityService.updateSharingItemStatus(post.id, 'active');
-          break;
-        case 'item-sale':
-          await communityService.updateOfferItemStatus(post.id, 'active');
+          await communityService.updateOfferItemStatus(post.id, newStatus);
           break;
         default:
           alert('상태 변경이 지원되지 않는 게시글입니다.');
@@ -213,7 +185,6 @@ const MyPosts: React.FC = () => {
 
       // 성공하면 목록 새로고침
       await fetchMyPosts();
-      alert('진행중으로 변경되었습니다.');
     } catch (error) {
       console.error('상태 변경 실패:', error);
       alert('상태 변경에 실패했습니다.');
@@ -459,27 +430,21 @@ const MyPosts: React.FC = () => {
 
         return (
           <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-            {isItemPost && !isCompleted && (
-              <Button
-                onClick={() => handleMarkAsCompleted(post)}
-                size="sm"
-                variant="outline"
-                className="text-green-600 border-green-200 hover:bg-green-50"
+            {isItemPost && (
+              <select
+                value={post.status}
+                onChange={(e) => handleStatusChange(post, e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={(e) => e.stopPropagation()}
               >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                {post.type === 'community-sharing' ? '나눔완료' : '판매완료'}
-              </Button>
-            )}
-            {isItemPost && isCompleted && (
-              <Button
-                onClick={() => handleMarkAsActive(post)}
-                size="sm"
-                variant="outline"
-                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                되돌리기
-              </Button>
+                <option value="active">
+                  {post.type === 'community-sharing' ? '나눔 가능' : '판매중'}
+                </option>
+                <option value="ing">예약중</option>
+                <option value="completed">
+                  {post.type === 'community-sharing' ? '나눔 완료' : '판매 완료'}
+                </option>
+              </select>
             )}
             <Button
               onClick={() => handleEdit(post)}
