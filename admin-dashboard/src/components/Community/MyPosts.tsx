@@ -318,12 +318,32 @@ const MyPosts: React.FC = () => {
   const getStatusLabel = (status: string, type: string): string => {
     const statusLower = status.toLowerCase();
 
-    // 물품 관련 게시글의 completed 상태
-    if (statusLower === 'completed' || statusLower === 'sold') {
-      if (type === 'community-sharing') {
-        return '나눔 완료';
-      } else if (type === 'item-sale') {
-        return '판매 완료';
+    // 무료나눔 상태
+    if (type === 'community-sharing') {
+      switch (statusLower) {
+        case 'active':
+          return '나눔 가능';
+        case 'ing':
+          return '예약중';
+        case 'completed':
+          return '나눔 완료';
+        default:
+          return status;
+      }
+    }
+
+    // 물품판매 상태
+    if (type === 'item-sale') {
+      switch (statusLower) {
+        case 'active':
+          return '판매중';
+        case 'ing':
+          return '예약중';
+        case 'completed':
+        case 'sold':
+          return '판매 완료';
+        default:
+          return status;
       }
     }
 

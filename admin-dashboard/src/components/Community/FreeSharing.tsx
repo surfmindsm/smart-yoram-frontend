@@ -104,50 +104,38 @@ const FreeSharing: React.FC = () => {
     { value: '기타', label: '기타' }
   ];
 
-  // 단순화된 상태 옵션 - 나눔중/나눔완료만
+  // 무료나눔 상태 옵션
   const statusOptions: SelectOption[] = [
     { value: 'all', label: '전체 상태' },
-    { value: 'sharing', label: '나눔중' },
-    { value: 'completed', label: '나눔완료' }
+    { value: 'active', label: '나눔 가능' },
+    { value: 'ing', label: '예약중' },
+    { value: 'completed', label: '나눔 완료' }
   ];
 
   // 무료 나눔 전용 상태 매핑
   const getFreeSharingStatusLabel = (status: string): string => {
-    const itemStatus = status as string; // 타입 확장
-    switch (itemStatus) {
-      case 'sharing':
-        return '나눔중';
-      case 'completed':
-        return '나눔완료';
-      // 기존 상태값 호환성 (점진적 마이그레이션)
+    switch (status) {
       case 'active':
-      case 'available':
-      case 'open':
-        return '나눔중';
-      case 'closed':
-      case 'inactive':
-      case 'reserved':
-        return '나눔완료';
+        return '나눔 가능';
+      case 'ing':
+        return '예약중';
+      case 'completed':
+        return '나눔 완료';
       default:
-        return '나눔중'; // 기본값은 나눔중으로
+        return status;
     }
   };
 
   const getFreeSharingStatusClass = (status: string): string => {
-    const itemStatus = status as string; // 타입 확장
-    switch (itemStatus) {
-      case 'sharing':
+    switch (status) {
       case 'active':
-      case 'available':
-      case 'open':
         return 'bg-green-100 text-green-800';
+      case 'ing':
+        return 'bg-yellow-100 text-yellow-800';
       case 'completed':
-      case 'closed':
-      case 'inactive':
-      case 'reserved':
         return 'bg-gray-100 text-gray-800';
       default:
-        return 'bg-green-100 text-green-800'; // 기본값은 나눔중 색상으로
+        return 'bg-blue-100 text-blue-800';
     }
   };
 
@@ -156,14 +144,8 @@ const FreeSharing: React.FC = () => {
                          (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
 
-    // 무료 나눔 상태 필터링
-    const itemStatus = item.status as string; // 타입 확장
-    const normalizedStatus = itemStatus === 'active' || itemStatus === 'available' || itemStatus === 'open'
-      ? 'sharing'
-      : itemStatus === 'closed' || itemStatus === 'inactive' || itemStatus === 'completed'
-      ? 'completed'
-      : itemStatus;
-    const matchesStatus = selectedStatus === 'all' || normalizedStatus === selectedStatus;
+    // 무료 나눔 상태 필터링 (active, ing, completed)
+    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
 
     // 위치 필터링
     const itemLocation = item.location || '';
