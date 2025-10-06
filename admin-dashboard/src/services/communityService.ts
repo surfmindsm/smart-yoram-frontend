@@ -21,16 +21,41 @@ export interface StandardListResponse<T> {
   pagination: StandardPagination;
 }
 
-// 교회 ID를 교회명으로 매핑하는 함수 (백엔드에서 church_name이 없는 경우 사용)
+// 교회 ID를 교회명으로 매핑하는 캐시
+const churchesCache: { [key: number]: string } = {};
+let churchesCacheLoaded = false;
+
+// 모든 교회 정보를 미리 로드
+const loadChurchesCache = async () => {
+  if (churchesCacheLoaded) return;
+
+  try {
+    const { data: churches, error } = await supabaseApiService.supabase
+      .from('churches')
+      .select('id, name');
+
+    if (churches && !error) {
+      churches.forEach((church: any) => {
+        if (church.id && church.name) {
+          churchesCache[church.id] = church.name;
+        }
+      });
+      churchesCacheLoaded = true;
+      console.log('✅ 교회 캐시 로드 완료:', Object.keys(churchesCache).length, '개');
+    }
+  } catch (error) {
+    console.error('❌ 교회 캐시 로드 실패:', error);
+  }
+};
+
+// 앱 시작 시 교회 캐시 로드
+loadChurchesCache();
+
 const getChurchNameById = (churchId: number): string | null => {
   if (churchId === 9998) return null; // 협력사
 
-  // 기본 매핑 - 향후 필요시 더 추가 가능
-  const churchMapping: { [key: number]: string } = {
-    6: '성광교회',
-  };
-
-  return churchMapping[churchId] || `교회 ${churchId}`;
+  // 캐시에서 조회
+  return churchesCache[churchId] || null;
 };
 
 // 사용자 데이터 캐시
@@ -754,6 +779,8 @@ export const communityService = {
       const data = result.success ? result.data : result;
 
       console.log('✅ 무료나눔 Edge Function 응답:', data);
+      console.log('📊 [무료나눔] 응답 타입:', typeof data, Array.isArray(data) ? '배열' : '객체');
+      console.log('📊 [무료나눔] 첫 아이템 RAW:', Array.isArray(data) ? data[0] : data?.data?.[0]);
 
       // Supabase functions.invoke()는 응답을 직접 파싱하므로
       // data가 배열이면 직접 사용, 객체면 data.data 사용
@@ -763,33 +790,70 @@ export const communityService = {
       // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
       responseData = responseData.filter((item: any) => item.is_free === true);
       console.log('📊 무료나눔 데이터 (is_free=true 필터 후):', responseData.length, '개');
-      console.log('📊 첫 번째 아이템 church 데이터:', responseData[0]?.church);
-      console.log('📊 첫 번째 아이템 author 데이터:', responseData[0]?.author);
+      console.log('📊 [무료나눔] 첫 아이템 FULL DATA:', JSON.stringify(responseData[0], null, 2));
+      console.log('📊 [무료나눔] 첫 아이템 church:', responseData[0]?.church);
+      console.log('📊 [무료나눔] 첫 아이템 author:', responseData[0]?.author);
+      console.log('📊 [무료나눔] 첫 아이템 church_id:', responseData[0]?.church_id);
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        // Edge Function에서 이미 JOIN된 데이터를 사용하므로 추가 조회 불필요
-        const transformedData = responseData.map((item: any): SharingItem => {
-          // Edge Function에서 JOIN된 교회 정보 사용
-          const churchData = item.church; // { id, name, address }
-          const churchName = (item.church_id === 9998)
-            ? null
-            : (churchData?.name || item.church_name || getChurchNameById(item.church_id));
+        const transformedData = await Promise.all(responseData.map(async (item: any): Promise<SharingItem> => {
+          // church_id 9998(협력사)인 경우 null 처리
+          let churchName: string | null = null;
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
 
-          // Edge Function에서 JOIN된 사용자 정보 사용
-          const authorData = item.author; // { id, full_name, email }
-          const userName = authorData?.full_name || authorData?.email || item.author_name || item.user_name || '익명';
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
 
-          // Edge Function에서 JOIN된 교회 주소 정보 사용
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+              }
+            } catch (error) {
+              userName = '익명';
+            }
+          }
+
+          // 교회 정보를 직접 조회
           let churchAddress = item.location || null;
-          if (item.church_id === 9998) {
+          if (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') {
+            churchName = null;
             churchAddress = '-';
-          } else if (churchData?.address) {
-            churchAddress = churchData.address;
-          } else if (churchData?.name) {
-            churchAddress = churchData.name;
+            console.log(`🏢 [무료나눔] ID ${item.id}: 협력사`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('id', item.church_id)
+                .single();
+
+              console.log(`🏢 [무료나눔] ID ${item.id} 교회 조회:`, {
+                church_id: item.church_id,
+                조회결과: churchData,
+                에러: error
+              });
+
+              if (churchData && !error) {
+                churchName = churchData.name || null;
+                churchAddress = churchData.address || churchData.name || churchAddress;
+              } else {
+                console.error(`❌ [무료나눔] ID ${item.id} 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.error(`❌ [무료나눔] ID ${item.id} 교회 ${item.church_id} 조회 예외:`, error);
+            }
+          } else {
+            // church_name 필드가 있으면 사용
+            churchName = item.church_name || item.church || null;
+            console.log(`🏢 [무료나눔] ID ${item.id}: church_name 필드 사용 = ${churchName}`);
           }
 
           return {
@@ -813,7 +877,7 @@ export const communityService = {
             comments: item.comments || 0,
             userName: userName
           };
-        });
+        }));
 
         // 조회수 로그
         // console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));
@@ -1291,6 +1355,8 @@ export const communityService = {
       console.log('📊 응답 타입:', typeof data, Array.isArray(data) ? '배열' : '객체');
       console.log('📊 data.success:', data?.success);
       console.log('📊 data.data:', data?.data);
+      console.log('📊 [물품판매] 첫 아이템 church:', (Array.isArray(data) ? data[0] : data?.data?.[0])?.church);
+      console.log('📊 [물품판매] 첫 아이템 author:', (Array.isArray(data) ? data[0] : data?.data?.[0])?.author);
 
       // Supabase functions.invoke()는 응답을 직접 파싱하므로
       // data가 배열이면 직접 사용, 객체면 data.data 사용
@@ -1305,30 +1371,69 @@ export const communityService = {
       // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
       responseData = responseData.filter((item: any) => item.is_free === false);
       console.log('📊 최종 데이터 (is_free=false 필터 후):', responseData.length, '개');
+      console.log('📊 [물품판매] 첫 아이템 FULL DATA:', JSON.stringify(responseData[0], null, 2));
+      console.log('📊 [물품판매] 첫 아이템 church:', responseData[0]?.church);
+      console.log('📊 [물품판매] 첫 아이템 author:', responseData[0]?.author);
+      console.log('📊 [물품판매] 첫 아이템 church_id:', responseData[0]?.church_id);
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
         // Edge Function에서 이미 is_free=false로 필터링되어 반환됨
-        // JOIN된 데이터를 사용하므로 추가 조회 불필요
-        const transformedData = responseData.map((item: any): OfferItem => {
-          // Edge Function에서 JOIN된 교회 정보 사용
-          const churchData = item.church; // { id, name, address }
-          const churchName = (item.church_id === 9998)
-            ? null
-            : (churchData?.name || item.church_name || getChurchNameById(item.church_id));
+        const transformedData = await Promise.all(responseData.map(async (item: any): Promise<OfferItem> => {
+          // church_id 9998(협력사)인 경우 null 처리
+          let churchName: string | null = null;
 
-          // Edge Function에서 JOIN된 사용자 정보 사용
-          const authorData = item.author; // { id, full_name, email }
-          const userName = authorData?.full_name || authorData?.email || item.author_name || item.user_name || '익명';
+          // 사용자 정보를 직접 조회
+          let userName = '익명';
+          if (item.author_id) {
+            try {
+              const { data: userData, error } = await supabaseApiService.supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', item.author_id)
+                .single();
 
-          // Edge Function에서 JOIN된 교회 주소 정보 사용
+              if (userData && !error) {
+                userName = userData.full_name || userData.email || '익명';
+              }
+            } catch (error) {
+              userName = '익명';
+            }
+          }
+
+          // 교회 정보를 직접 조회
           let churchAddress = item.location || null;
-          if (item.church_id === 9998) {
+          if (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') {
+            churchName = null;
             churchAddress = '-';
-          } else if (churchData?.address) {
-            churchAddress = churchData.address;
-          } else if (churchData?.name) {
-            churchAddress = churchData.name;
+            console.log(`🏢 [물품판매] ID ${item.id}: 협력사`);
+          } else if (item.church_id) {
+            try {
+              const { data: churchData, error } = await supabaseApiService.supabase
+                .from('churches')
+                .select('address, name')
+                .eq('id', item.church_id)
+                .single();
+
+              console.log(`🏢 [물품판매] ID ${item.id} 교회 조회:`, {
+                church_id: item.church_id,
+                조회결과: churchData,
+                에러: error
+              });
+
+              if (churchData && !error) {
+                churchName = churchData.name || null;
+                churchAddress = churchData.address || churchData.name || churchAddress;
+              } else {
+                console.error(`❌ [물품판매] ID ${item.id} 교회 ${item.church_id} 조회 실패:`, error);
+              }
+            } catch (error) {
+              console.error(`❌ [물품판매] ID ${item.id} 교회 ${item.church_id} 조회 예외:`, error);
+            }
+          } else {
+            // church_name 필드가 있으면 사용
+            churchName = item.church_name || item.church || null;
+            console.log(`🏢 [물품판매] ID ${item.id}: church_name 필드 사용 = ${churchName}`);
           }
 
           const parsedImages = parseJsonArray(item.images, []);
@@ -1360,7 +1465,7 @@ export const communityService = {
             comments: item.comments || 0,
             userName: userName
           };
-        });
+        }));
 
         // console.log('✅ 변환된 물품판매 데이터:', transformedData.length, '개');
         return transformedData;

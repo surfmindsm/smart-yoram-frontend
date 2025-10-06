@@ -125,6 +125,13 @@ Deno.serve(async (req) => {
 
       console.log('📊 DB 조회 결과:', data?.length, '개 항목')
       console.log('📊 is_free 분포:', data?.map(item => ({ id: item.id, title: item.title, is_free: item.is_free })))
+      console.log('📊 첫 번째 아이템 RAW (church/author 확인):', JSON.stringify({
+        id: data?.[0]?.id,
+        church_id: data?.[0]?.church_id,
+        author_id: data?.[0]?.author_id,
+        church: data?.[0]?.church,
+        author: data?.[0]?.author
+      }, null, 2))
 
       if (error) {
         console.error('Database query error:', error)
@@ -142,6 +149,10 @@ Deno.serve(async (req) => {
         ...item,
         is_free: item.is_free, // Include is_free field
         content: item.description, // Map description to content for compatibility
+        // Keep the JOIN'd objects for frontend to use
+        church: item.church, // { id, name, address }
+        author: item.author, // { id, full_name, email }
+        // Also provide flattened fields for backward compatibility
         author_name: item.author?.full_name || item.author?.email || '익명',
         user_name: item.author?.full_name || item.author?.email || '익명',
         church_name: item.church?.name || null,
