@@ -222,6 +222,47 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
     }
   };
 
+  const getStatusLabel = (status: string, type: string): string => {
+    const statusLower = status.toLowerCase();
+
+    // 물품 관련 게시글의 completed 상태
+    if (statusLower === 'completed' || statusLower === 'sold') {
+      if (type === 'free-sharing' || type === 'community-sharing') {
+        return '나눔 완료';
+      } else if (type === 'item-sale') {
+        return '판매 완료';
+      }
+    }
+
+    // 기타 상태
+    switch (statusLower) {
+      case 'active':
+      case 'available':
+        return '진행중';
+      case 'requesting':
+        return '요청중';
+      case 'open':
+        return '모집중';
+      case 'upcoming':
+        return '예정';
+      case 'closed':
+      case 'inactive':
+        return '종료';
+      case 'answered':
+        return '답변완료';
+      case 'cancelled':
+        return '취소';
+      case 'reserved':
+        return '예약됨';
+      case 'matching':
+        return '매칭중';
+      case 'ongoing':
+        return '진행중';
+      default:
+        return status;
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available':
@@ -233,6 +274,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
       case 'ongoing':
         return 'bg-yellow-100 text-yellow-800';
       case 'completed':
+      case 'sold':
       case 'closed':
       case 'inactive':
         return 'bg-gray-100 text-gray-800';
@@ -383,7 +425,7 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
               )}
               {post.status && (
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(post.status)}`}>
-                  {post.status}
+                  {getStatusLabel(post.status, post.type)}
                 </span>
               )}
             </div>
