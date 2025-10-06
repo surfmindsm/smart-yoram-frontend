@@ -13,6 +13,7 @@ import { communityService, RequestItem } from '../../services/communityService';
 import { getCreatePagePath } from './postConfigs';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus } from '../../utils/status-mapping';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 
 
 const ItemRequest: React.FC = () => {
@@ -62,6 +63,10 @@ const ItemRequest: React.FC = () => {
   };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   // 요청 게시글 데이터 (API에서 로드)
   const [requestItems, setRequestItems] = useState<RequestItem[]>([]);
@@ -205,7 +210,14 @@ const ItemRequest: React.FC = () => {
         const filteredData = data.filter((item: any) => {
           const standardStatus = getStandardStatus(item.status || 'active');
           const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
-          return matchesStatus;
+
+          // 위치 필터링
+          const itemLocation = item.location || '';
+          const matchesCity = selectedLocationCity === 'all' || itemLocation.startsWith(selectedLocationCity);
+          const matchesDistrict = selectedLocationDistrict === 'all' ||
+            (selectedLocationCity !== 'all' && itemLocation.includes(selectedLocationDistrict));
+
+          return matchesStatus && matchesCity && matchesDistrict;
         });
 
         setRequestItems(filteredData);
@@ -219,7 +231,7 @@ const ItemRequest: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedCategory, selectedStatus, searchTerm]);
+  }, [selectedCategory, selectedStatus, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -293,6 +305,32 @@ const ItemRequest: React.FC = () => {
           value={selectedStatus}
           onChange={setSelectedStatus}
           className="w-auto"
+        />
+
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all'); // 도/시 변경시 구 초기화
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
         />
       </div>
 

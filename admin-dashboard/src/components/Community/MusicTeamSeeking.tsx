@@ -5,6 +5,7 @@ import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 import { Button } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 import {
   Search,
   Plus,
@@ -31,6 +32,10 @@ const MusicTeamSeeking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [musicSeekers, setMusicSeekers] = useState<MusicSeeker[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   const teamTypes: SelectOption[] = [
     { value: 'all', label: '전체 팀 형태' },
@@ -197,7 +202,23 @@ const MusicTeamSeeking: React.FC = () => {
           search: searchTerm || undefined,
           status: 'active'
         });
-        setMusicSeekers(data);
+
+        // 위치 필터링 - preferredLocation 배열에서 매칭
+        const filteredData = data.filter((item: any) => {
+          if (selectedLocationCity === 'all' && selectedLocationDistrict === 'all') {
+            return true;
+          }
+
+          const preferredLocations = item.preferredLocation || [];
+          return preferredLocations.some((location: string) => {
+            const matchesCity = selectedLocationCity === 'all' || location.startsWith(selectedLocationCity);
+            const matchesDistrict = selectedLocationDistrict === 'all' ||
+              (selectedLocationCity !== 'all' && location.includes(selectedLocationDistrict));
+            return matchesCity && matchesDistrict;
+          });
+        });
+
+        setMusicSeekers(filteredData);
       } catch (error) {
         console.error('MusicTeamSeeking 데이터 로드 실패:', error);
         setMusicSeekers([]);
@@ -207,7 +228,7 @@ const MusicTeamSeeking: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedInstrument, selectedDay, selectedTime, searchTerm]);
+  }, [selectedInstrument, selectedDay, selectedTime, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   return (
     <div className="p-6">
@@ -263,6 +284,32 @@ const MusicTeamSeeking: React.FC = () => {
           value={selectedTime}
           onChange={setSelectedTime}
           className="w-auto"
+        />
+
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all');
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
         />
       </div>
 

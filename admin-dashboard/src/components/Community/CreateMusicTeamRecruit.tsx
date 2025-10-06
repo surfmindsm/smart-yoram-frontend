@@ -15,6 +15,7 @@ import { Button, DatePicker } from "../ui";
 import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts, formatLocation } from '../../data/koreaLocations';
 
 const CreateMusicTeamRecruit: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
     eventDate: '',
     rehearsalSchedule: '',
     location: '',
+    detailedAddress: '',
     description: '',
     requirements: [] as string[],
     compensation: '',
@@ -35,6 +37,10 @@ const CreateMusicTeamRecruit: React.FC = () => {
   });
 
   const [requirementInput, setRequirementInput] = useState('');
+
+  // 위치 선택 state
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
 
   const eventTypes: SelectOption[] = [
     { value: 'sunday-service', label: '주일예배' },
@@ -245,17 +251,45 @@ const CreateMusicTeamRecruit: React.FC = () => {
             {/* 장소 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                장소
+                지역 *
               </label>
-              <div className="relative">
+              <div className="flex mb-2">
+                <CustomSelect
+                  options={getCities().map(city => ({ value: city, label: city }))}
+                  value={selectedCity}
+                  onChange={(city) => {
+                    setSelectedCity(city);
+                    setSelectedDistrict('');
+                    setFormData({...formData, location: formatLocation(city)});
+                  }}
+                  placeholder="도/시 선택"
+                  className="pr-2"
+                />
+                <CustomSelect
+                  options={getDistricts(selectedCity).map(district => ({ value: district, label: district }))}
+                  value={selectedDistrict}
+                  onChange={(district) => {
+                    setSelectedDistrict(district);
+                    setFormData({...formData, location: formatLocation(selectedCity, district)});
+                  }}
+                  placeholder="시/군/구 선택"
+                  disabled={!selectedCity}
+                />
+              </div>
+              {formData.location && (
+                <p className="text-sm text-gray-600 mb-2">선택된 지역: {formData.location}</p>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  상세 주소
+                </label>
                 <input
                   type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="교회 주소나 지역을 입력하세요"
+                  value={formData.detailedAddress}
+                  onChange={(e) => setFormData({...formData, detailedAddress: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="예: ○○교회, ○○빌딩 3층"
                 />
-                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
             </div>
           </div>

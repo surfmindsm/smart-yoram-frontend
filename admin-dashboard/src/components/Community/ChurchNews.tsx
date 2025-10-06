@@ -19,6 +19,7 @@ import { ChurchNews as ChurchNewsType, communityService } from '../../services/c
 import { ChurchNewsListOptions } from '../../types/church-events';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 
 
 const ChurchNews: React.FC = () => {
@@ -28,6 +29,10 @@ const ChurchNews: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [newsItems, setNewsItems] = useState<ChurchNewsType[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   const categories: SelectOption[] = [
     { value: 'all', label: '전체 카테고리' },
@@ -215,7 +220,17 @@ const ChurchNews: React.FC = () => {
 
         // communityService.getChurchNews는 처리된 데이터 배열을 반환
         if (Array.isArray(response)) {
-          setNewsItems(response);
+          // 위치 필터링
+          const filteredData = response.filter((item: any) => {
+            const itemLocation = item.location || '';
+            const matchesCity = selectedLocationCity === 'all' || itemLocation.startsWith(selectedLocationCity);
+            const matchesDistrict = selectedLocationDistrict === 'all' ||
+              (selectedLocationCity !== 'all' && itemLocation.includes(selectedLocationDistrict));
+
+            return matchesCity && matchesDistrict;
+          });
+
+          setNewsItems(filteredData);
         } else {
           console.error('행사 소식 응답 실패:', response);
           setNewsItems([]);
@@ -229,7 +244,7 @@ const ChurchNews: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedCategory, searchTerm]);
+  }, [selectedCategory, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   return (
     <div className="p-6">
@@ -275,6 +290,31 @@ const ChurchNews: React.FC = () => {
           className="w-auto"
         />
 
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all');
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
+        />
       </div>
 
       {/* 컨텐츠 */}

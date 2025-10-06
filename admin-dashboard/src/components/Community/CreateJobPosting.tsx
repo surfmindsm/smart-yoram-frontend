@@ -10,6 +10,7 @@ import { Button, DatePicker } from "../ui";
 import { Spinner } from "../ui/spinner";
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService } from '../../services/communityService';
+import { getCities, getDistricts, formatLocation } from '../../data/koreaLocations';
 
 const CreateJobPosting: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +34,10 @@ const CreateJobPosting: React.FC = () => {
   const [requirementInput, setRequirementInput] = useState('');
   const [qualificationInput, setQualificationInput] = useState('');
   const [benefitInput, setBenefitInput] = useState('');
+
+  // 위치 선택 state
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
 
   const positions: SelectOption[] = [
     { value: 'pastor', label: '목사' },
@@ -219,16 +224,32 @@ const CreateJobPosting: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   근무 지역
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="예: 서울 강남구"
+                <div className="flex">
+                  <CustomSelect
+                    options={getCities().map(city => ({ value: city, label: city }))}
+                    value={selectedCity}
+                    onChange={(city) => {
+                      setSelectedCity(city);
+                      setSelectedDistrict('');
+                      setFormData({...formData, location: formatLocation(city)});
+                    }}
+                    placeholder="도/시 선택"
+                    className="pr-2"
                   />
-                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <CustomSelect
+                    options={getDistricts(selectedCity).map(district => ({ value: district, label: district }))}
+                    value={selectedDistrict}
+                    onChange={(district) => {
+                      setSelectedDistrict(district);
+                      setFormData({...formData, location: formatLocation(selectedCity, district)});
+                    }}
+                    placeholder="시/군/구 선택"
+                    disabled={!selectedCity}
+                  />
                 </div>
+                {formData.location && (
+                  <p className="text-sm text-gray-600 mt-1">선택된 지역: {formData.location}</p>
+                )}
               </div>
             </div>
 

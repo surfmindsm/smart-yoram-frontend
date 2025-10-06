@@ -20,7 +20,7 @@ import { getCities, getDistricts, formatLocation } from '../../data/koreaLocatio
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'email' | 'tel' | 'date' | 'time' | 'number' | 'images' | 'location';
+  type: 'text' | 'textarea' | 'select' | 'email' | 'tel' | 'date' | 'time' | 'number' | 'images' | 'location' | 'checkbox';
   placeholder?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
@@ -532,6 +532,24 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
             {value && (
               <p className="text-sm text-gray-600 mt-1">선택된 지역: {value}</p>
             )}
+          </div>
+        );
+
+      case 'checkbox':
+        return (
+          <div key={field.key}>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={value === true || value === 'true'}
+                onChange={(e) => handleInputChange(field.key, e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">
+                {field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+              </span>
+            </label>
           </div>
         );
 

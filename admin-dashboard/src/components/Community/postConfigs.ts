@@ -104,6 +104,12 @@ export const freeSharingConfig: PostTypeConfig = {
       required: false
     },
     {
+      key: 'deliveryAvailable',
+      label: '택배 가능',
+      type: 'checkbox',
+      required: false
+    },
+    {
       key: 'contactPhone',
       label: '연락처',
       type: 'tel',
@@ -184,10 +190,9 @@ export const itemRequestConfig: PostTypeConfig = {
     {
       key: 'location',
       label: '거래 희망 지역',
-      type: 'text',
-      placeholder: '거래 가능한 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: true
     },
     {
       key: 'contactInfo',
@@ -284,6 +289,19 @@ export const itemSaleConfig: PostTypeConfig = {
       placeholder: '예: 2023년 3월, 작년, 6개월 전',
       required: false,
       maxLength: 50
+    },
+    {
+      key: 'location',
+      label: '거래 지역',
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: false
+    },
+    {
+      key: 'deliveryAvailable',
+      label: '택배 가능',
+      type: 'checkbox',
+      required: false
     },
     {
       key: 'contactInfo',
@@ -394,10 +412,9 @@ export const jobPostingConfig: PostTypeConfig = {
     {
       key: 'location',
       label: '근무 지역',
-      type: 'text',
-      placeholder: '근무할 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: true
     },
     {
       key: 'contactInfo',
@@ -502,10 +519,9 @@ export const jobSeekingConfig: PostTypeConfig = {
     {
       key: 'location',
       label: '희망 지역',
-      type: 'text',
-      placeholder: '근무 희망 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: true
     },
     {
       key: 'contactInfo',
@@ -599,10 +615,9 @@ export const musicTeamRecruitConfig: PostTypeConfig = {
     {
       key: 'location',
       label: '연습 장소',
-      type: 'text',
-      placeholder: '연습하는 지역이나 장소를 입력해주세요',
-      required: true,
-      maxLength: 50
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: true
     },
     {
       key: 'contactInfo',
@@ -696,10 +711,9 @@ export const musicTeamSeekingConfig: PostTypeConfig = {
     {
       key: 'location',
       label: '활동 희망 지역',
-      type: 'text',
-      placeholder: '음악팀 활동 희망 지역을 입력해주세요',
-      required: true,
-      maxLength: 50
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: true
     },
     {
       key: 'contactInfo',
@@ -808,9 +822,16 @@ export const churchNewsConfig: PostTypeConfig = {
     },
     {
       key: 'location',
-      label: '장소',
+      label: '지역',
+      type: 'location',
+      placeholder: '도/시 및 시/군/구를 선택해주세요',
+      required: false
+    },
+    {
+      key: 'detailedAddress',
+      label: '상세 주소',
       type: 'text',
-      placeholder: '행사가 열리는 장소',
+      placeholder: '예: ○○교회, ○○센터 2층',
       required: false,
       maxLength: 100
     },

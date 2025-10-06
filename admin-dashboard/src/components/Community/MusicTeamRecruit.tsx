@@ -16,6 +16,7 @@ import { communityService, MusicRecruitment } from '../../services/communityServ
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 
 
 const MusicTeamRecruit: React.FC = () => {
@@ -24,6 +25,10 @@ const MusicTeamRecruit: React.FC = () => {
   const [selectedTeamType, setSelectedTeamType] = useState('all');
   const [selectedWorshipType, setSelectedWorshipType] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   const [musicRecruitments, setMusicRecruitments] = useState<MusicRecruitment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,7 +191,18 @@ const MusicTeamRecruit: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        setMusicRecruitments(data);
+
+        // 위치 필터링
+        const filteredData = data.filter((item: any) => {
+          const itemLocation = item.location || '';
+          const matchesCity = selectedLocationCity === 'all' || itemLocation.startsWith(selectedLocationCity);
+          const matchesDistrict = selectedLocationDistrict === 'all' ||
+            (selectedLocationCity !== 'all' && itemLocation.includes(selectedLocationDistrict));
+
+          return matchesCity && matchesDistrict;
+        });
+
+        setMusicRecruitments(filteredData);
       } catch (error) {
         console.error('MusicTeamRecruit 데이터 로드 실패:', error);
         setMusicRecruitments([]);
@@ -196,7 +212,7 @@ const MusicTeamRecruit: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedTeamType, selectedWorshipType, searchTerm]);
+  }, [selectedTeamType, selectedWorshipType, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
 
   return (
@@ -247,6 +263,32 @@ const MusicTeamRecruit: React.FC = () => {
           value={selectedWorshipType}
           onChange={setSelectedWorshipType}
           className="w-auto"
+        />
+
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all');
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
         />
       </div>
 

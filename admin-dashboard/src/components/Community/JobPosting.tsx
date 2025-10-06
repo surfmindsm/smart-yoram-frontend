@@ -13,6 +13,7 @@ import { getCreatePagePath } from './postConfigs';
 import { formatDeadline } from '../../utils/dateUtils';
 import { mapToStandardStatus } from '../../utils/status-mapping';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 
 
 const JobPosting: React.FC = () => {
@@ -21,6 +22,10 @@ const JobPosting: React.FC = () => {
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   // 구인 공고 데이터 (API에서 로드)
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
@@ -86,14 +91,20 @@ const JobPosting: React.FC = () => {
           limit: 50
         });
 
-        // 필터링 로직 - 상태, 직책 확인
+        // 필터링 로직 - 상태, 직책, 위치 확인
         const filteredData = data.filter((item: any) => {
           const standardStatus = getStandardStatus(item.status || 'active');
           const matchesStatus = selectedStatus === 'all' || standardStatus === selectedStatus;
 
           const matchesPosition = selectedPosition === 'all' || item.position === selectedPosition;
 
-          return matchesStatus && matchesPosition;
+          // 위치 필터링
+          const itemLocation = item.location || '';
+          const matchesCity = selectedLocationCity === 'all' || itemLocation.startsWith(selectedLocationCity);
+          const matchesDistrict = selectedLocationDistrict === 'all' ||
+            (selectedLocationCity !== 'all' && itemLocation.includes(selectedLocationDistrict));
+
+          return matchesStatus && matchesPosition && matchesCity && matchesDistrict;
         });
         console.log('🎯 필터 상태:', { selectedPosition, selectedStatus });
         console.log('🎯 원본 데이터:', data);
@@ -109,7 +120,7 @@ const JobPosting: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedPosition, selectedStatus, searchTerm]);
+  }, [selectedPosition, selectedStatus, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   const getDaysUntilDeadline = (deadline: string) => {
     const today = new Date();
@@ -250,13 +261,38 @@ const JobPosting: React.FC = () => {
           className="w-auto"
         />
 
-
         {/* 상태 선택 */}
         <CustomSelect
           options={statusOptions}
           value={selectedStatus}
           onChange={setSelectedStatus}
           className="w-auto"
+        />
+
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all');
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
         />
       </div>
 

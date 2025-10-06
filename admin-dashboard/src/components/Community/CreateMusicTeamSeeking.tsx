@@ -18,6 +18,7 @@ import { Spinner } from "../ui/spinner";
 import { communityService } from '../../services/communityService';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts, formatLocation } from '../../data/koreaLocations';
 
 const CreateMusicTeamSeeking: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,10 @@ const CreateMusicTeamSeeking: React.FC = () => {
   });
 
   const [locationInput, setLocationInput] = useState('');
+
+  // 위치 선택 state
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
 
   const teamTypeOptions: SelectOption[] = [
     { value: 'solo', label: '현재 솔로 활동' },
@@ -151,12 +156,14 @@ const CreateMusicTeamSeeking: React.FC = () => {
   };
 
   const addLocation = () => {
-    if (locationInput.trim() && !formData.preferredLocation.includes(locationInput.trim())) {
+    const newLocation = formatLocation(selectedCity, selectedDistrict);
+    if (newLocation && !formData.preferredLocation.includes(newLocation)) {
       setFormData({
         ...formData,
-        preferredLocation: [...formData.preferredLocation, locationInput.trim()]
+        preferredLocation: [...formData.preferredLocation, newLocation]
       });
-      setLocationInput('');
+      setSelectedCity('');
+      setSelectedDistrict('');
     }
   };
 
@@ -266,21 +273,35 @@ const CreateMusicTeamSeeking: React.FC = () => {
             {/* 활동 가능 지역 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                활동 가능 지역
+                활동 가능 지역 (복수 선택 가능)
               </label>
               <div className="flex gap-2 mb-2">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={locationInput}
-                    onChange={(e) => setLocationInput(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="예: 서울, 경기도 분당"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation())}
+                <div className="flex flex-1">
+                  <CustomSelect
+                    options={getCities().map(city => ({ value: city, label: city }))}
+                    value={selectedCity}
+                    onChange={(city) => {
+                      setSelectedCity(city);
+                      setSelectedDistrict('');
+                    }}
+                    placeholder="도/시 선택"
+                    className="pr-2"
                   />
-                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <CustomSelect
+                    options={getDistricts(selectedCity).map(district => ({ value: district, label: district }))}
+                    value={selectedDistrict}
+                    onChange={setSelectedDistrict}
+                    placeholder="시/군/구 선택"
+                    disabled={!selectedCity}
+                  />
                 </div>
-                <Button type="button" onClick={addLocation}>추가</Button>
+                <Button
+                  type="button"
+                  onClick={addLocation}
+                  disabled={!selectedCity}
+                >
+                  추가
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.preferredLocation.map((location, index) => (
