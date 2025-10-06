@@ -87,7 +87,17 @@ Deno.serve(async (req) => {
       const search = url.searchParams.get('search')
       const isFreeParam = url.searchParams.get('is_free') // 'true', 'false', or null
 
-      console.log('📥 Edge Function 요청:', { id, limit, category, status, search, isFreeParam })
+      console.log('📥 Edge Function 요청:', {
+        fullUrl: req.url,
+        id,
+        limit,
+        category,
+        status,
+        search,
+        isFreeParam,
+        isFreeParamType: typeof isFreeParam,
+        allParams: Object.fromEntries(url.searchParams.entries())
+      })
 
       // 단일 아이템 조회
       if (id) {
@@ -159,11 +169,27 @@ Deno.serve(async (req) => {
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
       }
+      // is_free 필터 적용 전 테스트 쿼리
       if (isFreeParam !== null) {
-        // Filter by is_free: 'true' or 'false'
         const isFreeValue = isFreeParam === 'true'
-        console.log('🔍 is_free 필터 적용:', { isFreeParam, isFreeValue })
-        query = query.eq('is_free', isFreeValue)
+        console.log('🔍 is_free 필터 적용 전:', {
+          isFreeParam,
+          isFreeParamType: typeof isFreeParam,
+          isFreeValue,
+          isFreeValueType: typeof isFreeValue
+        })
+
+        // 여러 방식으로 필터링 시도
+        if (isFreeValue) {
+          // true인 경우: is_free IS TRUE
+          query = query.eq('is_free', true)
+        } else {
+          // false인 경우: is_free IS FALSE
+          query = query.eq('is_free', false)
+        }
+        console.log('🔍 is_free 필터 적용 완료 - .eq("is_free", ' + isFreeValue + ')')
+      } else {
+        console.log('⚠️ is_free 필터 없음 - isFreeParam:', isFreeParam)
       }
 
       // Apply limit
@@ -173,6 +199,17 @@ Deno.serve(async (req) => {
 
       console.log('📊 DB 조회 결과:', data?.length, '개 항목')
       console.log('📊 is_free 분포:', data?.map(item => ({ id: item.id, title: item.title, is_free: item.is_free })))
+
+      // is_free 필터가 제대로 작동했는지 확인
+      if (isFreeParam !== null) {
+        const expectedIsFree = isFreeParam === 'true'
+        const wrongItems = data?.filter(item => item.is_free !== expectedIsFree) || []
+        if (wrongItems.length > 0) {
+          console.error('❌ 필터링 실패! is_free=' + expectedIsFree + '를 기대했으나 다른 값들이 포함됨:', wrongItems.map(item => ({ id: item.id, is_free: item.is_free })))
+        } else {
+          console.log('✅ is_free 필터링 정상 작동')
+        }
+      }
       console.log('📊 첫 번째 아이템 RAW (church/author 확인):', JSON.stringify({
         id: data?.[0]?.id,
         church_id: data?.[0]?.church_id,

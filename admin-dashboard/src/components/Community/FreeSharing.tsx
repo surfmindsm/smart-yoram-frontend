@@ -42,7 +42,6 @@ const FreeSharing: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        // console.log('🔢 조회수 데이터 확인:', data.map(item => `${item.title}: ${item.view_count}회`));
         setSharingItems(data);
       } catch (error) {
         console.error('무료 나눔 데이터 로드 실패:', error);

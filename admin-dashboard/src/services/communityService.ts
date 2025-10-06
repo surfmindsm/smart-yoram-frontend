@@ -748,7 +748,7 @@ export const communityService = {
       const queryParams = new URLSearchParams();
       queryParams.set('is_free', 'true'); // 무료 나눔만 조회
       if (params?.category && params.category !== 'all') queryParams.set('category', params.category);
-      if (params?.status) queryParams.set('status', params.status);
+      // status 파라미터는 무료나눔에서 사용하지 않음 (is_free=true만으로 충분)
       if (params?.search) queryParams.set('search', params.search);
       if (params?.skip) queryParams.set('skip', params.skip.toString());
       if (params?.limit) queryParams.set('limit', params.limit.toString());
@@ -785,11 +785,16 @@ export const communityService = {
       // Supabase functions.invoke()는 응답을 직접 파싱하므로
       // data가 배열이면 직접 사용, 객체면 data.data 사용
       let responseData = Array.isArray(data) ? data : (data?.data || []);
-      console.log('📊 무료나눔 데이터 (필터 전):', responseData.length, '개');
+      console.log('📊 최종 데이터 (필터 전):', responseData.length, '개');
+      console.log('📊 is_free 분포 (필터 전):', responseData.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        is_free: item.is_free
+      })));
 
       // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
       responseData = responseData.filter((item: any) => item.is_free === true);
-      console.log('📊 무료나눔 데이터 (is_free=true 필터 후):', responseData.length, '개');
+      console.log('📊 최종 데이터 (is_free=true 필터 후):', responseData.length, '개');
       console.log('📊 [무료나눔] 첫 아이템 FULL DATA:', JSON.stringify(responseData[0], null, 2));
       console.log('📊 [무료나눔] 첫 아이템 church:', responseData[0]?.church);
       console.log('📊 [무료나눔] 첫 아이템 author:', responseData[0]?.author);
