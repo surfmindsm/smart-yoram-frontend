@@ -11,7 +11,7 @@ export const supabaseApiService = {
   members: {
     getAll: async (filters: { page?: number; limit?: number; search?: string; position?: string; department?: string; status?: string; church_id?: number } = {}) => {
       try {
-        console.log('👥 [교인 API] 교인 목록 조회 시작:', filters);
+        // console.log('👥 [교인 API] 교인 목록 조회 시작:', filters);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -49,12 +49,12 @@ export const supabaseApiService = {
         // Edge Function이 배열을 직접 반환하므로 data 자체가 배열
         const members = Array.isArray(data) ? data : (data?.data || []);
 
-        console.log('✅ [교인 API] 조회 성공:', members.length, '명');
+        // console.log('✅ [교인 API] 조회 성공:', members.length, '명');
         return { data: members };
       } catch (error) {
         console.error('👥 [교인 API] 조회 실패:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 Using fallback mock data for members');
+        // console.log('🔄 Using fallback mock data for members');
         return {
           data: Array.from({ length: 16 }, (_, i) => ({
             id: i + 1,
@@ -73,7 +73,7 @@ export const supabaseApiService = {
 
     create: async (memberData: any) => {
       try {
-        console.log('👥 [교인 생성 API] 시작:', memberData);
+        // console.log('👥 [교인 생성 API] 시작:', memberData);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -109,7 +109,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교인 생성 API] 성공:', data);
+        // console.log('✅ [교인 생성 API] 성공:', data);
         return { data };
       } catch (error) {
         console.error('👥 [교인 생성 API] 실패:', error);
@@ -119,7 +119,7 @@ export const supabaseApiService = {
 
     update: async (memberData: any) => {
       try {
-        console.log('👥 [교인 수정 API] 시작:', memberData);
+        // console.log('👥 [교인 수정 API] 시작:', memberData);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -139,8 +139,8 @@ export const supabaseApiService = {
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
         const functionsUrl = `${supabaseUrl}/functions/v1/members/${memberId}`;
 
-        console.log('👥 [교인 수정 API] URL:', functionsUrl);
-        console.log('👥 [교인 수정 API] 수정 데이터:', updateData);
+        // console.log('👥 [교인 수정 API] URL:', functionsUrl);
+        // console.log('👥 [교인 수정 API] 수정 데이터:', updateData);
 
         const response = await fetch(functionsUrl, {
           method: 'PUT',
@@ -166,7 +166,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교인 수정 API] 성공:', data);
+        // console.log('✅ [교인 수정 API] 성공:', data);
         return { data };
       } catch (error: any) {
         console.error('👥 [교인 수정 API] 실패:', error);
@@ -177,7 +177,7 @@ export const supabaseApiService = {
 
     delete: async (memberId: number) => {
       try {
-        console.log('👥 [교인 삭제 API] 시작:', memberId);
+        // console.log('👥 [교인 삭제 API] 시작:', memberId);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -210,7 +210,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교인 삭제 API] 성공:', data);
+        // console.log('✅ [교인 삭제 API] 성공:', data);
         return { data };
       } catch (error) {
         console.error('👥 [교인 삭제 API] 실패:', error);
@@ -223,7 +223,7 @@ export const supabaseApiService = {
   attendances: {
     getByDateRange: async (startDate: string, endDate: string) => {
       // Edge Functions not deployed yet, use fallback mock data
-      console.log('🔄 Using fallback mock data for attendances');
+      // console.log('🔄 Using fallback mock data for attendances');
       const today = new Date().toISOString().split('T')[0];
       return {
         data: [
@@ -281,7 +281,7 @@ export const supabaseApiService = {
   systemAnnouncements: {
     getActive: async () => {
       // Edge Functions not deployed yet, use fallback mock data
-      console.log('🔄 Using fallback mock data for system announcements');
+      // console.log('🔄 Using fallback mock data for system announcements');
       return {
         data: [
           {
@@ -304,7 +304,7 @@ export const supabaseApiService = {
     // 시스템 공지사항 관리 조회 (시스템 관리자용) - Supabase 직접 쿼리 사용
     getAdmin: async () => {
       try {
-        console.log('📢 [시스템 공지사항] 관리자 조회 시작');
+        // console.log('📢 [시스템 공지사항] 관리자 조회 시작');
 
         const { data, error } = await supabase
           .from('system_announcements')
@@ -316,7 +316,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [시스템 공지사항] 조회 성공:', data?.length || 0, '개');
+        // console.log('✅ [시스템 공지사항] 조회 성공:', data?.length || 0, '개');
         return { data: data || [] };
       } catch (error) {
         console.error('📢 [시스템 공지사항] 조회 실패:', error);
@@ -346,7 +346,7 @@ export const supabaseApiService = {
     // 교회 목록 조회 - Supabase 직접 쿼리 사용
     getChurches: async () => {
       try {
-        console.log('🏛️ [교회 목록] 조회 시작');
+        // console.log('🏛️ [교회 목록] 조회 시작');
 
         const { data, error } = await supabase
           .from('churches')
@@ -359,7 +359,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교회 목록] 조회 성공:', data?.length || 0, '개');
+        // console.log('✅ [교회 목록] 조회 성공:', data?.length || 0, '개');
         return { data: data || [] };
       } catch (error) {
         console.error('🏛️ [교회 목록] 조회 실패:', error);
@@ -380,7 +380,7 @@ export const supabaseApiService = {
 
     markAsRead: async (announcementId: number) => {
       // Edge Functions not deployed yet, use fallback
-      console.log('🔄 Using fallback for mark as read');
+      // console.log('🔄 Using fallback for mark as read');
       return { data: { message: 'Marked as read' } };
     },
 
@@ -440,7 +440,7 @@ export const supabaseApiService = {
       } catch (error) {
         console.error('Failed to fetch community sharing:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 Using fallback mock data for community sharing');
+        // console.log('🔄 Using fallback mock data for community sharing');
       return {
         data: [
           {
@@ -512,7 +512,7 @@ export const supabaseApiService = {
       } catch (error) {
         console.error('Failed to create community sharing:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 Using fallback for community sharing creation');
+        // console.log('🔄 Using fallback for community sharing creation');
         return {
           data: {
             id: Math.floor(Math.random() * 1000),
@@ -546,8 +546,8 @@ export const supabaseApiService = {
         const queryString = params.toString();
         const url = queryString ? `?${queryString}` : '';
 
-        console.log('🚀 [심방신청 API] Edge Function 호출 시작:', `pastoral-care/admin/requests${url}`);
-        console.log('🚀 [심방신청 API] 필터 파라미터:', filters);
+        // console.log('🚀 [심방신청 API] Edge Function 호출 시작:', `pastoral-care/admin/requests${url}`);
+        // console.log('🚀 [심방신청 API] 필터 파라미터:', filters);
 
         const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests${url}`, {
           method: 'GET',
@@ -558,19 +558,19 @@ export const supabaseApiService = {
           },
         });
 
-        console.log('🚀 [심방신청 API] Edge Function 응답 전체:', { data, error });
+        // console.log('🚀 [심방신청 API] Edge Function 응답 전체:', { data, error });
 
         if (error) {
           console.error('❌ [심방신청 API] Edge Function 오류:', error);
           throw error;
         }
 
-        console.log('✅ [심방신청 API] Edge Function 성공, 데이터 반환:', data);
+        // console.log('✅ [심방신청 API] Edge Function 성공, 데이터 반환:', data);
         return { data: data.data || data };
       } catch (error) {
         console.error('Failed to fetch pastoral care requests:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 Using fallback mock data for pastoral care');
+        // console.log('🔄 Using fallback mock data for pastoral care');
         return {
           data: [
             {
@@ -643,7 +643,7 @@ export const supabaseApiService = {
       } catch (error) {
         console.error('Failed to fetch pastoral care stats:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 Using fallback mock data for pastoral care stats');
+        // console.log('🔄 Using fallback mock data for pastoral care stats');
         return {
           data: {
             total: 2,
@@ -830,8 +830,8 @@ export const supabaseApiService = {
         const queryString = params.toString();
         const url = queryString ? `?${queryString}` : '';
 
-        console.log('🙏 [기도요청 API] Edge Function 호출 시작:', `prayer-requests/admin/requests${url}`);
-        console.log('🙏 [기도요청 API] 필터 파라미터:', filters);
+        // console.log('🙏 [기도요청 API] Edge Function 호출 시작:', `prayer-requests/admin/requests${url}`);
+        // console.log('🙏 [기도요청 API] 필터 파라미터:', filters);
 
         const { data, error } = await supabase.functions.invoke(`prayer-requests/admin/requests${url}`, {
           method: 'GET',
@@ -842,14 +842,14 @@ export const supabaseApiService = {
           },
         });
 
-        console.log('🙏 [기도요청 API] Edge Function 응답 전체:', { data, error });
+        // console.log('🙏 [기도요청 API] Edge Function 응답 전체:', { data, error });
 
         if (error) {
           console.error('Prayer requests API error:', error);
           throw error;
         }
 
-        console.log('✅ [기도요청 API] Edge Function 성공, 데이터 반환:', data);
+        // console.log('✅ [기도요청 API] Edge Function 성공, 데이터 반환:', data);
         return data;
       } catch (error) {
         console.error('Failed to fetch prayer requests:', error);
@@ -1084,8 +1084,8 @@ export const supabaseApiService = {
         const queryString = params.toString();
         const url = queryString ? `?${queryString}` : '';
 
-        console.log('💰 [헌금 API] Edge Function 호출 시작:', `offerings/admin/offerings${url}`);
-        console.log('💰 [헌금 API] 필터 파라미터:', filters);
+        // console.log('💰 [헌금 API] Edge Function 호출 시작:', `offerings/admin/offerings${url}`);
+        // console.log('💰 [헌금 API] 필터 파라미터:', filters);
 
         const { data, error } = await supabase.functions.invoke(`offerings/admin/offerings${url}`, {
           method: 'GET',
@@ -1095,14 +1095,14 @@ export const supabaseApiService = {
           },
         });
 
-        console.log('💰 [헌금 API] Edge Function 응답 전체:', { data, error });
+        // console.log('💰 [헌금 API] Edge Function 응답 전체:', { data, error });
 
         if (error) {
           console.error('Offerings API error:', error);
           throw error;
         }
 
-        console.log('✅ [헌금 API] Edge Function 성공, 데이터 반환:', data);
+        // console.log('✅ [헌금 API] Edge Function 성공, 데이터 반환:', data);
         return data;
       } catch (error) {
         console.error('Failed to fetch offerings:', error);
@@ -1305,7 +1305,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📖 [오늘의 말씀 API] 조회 시작');
+        // console.log('📖 [오늘의 말씀 API] 조회 시작');
 
         const { data, error } = await supabase.functions.invoke('daily-verses/today', {
           method: 'GET',
@@ -1320,7 +1320,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [오늘의 말씀 API] 조회 성공:', data);
+        // console.log('✅ [오늘의 말씀 API] 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📖 [오늘의 말씀 API] 조회 실패:', error);
@@ -1344,7 +1344,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📋 [말씀 목록 API] 조회 시작:', filters);
+        // console.log('📋 [말씀 목록 API] 조회 시작:', filters);
 
         const params = new URLSearchParams();
         if (filters.is_active !== undefined) params.append('is_active', filters.is_active.toString());
@@ -1367,7 +1367,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [말씀 목록 API] 조회 성공:', data);
+        // console.log('✅ [말씀 목록 API] 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📋 [말씀 목록 API] 조회 실패:', error);
@@ -1383,7 +1383,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📝 [말씀 생성 API] 시작:', verseData);
+        // console.log('📝 [말씀 생성 API] 시작:', verseData);
 
         const { data, error } = await supabase.functions.invoke('daily-verses/admin/verses', {
           method: 'POST',
@@ -1399,7 +1399,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [말씀 생성 API] 성공:', data);
+        // console.log('✅ [말씀 생성 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('📝 [말씀 생성 API] 실패:', error);
@@ -1414,7 +1414,7 @@ export const supabaseApiService = {
         if (!token) {
           throw new Error('No authentication token available');
         }
-        console.log('✏️ [말씀 수정 API] 시작:', id, verseData);
+        // console.log('✏️ [말씀 수정 API] 시작:', id, verseData);
         const { data, error } = await supabase.functions.invoke(`daily-verses/admin/verses/${id}`, {
           method: 'PUT',
           headers: {
@@ -1427,7 +1427,7 @@ export const supabaseApiService = {
           console.error('✏️ [말씀 수정 API] 오류:', error);
           throw error;
         }
-        console.log('✅ [말씀 수정 API] 성공:', data);
+        // console.log('✅ [말씀 수정 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('✏️ [말씀 수정 API] 실패:', error);
@@ -1442,7 +1442,7 @@ export const supabaseApiService = {
         if (!token) {
           throw new Error('No authentication token available');
         }
-        console.log('🗑️ [말씀 삭제 API] 시작:', id);
+        // console.log('🗑️ [말씀 삭제 API] 시작:', id);
         const { data, error } = await supabase.functions.invoke(`daily-verses/admin/verses/${id}`, {
           method: 'DELETE',
           headers: {
@@ -1454,7 +1454,7 @@ export const supabaseApiService = {
           console.error('🗑️ [말씀 삭제 API] 오류:', error);
           throw error;
         }
-        console.log('✅ [말씀 삭제 API] 성공:', data);
+        // console.log('✅ [말씀 삭제 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('🗑️ [말씀 삭제 API] 실패:', error);
@@ -1478,7 +1478,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 목록 조회 시작:', filters);
+        // console.log('⛪ [예배 서비스 API] 목록 조회 시작:', filters);
 
         const params = new URLSearchParams();
         if (filters.church_id) params.append('church_id', filters.church_id.toString());
@@ -1502,7 +1502,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 목록 조회 성공:', data);
+        // console.log('✅ [예배 서비스 API] 목록 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 목록 조회 실패:', error);
@@ -1518,7 +1518,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 단일 조회 시작:', id);
+        // console.log('⛪ [예배 서비스 API] 단일 조회 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
           method: 'GET',
@@ -1533,7 +1533,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 단일 조회 성공:', data);
+        // console.log('✅ [예배 서비스 API] 단일 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 단일 조회 실패:', error);
@@ -1549,7 +1549,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 교회별 조회 시작:', churchId);
+        // console.log('⛪ [예배 서비스 API] 교회별 조회 시작:', churchId);
 
         const { data, error } = await supabase.functions.invoke(`worship-services/church/${churchId}`, {
           method: 'GET',
@@ -1564,7 +1564,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 교회별 조회 성공:', data);
+        // console.log('✅ [예배 서비스 API] 교회별 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 교회별 조회 실패:', error);
@@ -1592,7 +1592,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 생성 시작:', serviceData);
+        // console.log('⛪ [예배 서비스 API] 생성 시작:', serviceData);
 
         const { data, error } = await supabase.functions.invoke('worship-services/admin/services', {
           method: 'POST',
@@ -1608,7 +1608,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 생성 성공:', data);
+        // console.log('✅ [예배 서비스 API] 생성 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 생성 실패:', error);
@@ -1635,7 +1635,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 수정 시작:', id, serviceData);
+        // console.log('⛪ [예배 서비스 API] 수정 시작:', id, serviceData);
 
         const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
           method: 'PUT',
@@ -1651,7 +1651,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 수정 성공:', data);
+        // console.log('✅ [예배 서비스 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 수정 실패:', error);
@@ -1667,7 +1667,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 삭제 시작:', id);
+        // console.log('⛪ [예배 서비스 API] 삭제 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
           method: 'DELETE',
@@ -1682,7 +1682,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [예배 서비스 API] 삭제 성공:', data);
+        // console.log('✅ [예배 서비스 API] 삭제 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 삭제 실패:', error);
@@ -1707,7 +1707,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 목록 조회 시작:', filters);
+        // console.log('📰 [주보 API] 목록 조회 시작:', filters);
 
         const params = new URLSearchParams();
         if (filters.church_id) params.append('church_id', filters.church_id.toString());
@@ -1732,7 +1732,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 목록 조회 성공:', data);
+        // console.log('✅ [주보 API] 목록 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 목록 조회 실패:', error);
@@ -1748,7 +1748,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 단일 조회 시작:', id);
+        // console.log('📰 [주보 API] 단일 조회 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
           method: 'GET',
@@ -1763,7 +1763,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 단일 조회 성공:', data);
+        // console.log('✅ [주보 API] 단일 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 단일 조회 실패:', error);
@@ -1779,7 +1779,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 교회별 조회 시작:', churchId);
+        // console.log('📰 [주보 API] 교회별 조회 시작:', churchId);
 
         const { data, error } = await supabase.functions.invoke(`bulletins/church/${churchId}`, {
           method: 'GET',
@@ -1794,7 +1794,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 교회별 조회 성공:', data);
+        // console.log('✅ [주보 API] 교회별 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 교회별 조회 실패:', error);
@@ -1817,7 +1817,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 생성 시작:', bulletinData);
+        // console.log('📰 [주보 API] 생성 시작:', bulletinData);
 
         const { data, error } = await supabase.functions.invoke('bulletins/admin/bulletins', {
           method: 'POST',
@@ -1833,7 +1833,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 생성 성공:', data);
+        // console.log('✅ [주보 API] 생성 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 생성 실패:', error);
@@ -1854,7 +1854,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 수정 시작:', id, bulletinData);
+        // console.log('📰 [주보 API] 수정 시작:', id, bulletinData);
 
         const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
           method: 'PUT',
@@ -1870,7 +1870,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 수정 성공:', data);
+        // console.log('✅ [주보 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 수정 실패:', error);
@@ -1886,7 +1886,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 삭제 시작:', id);
+        // console.log('📰 [주보 API] 삭제 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
           method: 'DELETE',
@@ -1901,7 +1901,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 삭제 성공:', data);
+        // console.log('✅ [주보 API] 삭제 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 삭제 실패:', error);
@@ -1927,7 +1927,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 목록 조회 시작:', filters);
+        // console.log('📢 [공지사항 API] 목록 조회 시작:', filters);
 
         const params = new URLSearchParams();
         if (filters.church_id) params.append('church_id', filters.church_id.toString());
@@ -1953,7 +1953,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 목록 조회 성공:', data);
+        // console.log('✅ [공지사항 API] 목록 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 목록 조회 실패:', error);
@@ -1969,7 +1969,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 단일 조회 시작:', id);
+        // console.log('📢 [공지사항 API] 단일 조회 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`announcements/admin/announcements/${id}`, {
           method: 'GET',
@@ -1984,7 +1984,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 단일 조회 성공:', data);
+        // console.log('✅ [공지사항 API] 단일 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 단일 조회 실패:', error);
@@ -2000,7 +2000,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 교회별 조회 시작:', churchId);
+        // console.log('📢 [공지사항 API] 교회별 조회 시작:', churchId);
 
         const { data, error } = await supabase.functions.invoke(`announcements/church/${churchId}`, {
           method: 'GET',
@@ -2015,7 +2015,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 교회별 조회 성공:', data);
+        // console.log('✅ [공지사항 API] 교회별 조회 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 교회별 조회 실패:', error);
@@ -2042,7 +2042,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 생성 시작:', announcementData);
+        // console.log('📢 [공지사항 API] 생성 시작:', announcementData);
 
         const { data, error } = await supabase.functions.invoke('announcements/admin/announcements', {
           method: 'POST',
@@ -2058,7 +2058,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 생성 성공:', data);
+        // console.log('✅ [공지사항 API] 생성 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 생성 실패:', error);
@@ -2083,7 +2083,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 수정 시작:', id, announcementData);
+        // console.log('📢 [공지사항 API] 수정 시작:', id, announcementData);
 
         const { data, error } = await supabase.functions.invoke(`announcements/admin/announcements/${id}`, {
           method: 'PUT',
@@ -2099,7 +2099,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 수정 성공:', data);
+        // console.log('✅ [공지사항 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 수정 실패:', error);
@@ -2115,7 +2115,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 삭제 시작:', id);
+        // console.log('📢 [공지사항 API] 삭제 시작:', id);
 
         const { data, error } = await supabase.functions.invoke(`announcements/admin/announcements/${id}`, {
           method: 'DELETE',
@@ -2130,7 +2130,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 삭제 성공:', data);
+        // console.log('✅ [공지사항 API] 삭제 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 삭제 실패:', error);
@@ -2144,7 +2144,7 @@ export const supabaseApiService = {
     // Get all churches with subscription info
     getAllWithSubscription: async () => {
       try {
-        console.log('🏛️ [교회 구독 정보] 전체 교회 조회 시작');
+        // console.log('🏛️ [교회 구독 정보] 전체 교회 조회 시작');
 
         const { data, error } = await supabase
           .from('churches')
@@ -2173,7 +2173,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교회 구독 정보] 조회 성공:', data?.length, '개 교회');
+        // console.log('✅ [교회 구독 정보] 조회 성공:', data?.length, '개 교회');
         return { data };
       } catch (error) {
         console.error('🏛️ [교회 구독 정보] 조회 실패:', error);
@@ -2183,7 +2183,7 @@ export const supabaseApiService = {
 
     getById: async (churchId: number) => {
       try {
-        console.log('🏛️ [교회 정보 API] 교회 정보 조회 시작:', churchId);
+        // console.log('🏛️ [교회 정보 API] 교회 정보 조회 시작:', churchId);
 
         const { data, error } = await supabase
           .from('churches')
@@ -2197,12 +2197,12 @@ export const supabaseApiService = {
 
         // 결과가 없는 경우 처리
         if (!data || data.length === 0) {
-          console.warn('🏛️ [교회 정보 API] 교회 정보 없음:', churchId);
+          // console.warn('🏛️ [교회 정보 API] 교회 정보 없음:', churchId);
           return { data: null };
         }
 
         const churchData = data[0];
-        console.log('✅ [교회 정보 API] 조회 성공:', churchData);
+        // console.log('✅ [교회 정보 API] 조회 성공:', churchData);
         return { data: churchData };
       } catch (error) {
         console.error('🏛️ [교회 정보 API] 조회 실패:', error);
@@ -2212,14 +2212,14 @@ export const supabaseApiService = {
 
     checkMemberLimit: async (churchId: number) => {
       try {
-        console.log('👥 [교인 제한 확인 API] 시작:', churchId);
+        // console.log('👥 [교인 제한 확인 API] 시작:', churchId);
 
         // 교회 정보 조회
         const { data: church } = await supabaseApiService.churches.getById(churchId);
 
         // 교회 정보가 없으면 기본값으로 처리
         if (!church) {
-          console.warn('👥 [교인 제한 확인 API] 교회 정보 없음, 기본 제한 적용:', churchId);
+          // console.warn('👥 [교인 제한 확인 API] 교회 정보 없음, 기본 제한 적용:', churchId);
 
           // 현재 교인 수 조회
           const { data: members } = await supabase
@@ -2262,13 +2262,13 @@ export const supabaseApiService = {
 
         const canAddMember = memberLimit === null || currentMemberCount < memberLimit;
 
-        console.log('✅ [교인 제한 확인 API] 결과:', {
-          currentMemberCount,
-          memberLimit,
-          canAddMember,
-          subscriptionPlan: church.subscription_plan,
-          subscriptionStatus: church.subscription_status
-        });
+        // console.log('✅ [교인 제한 확인 API] 결과:', {
+        // currentMemberCount,
+        // memberLimit,
+        // canAddMember,
+        // subscriptionPlan: church.subscription_plan,
+        // subscriptionStatus: church.subscription_status
+        // });
 
         return {
           data: {
@@ -2288,7 +2288,7 @@ export const supabaseApiService = {
     // Update church subscription and member limit
     updateSubscriptionAndLimit: async (churchId: number, subscriptionPlan: string, subscriptionStatus: string) => {
       try {
-        console.log('💳 [구독 업데이트] 시작:', { churchId, subscriptionPlan, subscriptionStatus });
+        // console.log('💳 [구독 업데이트] 시작:', { churchId, subscriptionPlan, subscriptionStatus });
 
         // 구독 상태에 따른 member_limit 결정
         let memberLimit;
@@ -2314,7 +2314,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [구독 업데이트] 성공:', data);
+        // console.log('✅ [구독 업데이트] 성공:', data);
         return { data: data[0] };
       } catch (error) {
         console.error('💳 [구독 업데이트] 실패:', error);
@@ -2325,16 +2325,16 @@ export const supabaseApiService = {
     // 내 교회 정보 조회 (동적 데이터 관리)
     getMyChurch: async () => {
       try {
-        console.log('🏛️ [교회 정보 API] 내 교회 조회 시작');
+        // console.log('🏛️ [교회 정보 API] 내 교회 조회 시작');
 
         // 1. 현재 사용자 정보 가져오기
         const currentUser = await supabaseAuthService.getCurrentUser();
         const churchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
-        console.log('📍 현재 사용자의 교회 ID:', churchId);
+        // console.log('📍 현재 사용자의 교회 ID:', churchId);
 
         if (!churchId || churchId === 0) {
           // super_admin의 경우 기본 교회 정보 반환
-          console.log('🔑 super_admin 사용자 - fallback 데이터 사용');
+          // console.log('🔑 super_admin 사용자 - fallback 데이터 사용');
           const fallbackChurch = supabaseApiService.churches._generateFallbackData(6);
           return fallbackChurch;
         }
@@ -2350,11 +2350,11 @@ export const supabaseApiService = {
           console.error('🏛️ [교회 정보 API] 조회 오류:', error);
           // fallback 데이터 사용
           const fallbackChurch = supabaseApiService.churches._generateFallbackData(churchId);
-          console.log('🔄 fallback 데이터 사용:', fallbackChurch.name);
+          // console.log('🔄 fallback 데이터 사용:', fallbackChurch.name);
           return fallbackChurch;
         }
 
-        console.log('✅ [교회 정보 API] 조회 성공:', data);
+        // console.log('✅ [교회 정보 API] 조회 성공:', data);
 
         // 캐시에 저장
         localStorage.setItem(`church_${churchId}`, JSON.stringify(data));
@@ -2508,13 +2508,13 @@ export const supabaseApiService = {
     // 교회 정보 수정 (현재는 로컬 시뮬레이션)
     update: async (churchId: number, updateData: any) => {
       try {
-        console.log('🏛️ [교회 정보 API] 교회 정보 수정 시작:', churchId, updateData);
+        // console.log('🏛️ [교회 정보 API] 교회 정보 수정 시작:', churchId, updateData);
 
         // 1. 현재 사용자 정보 가져오기
         const currentUser = await supabaseAuthService.getCurrentUser();
         const userChurchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
         const userRole = currentUser?.user?.role || currentUser?.profile?.role;
-        console.log('📍 현재 사용자의 교회 ID:', userChurchId, '권한:', userRole);
+        // console.log('📍 현재 사용자의 교회 ID:', userChurchId, '권한:', userRole);
 
         // 2. 권한 검증: super_admin이거나 사용자가 속한 교회만 수정 가능
 
@@ -2547,7 +2547,7 @@ export const supabaseApiService = {
           throw new Error(error.message);
         }
 
-        console.log('✅ [교회 정보 API] 수정 성공:', data);
+        // console.log('✅ [교회 정보 API] 수정 성공:', data);
 
         // 캐시 삭제
         localStorage.removeItem(`church_${targetChurchId}`);
@@ -2561,14 +2561,14 @@ export const supabaseApiService = {
 
     // 교회 프로필 조회 (현재는 fallback)
     getProfile: async () => {
-      console.log('🏛️ [교회 프로필 API] 조회 시작 - fallback 사용');
+      // console.log('🏛️ [교회 프로필 API] 조회 시작 - fallback 사용');
       // getMyChurch와 동일한 데이터 반환
       return await supabaseApiService.churches.getMyChurch();
     },
 
     // 교회 프로필 수정 (현재는 로컬 시뮬레이션)
     updateProfile: async (updateData: any) => {
-      console.log('🏛️ [교회 프로필 API] 수정 시작 - 로컬 시뮬레이션:', updateData);
+      // console.log('🏛️ [교회 프로필 API] 수정 시작 - 로컬 시뮬레이션:', updateData);
       // update와 동일한 로직 사용
       return await supabaseApiService.churches.update(6, updateData);
     }
@@ -2584,7 +2584,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📊 [엑셀 업로드 API] 교인 명단 업로드 시작');
+        // console.log('📊 [엑셀 업로드 API] 교인 명단 업로드 시작');
 
         const formData = new FormData();
         formData.append('file', file);
@@ -2611,12 +2611,12 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [엑셀 업로드 API] 성공:', data);
+        // console.log('✅ [엑셀 업로드 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [엑셀 업로드 API] 실패:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 엑셀 업로드 fallback 데이터 사용');
+        // console.log('🔄 엑셀 업로드 fallback 데이터 사용');
         return {
           message: '교인 명단 업로드가 완료되었습니다 (시뮬레이션)',
           created: 3,
@@ -2637,7 +2637,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📊 [교인 명단 다운로드 API] 시작');
+        // console.log('📊 [교인 명단 다운로드 API] 시작');
 
         // Supabase 클라이언트 대신 직접 fetch 사용 (JWT 자동 추가 방지)
         const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/excel/members/download`, {
@@ -2661,12 +2661,12 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [교인 명단 다운로드 API] 성공:', data);
+        // console.log('✅ [교인 명단 다운로드 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [교인 명단 다운로드 API] 실패:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 교인 명단 다운로드 fallback 데이터 사용');
+        // console.log('🔄 교인 명단 다운로드 fallback 데이터 사용');
 
         const mockData = [
           'Name,Gender,Phone,Email,Address,Birth Date,Membership Date',
@@ -2690,10 +2690,10 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📊 [템플릿 다운로드 API] 시작');
-        console.log('🔑 사용할 토큰:', token.substring(0, 20) + '...');
-        console.log('🔑 Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
-        console.log('🔑 API Key:', process.env.REACT_APP_SUPABASE_ANON_KEY?.substring(0, 20) + '...');
+        // console.log('📊 [템플릿 다운로드 API] 시작');
+        // console.log('🔑 사용할 토큰:', token.substring(0, 20) + '...');
+        // console.log('🔑 Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
+        // console.log('🔑 API Key:', process.env.REACT_APP_SUPABASE_ANON_KEY?.substring(0, 20) + '...');
 
         // 원본 Excel 함수 사용
         const { data, error } = await supabase.functions.invoke('excel/members/template', {
@@ -2708,12 +2708,12 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [템플릿 다운로드 API] 성공:', data);
+        // console.log('✅ [템플릿 다운로드 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [템플릿 다운로드 API] 실패:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 템플릿 다운로드 fallback 데이터 사용');
+        // console.log('🔄 템플릿 다운로드 fallback 데이터 사용');
 
         const templateData = [
           'Name,Gender,Phone,Email,Address,Birth Date,Membership Date',
@@ -2736,7 +2736,7 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📊 [출석 기록 다운로드 API] 시작:', { startDate, endDate });
+        // console.log('📊 [출석 기록 다운로드 API] 시작:', { startDate, endDate });
 
         // Supabase 클라이언트 대신 직접 fetch 사용 (JWT 자동 추가 방지)
         const response = await fetch(
@@ -2763,12 +2763,12 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [출석 기록 다운로드 API] 성공:', data);
+        // console.log('✅ [출석 기록 다운로드 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [출석 기록 다운로드 API] 실패:', error);
         // Use fallback mock data if Edge Function fails
-        console.log('🔄 출석 기록 다운로드 fallback 데이터 사용');
+        // console.log('🔄 출석 기록 다운로드 fallback 데이터 사용');
 
         const mockAttendance = [
           'Date,Name,Service,Status',
@@ -2798,7 +2798,7 @@ export const supabaseApiService = {
           throw new Error('인증 토큰이 없습니다.');
         }
 
-        console.log('📋 [찜한 글 목록 API] 조회 시작');
+        // console.log('📋 [찜한 글 목록 API] 조회 시작');
 
         const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -2823,7 +2823,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [찜한 글 목록 API] 성공:', data);
+        // console.log('✅ [찜한 글 목록 API] 성공:', data);
         return data.data;
       } catch (error) {
         console.error('❌ [찜한 글 목록 API] 예외:', error);
@@ -2845,7 +2845,7 @@ export const supabaseApiService = {
           throw new Error('인증 토큰이 없습니다.');
         }
 
-        console.log('❤️ [찜하기 추가 API] 시작:', wishlistData);
+        // console.log('❤️ [찜하기 추가 API] 시작:', wishlistData);
 
         const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -2867,7 +2867,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [찜하기 추가 API] 성공:', data);
+        // console.log('✅ [찜하기 추가 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [찜하기 추가 API] 예외:', error);
@@ -2886,7 +2886,7 @@ export const supabaseApiService = {
           throw new Error('인증 토큰이 없습니다.');
         }
 
-        console.log('💔 [찜하기 제거 API] 시작:', removeData);
+        // console.log('💔 [찜하기 제거 API] 시작:', removeData);
 
         const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -2908,7 +2908,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [찜하기 제거 API] 성공:', data);
+        // console.log('✅ [찜하기 제거 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('❌ [찜하기 제거 API] 예외:', error);
@@ -2924,7 +2924,7 @@ export const supabaseApiService = {
           throw new Error('인증 토큰이 없습니다.');
         }
 
-        console.log('🔍 [찜 상태 확인 API] 시작:', { post_type, post_id });
+        // console.log('🔍 [찜 상태 확인 API] 시작:', { post_type, post_id });
 
         const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
         const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -2954,7 +2954,7 @@ export const supabaseApiService = {
           item.post_type === post_type && item.post_id === post_id
         );
 
-        console.log('✅ [찜 상태 확인 API] 결과:', isWishlisted);
+        // console.log('✅ [찜 상태 확인 API] 결과:', isWishlisted);
         return isWishlisted;
       } catch (error) {
         console.error('❌ [찜 상태 확인 API] 예외:', error);
@@ -2968,7 +2968,7 @@ export const supabaseApiService = {
     // 포트폴리오 파일 업로드 (Base64 방식으로 변경)
     uploadPortfolioFile: async (file: File, seekerId?: number): Promise<string> => {
       try {
-        console.log('📁 [파일 업로드] 포트폴리오 파일 업로드 시작:', file.name);
+        // console.log('📁 [파일 업로드] 포트폴리오 파일 업로드 시작:', file.name);
 
         // 파일 확장자 확인
         const allowedTypes = ['pdf', 'mp3', 'mp4', 'doc', 'docx'];
@@ -2978,14 +2978,14 @@ export const supabaseApiService = {
         }
 
         // 파일을 Base64로 변환
-        console.log('📁 [파일 업로드] 파일을 Base64로 변환 중...');
+        // console.log('📁 [파일 업로드] 파일을 Base64로 변환 중...');
         const fileBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
             try {
               const result = reader.result as string;
-              console.log('📁 [파일 업로드] FileReader 결과 타입:', typeof result);
-              console.log('📁 [파일 업로드] FileReader 결과 길이:', result?.length);
+              // console.log('📁 [파일 업로드] FileReader 결과 타입:', typeof result);
+              // console.log('📁 [파일 업로드] FileReader 결과 길이:', result?.length);
 
               if (!result) {
                 throw new Error('파일 읽기 결과가 없습니다.');
@@ -2993,7 +2993,7 @@ export const supabaseApiService = {
 
               // data:application/pdf;base64, 부분 제거
               const base64Data = result.split(',')[1];
-              console.log('📁 [파일 업로드] Base64 데이터 길이:', base64Data?.length);
+              // console.log('📁 [파일 업로드] Base64 데이터 길이:', base64Data?.length);
 
               if (!base64Data) {
                 throw new Error('Base64 데이터 추출에 실패했습니다.');
@@ -3013,12 +3013,12 @@ export const supabaseApiService = {
         });
 
         // 파일명을 안전하게 처리
-        console.log('📁 [파일 업로드] 원본 파일명:', file.name);
+        // console.log('📁 [파일 업로드] 원본 파일명:', file.name);
         const safeFileName = file.name
           .replace(/[^a-zA-Z0-9.-]/g, '_')
           .replace(/_{2,}/g, '_')
           .toLowerCase();
-        console.log('📁 [파일 업로드] 안전한 파일명:', safeFileName);
+        // console.log('📁 [파일 업로드] 안전한 파일명:', safeFileName);
 
         // 임시로 파일 정보를 문자열로 반환 (실제 업로드는 백엔드에서 처리)
         const fileInfo = {
@@ -3028,13 +3028,13 @@ export const supabaseApiService = {
           mimeType: file.type,
           originalName: file.name
         };
-        console.log('📁 [파일 업로드] 파일 정보 객체 생성:', {
-          fileName: fileInfo.fileName,
-          fileSize: fileInfo.fileSize,
-          mimeType: fileInfo.mimeType,
-          originalName: fileInfo.originalName,
-          base64Length: fileInfo.fileBase64?.length
-        });
+        // console.log('📁 [파일 업로드] 파일 정보 객체 생성:', {
+        // fileName: fileInfo.fileName,
+        // fileSize: fileInfo.fileSize,
+        // mimeType: fileInfo.mimeType,
+        // originalName: fileInfo.originalName,
+        // base64Length: fileInfo.fileBase64?.length
+        // });
 
         try {
           // Base64 데이터가 너무 큰 경우 chunked 처리
@@ -3042,7 +3042,7 @@ export const supabaseApiService = {
           const base64Length = fileBase64.length;
 
           if (base64Length > CHUNK_SIZE) {
-            console.log('📁 [파일 업로드] 대용량 파일 감지, 청크 방식으로 처리:', base64Length);
+            // console.log('📁 [파일 업로드] 대용량 파일 감지, 청크 방식으로 처리:', base64Length);
 
             // 파일 정보만 포함한 메타데이터 생성 (Base64 데이터 제외)
             const metadata = {
@@ -3067,14 +3067,14 @@ export const supabaseApiService = {
             };
 
             const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(combinedData))}`;
-            console.log('✅ [파일 업로드] 청크 방식으로 성공:', dataUrl.substring(0, 100) + '...');
+            // console.log('✅ [파일 업로드] 청크 방식으로 성공:', dataUrl.substring(0, 100) + '...');
 
             return dataUrl;
           } else {
             // 작은 파일은 기존 방식 사용
-            console.log('📁 [파일 업로드] 소형 파일, 기존 방식 사용');
+            // console.log('📁 [파일 업로드] 소형 파일, 기존 방식 사용');
             const fileUrl = `data:${file.type};base64,${fileBase64}`;
-            console.log('✅ [파일 업로드] 성공 (직접 저장):', fileUrl.substring(0, 100) + '...');
+            // console.log('✅ [파일 업로드] 성공 (직접 저장):', fileUrl.substring(0, 100) + '...');
 
             return fileUrl;
           }
@@ -3108,7 +3108,7 @@ export const supabaseApiService = {
     // 파일 삭제
     deletePortfolioFile: async (filePath: string): Promise<boolean> => {
       try {
-        console.log('🗑️ [파일 삭제] 시작:', filePath);
+        // console.log('🗑️ [파일 삭제] 시작:', filePath);
 
         // URL에서 실제 파일 경로 추출
         let actualPath = filePath;
@@ -3125,7 +3125,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [파일 삭제] 성공');
+        // console.log('✅ [파일 삭제] 성공');
         return true;
       } catch (error) {
         console.error('❌ [파일 삭제] 실패:', error);
@@ -3139,7 +3139,7 @@ export const supabaseApiService = {
     // 이메일 중복 체크
     checkEmailExists: async (email: string) => {
       try {
-        console.log('📧 [이메일 중복 체크] 시작:', email);
+        // console.log('📧 [이메일 중복 체크] 시작:', email);
 
         // community_applications 테이블에서 이메일 확인
         const { data, error } = await supabase
@@ -3154,7 +3154,7 @@ export const supabaseApiService = {
         }
 
         const exists = data && data.length > 0;
-        console.log('✅ [이메일 중복 체크] 결과:', { email, exists });
+        // console.log('✅ [이메일 중복 체크] 결과:', { email, exists });
         return exists;
       } catch (error: any) {
         console.error('📧 [이메일 중복 체크] 실패:', error);
@@ -3164,7 +3164,7 @@ export const supabaseApiService = {
 
     sendCode: async (email: string) => {
       try {
-        console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
+        // console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
 
         const { data, error } = await supabase.functions.invoke('email-verification', {
           body: {
@@ -3178,7 +3178,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [이메일 인증] 코드 발송 성공:', data);
+        // console.log('✅ [이메일 인증] 코드 발송 성공:', data);
         return { data };
       } catch (error: any) {
         console.error('📧 [이메일 인증] 발송 실패:', error);
@@ -3188,7 +3188,7 @@ export const supabaseApiService = {
 
     verifyCode: async (email: string, code: string) => {
       try {
-        console.log('🔍 [이메일 인증] 코드 확인 시작:', { email, code: '***' });
+        // console.log('🔍 [이메일 인증] 코드 확인 시작:', { email, code: '***' });
 
         const { data, error } = await supabase.functions.invoke('email-verification', {
           body: {
@@ -3203,7 +3203,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [이메일 인증] 코드 확인 성공:', data);
+        // console.log('✅ [이메일 인증] 코드 확인 성공:', data);
         return { data };
       } catch (error: any) {
         console.error('🔍 [이메일 인증] 확인 실패:', error);
@@ -3216,7 +3216,7 @@ export const supabaseApiService = {
   notifyApplication: {
     send: async (type: 'church' | 'community', applicantEmail: string, applicantName: string, organizationName?: string, applicationId?: number) => {
       try {
-        console.log('🔔 [신청 알림] 이메일 발송 시작:', { type, applicantEmail, applicantName });
+        // console.log('🔔 [신청 알림] 이메일 발송 시작:', { type, applicantEmail, applicantName });
 
         const { data, error } = await supabase.functions.invoke('notify-application', {
           body: {
@@ -3233,7 +3233,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [신청 알림] 이메일 발송 성공:', data);
+        // console.log('✅ [신청 알림] 이메일 발송 성공:', data);
         return { data };
       } catch (error: any) {
         console.error('🔔 [신청 알림] 발송 실패:', error);
@@ -3246,7 +3246,7 @@ export const supabaseApiService = {
   sendTempPassword: {
     send: async (email: string, temporaryPassword: string, contactPerson: string, organizationName?: string) => {
       try {
-        console.log('📧 [임시 비밀번호] 이메일 발송 시작:', { email, contactPerson });
+        // console.log('📧 [임시 비밀번호] 이메일 발송 시작:', { email, contactPerson });
 
         const { data, error } = await supabase.functions.invoke('send-temp-password', {
           body: {
@@ -3262,7 +3262,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [임시 비밀번호] 이메일 발송 성공:', data);
+        // console.log('✅ [임시 비밀번호] 이메일 발송 성공:', data);
         return { data };
       } catch (error: any) {
         console.error('📧 [임시 비밀번호] 발송 실패:', error);
@@ -3275,7 +3275,7 @@ export const supabaseApiService = {
   smsInvitation: {
     send: async (memberId: number, phone: string, username: string, email?: string, churchName: string = '요람교회') => {
       try {
-        console.log('📱📧 [초대] 발송 시작:', { memberId, phone, username, email });
+        // console.log('📱📧 [초대] 발송 시작:', { memberId, phone, username, email });
 
         // 임시 비밀번호 생성 (8자리: 대소문자 + 숫자)
         const generateTempPassword = (): string => {
@@ -3305,7 +3305,7 @@ export const supabaseApiService = {
           if (smsError) {
             console.error('📱 [SMS 초대] 발송 오류:', smsError);
           } else {
-            console.log('✅ [SMS 초대] 발송 성공');
+            // console.log('✅ [SMS 초대] 발송 성공');
             smsSuccess = true;
           }
         } catch (error) {
@@ -3327,7 +3327,7 @@ export const supabaseApiService = {
             if (emailError) {
               console.error('📧 [이메일 초대] 발송 오류:', emailError);
             } else {
-              console.log('✅ [이메일 초대] 발송 성공');
+              // console.log('✅ [이메일 초대] 발송 성공');
               emailSuccess = true;
             }
           } catch (error) {
@@ -3373,7 +3373,7 @@ export const supabaseApiService = {
             .single();
 
           if (memberData && email) {
-            console.log('👤 [users 테이블 생성] 시작:', { email, name: memberData.name });
+            // console.log('👤 [users 테이블 생성] 시작:', { email, name: memberData.name });
 
             // users 테이블에 이미 존재하는지 확인
             const { data: existingUser } = await supabase
@@ -3383,7 +3383,7 @@ export const supabaseApiService = {
               .single();
 
             if (existingUser) {
-              console.log('ℹ️ [users 테이블] 이미 존재하는 사용자:', email);
+              // console.log('ℹ️ [users 테이블] 이미 존재하는 사용자:', email);
             } else {
               // users 테이블에 새 사용자 생성
               const { data: newUser, error: usersError } = await supabase
@@ -3405,7 +3405,7 @@ export const supabaseApiService = {
               if (usersError) {
                 console.error('👤 [users 테이블 생성] 실패:', usersError);
               } else {
-                console.log('✅ [users 테이블 생성] 성공:', newUser?.email);
+                // console.log('✅ [users 테이블 생성] 성공:', newUser?.email);
               }
             }
           }
@@ -3418,7 +3418,7 @@ export const supabaseApiService = {
         if (smsSuccess) successMessage.push('SMS');
         if (emailSuccess) successMessage.push('이메일');
 
-        console.log(`✅ [초대] ${successMessage.join(', ')} 발송 및 DB 업데이트 성공`);
+        // console.log(`✅ [초대] ${successMessage.join(', ')} 발송 및 DB 업데이트 성공`);
         return {
           temporaryPassword,
           success: true,
@@ -3456,7 +3456,7 @@ export const supabaseApiService = {
     // 기존 초대된 교인을 users 테이블에 생성하는 유틸리티 함수
     createFromMember: async (email: string) => {
       try {
-        console.log('👤 [사용자 생성] 교인 정보로부터 사용자 생성 시작:', { email });
+        // console.log('👤 [사용자 생성] 교인 정보로부터 사용자 생성 시작:', { email });
 
         // 1. members 테이블에서 교인 정보 조회
         const { data: member, error: memberError } = await supabase
@@ -3477,7 +3477,7 @@ export const supabaseApiService = {
           .single();
 
         if (existingUser) {
-          console.log('ℹ️ [사용자 생성] 이미 users 테이블에 존재:', email);
+          // console.log('ℹ️ [사용자 생성] 이미 users 테이블에 존재:', email);
           return { data: existingUser, alreadyExists: true };
         }
 
@@ -3502,7 +3502,7 @@ export const supabaseApiService = {
           throw new Error(`사용자 생성 실패: ${insertError.message}`);
         }
 
-        console.log('✅ [사용자 생성] users 테이블에 사용자 생성 성공:', newUser);
+        // console.log('✅ [사용자 생성] users 테이블에 사용자 생성 성공:', newUser);
         return { data: newUser, alreadyExists: false };
       } catch (error: any) {
         console.error('👤 [사용자 생성] 실패:', error);
@@ -3513,7 +3513,7 @@ export const supabaseApiService = {
     // 교회 관리자들만 조회 (church_super_admin, church_admin)
     getChurchAdmins: async (church_id: number) => {
       try {
-        console.log('👤 [사용자 API] 교회 관리자 목록 조회 시작:', { church_id });
+        // console.log('👤 [사용자 API] 교회 관리자 목록 조회 시작:', { church_id });
 
         const { data, error } = await supabase
           .from('users')
@@ -3529,7 +3529,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [사용자 API] 교회 관리자 조회 성공:', data?.length || 0, '명');
+        // console.log('✅ [사용자 API] 교회 관리자 조회 성공:', data?.length || 0, '명');
         return { data: data || [] };
       } catch (error) {
         console.error('👤 [사용자 API] 교회 관리자 조회 실패:', error);
@@ -3539,7 +3539,7 @@ export const supabaseApiService = {
 
     getAll: async (filters: { church_id?: number } = {}) => {
       try {
-        console.log('👤 [사용자 API] 사용자 목록 조회 시작:', filters);
+        // console.log('👤 [사용자 API] 사용자 목록 조회 시작:', filters);
 
         let query = supabase
           .from('users')
@@ -3560,12 +3560,12 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [사용자 API] 조회 성공:', data?.length || 0, '명');
+        // console.log('✅ [사용자 API] 조회 성공:', data?.length || 0, '명');
         return { data: data || [] };
       } catch (error) {
         console.error('👤 [사용자 API] 조회 실패:', error);
         // Use fallback mock data
-        console.log('🔄 Using fallback mock data for users');
+        // console.log('🔄 Using fallback mock data for users');
         return {
           data: [
             {
@@ -3591,7 +3591,7 @@ export const supabaseApiService = {
 
     updateRole: async (userId: string, newRole: string) => {
       try {
-        console.log('👤 [사용자 API] 역할 변경 시작:', { userId, newRole });
+        // console.log('👤 [사용자 API] 역할 변경 시작:', { userId, newRole });
 
         const { data, error } = await supabase
           .from('users')
@@ -3605,7 +3605,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [사용자 API] 역할 변경 성공:', data);
+        // console.log('✅ [사용자 API] 역할 변경 성공:', data);
         return { data };
       } catch (error) {
         console.error('👤 [사용자 API] 역할 변경 실패:', error);
@@ -3616,7 +3616,7 @@ export const supabaseApiService = {
     // 이메일로 사용자를 찾아 역할 변경
     updateRoleByEmail: async (email: string, newRole: string) => {
       try {
-        console.log('👤 [사용자 API] 이메일로 역할 변경 시작:', { email, newRole });
+        // console.log('👤 [사용자 API] 이메일로 역할 변경 시작:', { email, newRole });
 
         // 1. 먼저 이메일로 users 테이블에서 사용자 찾기
         const { data: users, error: findError } = await supabase
@@ -3631,7 +3631,7 @@ export const supabaseApiService = {
         }
 
         const user = users[0];
-        console.log('✅ [사용자 API] 사용자 찾음:', user);
+        // console.log('✅ [사용자 API] 사용자 찾음:', user);
 
         // 2. 역할 업데이트
         const { data, error } = await supabase
@@ -3646,7 +3646,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [사용자 API] 이메일 기반 역할 변경 성공:', data);
+        // console.log('✅ [사용자 API] 이메일 기반 역할 변경 성공:', data);
         return { data };
       } catch (error) {
         console.error('👤 [사용자 API] 이메일 기반 역할 변경 실패:', error);
@@ -3682,7 +3682,7 @@ export const supabaseApiService = {
       limit?: number;
     } = {}) => {
       try {
-        console.log('🛡️ [로그인 기록] 조회 시작:', options);
+        // console.log('🛡️ [로그인 기록] 조회 시작:', options);
 
         // 현재 사용자 권한 확인
         const { supabaseAuthService } = await import('./supabaseAuthService');
@@ -3737,7 +3737,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [로그인 기록] 조회 성공:', data?.length || 0, '건');
+        // console.log('✅ [로그인 기록] 조회 성공:', data?.length || 0, '건');
         return {
           data: data || [],
           total: count || 0,
@@ -3766,7 +3766,7 @@ export const supabaseApiService = {
       limit?: number;
     } = {}) => {
       try {
-        console.log('🛡️ [활동 로그] 조회 시작:', options);
+        // console.log('🛡️ [활동 로그] 조회 시작:', options);
 
         // 현재 사용자 권한 확인
         const { supabaseAuthService } = await import('./supabaseAuthService');
@@ -3823,7 +3823,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [활동 로그] 조회 성공:', data?.length || 0, '건');
+        // console.log('✅ [활동 로그] 조회 성공:', data?.length || 0, '건');
         return {
           data: data || [],
           total: count || 0,
@@ -3848,7 +3848,7 @@ export const supabaseApiService = {
       end_date?: string;
     } = {}) => {
       try {
-        console.log('📊 [보안 로그 통계] 조회 시작:', options);
+        // console.log('📊 [보안 로그 통계] 조회 시작:', options);
 
         // 실제 security_logs 테이블에서 통계 계산
         let baseQuery = supabase.from('security_logs').select('*');
@@ -3916,7 +3916,7 @@ export const supabaseApiService = {
           hourly_distribution: [] // 시간별 분포는 추후 구현
         };
 
-        console.log('✅ [보안 로그 통계] 조회 성공:', stats);
+        // console.log('✅ [보안 로그 통계] 조회 성공:', stats);
         return { data: stats };
       } catch (error) {
         console.error('📊 [보안 로그 통계] 조회 실패:', error);
@@ -3937,7 +3937,7 @@ export const supabaseApiService = {
     // 로그인 세션 조회 (활성 세션)
     getSessions: async (userId?: string) => {
       try {
-        console.log('🔐 [로그인 세션] 조회 시작:', { userId });
+        // console.log('🔐 [로그인 세션] 조회 시작:', { userId });
 
         // 실제 auth.sessions 테이블 또는 security_logs에서 활성 세션 조회
         let query = supabase
@@ -3985,7 +3985,7 @@ export const supabaseApiService = {
           location: log.location || 'N/A'
         }));
 
-        console.log('✅ [로그인 세션] 조회 성공:', sessions.length, '건');
+        // console.log('✅ [로그인 세션] 조회 성공:', sessions.length, '건');
         return { data: sessions };
       } catch (error) {
         console.error('🔐 [로그인 세션] 조회 실패:', error);
@@ -4007,7 +4007,7 @@ export const supabaseApiService = {
       details?: any;
     }) => {
       try {
-        console.log('📝 [로그인 로그] 기록 시작:', loginData);
+        // console.log('📝 [로그인 로그] 기록 시작:', loginData);
 
         const { data, error } = await supabase
           .from('security_logs')
@@ -4030,7 +4030,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [로그인 로그] 기록 성공:', data);
+        // console.log('✅ [로그인 로그] 기록 성공:', data);
         return { success: true, data };
       } catch (error) {
         console.error('📝 [로그인 로그] 기록 실패:', error);
@@ -4041,7 +4041,7 @@ export const supabaseApiService = {
     // 테스트용 로그인 로그 생성
     createTestLoginLog: async () => {
       try {
-        console.log('🧪 [테스트 로그인 로그] 생성 시작');
+        // console.log('🧪 [테스트 로그인 로그] 생성 시작');
 
         // 먼저 테이블 존재 확인
         const { data: tableCheck, error: tableError } = await supabase
@@ -4054,7 +4054,7 @@ export const supabaseApiService = {
           throw new Error(`security_logs 테이블이 존재하지 않습니다: ${tableError.message}`);
         }
 
-        console.log('✅ security_logs 테이블 확인됨');
+        // console.log('✅ security_logs 테이블 확인됨');
 
         const testLog = {
           user_id: '123e4567-e89b-12d3-a456-426614174000',
@@ -4079,7 +4079,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [테스트 로그인 로그] 생성 성공:', data);
+        // console.log('✅ [테스트 로그인 로그] 생성 성공:', data);
         return { success: true, data };
       } catch (error) {
         console.error('🧪 [테스트 로그인 로그] 생성 실패:', error);
@@ -4090,7 +4090,7 @@ export const supabaseApiService = {
     // 테이블 존재 확인 및 생성
     checkAndCreateTables: async () => {
       try {
-        console.log('🔍 [보안 로그 테이블] 존재 확인 시작');
+        // console.log('🔍 [보안 로그 테이블] 존재 확인 시작');
 
         // security_logs 테이블 확인
         const { error: securityError } = await supabase
@@ -4114,13 +4114,13 @@ export const supabaseApiService = {
         if (securityError) {
           console.error('❌ security_logs 테이블:', securityError.message);
         } else {
-          console.log('✅ security_logs 테이블 존재함');
+          // console.log('✅ security_logs 테이블 존재함');
         }
 
         if (activityError) {
           console.error('❌ activity_logs 테이블:', activityError.message);
         } else {
-          console.log('✅ activity_logs 테이블 존재함');
+          // console.log('✅ activity_logs 테이블 존재함');
         }
 
         return { success: true, data: results };
@@ -4133,7 +4133,7 @@ export const supabaseApiService = {
     // 테스트용 활동 로그 생성
     createTestActivityLog: async () => {
       try {
-        console.log('🧪 [테스트 활동 로그] 생성 시작');
+        // console.log('🧪 [테스트 활동 로그] 생성 시작');
 
         const testLog = {
           user_id: '123e4567-e89b-12d3-a456-426614174000',
@@ -4165,7 +4165,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [테스트 활동 로그] 생성 성공:', data);
+        // console.log('✅ [테스트 활동 로그] 생성 성공:', data);
         return { success: true, data };
       } catch (error) {
         console.error('🧪 [테스트 활동 로그] 생성 실패:', error);
@@ -4176,7 +4176,7 @@ export const supabaseApiService = {
     // 테스트용 교회 데이터 생성 (Church ID 7)
     createTestChurchData: async () => {
       try {
-        console.log('🏛️ [테스트 교회 데이터] 생성 시작 - Church ID 7');
+        // console.log('🏛️ [테스트 교회 데이터] 생성 시작 - Church ID 7');
 
         // 이미 존재하는지 확인
         const { data: existing } = await supabase
@@ -4186,7 +4186,7 @@ export const supabaseApiService = {
           .single();
 
         if (existing) {
-          console.log('✅ Church ID 7이 이미 존재합니다.');
+          // console.log('✅ Church ID 7이 이미 존재합니다.');
           return { success: true, message: 'Church ID 7이 이미 존재합니다.' };
         }
 
@@ -4212,7 +4212,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [테스트 교회 데이터] 생성 성공 - Church ID 7:', data);
+        // console.log('✅ [테스트 교회 데이터] 생성 성공 - Church ID 7:', data);
         return { success: true, data };
       } catch (error) {
         console.error('🏛️ [테스트 교회 데이터] 생성 실패:', error);
@@ -4226,7 +4226,7 @@ export const supabaseApiService = {
     // 채팅 히스토리 조회
     getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
       try {
-        console.log('🔍 [AI Chat] 채팅 히스토리 조회 시작:', params);
+        // console.log('🔍 [AI Chat] 채팅 히스토리 조회 시작:', params);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -4255,7 +4255,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [AI Chat] 채팅 히스토리 조회 성공:', data);
+        // console.log('✅ [AI Chat] 채팅 히스토리 조회 성공:', data);
         return data;
       } catch (error: any) {
         console.error('❌ [AI Chat] 채팅 히스토리 조회 실패:', error);
@@ -4266,7 +4266,7 @@ export const supabaseApiService = {
     // AI 에이전트 목록 조회
     getAgents: async () => {
       try {
-        console.log('🤖 [AI Chat] AI 에이전트 조회 시작');
+        // console.log('🤖 [AI Chat] AI 에이전트 조회 시작');
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -4291,7 +4291,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [AI Chat] AI 에이전트 조회 성공:', data);
+        // console.log('✅ [AI Chat] AI 에이전트 조회 성공:', data);
         return data;
       } catch (error: any) {
         console.error('❌ [AI Chat] AI 에이전트 조회 실패:', error);
@@ -4302,7 +4302,7 @@ export const supabaseApiService = {
     // 새 채팅 히스토리 생성
     createChatHistory: async (title: string, agentId?: string | number) => {
       try {
-        console.log('📝 [AI Chat] 채팅 히스토리 생성 시작:', { title, agentId });
+        // console.log('📝 [AI Chat] 채팅 히스토리 생성 시작:', { title, agentId });
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -4331,7 +4331,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [AI Chat] 채팅 히스토리 생성 성공:', data);
+        // console.log('✅ [AI Chat] 채팅 히스토리 생성 성공:', data);
         return data;
       } catch (error: any) {
         console.error('❌ [AI Chat] 채팅 히스토리 생성 실패:', error);
@@ -4342,7 +4342,7 @@ export const supabaseApiService = {
     // 채팅 히스토리 삭제
     deleteChatHistory: async (historyId: string | number) => {
       try {
-        console.log('🗑️ [AI Chat] 채팅 히스토리 삭제 시작:', historyId);
+        // console.log('🗑️ [AI Chat] 채팅 히스토리 삭제 시작:', historyId);
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -4367,7 +4367,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [AI Chat] 채팅 히스토리 삭제 성공:', data);
+        // console.log('✅ [AI Chat] 채팅 히스토리 삭제 성공:', data);
         return data;
       } catch (error: any) {
         console.error('❌ [AI Chat] 채팅 히스토리 삭제 실패:', error);
@@ -4378,7 +4378,7 @@ export const supabaseApiService = {
     // 새 메시지 전송
     sendMessage: async (historyId: string | number, content: string, agentId?: string | number) => {
       try {
-        console.log('💬 [AI Chat] 메시지 전송 시작:', { historyId, content, agentId });
+        // console.log('💬 [AI Chat] 메시지 전송 시작:', { historyId, content, agentId });
 
         const token = await supabaseAuthService.getToken();
         if (!token) {
@@ -4408,7 +4408,7 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [AI Chat] 메시지 전송 성공:', data);
+        // console.log('✅ [AI Chat] 메시지 전송 성공:', data);
         return data;
       } catch (error: any) {
         console.error('❌ [AI Chat] 메시지 전송 실패:', error);
@@ -4422,7 +4422,7 @@ export const supabaseApiService = {
     // Get church GPT license statistics
     getChurchStats: async (churchId?: number) => {
       try {
-        console.log('🔍 GPT License Stats - Direct DB Query:', { churchId });
+        // console.log('🔍 GPT License Stats - Direct DB Query:', { churchId });
 
         let query = supabase
           .from('churches')
@@ -4468,7 +4468,7 @@ export const supabaseApiService = {
 
             if (licenseError && licenseError.code !== '42P01') {
               // 42P01 = relation does not exist, 이 경우는 테이블이 없는 것이므로 경고만 출력
-              console.warn('Failed to fetch license assignments for church', churchData.serial_id, licenseError);
+              // console.warn('Failed to fetch license assignments for church', churchData.serial_id, licenseError);
             }
 
             if (!licenseError && licenseData) {
@@ -4476,7 +4476,7 @@ export const supabaseApiService = {
             }
           } catch (error) {
             // user_gpt_licenses 테이블이 없는 경우 0으로 설정
-            console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다. 라이선스 할당 수를 0으로 설정합니다.');
+            // console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다. 라이선스 할당 수를 0으로 설정합니다.');
             licensesAssigned = 0;
           }
           const licensesAvailable = Math.max(0, licensesPurchased - licensesAssigned);
@@ -4491,7 +4491,7 @@ export const supabaseApiService = {
           };
         }));
 
-        console.log('📊 Church stats result:', stats);
+        // console.log('📊 Church stats result:', stats);
         return { success: true, data: stats };
       } catch (error) {
         console.error('Get Church Stats Error:', error);
@@ -4502,7 +4502,7 @@ export const supabaseApiService = {
     // Update church license count
     updateChurchLicenseCount: async (churchId: number, licenseCount: number) => {
       try {
-        console.log('📝 Updating church license count:', { churchId, licenseCount });
+        // console.log('📝 Updating church license count:', { churchId, licenseCount });
 
         const { data, error } = await supabase
           .from('churches')
@@ -4516,7 +4516,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ License count updated:', data);
+        // console.log('✅ License count updated:', data);
         return { success: true, data };
       } catch (error) {
         console.error('Update Church License Count Error:', error);
@@ -4527,7 +4527,7 @@ export const supabaseApiService = {
     // Get church licenses
     getChurchLicenses: async (churchId: number) => {
       try {
-        console.log('🔍 Get Church Licenses - Direct DB Query:', { churchId });
+        // console.log('🔍 Get Church Licenses - Direct DB Query:', { churchId });
 
         const { data: licenses, error } = await supabase
           .from('user_gpt_licenses')
@@ -4552,7 +4552,7 @@ export const supabaseApiService = {
         if (error) {
           if (error.code === '42P01') {
             // 테이블이 없는 경우 빈 배열 반환
-            console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다.');
+            // console.info('user_gpt_licenses 테이블이 아직 생성되지 않았습니다.');
             return { success: true, data: [] };
           }
           throw error;
@@ -4576,7 +4576,7 @@ export const supabaseApiService = {
           };
         });
 
-        console.log('📄 Church licenses result:', transformedLicenses);
+        // console.log('📄 Church licenses result:', transformedLicenses);
         return { success: true, data: transformedLicenses };
       } catch (error) {
         console.error('Get Church Licenses Error:', error);
@@ -4587,7 +4587,7 @@ export const supabaseApiService = {
     // Get church admins for license assignment
     getChurchAdmins: async (churchId: number) => {
       try {
-        console.log('🔍 Get Church Admins - Simple users query:', { churchId });
+        // console.log('🔍 Get Church Admins - Simple users query:', { churchId });
 
         // Simple direct query to users table
         const { data: admins, error: adminsError } = await supabase
@@ -4603,7 +4603,7 @@ export const supabaseApiService = {
           throw adminsError;
         }
 
-        console.log('📋 Raw users data:', admins);
+        // console.log('📋 Raw users data:', admins);
 
         // 라이선스 정보는 나중에 처리하고, 일단 기본 사용자 정보만 반환
         const transformedAdmins = (admins || []).map((admin) => ({
@@ -4615,7 +4615,7 @@ export const supabaseApiService = {
           license_assigned_at: null as string | null
         }));
 
-        console.log('👥 Church admins result:', transformedAdmins);
+        // console.log('👥 Church admins result:', transformedAdmins);
         return { success: true, data: transformedAdmins };
       } catch (error) {
         console.error('Get Church Admins Error:', error);
@@ -4626,7 +4626,7 @@ export const supabaseApiService = {
     // Assign license to user
     assignLicense: async (userId: string, churchId: number) => {
       try {
-        console.log('🔍 Assign License - Direct DB Query:', { userId, churchId });
+        // console.log('🔍 Assign License - Direct DB Query:', { userId, churchId });
 
         // Get current user to set as assigned_by
         const currentUser = await supabaseAuthService.getCurrentUser();
@@ -4671,7 +4671,7 @@ export const supabaseApiService = {
           throw insertError;
         }
 
-        console.log('✅ License assigned successfully:', newLicense);
+        // console.log('✅ License assigned successfully:', newLicense);
         return { success: true, data: newLicense };
       } catch (error) {
         console.error('Assign License Error:', error);
@@ -4682,7 +4682,7 @@ export const supabaseApiService = {
     // Revoke license by license ID
     revokeLicense: async (licenseId: string) => {
       try {
-        console.log('🔍 Revoke License - Direct DB Query:', { licenseId });
+        // console.log('🔍 Revoke License - Direct DB Query:', { licenseId });
 
         const { data: revokedLicense, error } = await supabase
           .from('user_gpt_licenses')
@@ -4702,7 +4702,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ License revoked successfully:', revokedLicense);
+        // console.log('✅ License revoked successfully:', revokedLicense);
         return { success: true, data: revokedLicense };
       } catch (error) {
         console.error('Revoke License Error:', error);
@@ -4713,7 +4713,7 @@ export const supabaseApiService = {
     // Revoke license by user ID
     revokeLicenseByUser: async (userId: string) => {
       try {
-        console.log('🔍 Revoke License by User - Direct DB Query:', { userId });
+        // console.log('🔍 Revoke License by User - Direct DB Query:', { userId });
 
         const { data: revokedLicenses, error } = await supabase
           .from('user_gpt_licenses')
@@ -4733,7 +4733,7 @@ export const supabaseApiService = {
           throw new Error('해당 사용자의 활성 라이선스를 찾을 수 없습니다.');
         }
 
-        console.log('✅ User licenses revoked successfully:', revokedLicenses);
+        // console.log('✅ User licenses revoked successfully:', revokedLicenses);
         return { success: true, data: revokedLicenses };
       } catch (error) {
         console.error('Revoke License by User Error:', error);

@@ -35,14 +35,14 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
           const canAccess = canAccessAdminDashboard(normalizedUser);
           setHasAdminAccess(canAccess);
 
-          console.log('🔐 [인증 확인]', {
-            user: normalizedUser.email,
-            originalRole: currentUser.user.role,
-            normalizedRole: normalizedUser.role,
-            church_id: normalizedUser.church_id,
-            canAccessAdmin: canAccess,
-            isMemberRole: isMember(normalizedUser)
-          });
+          // console.log('🔐 [인증 확인]', {
+          //   user: normalizedUser.email,
+          //   originalRole: currentUser.user.role,
+          //   normalizedRole: normalizedUser.role,
+          //   church_id: normalizedUser.church_id,
+          //   canAccessAdmin: canAccess,
+          //   isMemberRole: isMember(normalizedUser)
+          // });
         }
       } catch (error) {
         console.error('인증 확인 오류:', error);

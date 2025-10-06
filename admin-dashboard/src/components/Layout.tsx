@@ -125,17 +125,17 @@ const Layout: React.FC = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
+    // console.log('🔍 Layout 컴포넌트 마운트됨 - 사용자 정보 가져오기 시작');
 
     // Supabase로 현재 사용자 정보 가져오기
     const fetchUserInfo = async () => {
       try {
-        console.log('🌐 supabaseAuthService.getCurrentUser() 호출 중...');
+        // console.log('🌐 supabaseAuthService.getCurrentUser() 호출 중...');
         const result = await supabaseAuthService.getCurrentUser();
-        console.log('✅ Supabase 응답 받음:', result);
+        // console.log('✅ Supabase 응답 받음:', result);
 
         if (!result) {
-          console.log('❌ 사용자 정보 없음 - 로그인 페이지로 이동');
+          // console.log('❌ 사용자 정보 없음 - 로그인 페이지로 이동');
           navigate('/login');
           return;
         }
@@ -148,14 +148,14 @@ const Layout: React.FC = () => {
           church_id: user.church_id,
           role: normalizeRole(user.role) // 역할 정규화
         };
-        console.log('📝 처리된 사용자 정보:', processedUser);
+        // console.log('📝 처리된 사용자 정보:', processedUser);
 
         setUserInfo(processedUser);
 
         // 교회 정보 가져오기 (GPT 권한 확인용)
         if (user.church_id) {
           try {
-            console.log('🏛️ 교회 정보 조회 시작, church_id:', user.church_id);
+            // console.log('🏛️ 교회 정보 조회 시작, church_id:', user.church_id);
             const { data: churchData, error: churchError } = await supabaseApiService.supabase
               .from('churches')
               .select('gpt_licenses_active, gpt_api_key')
@@ -165,7 +165,7 @@ const Layout: React.FC = () => {
             if (churchError) {
               console.error('❌ 교회 정보 조회 실패:', churchError);
             } else {
-              console.log('✅ 교회 정보 조회 성공:', churchData);
+              // console.log('✅ 교회 정보 조회 성공:', churchData);
               setChurchInfo(churchData);
             }
           } catch (churchError) {
@@ -177,14 +177,14 @@ const Layout: React.FC = () => {
         try {
           // const recentLoginData = await loginHistoryService.getRecentLogin();
           // setRecentLogin(recentLoginData);
-          console.log('📝 로그인 기록 조회는 일시적으로 비활성화됨');
+          // console.log('📝 로그인 기록 조회는 일시적으로 비활성화됨');
         } catch (loginError) {
           console.error('로그인 기록 조회 실패:', loginError);
         }
       } catch (error: unknown) {
         console.error('❌ 사용자 정보 가져오기 오류:', error);
         if (error && typeof error === 'object' && 'response' in error) {
-          console.log('🔍 오류 상세:', (error as any).response?.data);
+          // console.log('🔍 오류 상세:', (error as any).response?.data);
         }
       }
     };

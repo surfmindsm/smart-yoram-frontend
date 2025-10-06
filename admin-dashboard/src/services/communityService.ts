@@ -44,25 +44,25 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
     // 캐시가 있고 유효하면 캐시 사용
     const now = Date.now();
     if (usersCache && (now - usersCacheTime) < CACHE_DURATION) {
-      console.log('👥 캐시에서 사용자 조회:', authorId);
+      // console.log('👥 캐시에서 사용자 조회:', authorId);
       const user = usersCache.find(u => u.id === authorId);
       return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
     }
 
     // Users API 직접 호출해서 구조 확인
-    console.log('👥 Users API 직접 호출 중...');
+    // console.log('👥 Users API 직접 호출 중...');
     try {
       const response = await api.get(getApiUrl('/users/'));
-      console.log('👥 Users API 응답 전체:', response);
-      console.log('👥 Users API 응답 데이터:', response.data);
+      // console.log('👥 Users API 응답 전체:', response);
+      // console.log('👥 Users API 응답 데이터:', response.data);
 
       if (response.data && Array.isArray(response.data)) {
         usersCache = response.data;
         usersCacheTime = now;
 
-        console.log('👥 사용자 목록 샘플:', response.data.slice(0, 3));
+        // console.log('👥 사용자 목록 샘플:', response.data.slice(0, 3));
         const user = usersCache.find((u: any) => u.id === authorId);
-        console.log(`👥 authorId ${authorId}에 해당하는 사용자:`, user);
+        // console.log(`👥 authorId ${authorId}에 해당하는 사용자:`, user);
 
         return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
       }
@@ -71,17 +71,17 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
 
       // 403인 경우 Supabase members 시도
       if (apiError.response?.status === 403) {
-        console.log('👥 403 에러로 Supabase members 시도...');
+        // console.log('👥 403 에러로 Supabase members 시도...');
         const { supabaseApiService } = await import('./supabaseApiService');
         const membersResponse = await supabaseApiService.members.getAll();
-        console.log('👥 Supabase members 응답:', membersResponse);
+        // console.log('👥 Supabase members 응답:', membersResponse);
 
         if (membersResponse && Array.isArray(membersResponse.data)) {
           usersCache = membersResponse.data;
           usersCacheTime = now;
 
           const user = usersCache.find((u: any) => u.id === authorId);
-          console.log(`👥 Supabase에서 authorId ${authorId}에 해당하는 사용자:`, user);
+          // console.log(`👥 Supabase에서 authorId ${authorId}에 해당하는 사용자:`, user);
           return user ? (user.full_name || user.name || user.username || user.email || `사용자${authorId}`) : null;
         }
       }
@@ -96,19 +96,19 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
 
 // 공통 API 응답 처리 함수 (마이그레이션 가이드 준수)
 const handleApiResponse = (response: any, operation: string) => {
-  console.log(`🔍 ${operation} API 응답 전체:`, response);
-  console.log(`🔍 ${operation} API 응답 데이터:`, response.data);
-  console.log(`🔍 ${operation} API 응답 상태:`, response.status);
-  console.log(`🔍 success 필드:`, response.data?.success);
+  // console.log(`🔍 ${operation} API 응답 전체:`, response);
+  // console.log(`🔍 ${operation} API 응답 데이터:`, response.data);
+  // console.log(`🔍 ${operation} API 응답 상태:`, response.status);
+  // console.log(`🔍 success 필드:`, response.data?.success);
 
   // 표준 응답 구조 확인: { success: boolean, data: any, pagination?: any }
   if (response.data?.success === true) {
-    console.log(`✅ ${operation} 성공 (표준 응답)`);
+    // console.log(`✅ ${operation} 성공 (표준 응답)`);
     return response.data.data || response.data;
   }
   // 하위 호환성을 위한 HTTP 상태 코드 체크
   else if (response.status === 200 || response.status === 201) {
-    console.log(`✅ ${operation} 성공 (HTTP 상태 코드)`);
+    // console.log(`✅ ${operation} 성공 (HTTP 상태 코드)`);
     return response.data?.data || response.data;
   }
   // 명시적 실패 응답
@@ -218,7 +218,7 @@ const parseJsonArray = (value: any, fallback: any[] = []): any[] => {
       // 파싱된 결과가 배열이 아니면 배열로 감싸기
       return [parsed];
     } catch (error) {
-      console.warn(`JSON 배열 파싱 실패: ${value}`, error);
+      // console.warn(`JSON 배열 파싱 실패: ${value}`, error);
       // 파싱 실패 시 문자열을 쉼표로 분할하여 배열로 만들기
       const splitResult = value.split(',').map(item => item.trim()).filter(item => item);
       return splitResult.length > 0 ? splitResult : fallback;
@@ -244,7 +244,7 @@ const validateAndTrimField = (value: any, maxLength: number, fieldName?: string)
 
   if (stringValue.length > maxLength) {
     if (fieldName) {
-      console.warn(`${fieldName} 필드가 최대 길이(${maxLength}자)를 초과하여 잘림: ${stringValue.length}자 -> ${maxLength}자`);
+      // console.warn(`${fieldName} 필드가 최대 길이(${maxLength}자)를 초과하여 잘림: ${stringValue.length}자 -> ${maxLength}자`);
     }
     return stringValue.substring(0, maxLength);
   }
@@ -619,7 +619,7 @@ export const communityService = {
   // 커뮤니티 홈 데이터
   getHomeStats: async (): Promise<CommunityStats> => {
     try {
-      console.log('🏠 커뮤니티 통계 Supabase Edge Function 호출 중...');
+      // console.log('🏠 커뮤니티 통계 Supabase Edge Function 호출 중...');
       const { supabaseApiService } = await import('./supabaseApiService');
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/stats', {
         method: 'GET'
@@ -630,7 +630,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 커뮤니티 통계 Edge Function 응답:', data);
+      // console.log('✅ 커뮤니티 통계 Edge Function 응답:', data);
 
       // Edge Function 응답 구조가 { success: true, data: {...} } 형태인 경우 처리
       if (data?.success && data?.data) {
@@ -655,7 +655,7 @@ export const communityService = {
 
   getRecentPosts: async (limit: number = 10): Promise<RecentPost[]> => {
     try {
-      console.log('📄 최근 게시글 Supabase Edge Function 호출 중...');
+      // console.log('📄 최근 게시글 Supabase Edge Function 호출 중...');
       const { supabaseApiService } = await import('./supabaseApiService');
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/recent-posts', {
         method: 'GET',
@@ -667,7 +667,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 최근 게시글 Edge Function 응답:', data);
+      // console.log('✅ 최근 게시글 Edge Function 응답:', data);
 
       // Edge Function 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (data?.success && data?.data) {
@@ -760,13 +760,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -777,7 +777,7 @@ export const communityService = {
           if (item.church_id === 9998) {
             // 협력사의 경우 "-"로 표시
             churchAddress = '-';
-            console.log(`✅ 협력사 주소: "-"`);
+            // console.log(`✅ 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -788,12 +788,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -821,14 +821,14 @@ export const communityService = {
         }));
 
         // 조회수 로그
-        console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));
-        console.log('🔍 작성자 이름 확인:', transformedData.slice(0, 3).map((item: SharingItem) => `ID ${item.id}: author_name=${JSON.stringify(data.data.find((d: any) => d.id === item.id)?.author_name)}, userName=${item.userName}`));
+        // console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));
+        // console.log('🔍 작성자 이름 확인:', transformedData.slice(0, 3).map((item: SharingItem) => `ID ${item.id}: author_name=${JSON.stringify(data.data.find((d: any) => d.id === item.id)?.author_name)}, userName=${item.userName}`));
 
         return transformedData;
       }
 
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 Supabase API 응답 구조:', data);
+      // console.warn('예상치 못한 Supabase API 응답 구조:', data);
       return [];
     } catch (error: any) {
       console.error('❌ 무료 나눔 조회 실패 (Supabase API):', error);
@@ -838,7 +838,7 @@ export const communityService = {
 
   createSharingItem: async (itemData: Partial<SharingItem>): Promise<SharingItem> => {
     try {
-      console.log('📝 무료 나눔 등록 API 호출 중...', itemData);
+      // console.log('📝 무료 나눔 등록 API 호출 중...', itemData);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -850,12 +850,12 @@ export const communityService = {
       const userId = currentUser.user.id;
       const churchId = currentUser.profile?.church_id || 9998; // 기본값 9998
 
-      console.log('👤 현재 사용자 정보:', {
-        userId,
-        churchId,
-        email: currentUser.user.email,
-        profile: currentUser.profile
-      });
+      // console.log('👤 현재 사용자 정보:', {
+      //   userId,
+      //   churchId,
+      //   email: currentUser.user.email,
+      //   profile: currentUser.profile
+      // });
 
       // author_id는 정수여야 하므로 profile에서 ID를 가져오거나 변환
       let authorId = null;
@@ -863,7 +863,7 @@ export const communityService = {
         authorId = parseInt(currentUser.profile.id.toString());
       }
 
-      console.log('🔢 변환된 author_id:', authorId);
+      // console.log('🔢 변환된 author_id:', authorId);
 
       // 필드 길이 검증 및 제한
       const validatedData = {
@@ -903,12 +903,12 @@ export const communityService = {
         contactEmail: undefined
       };
 
-      console.log('📤 백엔드로 전송할 데이터:', backendData);
-      console.log('📞 연락처 필드 확인:', {
-        contact_phone: backendData.contact_phone,
-        contact_email: backendData.contact_email,
-        contact_info: backendData.contact_info
-      });
+      // console.log('📤 백엔드로 전송할 데이터:', backendData);
+      // console.log('📞 연락처 필드 확인:', {
+      //   contact_phone: backendData.contact_phone,
+      //   contact_email: backendData.contact_email,
+      //   contact_info: backendData.contact_info
+      // });
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
@@ -919,7 +919,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 무료 나눔 등록 API 응답:', data);
+      // console.log('✅ 무료 나눔 등록 API 응답:', data);
       return data;
     } catch (error: any) {
       console.error('❌ 무료 나눔 등록 실패:', error);
@@ -958,7 +958,7 @@ export const communityService = {
     limit?: number;
   }): Promise<RequestItem[]> => {
     try {
-      console.log('📝 물품요청 조회 Supabase Edge Function 호출 중...', params);
+      // console.log('📝 물품요청 조회 Supabase Edge Function 호출 중...', params);
 
       // Supabase Edge Function 사용
       const queryParams = new URLSearchParams();
@@ -982,7 +982,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 물품요청 Edge Function 응답:', data);
+      // console.log('✅ 물품요청 Edge Function 응답:', data);
 
       // community/requests function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
@@ -1004,13 +1004,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -1019,7 +1019,7 @@ export const communityService = {
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-            console.log(`✅ [물품요청] 협력사 주소: "-"`);
+            // console.log(`✅ [물품요청] 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -1030,12 +1030,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -1066,7 +1066,7 @@ export const communityService = {
           };
         }));
 
-        console.log('✅ 변환된 물품요청 데이터:', transformedData.length, '개');
+        // console.log('✅ 변환된 물품요청 데이터:', transformedData.length, '개');
         return transformedData;
       }
 
@@ -1089,13 +1089,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ [물품요청] 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ [물품요청] 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -1104,7 +1104,7 @@ export const communityService = {
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-            console.log(`✅ [물품요청] 협력사 주소: "-"`);
+            // console.log(`✅ [물품요청] 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -1115,12 +1115,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ [물품요청] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ [물품요청] 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -1154,7 +1154,7 @@ export const communityService = {
       }
 
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 Supabase API 응답 구조:', data);
+      // console.warn('예상치 못한 Supabase API 응답 구조:', data);
       return [];
     } catch (error: any) {
       console.error('❌ 물품요청 조회 실패 (Supabase API):', error);
@@ -1164,7 +1164,7 @@ export const communityService = {
 
   createRequestItem: async (itemData: Partial<RequestItem>): Promise<RequestItem> => {
     try {
-      console.log('📝 물품요청 등록 API 호출 중...', itemData);
+      // console.log('📝 물품요청 등록 API 호출 중...', itemData);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -1176,12 +1176,12 @@ export const communityService = {
       const userId = currentUser.user.id;
       const churchId = currentUser.profile?.church_id || 9998; // 기본값 9998
 
-      console.log('👤 현재 사용자 정보:', {
-        userId,
-        churchId,
-        email: currentUser.user.email,
-        profile: currentUser.profile
-      });
+      // console.log('👤 현재 사용자 정보:', {
+      //   userId,
+      //   churchId,
+      //   email: currentUser.user.email,
+      //   profile: currentUser.profile
+      // });
 
       // author_id는 정수여야 하므로 profile에서 ID를 가져오거나 변환
       let authorId = null;
@@ -1189,7 +1189,7 @@ export const communityService = {
         authorId = parseInt(currentUser.profile.id.toString());
       }
 
-      console.log('🔢 변환된 author_id:', authorId);
+      // console.log('🔢 변환된 author_id:', authorId);
 
       // 물품요청 특화 데이터 구성
       const backendData = {
@@ -1207,7 +1207,7 @@ export const communityService = {
         status: 'active'
       };
 
-      console.log('📤 백엔드로 전송할 물품요청 데이터:', backendData);
+      // console.log('📤 백엔드로 전송할 물품요청 데이터:', backendData);
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/requests', {
         method: 'POST',
         body: backendData
@@ -1218,7 +1218,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 물품요청 등록 API 응답:', data);
+      // console.log('✅ 물품요청 등록 API 응답:', data);
       return data;
     } catch (error: any) {
       console.error('❌ 물품요청 등록 실패:', error);
@@ -1255,7 +1255,7 @@ export const communityService = {
     limit?: number;
   }): Promise<OfferItem[]> => {
     try {
-      console.log('💰 물품판매 조회 Supabase Edge Function 호출 중...', params);
+      // console.log('💰 물품판매 조회 Supabase Edge Function 호출 중...', params);
 
       // Supabase Edge Function을 사용하되 is_free=false 필터 추가
       const queryParams = new URLSearchParams();
@@ -1278,21 +1278,21 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 물품판매 Edge Function 응답:', data);
+      // console.log('✅ 물품판매 Edge Function 응답:', data);
 
       // community/sharing function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
-        console.log('🔍 모든 아이템 is_free 상태:', data.data.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free, type: typeof item.is_free, stringified: JSON.stringify(item.is_free) })));
+        // console.log('🔍 모든 아이템 is_free 상태:', data.data.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free, type: typeof item.is_free, stringified: JSON.stringify(item.is_free) })));
 
         // 각 아이템 개별 확인
         data.data.forEach((item: any, index: number) => {
-          console.log(`아이템 ${index}: id=${item.id}, title="${item.title}", is_free=${item.is_free} (${typeof item.is_free})`);
+          // console.log(`아이템 ${index}: id=${item.id}, title="${item.title}", is_free=${item.is_free} (${typeof item.is_free})`);
         });
 
         // is_free=false 인 아이템만 필터링 (물품판매) - 다양한 경우 고려
         const paidItems = data.data.filter((item: any) => {
           const isFree = item.is_free;
-          console.log(`아이템 ${item.id} 필터링 검사: is_free=${isFree} (${typeof isFree})`);
+          // console.log(`아이템 ${item.id} 필터링 검사: is_free=${isFree} (${typeof isFree})`);
 
           // 여러 가지 false 조건 확인
           const isFalse = isFree === false ||
@@ -1301,10 +1301,10 @@ export const communityService = {
                          isFree === '0' ||
                          (!isFree && isFree !== null && isFree !== undefined); // falsy 값이지만 null/undefined가 아닌 경우
 
-          console.log(`아이템 ${item.id} 필터링 결과: ${isFalse ? '포함' : '제외'}`);
+          // console.log(`아이템 ${item.id} 필터링 결과: ${isFalse ? '포함' : '제외'}`);
           return isFalse;
         });
-        console.log('💰 필터링된 물품판매 아이템들:', paidItems.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
+        // console.log('💰 필터링된 물품판매 아이템들:', paidItems.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
 
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         const transformedData = await Promise.all(paidItems.map(async (item: any): Promise<OfferItem> => {
@@ -1323,13 +1323,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ [물품판매] 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ [물품판매] 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ [물품판매] 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -1338,7 +1338,7 @@ export const communityService = {
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-            console.log(`✅ [물품판매] 협력사 주소: "-"`);
+            // console.log(`✅ [물품판매] 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -1349,12 +1349,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ [물품판매] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ [물품판매] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ [물품판매] 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -1386,12 +1386,12 @@ export const communityService = {
           };
         }));
 
-        console.log('✅ 변환된 물품판매 데이터:', transformedData.length, '개');
+        // console.log('✅ 변환된 물품판매 데이터:', transformedData.length, '개');
         return transformedData;
       }
 
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 Supabase API 응답 구조:', data);
+      // console.warn('예상치 못한 Supabase API 응답 구조:', data);
       return [];
     } catch (error: any) {
       console.error('❌ 물품판매 조회 실패 (Supabase API):', error);
@@ -1401,7 +1401,7 @@ export const communityService = {
 
   createOfferItem: async (itemData: Partial<OfferItem>): Promise<OfferItem> => {
     try {
-      console.log('📝 물품판매 등록 API 호출 중...', itemData);
+      // console.log('📝 물품판매 등록 API 호출 중...', itemData);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -1413,12 +1413,12 @@ export const communityService = {
       const userId = currentUser.user.id;
       const churchId = currentUser.profile?.church_id || 9998; // 기본값 9998
 
-      console.log('👤 현재 사용자 정보:', {
-        userId,
-        churchId,
-        email: currentUser.user.email,
-        profile: currentUser.profile
-      });
+      // console.log('👤 현재 사용자 정보:', {
+      //   userId,
+      //   churchId,
+      //   email: currentUser.user.email,
+      //   profile: currentUser.profile
+      // });
 
       // author_id는 정수여야 하므로 profile에서 ID를 가져오거나 변환
       let authorId = null;
@@ -1426,7 +1426,7 @@ export const communityService = {
         authorId = parseInt(currentUser.profile.id.toString());
       }
 
-      console.log('🔢 변환된 author_id:', authorId);
+      // console.log('🔢 변환된 author_id:', authorId);
 
       // 물품판매 특화 데이터 구성
       const backendData = {
@@ -1446,7 +1446,7 @@ export const communityService = {
         status: 'active'
       };
 
-      console.log('📤 백엔드로 전송할 물품판매 데이터:', backendData);
+      // console.log('📤 백엔드로 전송할 물품판매 데이터:', backendData);
       const { data, error } = await supabaseApiService.supabase.functions.invoke('community/sharing', {
         method: 'POST',
         body: backendData
@@ -1457,7 +1457,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 물품판매 등록 API 응답:', data);
+      // console.log('✅ 물품판매 등록 API 응답:', data);
       return data;
     } catch (error: any) {
       console.error('❌ 물품판매 등록 실패:', error);
@@ -1544,7 +1544,7 @@ export const communityService = {
       }
 
       // 예상치 못한 응답 구조인 경우 기본 객체 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      // console.warn('예상치 못한 API 응답 구조:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('물품 판매 수정 실패:', error);
@@ -1572,7 +1572,7 @@ export const communityService = {
     limit?: number;
   }): Promise<JobPost[]> => {
     try {
-      console.log('💼 구인공고 조회 Supabase Edge Function 호출 중...', params);
+      // console.log('💼 구인공고 조회 Supabase Edge Function 호출 중...', params);
 
       // Supabase Edge Function 사용
       const queryParams = new URLSearchParams();
@@ -1595,7 +1595,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 구인공고 Edge Function 응답:', data);
+      // console.log('✅ 구인공고 Edge Function 응답:', data);
 
       // job-posts function returns array directly
       if (data && Array.isArray(data)) {
@@ -1618,13 +1618,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ [구인공고] 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ [구인공고] 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ [구인공고] 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -1633,7 +1633,7 @@ export const communityService = {
           let churchAddress = item.location || '';
           if (item.church_id === 9998) {
             churchAddress = '-';
-            console.log(`✅ [구인공고] 협력사 주소: "-"`);
+            // console.log(`✅ [구인공고] 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -1644,12 +1644,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ [구인공고] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ [구인공고] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ [구인공고] 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -1685,12 +1685,12 @@ export const communityService = {
           };
         }));
 
-        console.log('✅ 변환된 구인공고 데이터:', transformedData.length, '개');
+        // console.log('✅ 변환된 구인공고 데이터:', transformedData.length, '개');
         return transformedData;
       }
 
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 Supabase API 응답 구조:', data);
+      // console.warn('예상치 못한 Supabase API 응답 구조:', data);
       return [];
     } catch (error: any) {
       console.error('❌ 구인공고 조회 실패 (Supabase API):', error);
@@ -1700,9 +1700,9 @@ export const communityService = {
 
   getJobPost: async (jobId: number): Promise<JobPost | null> => {
     try {
-      console.log('💼 구인 공고 상세 조회 API 호출 중...', jobId);
+      // console.log('💼 구인 공고 상세 조회 API 호출 중...', jobId);
       const response = await api.get(getApiUrl(`/community/job-posting/${jobId}`));
-      console.log('✅ 구인 공고 상세 조회 API 응답:', response.data);
+      // console.log('✅ 구인 공고 상세 조회 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: {...} } 형태인 경우 처리
       if (response.data && response.data.success && response.data.data) {
@@ -1757,7 +1757,7 @@ export const communityService = {
 
   createJobPost: async (postData: any): Promise<JobPost> => {
     try {
-      console.log('💼 구인공고 등록 API 호출 중...', postData);
+      // console.log('💼 구인공고 등록 API 호출 중...', postData);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -1769,12 +1769,12 @@ export const communityService = {
       const userId = currentUser.user.id;
       const churchId = currentUser.profile?.church_id || 9998; // 기본값 9998
 
-      console.log('👤 현재 사용자 정보:', {
-        userId,
-        churchId,
-        email: currentUser.user.email,
-        profile: currentUser.profile
-      });
+      // console.log('👤 현재 사용자 정보:', {
+      //   userId,
+      //   churchId,
+      //   email: currentUser.user.email,
+      //   profile: currentUser.profile
+      // });
 
       // author_id는 정수여야 하므로 profile에서 ID를 가져오거나 변환
       let authorId = null;
@@ -1782,7 +1782,7 @@ export const communityService = {
         authorId = parseInt(currentUser.profile.id.toString());
       }
 
-      console.log('🔢 변환된 author_id:', authorId);
+      // console.log('🔢 변환된 author_id:', authorId);
 
       // 구인공고 특화 데이터 구성
       const backendData = {
@@ -1804,7 +1804,7 @@ export const communityService = {
         status: 'active'
       };
 
-      console.log('📤 백엔드로 전송할 구인공고 데이터:', backendData);
+      // console.log('📤 백엔드로 전송할 구인공고 데이터:', backendData);
       const { data, error } = await supabaseApiService.supabase.functions.invoke('job-posts', {
         method: 'POST',
         body: backendData
@@ -1815,7 +1815,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 구인공고 등록 API 응답:', data);
+      // console.log('✅ 구인공고 등록 API 응답:', data);
       return data;
     } catch (error: any) {
       console.error('❌ 구인공고 등록 실패:', error);
@@ -1851,9 +1851,9 @@ export const communityService = {
     limit?: number;
   }): Promise<JobSeeker[]> => {
     try {
-      console.log('👥 구직 신청 API 호출 중...', params);
+      // console.log('👥 구직 신청 API 호출 중...', params);
       const response = await api.get(getApiUrl('/community/job-seeking'), { params });
-      console.log('✅ 구직 신청 API 응답:', response.data);
+      // console.log('✅ 구직 신청 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -1877,7 +1877,7 @@ export const communityService = {
       }
       
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      // console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
       console.error('❌ 구직 신청 조회 실패:', error);
@@ -1889,7 +1889,7 @@ export const communityService = {
 
   createJobSeeker: async (seekerData: any, resume?: File): Promise<JobSeeker> => {
     try {
-      console.log('👤 구직 신청 등록 API 호출 중...', seekerData);
+      // console.log('👤 구직 신청 등록 API 호출 중...', seekerData);
       
       // 파일이 있는 경우 FormData 사용, 없으면 JSON 전송
       if (resume) {
@@ -1924,7 +1924,7 @@ export const communityService = {
         // 이력서 파일 추가
         formData.append('resume', resume, resume.name);
         
-        console.log('📄 이력서 파일과 함께 FormData 전송');
+        // console.log('📄 이력서 파일과 함께 FormData 전송');
         
         const response = await api.post(getApiUrl('/community/job-seekers'), formData, {
           headers: {
@@ -1932,7 +1932,7 @@ export const communityService = {
           },
         });
         
-        console.log('✅ 구직 신청 등록 (파일 포함) API 응답:', response.data);
+        // console.log('✅ 구직 신청 등록 (파일 포함) API 응답:', response.data);
         return response.data?.data || response.data;
         
       } else {
@@ -1955,10 +1955,10 @@ export const communityService = {
           status: seekerData.status || "active"
         };
         
-        console.log('🔄 변환된 API 데이터:', apiData);
+        // console.log('🔄 변환된 API 데이터:', apiData);
         
         const response = await api.post(getApiUrl('/community/job-seekers'), apiData);
-        console.log('✅ 구직 신청 등록 API 응답:', response.data);
+        // console.log('✅ 구직 신청 등록 API 응답:', response.data);
         
         return response.data?.data || response.data;
       }
@@ -2000,7 +2000,7 @@ export const communityService = {
     limit?: number; // 페이지당 항목 수
   }): Promise<MusicRecruitment[]> => {
     try {
-      console.log('🎵 찬양팀모집 조회 Supabase Edge Function 호출 중...', params);
+      // console.log('🎵 찬양팀모집 조회 Supabase Edge Function 호출 중...', params);
 
       // Supabase Edge Function 사용
       const queryParams = new URLSearchParams();
@@ -2022,7 +2022,7 @@ export const communityService = {
         throw response.error;
       }
 
-      console.log('✅ 찬양팀모집 Edge Function 응답:', response.data);
+      // console.log('✅ 찬양팀모집 Edge Function 응답:', response.data);
 
       // music-teams function returns array directly
       if (response.data && Array.isArray(response.data)) {
@@ -2041,13 +2041,13 @@ export const communityService = {
 
               if (userData && !error) {
                 userName = userData.full_name || userData.email || '익명';
-                console.log(`✅ [찬양팀모집] 사용자 ${item.author_id} 조회 성공:`, userName);
+                // console.log(`✅ [찬양팀모집] 사용자 ${item.author_id} 조회 성공:`, userName);
               } else {
-                console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 실패:`, error);
+                // console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 실패:`, error);
                 userName = `사용자${item.author_id}`;
               }
             } catch (error) {
-              console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 에러:`, error);
+              // console.log(`❌ [찬양팀모집] 사용자 ${item.author_id} 조회 에러:`, error);
               userName = `사용자${item.author_id}`;
             }
           }
@@ -2056,7 +2056,7 @@ export const communityService = {
           let churchAddress = item.location || null;
           if (item.church_id === 9998) {
             churchAddress = '-';
-            console.log(`✅ [찬양팀모집] 협력사 주소: "-"`);
+            // console.log(`✅ [찬양팀모집] 협력사 주소: "-"`);
           } else if (item.church_id) {
             try {
               const { data: churchData, error } = await supabaseApiService.supabase
@@ -2067,12 +2067,12 @@ export const communityService = {
 
               if (churchData && !error) {
                 churchAddress = churchData.address || churchData.name || churchAddress;
-                console.log(`✅ [찬양팀모집] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
+                // console.log(`✅ [찬양팀모집] 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
               } else {
-                console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 실패:`, error);
+                // console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 실패:`, error);
               }
             } catch (error) {
-              console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 에러:`, error);
+              // console.log(`❌ [찬양팀모집] 교회 ${item.church_id} 조회 에러:`, error);
             }
           }
 
@@ -2115,21 +2115,21 @@ export const communityService = {
             // 백엔드 스키마 업데이트 후 매핑
             worship_type: item.worship_type || '미정', // 예배 형태
             team_types: (() => {
-              console.log('🔍 team_types 파싱 디버그:', {
-                raw_team_types: item.team_types,
-                type: typeof item.team_types,
-                team_name: item.team_name,
-                starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
-              });
+              // console.log('🔍 team_types 파싱 디버그:', {
+              //   raw_team_types: item.team_types,
+              //   type: typeof item.team_types,
+              //   team_name: item.team_name,
+              //   starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
+              // });
 
               // team_types가 JSON 문자열인 경우 파싱
               if (typeof item.team_types === 'string' && item.team_types.startsWith('[')) {
                 try {
                   const parsed = JSON.parse(item.team_types);
-                  console.log('✅ JSON 파싱 성공:', parsed);
+                  // console.log('✅ JSON 파싱 성공:', parsed);
                   return parsed;
                 } catch (e) {
-                  console.log('❌ JSON 파싱 실패:', e);
+                  // console.log('❌ JSON 파싱 실패:', e);
                   return [item.team_types];
                 }
               }
@@ -2149,12 +2149,12 @@ export const communityService = {
           
           // 디버깅: 변환 결과 확인
           if (item.id === 6) {
-            console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
-              original_created_at: item.created_at,
-              fixed_createdAt: createdAt,
-              transformed_createdAt: transformed.createdAt,
-              formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
-            });
+            // console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
+            //   original_created_at: item.created_at,
+            //   fixed_createdAt: createdAt,
+            //   transformed_createdAt: transformed.createdAt,
+            //   formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
+            // });
           }
           
           return transformed;
@@ -2178,21 +2178,21 @@ export const communityService = {
             // 백엔드 스키마 업데이트 후 매핑
             worship_type: item.worship_type || '미정', // 예배 형태
             team_types: (() => {
-              console.log('🔍 team_types 파싱 디버그:', {
-                raw_team_types: item.team_types,
-                type: typeof item.team_types,
-                team_name: item.team_name,
-                starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
-              });
+              // console.log('🔍 team_types 파싱 디버그:', {
+              //   raw_team_types: item.team_types,
+              //   type: typeof item.team_types,
+              //   team_name: item.team_name,
+              //   starts_with_bracket: typeof item.team_types === 'string' && item.team_types.startsWith('[')
+              // });
 
               // team_types가 JSON 문자열인 경우 파싱
               if (typeof item.team_types === 'string' && item.team_types.startsWith('[')) {
                 try {
                   const parsed = JSON.parse(item.team_types);
-                  console.log('✅ JSON 파싱 성공:', parsed);
+                  // console.log('✅ JSON 파싱 성공:', parsed);
                   return parsed;
                 } catch (e) {
-                  console.log('❌ JSON 파싱 실패:', e);
+                  // console.log('❌ JSON 파싱 실패:', e);
                   return [item.team_types];
                 }
               }
@@ -2212,12 +2212,12 @@ export const communityService = {
           
           // 디버깅: 변환 결과 확인
           if (item.id === 6) {
-            console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
-              original_created_at: item.created_at,
-              fixed_createdAt: createdAt,
-              transformed_createdAt: transformed.createdAt,
-              formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
-            });
+            // console.log('🔍 [TRANSFORM_DEBUG] ID 6 변환 결과:', {
+            //   original_created_at: item.created_at,
+            //   fixed_createdAt: createdAt,
+            //   transformed_createdAt: transformed.createdAt,
+            //   formatCreatedAt_result: transformed.createdAt ? formatCreatedAt(transformed.createdAt) : 'null'
+            // });
           }
           
           return transformed;
@@ -2226,7 +2226,7 @@ export const communityService = {
       }
       
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      // console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
       console.error('❌ 음악팀 모집 조회 실패:', error);
@@ -2238,9 +2238,9 @@ export const communityService = {
 
   createMusicRecruitment: async (recruitmentData: any): Promise<MusicRecruitment> => {
     try {
-      console.log('🎵 행사팀 모집 등록 API 호출 중...', recruitmentData);
-      console.log('🔍 teamTypes 확인:', recruitmentData.teamTypes);
-      console.log('🔍 첫 번째 teamType:', recruitmentData.teamTypes?.[0]);
+      // console.log('🎵 행사팀 모집 등록 API 호출 중...', recruitmentData);
+      // console.log('🔍 teamTypes 확인:', recruitmentData.teamTypes);
+      // console.log('🔍 첫 번째 teamType:', recruitmentData.teamTypes?.[0]);
       
       // 실제 백엔드 SQL 스키마에 정확히 맞게 데이터 변환 (community_music_teams 테이블 기준)
       const apiData = {
@@ -2281,7 +2281,7 @@ export const communityService = {
         // 사용자 정보는 백엔드에서 JWT 토큰을 통해 자동으로 설정됨
       };
       
-      console.log('🔄 변환된 API 데이터:', apiData);
+      // console.log('🔄 변환된 API 데이터:', apiData);
       
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -2314,7 +2314,7 @@ export const communityService = {
         throw response.error;
       }
 
-      console.log('✅ [Supabase] 찬양팀 모집 등록 완료:', response.data);
+      // console.log('✅ [Supabase] 찬양팀 모집 등록 완료:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 행사팀 모집 등록 실패:', error);
@@ -2355,7 +2355,7 @@ export const communityService = {
     search?: string;
   }): Promise<MusicSeeker[]> => {
     try {
-      console.log('🎶 [Supabase] 음악팀 지원자 목록 조회 중...', params);
+      // console.log('🎶 [Supabase] 음악팀 지원자 목록 조회 중...', params);
 
       // Supabase Edge Function 호출
       const searchParams = new URLSearchParams();
@@ -2380,18 +2380,18 @@ export const communityService = {
         return [];
       }
 
-      console.log('✅ [Supabase] 음악팀 지원자 목록 조회 완료:', data?.data?.length || 0, '건');
-      console.log('🔍 [DEBUG] 원본 데이터 샘플:', data?.data?.[0]);
-      console.log('🔍 [DEBUG] 원본 created_at:', data?.data?.[0]?.created_at);
-      console.log('🔍 [DEBUG] 원본 portfolio_file:', data?.data?.[0]?.portfolio_file);
-      console.log('🔍 [DEBUG] 조인된 users 데이터:', data?.data?.[0]?.users);
-      console.log('🔍 [DEBUG] 조인된 churches 데이터:', data?.data?.[0]?.churches);
+      // console.log('✅ [Supabase] 음악팀 지원자 목록 조회 완료:', data?.data?.length || 0, '건');
+      // console.log('🔍 [DEBUG] 원본 데이터 샘플:', data?.data?.[0]);
+      // console.log('🔍 [DEBUG] 원본 created_at:', data?.data?.[0]?.created_at);
+      // console.log('🔍 [DEBUG] 원본 portfolio_file:', data?.data?.[0]?.portfolio_file);
+      // console.log('🔍 [DEBUG] 조인된 users 데이터:', data?.data?.[0]?.users);
+      // console.log('🔍 [DEBUG] 조인된 churches 데이터:', data?.data?.[0]?.churches);
 
       // Edge Function 응답 구조: {data: Array, count: number}
       const musicSeekers = data?.data || [];
 
       if (!Array.isArray(musicSeekers)) {
-        console.warn('❌ 예상치 못한 응답 구조:', data);
+        // console.warn('❌ 예상치 못한 응답 구조:', data);
         return [];
       }
 
@@ -2430,11 +2430,11 @@ export const communityService = {
         };
       });
 
-      console.log('🔍 [DEBUG] 원본 데이터 샘플:', data[0]);
-      console.log('🔍 [DEBUG] 원본 created_at:', data[0]?.created_at);
-      console.log('🔍 [DEBUG] 매핑된 데이터 샘플:', mappedData[0]);
-      console.log('🔍 [DEBUG] 매핑된 createdAt:', mappedData[0]?.createdAt);
-      console.log('🔍 [DEBUG] 매핑된 portfolioFile:', mappedData[0]?.portfolioFile);
+      // console.log('🔍 [DEBUG] 원본 데이터 샘플:', data[0]);
+      // console.log('🔍 [DEBUG] 원본 created_at:', data[0]?.created_at);
+      // console.log('🔍 [DEBUG] 매핑된 데이터 샘플:', mappedData[0]);
+      // console.log('🔍 [DEBUG] 매핑된 createdAt:', mappedData[0]?.createdAt);
+      // console.log('🔍 [DEBUG] 매핑된 portfolioFile:', mappedData[0]?.portfolioFile);
       return mappedData;
 
     } catch (error: any) {
@@ -2445,9 +2445,9 @@ export const communityService = {
 
   getMusicSeekerById: async (id: number): Promise<MusicSeeker | null> => {
     try {
-      console.log('🎶 음악팀 지원자 상세 API 호출 중...', id);
+      // console.log('🎶 음악팀 지원자 상세 API 호출 중...', id);
       const response = await api.get(getApiUrl(`/music-team-seekers/${id}`));
-      console.log('✅ 음악팀 지원자 상세 API 응답:', response.data);
+      // console.log('✅ 음악팀 지원자 상세 API 응답:', response.data);
       
       if (response.data?.success && response.data?.data) {
         return {
@@ -2484,8 +2484,8 @@ export const communityService = {
 
   createMusicSeeker: async (seekerData: any): Promise<any> => {
     try {
-      console.log('🎶 [Supabase] 음악팀 지원서 등록 중...', seekerData);
-      console.log('🔍 [DEBUG] seekerData.contactPhone:', `'${seekerData.contactPhone}'`, typeof seekerData.contactPhone);
+      // console.log('🎶 [Supabase] 음악팀 지원서 등록 중...', seekerData);
+      // console.log('🔍 [DEBUG] seekerData.contactPhone:', `'${seekerData.contactPhone}'`, typeof seekerData.contactPhone);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -2506,10 +2506,10 @@ export const communityService = {
           .single();
 
         if (userError) {
-          console.warn('⚠️ 사용자 정보 조회 실패:', userError);
+          // console.warn('⚠️ 사용자 정보 조회 실패:', userError);
         } else {
           userInfo = userData;
-          console.log('🔍 [DEBUG] 사용자 정보:', userInfo);
+          // console.log('🔍 [DEBUG] 사용자 정보:', userInfo);
 
           // 교회 정보 조회
           if (userInfo?.church_id && userInfo.church_id !== 9998) {
@@ -2520,15 +2520,15 @@ export const communityService = {
               .single();
 
             if (churchError) {
-              console.warn('⚠️ 교회 정보 조회 실패:', churchError);
+              // console.warn('⚠️ 교회 정보 조회 실패:', churchError);
             } else {
               churchInfo = churchData;
-              console.log('🔍 [DEBUG] 교회 정보:', churchInfo);
+              // console.log('🔍 [DEBUG] 교회 정보:', churchInfo);
             }
           }
         }
       } catch (dbError) {
-        console.warn('⚠️ 데이터베이스 조회 실패:', dbError);
+        // console.warn('⚠️ 데이터베이스 조회 실패:', dbError);
       }
 
       // Supabase Edge Function에 전송할 데이터 준비
@@ -2562,9 +2562,9 @@ export const communityService = {
         status: 'active'
       };
 
-      console.log('🔍 [DEBUG] churchInfo:', churchInfo);
-      console.log('🔍 [DEBUG] church_name 값:', churchInfo?.name);
-      console.log('🔍 [Supabase] 전송할 데이터:', requestData);
+      // console.log('🔍 [DEBUG] churchInfo:', churchInfo);
+      // console.log('🔍 [DEBUG] church_name 값:', churchInfo?.name);
+      // console.log('🔍 [Supabase] 전송할 데이터:', requestData);
 
       // Use direct fetch instead of Supabase SDK to avoid issues
       const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/music-seekers', {
@@ -2584,7 +2584,7 @@ export const communityService = {
       }
 
       const data = await response.json();
-      console.log('✅ [Supabase] 음악팀 지원서 등록 완료:', data);
+      // console.log('✅ [Supabase] 음악팀 지원서 등록 완료:', data);
       return data;
 
     } catch (error: any) {
@@ -2595,7 +2595,7 @@ export const communityService = {
 
   updateMusicSeeker: async (seekerId: number, seekerData: any): Promise<any> => {
     try {
-      console.log('🎶 음악팀 지원서 수정 API 호출 중...', seekerId, seekerData);
+      // console.log('🎶 음악팀 지원서 수정 API 호출 중...', seekerId, seekerData);
       
       // Frontend → Backend 데이터 변환
       const backendData = {
@@ -2613,7 +2613,7 @@ export const communityService = {
       };
       
       const response = await api.put(getApiUrl(`/music-team-seekers/${seekerId}`), backendData);
-      console.log('✅ 음악팀 지원서 수정 API 응답:', response.data);
+      // console.log('✅ 음악팀 지원서 수정 API 응답:', response.data);
       
       return response.data;
     } catch (error: any) {
@@ -2624,9 +2624,9 @@ export const communityService = {
 
   deleteMusicSeeker: async (seekerId: number): Promise<void> => {
     try {
-      console.log('🎶 음악팀 지원서 삭제 API 호출 중...', seekerId);
+      // console.log('🎶 음악팀 지원서 삭제 API 호출 중...', seekerId);
       const response = await api.delete(getApiUrl(`/music-team-seekers/${seekerId}`));
-      console.log('✅ 음악팀 지원서 삭제 API 응답:', response.data);
+      // console.log('✅ 음악팀 지원서 삭제 API 응답:', response.data);
     } catch (error: any) {
       console.error('❌ 음악팀 지원서 삭제 실패:', error);
       throw error;
@@ -2644,9 +2644,9 @@ export const communityService = {
     limit?: number;
   }): Promise<ChurchEvent[]> => {
     try {
-      console.log('🎪 교회 행사 API 호출 중...', params);
+      // console.log('🎪 교회 행사 API 호출 중...', params);
       const response = await api.get(getApiUrl('/community/church-events'), { params });
-      console.log('✅ 교회 행사 API 응답:', response.data);
+      // console.log('✅ 교회 행사 API 응답:', response.data);
 
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -2687,7 +2687,7 @@ export const communityService = {
       }
 
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      // console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
       console.error('❌ 교회 행사 조회 실패:', error);
@@ -2727,9 +2727,9 @@ export const communityService = {
     limit?: number;
   }): Promise<PrayerRequest[]> => {
     try {
-      console.log('🙏 기도 요청 API 호출 중...', params);
+      // console.log('🙏 기도 요청 API 호출 중...', params);
       const response = await api.get(getApiUrl('/community/prayer-requests'), { params });
-      console.log('✅ 기도 요청 API 응답:', response.data);
+      // console.log('✅ 기도 요청 API 응답:', response.data);
       
       // API 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -2753,7 +2753,7 @@ export const communityService = {
       }
       
       // 예상치 못한 응답 구조인 경우 빈 배열 반환
-      console.warn('예상치 못한 API 응답 구조:', response.data);
+      // console.warn('예상치 못한 API 응답 구조:', response.data);
       return [];
     } catch (error: any) {
       console.error('❌ 기도 요청 조회 실패:', error);
@@ -2912,7 +2912,7 @@ export const communityService = {
     limit?: number;
   }): Promise<any[]> => {
     try {
-      console.log('👨‍💼 관리자 게시글 Supabase Edge Function 호출 중...', params);
+      // console.log('👨‍💼 관리자 게시글 Supabase Edge Function 호출 중...', params);
       const { supabaseApiService } = await import('./supabaseApiService');
 
       // 파라미터를 URL 쿼리 스트링으로 생성
@@ -2934,7 +2934,7 @@ export const communityService = {
         throw error;
       }
 
-      console.log('✅ 관리자 게시글 Edge Function 응답:', data);
+      // console.log('✅ 관리자 게시글 Edge Function 응답:', data);
 
       // Edge Function 응답 구조가 { success: true, data: [...] } 형태인 경우 처리
       if (data?.success && data?.data) {
@@ -3044,7 +3044,7 @@ export const communityService = {
     event_date_to?: string;
   }): Promise<ChurchNews[]> => {
     try {
-      console.log('📰 [Supabase] 교회 소식 목록 조회 중...', params);
+      // console.log('📰 [Supabase] 교회 소식 목록 조회 중...', params);
 
       // Supabase Edge Function 호출
       const searchParams = new URLSearchParams();
@@ -3068,17 +3068,17 @@ export const communityService = {
         return [];
       }
 
-      console.log('✅ [Supabase] 교회 소식 목록 조회 완료:', data?.length || 0, '건');
+      // console.log('✅ [Supabase] 교회 소식 목록 조회 완료:', data?.length || 0, '건');
 
       if (!Array.isArray(data)) {
-        console.warn('❌ 예상치 못한 응답 구조:', data);
+        // console.warn('❌ 예상치 못한 응답 구조:', data);
         return [];
       }
 
       // 사용자명들을 병렬로 조회 (Supabase users 테이블에서 full_name)
       const authorIds = data.map((item: any) => item.author_id);
       const uniqueAuthorIds = Array.from(new Set(authorIds));
-      console.log('👥 고유 author_id들:', uniqueAuthorIds);
+      // console.log('👥 고유 author_id들:', uniqueAuthorIds);
 
       const usersData: { [key: number]: string } = {};
 
@@ -3090,8 +3090,8 @@ export const communityService = {
           .select('id, full_name, email')
           .in('id', uniqueAuthorIds);
 
-        console.log('👥 Supabase users 테이블 조회 결과:', usersResponse);
-        console.log('👥 Supabase users 조회 에러:', error);
+        // console.log('👥 Supabase users 테이블 조회 결과:', usersResponse);
+        // console.log('👥 Supabase users 조회 에러:', error);
 
         if (usersResponse && !error) {
           usersResponse.forEach((user: any) => {
@@ -3105,7 +3105,7 @@ export const communityService = {
       // 교회 주소 정보도 병렬로 조회
       const churchIds = data.map((item: any) => item.church_id);
       const uniqueChurchIds = Array.from(new Set(churchIds.filter(id => id && id !== 9998)));
-      console.log('🏛️ 고유 church_id들:', uniqueChurchIds);
+      // console.log('🏛️ 고유 church_id들:', uniqueChurchIds);
 
       const churchesData: { [key: number]: string } = {};
 
@@ -3117,7 +3117,7 @@ export const communityService = {
             .select('serial_id, address, name')
             .in('serial_id', uniqueChurchIds);
 
-          console.log('🏛️ Supabase churches 테이블 조회 결과:', churchesResponse);
+          // console.log('🏛️ Supabase churches 테이블 조회 결과:', churchesResponse);
 
           if (churchesResponse && !error) {
             churchesResponse.forEach((church: any) => {
@@ -3129,7 +3129,7 @@ export const communityService = {
         }
       }
 
-      console.log('👥 매핑된 사용자 데이터:', usersData);
+      // console.log('👥 매핑된 사용자 데이터:', usersData);
 
       // 백엔드 형식을 프론트엔드 형식으로 변환
       return data.map((item: any) => {
@@ -3198,7 +3198,7 @@ export const communityService = {
   // 교회 행사 소식 등록
   createChurchNews: async (newsData: Partial<ChurchNews>): Promise<ChurchNews> => {
     try {
-      console.log('📰 [Supabase] 교회 소식 등록 중...', newsData);
+      // console.log('📰 [Supabase] 교회 소식 등록 중...', newsData);
 
       // 현재 사용자 정보 가져오기
       const currentUser = await supabaseAuthService.getCurrentUser();
@@ -3224,7 +3224,7 @@ export const communityService = {
         status: 'published'
       };
 
-      console.log('🔍 [Supabase] 전송할 데이터:', requestData);
+      // console.log('🔍 [Supabase] 전송할 데이터:', requestData);
 
       const { data, error } = await supabaseApiService.supabase.functions.invoke('church-news', {
         method: 'POST',
@@ -3240,7 +3240,7 @@ export const communityService = {
         throw new Error(error.message || '교회 소식 등록에 실패했습니다.');
       }
 
-      console.log('✅ [Supabase] 교회 소식 등록 완료:', data);
+      // console.log('✅ [Supabase] 교회 소식 등록 완료:', data);
 
       // 응답 데이터를 프론트엔드 형식으로 변환
       return {
@@ -3412,7 +3412,7 @@ function transformChurchNewsToBackend(frontendData: Partial<ChurchNews>): any {
     backendData.status = frontendData.status;
   }
 
-  console.log('🔍 [CHURCH_NEWS] 최종 변환된 백엔드 데이터:', backendData);
+  // console.log('🔍 [CHURCH_NEWS] 최종 변환된 백엔드 데이터:', backendData);
   return backendData;
 }
 

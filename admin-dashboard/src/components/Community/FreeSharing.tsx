@@ -42,7 +42,7 @@ const FreeSharing: React.FC = () => {
           search: searchTerm || undefined,
           limit: 50
         });
-        console.log('🔢 조회수 데이터 확인:', data.map(item => `${item.title}: ${item.view_count}회`));
+        // console.log('🔢 조회수 데이터 확인:', data.map(item => `${item.title}: ${item.view_count}회`));
         setSharingItems(data);
       } catch (error) {
         console.error('무료 나눔 데이터 로드 실패:', error);
@@ -69,7 +69,7 @@ const FreeSharing: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`📈 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
+        // console.log(`📈 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
         return data.data?.new_view_count;
       }
     } catch (error) {
