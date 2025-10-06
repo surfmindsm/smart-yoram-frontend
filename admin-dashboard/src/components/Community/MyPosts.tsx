@@ -16,7 +16,8 @@ import {
   User as UserIcon,
   Music,
   Users,
-  CheckCircle
+  CheckCircle,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
@@ -193,6 +194,32 @@ const MyPosts: React.FC = () => {
     }
   };
 
+  const handleMarkAsActive = async (post: MyPost) => {
+    if (!window.confirm('다시 진행중으로 변경하시겠습니까?')) return;
+
+    try {
+      // 물품 관련 게시글의 상태를 'active'로 변경
+      switch (post.type) {
+        case 'community-sharing':
+          await communityService.updateSharingItemStatus(post.id, 'active');
+          break;
+        case 'item-sale':
+          await communityService.updateOfferItemStatus(post.id, 'active');
+          break;
+        default:
+          alert('상태 변경이 지원되지 않는 게시글입니다.');
+          return;
+      }
+
+      // 성공하면 목록 새로고침
+      await fetchMyPosts();
+      alert('진행중으로 변경되었습니다.');
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      alert('상태 변경에 실패했습니다.');
+    }
+  };
+
   const getTypeInfo = (type: string) => {
     switch (type) {
       case 'community-sharing':
@@ -288,6 +315,47 @@ const MyPosts: React.FC = () => {
     }
   };
 
+  const getStatusLabel = (status: string, type: string): string => {
+    const statusLower = status.toLowerCase();
+
+    // 물품 관련 게시글의 completed 상태
+    if (statusLower === 'completed' || statusLower === 'sold') {
+      if (type === 'community-sharing') {
+        return '나눔 완료';
+      } else if (type === 'item-sale') {
+        return '판매 완료';
+      }
+    }
+
+    // 기타 상태
+    switch (statusLower) {
+      case 'active':
+      case 'available':
+        return '진행중';
+      case 'requesting':
+        return '요청중';
+      case 'open':
+        return '모집중';
+      case 'upcoming':
+        return '예정';
+      case 'closed':
+      case 'inactive':
+        return '종료';
+      case 'answered':
+        return '답변완료';
+      case 'cancelled':
+        return '취소';
+      case 'reserved':
+        return '예약됨';
+      case 'matching':
+        return '매칭중';
+      case 'ongoing':
+        return '진행중';
+      default:
+        return status;
+    }
+  };
+
   const getStatusColor = (status: string, type: string) => {
     // 백엔드 표준화: active, completed, closed, cancelled 통일
     switch (status.toLowerCase()) {
@@ -298,6 +366,7 @@ const MyPosts: React.FC = () => {
       case 'upcoming':
         return 'bg-green-100 text-green-800';
       case 'completed':
+      case 'sold':
         return 'bg-gray-100 text-gray-800';
       case 'closed':
       case 'inactive':
@@ -349,7 +418,7 @@ const MyPosts: React.FC = () => {
     {
       key: 'status',
       title: '상태',
-      render: (_, post) => TableRenderers.badge(post.status, getStatusColor(post.status, post.type))
+      render: (_, post) => TableRenderers.badge(getStatusLabel(post.status, post.type), getStatusColor(post.status, post.type))
     },
     {
       key: 'created_at',
@@ -366,19 +435,30 @@ const MyPosts: React.FC = () => {
       title: '관리',
       render: (_, post) => {
         const isItemPost = post.type === 'community-sharing' || post.type === 'item-sale';
-        const isNotCompleted = post.status !== 'completed' && post.status !== 'sold';
+        const isCompleted = post.status === 'completed' || post.status === 'sold';
 
         return (
           <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-            {isItemPost && isNotCompleted && (
+            {isItemPost && !isCompleted && (
               <Button
                 onClick={() => handleMarkAsCompleted(post)}
                 size="sm"
                 variant="outline"
                 className="text-green-600 border-green-200 hover:bg-green-50"
-                title="판매 완료"
               >
-                <CheckCircle className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4 mr-1" />
+                {post.type === 'community-sharing' ? '나눔완료' : '판매완료'}
+              </Button>
+            )}
+            {isItemPost && isCompleted && (
+              <Button
+                onClick={() => handleMarkAsActive(post)}
+                size="sm"
+                variant="outline"
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                되돌리기
               </Button>
             )}
             <Button
@@ -387,7 +467,8 @@ const MyPosts: React.FC = () => {
               variant="outline"
               className="text-blue-600 border-blue-200 hover:bg-blue-50"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4 mr-1" />
+              수정
             </Button>
             <Button
               onClick={() => handleDelete(post)}
@@ -395,7 +476,8 @@ const MyPosts: React.FC = () => {
               variant="outline"
               className="text-red-600 border-red-200 hover:bg-red-50"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4 mr-1" />
+              삭제
             </Button>
           </div>
         );
