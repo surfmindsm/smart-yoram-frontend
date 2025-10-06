@@ -728,22 +728,30 @@ export const communityService = {
       if (params?.skip) queryParams.set('skip', params.skip.toString());
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
-      // Supabase Edge Function invoke는 쿼리 파라미터를 URL에 직접 포함해야 함
+      // Supabase functions.invoke()가 쿼리 파라미터를 제대로 전달하지 못하므로 fetch 사용
       const functionName = 'community-sharing';
-      const functionUrl = queryParams.toString()
-        ? `${functionName}?${queryParams.toString()}`
-        : functionName;
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+      const fullUrl = `${supabaseUrl}/functions/v1/${functionName}?${queryParams.toString()}`;
 
-      console.log('🔗 [무료나눔] Edge Function 호출 URL:', functionUrl);
+      console.log('🔗 [무료나눔] Edge Function 호출 URL:', fullUrl);
 
-      const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
-        method: 'GET'
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (error) {
-        console.error('❌ 무료나눔 조회 실패:', error);
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ 무료나눔 조회 실패:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+      const data = result.success ? result.data : result;
 
       console.log('✅ 무료나눔 Edge Function 응답:', data);
 
@@ -1247,22 +1255,31 @@ export const communityService = {
       if (params?.skip) queryParams.set('skip', params.skip.toString());
       if (params?.limit) queryParams.set('limit', params.limit.toString());
 
-      // Supabase Edge Function invoke는 쿼리 파라미터를 URL에 직접 포함해야 함
+      // Supabase functions.invoke()가 쿼리 파라미터를 제대로 전달하지 못하므로 fetch 사용
       const functionName = 'community-sharing';
-      const functionUrl = queryParams.toString()
-        ? `${functionName}?${queryParams.toString()}`
-        : functionName;
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+      const fullUrl = `${supabaseUrl}/functions/v1/${functionName}?${queryParams.toString()}`;
 
-      console.log('🔗 [물품판매] Edge Function 호출 URL:', functionUrl);
+      console.log('🔗 [물품판매] Edge Function 호출 URL:', fullUrl);
 
-      const { data, error } = await supabaseApiService.supabase.functions.invoke(functionUrl, {
-        method: 'GET'
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (error) {
-        console.error('❌ 물품판매 조회 실패:', error);
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ 물품판매 조회 실패:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+      const data = result.success ? result.data : result;
+      const error = null;
 
       console.log('✅ 물품판매 Edge Function 응답:', data);
       console.log('📊 응답 타입:', typeof data, Array.isArray(data) ? '배열' : '객체');
