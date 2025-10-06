@@ -783,7 +783,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {
@@ -1025,7 +1025,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {
@@ -1110,7 +1110,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {
@@ -1344,7 +1344,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {
@@ -1639,7 +1639,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {
@@ -2062,7 +2062,7 @@ export const communityService = {
               const { data: churchData, error } = await supabaseApiService.supabase
                 .from('churches')
                 .select('address, name')
-                .eq('serial_id', item.church_id)
+                .eq('id', item.church_id)
                 .single();
 
               if (churchData && !error) {

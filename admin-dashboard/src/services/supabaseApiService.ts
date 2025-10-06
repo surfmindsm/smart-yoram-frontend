@@ -2188,7 +2188,7 @@ export const supabaseApiService = {
         const { data, error } = await supabase
           .from('churches')
           .select('*')
-          .eq('serial_id', churchId);
+          .eq('id', churchId);
 
         if (error) {
           console.error('🏛️ [교회 정보 API] 오류:', error);
@@ -2306,7 +2306,7 @@ export const supabaseApiService = {
             member_limit: memberLimit,
             updated_at: new Date().toISOString()
           })
-          .eq('serial_id', churchId)
+          .eq('id', churchId)
           .select();
 
         if (error) {
@@ -4435,7 +4435,7 @@ export const supabaseApiService = {
 
         // If churchId is specified, filter by it
         if (churchId) {
-          query = query.eq('serial_id', churchId);
+          query = query.eq('id', churchId);
         }
 
         const { data: churches, error } = await query;
@@ -4509,7 +4509,7 @@ export const supabaseApiService = {
           .update({
             gpt_licenses_purchased: licenseCount
           })
-          .eq('serial_id', churchId)
+          .eq('id', churchId)
           .select();
 
         if (error) {
