@@ -763,6 +763,8 @@ export const communityService = {
       // Edge Function 필터가 작동하지 않을 경우를 대비한 프론트엔드 필터링
       responseData = responseData.filter((item: any) => item.is_free === true);
       console.log('📊 무료나눔 데이터 (is_free=true 필터 후):', responseData.length, '개');
+      console.log('📊 첫 번째 아이템 church 데이터:', responseData[0]?.church);
+      console.log('📊 첫 번째 아이템 author 데이터:', responseData[0]?.author);
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
