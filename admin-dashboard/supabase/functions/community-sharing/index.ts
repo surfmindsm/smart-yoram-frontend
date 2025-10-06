@@ -92,7 +92,10 @@ Deno.serve(async (req) => {
       let query = supabaseClient
         .from('community_sharing')
         .select(`
-          *,
+          id, title, description, category, condition, price, is_free, quantity,
+          location, contact_info, contact_phone, contact_email, images,
+          view_count, likes, status, created_at, updated_at,
+          church_id, author_id,
           author:users!author_id(id, full_name, email),
           church:churches!church_id(id, name, address)
         `)
@@ -137,6 +140,7 @@ Deno.serve(async (req) => {
       // Transform data to match frontend expectations
       const transformedData = (data || []).map(item => ({
         ...item,
+        is_free: item.is_free, // Include is_free field
         content: item.description, // Map description to content for compatibility
         author_name: item.author?.full_name || item.author?.email || '익명',
         user_name: item.author?.full_name || item.author?.email || '익명',
