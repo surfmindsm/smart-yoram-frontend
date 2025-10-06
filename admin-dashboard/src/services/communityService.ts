@@ -1087,6 +1087,32 @@ export const communityService = {
     }
   },
 
+  // 무료 나눔 상태 변경
+  updateSharingItemStatus: async (itemId: number, status: string): Promise<void> => {
+    try {
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/community_sharing?id=eq.${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey || '',
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ status })
+      });
+
+      if (!response.ok) {
+        throw new Error(`상태 변경 실패: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('무료 나눔 상태 변경 실패:', error);
+      throw error;
+    }
+  },
+
   // 물품 요청
   getRequestItems: async (params?: {
     category?: string;
@@ -1719,6 +1745,32 @@ export const communityService = {
       await api.delete(getApiUrl(`/community/item-sale/${itemId}`));
     } catch (error: any) {
       console.error('물품 판매 삭제 실패:', error);
+      throw error;
+    }
+  },
+
+  // 물품 판매 상태 변경
+  updateOfferItemStatus: async (itemId: number, status: string): Promise<void> => {
+    try {
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/community_sharing?id=eq.${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey || '',
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ status })
+      });
+
+      if (!response.ok) {
+        throw new Error(`상태 변경 실패: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('물품 판매 상태 변경 실패:', error);
       throw error;
     }
   },

@@ -15,7 +15,8 @@ import {
   Briefcase,
   User as UserIcon,
   Music,
-  Users
+  Users,
+  CheckCircle
 } from 'lucide-react';
 import { Button } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
@@ -127,7 +128,7 @@ const MyPosts: React.FC = () => {
 
   const handleDelete = async (post: MyPost) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
-    
+
     try {
       // API 호출하여 게시글 삭제
       switch (post.type) {
@@ -156,13 +157,39 @@ const MyPosts: React.FC = () => {
           await communityService.deleteChurchEvent(post.id);
           break;
       }
-      
+
       // 성공하면 목록에서 제거
       setPosts(posts.filter(p => p.id !== post.id));
       alert('게시글이 삭제되었습니다.');
     } catch (error) {
       console.error('게시글 삭제 실패:', error);
       alert('게시글 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleMarkAsCompleted = async (post: MyPost) => {
+    if (!window.confirm('판매 완료로 변경하시겠습니까?')) return;
+
+    try {
+      // 물품 관련 게시글의 상태를 'completed'로 변경
+      switch (post.type) {
+        case 'community-sharing':
+          await communityService.updateSharingItemStatus(post.id, 'completed');
+          break;
+        case 'item-sale':
+          await communityService.updateOfferItemStatus(post.id, 'completed');
+          break;
+        default:
+          alert('판매 완료 처리가 지원되지 않는 게시글입니다.');
+          return;
+      }
+
+      // 성공하면 목록 새로고침
+      await fetchMyPosts();
+      alert('판매 완료로 변경되었습니다.');
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      alert('상태 변경에 실패했습니다.');
     }
   };
 
@@ -337,26 +364,42 @@ const MyPosts: React.FC = () => {
     {
       key: 'actions',
       title: '관리',
-      render: (_, post) => (
-        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-          <Button
-            onClick={() => handleEdit(post)}
-            size="sm"
-            variant="outline"
-            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => handleDelete(post)}
-            size="sm"
-            variant="outline"
-            className="text-red-600 border-red-200 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )
+      render: (_, post) => {
+        const isItemPost = post.type === 'community-sharing' || post.type === 'item-sale';
+        const isNotCompleted = post.status !== 'completed' && post.status !== 'sold';
+
+        return (
+          <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+            {isItemPost && isNotCompleted && (
+              <Button
+                onClick={() => handleMarkAsCompleted(post)}
+                size="sm"
+                variant="outline"
+                className="text-green-600 border-green-200 hover:bg-green-50"
+                title="판매 완료"
+              >
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              onClick={() => handleEdit(post)}
+              size="sm"
+              variant="outline"
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => handleDelete(post)}
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      }
     }
   ];
 
