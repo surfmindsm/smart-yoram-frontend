@@ -54,7 +54,9 @@ const SharingOfferDetail: React.FC = () => {
       church: item.church,
       location: item.location,
       contactInfo: item.contactInfo || '', // OfferItem에 contactInfo 필드가 없으므로 any로 캐스팅
-      
+      contact_phone: (item as any).contact_phone || '',
+      contact_email: (item as any).contact_email || '',
+
       // 물품 판매 특화 필드들
       price: item.price,
       condition: item.condition,

@@ -554,23 +554,71 @@ const CommunityPostDetail: React.FC<CommunityPostDetailProps> = ({
             </div>
 
             {/* 연락처 정보 */}
-            {(post.contactInfo || post.email) && (
-              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                <h3 className="font-semibold text-gray-900">연락처 정보</h3>
-                {post.contactInfo && (
-                  <div className="flex items-center text-sm">
-                    <Phone className="h-4 w-4 mr-3 text-blue-600 flex-shrink-0" />
-                    <span className="text-blue-600 break-all">{post.contactInfo}</span>
-                  </div>
-                )}
-                {post.email && (
-                  <div className="flex items-center text-sm">
-                    <Mail className="h-4 w-4 mr-3 text-blue-600 flex-shrink-0" />
-                    <span className="text-blue-600 break-all">{post.email}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            {(() => {
+              // contactInfo에서 전화번호와 이메일 분리 (구버전 데이터 호환)
+              let phoneNumber = post.contact_phone || post.contactPhone || '';
+              let emailAddress = post.contact_email || post.contactEmail || post.email || '';
+
+              // contactInfo에 " | "로 구분된 값이 있으면 분리
+              if (!phoneNumber && !emailAddress && post.contactInfo) {
+                const parts = post.contactInfo.split('|').map(p => p.trim());
+                if (parts.length === 2) {
+                  phoneNumber = parts[0];
+                  emailAddress = parts[1];
+                } else {
+                  // " | "가 없으면 전체를 전화번호로 간주
+                  phoneNumber = post.contactInfo;
+                }
+              }
+
+              return (phoneNumber || emailAddress) ? (
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <h3 className="font-semibold text-gray-900">연락처 정보</h3>
+
+                  {/* 전화번호 */}
+                  {phoneNumber && (
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center flex-1">
+                        <Phone className="h-4 w-4 mr-3 text-blue-600 flex-shrink-0" />
+                        <a
+                          href={`tel:${phoneNumber}`}
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          {phoneNumber}
+                        </a>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(phoneNumber, '전화번호')}
+                        className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      >
+                        복사
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 이메일 */}
+                  {emailAddress && (
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center flex-1">
+                        <Mail className="h-4 w-4 mr-3 text-blue-600 flex-shrink-0" />
+                        <a
+                          href={`mailto:${emailAddress}`}
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          {emailAddress}
+                        </a>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(emailAddress, '이메일')}
+                        className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      >
+                        복사
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
 
