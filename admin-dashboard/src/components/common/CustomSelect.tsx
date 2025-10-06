@@ -70,7 +70,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
 
       {/* 드롭다운 메뉴 */}
       {isOpen && (
-        <div className="p-1 bg-white rounded-lg shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] shadow-md outline outline-1 outline-offset-[-1px] outline-gray-200 flex flex-col justify-start items-end z-50 absolute top-full mt-1 min-w-full">
+        <div className="p-1 bg-white rounded-lg shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] shadow-md outline outline-1 outline-offset-[-1px] outline-gray-200 flex flex-col justify-start items-end z-50 absolute top-full mt-1 min-w-full max-h-60 overflow-y-auto">
           <div className="w-full p-1 flex flex-col justify-start items-start">
             {options.map((option) => (
               <div

@@ -97,6 +97,13 @@ export const freeSharingConfig: PostTypeConfig = {
       ]
     },
     {
+      key: 'location',
+      label: '거래 지역',
+      type: 'location',
+      placeholder: '시/구/동을 선택해주세요',
+      required: false
+    },
+    {
       key: 'contactPhone',
       label: '연락처',
       type: 'tel',

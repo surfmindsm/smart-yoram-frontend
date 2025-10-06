@@ -12,12 +12,17 @@ import { communityService, SharingItem } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass, getStatusFilterOptions } from '../../utils/status-mapping';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
+import { getCities, getDistricts } from '../../data/koreaLocations';
 
 const FreeSharing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // 위치 필터 상태
+  const [selectedLocationCity, setSelectedLocationCity] = useState('all');
+  const [selectedLocationDistrict, setSelectedLocationDistrict] = useState('all');
 
   // 나눔 게시글 데이터 (API에서 로드)
   const [sharingItems, setSharingItems] = useState<SharingItem[]>([]);
@@ -161,7 +166,13 @@ const FreeSharing: React.FC = () => {
       : itemStatus;
     const matchesStatus = selectedStatus === 'all' || normalizedStatus === selectedStatus;
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    // 위치 필터링
+    const itemLocation = item.location || '';
+    const matchesCity = selectedLocationCity === 'all' || itemLocation.startsWith(selectedLocationCity);
+    const matchesDistrict = selectedLocationDistrict === 'all' ||
+      (selectedLocationCity !== 'all' && itemLocation.includes(selectedLocationDistrict));
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesCity && matchesDistrict;
   });
 
   const columns: TableColumn[] = [
@@ -270,6 +281,32 @@ const FreeSharing: React.FC = () => {
           value={selectedStatus}
           onChange={setSelectedStatus}
           className="w-auto"
+        />
+
+        {/* 도/시 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 도/시' },
+            ...getCities().map(city => ({ value: city, label: city }))
+          ]}
+          value={selectedLocationCity}
+          onChange={(value) => {
+            setSelectedLocationCity(value);
+            setSelectedLocationDistrict('all'); // 도/시 변경시 구 초기화
+          }}
+          className="w-auto"
+        />
+
+        {/* 구 선택 */}
+        <CustomSelect
+          options={[
+            { value: 'all', label: '전체 구' },
+            ...getDistricts(selectedLocationCity).map(district => ({ value: district, label: district }))
+          ]}
+          value={selectedLocationDistrict}
+          onChange={setSelectedLocationDistrict}
+          className="w-auto"
+          disabled={selectedLocationCity === 'all'}
         />
       </div>
 

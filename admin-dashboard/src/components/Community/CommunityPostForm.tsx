@@ -14,12 +14,13 @@ import CustomSelect from '../common/CustomSelect';
 import { api, getApiUrl } from '../../services/api';
 import { communityService } from '../../services/communityService';
 import { supabase } from '../../lib/supabase';
+import { getCities, getDistricts, formatLocation } from '../../data/koreaLocations';
 
 // 폼 필드 타입 정의
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'email' | 'tel' | 'date' | 'time' | 'number' | 'images';
+  type: 'text' | 'textarea' | 'select' | 'email' | 'tel' | 'date' | 'time' | 'number' | 'images' | 'location';
   placeholder?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
@@ -66,6 +67,10 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
   const [creating, setCreating] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
+
+  // 위치 선택 state
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
 
   // 이미지 크기 제한 상수
   const MAX_SINGLE_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -491,6 +496,42 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               onChange={(newValue) => handleInputChange(field.key, newValue)}
               placeholder={field.placeholder || "날짜를 선택해주세요"}
             />
+          </div>
+        );
+
+      case 'location':
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="flex">
+              <CustomSelect
+                options={getCities().map(city => ({ value: city, label: city }))}
+                value={selectedCity}
+                onChange={(city) => {
+                  setSelectedCity(city);
+                  setSelectedDistrict('');
+                  handleInputChange(field.key, formatLocation(city));
+                }}
+                placeholder="도/시 선택"
+                className="pr-2"
+              />
+              <CustomSelect
+                options={getDistricts(selectedCity).map(district => ({ value: district, label: district }))}
+                value={selectedDistrict}
+                onChange={(district) => {
+                  setSelectedDistrict(district);
+                  handleInputChange(field.key, formatLocation(selectedCity, district));
+                }}
+                placeholder="시/군/구 선택"
+                disabled={!selectedCity}
+              />
+            </div>
+            {value && (
+              <p className="text-sm text-gray-600 mt-1">선택된 지역: {value}</p>
+            )}
           </div>
         );
 
