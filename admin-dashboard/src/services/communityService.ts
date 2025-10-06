@@ -743,64 +743,31 @@ export const communityService = {
       // community/sharing function returns object with data array
       if (data && data.success && Array.isArray(data.data)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
-        const transformedData = await Promise.all(data.data.map(async (item: any): Promise<SharingItem> => {
+        // Edge Function에서 이미 JOIN된 데이터를 사용하므로 추가 조회 불필요
+        const transformedData = data.data.map((item: any): SharingItem => {
           // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
-          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+          const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티')
+            ? null
+            : (item.church_name || item.church || getChurchNameById(item.church_id));
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
 
-          // 사용자 정보를 직접 조회
-          let userName = '익명';
-          if (item.author_id) {
-            try {
-              const { data: userData, error } = await supabaseApiService.supabase
-                .from('users')
-                .select('full_name, email')
-                .eq('id', item.author_id)
-                .single();
+          // Edge Function에서 JOIN된 사용자 정보 사용
+          const userName = item.author_name || item.user_name || '익명';
 
-              if (userData && !error) {
-                userName = userData.full_name || userData.email || '익명';
-                // console.log(`✅ 사용자 ${item.author_id} 조회 성공:`, userName);
-              } else {
-                // console.log(`❌ 사용자 ${item.author_id} 조회 실패:`, error);
-                userName = `사용자${item.author_id}`;
-              }
-            } catch (error) {
-              // console.log(`❌ 사용자 ${item.author_id} 조회 에러:`, error);
-              userName = `사용자${item.author_id}`;
-            }
-          }
-
-          // 교회 주소 정보를 직접 조회
-          let churchAddress = item.location || null; // 기본값은 기존 location 필드
-
+          // Edge Function에서 JOIN된 교회 주소 정보 사용
+          let churchAddress = item.location || null;
           if (item.church_id === 9998) {
-            // 협력사의 경우 "-"로 표시
             churchAddress = '-';
-            // console.log(`✅ 협력사 주소: "-"`);
-          } else if (item.church_id) {
-            try {
-              const { data: churchData, error } = await supabaseApiService.supabase
-                .from('churches')
-                .select('address, name')
-                .eq('id', item.church_id)
-                .single();
-
-              if (churchData && !error) {
-                churchAddress = churchData.address || churchData.name || churchAddress;
-                // console.log(`✅ 교회 ${item.church_id} 주소 조회 성공:`, churchAddress);
-              } else {
-                // console.log(`❌ 교회 ${item.church_id} 조회 실패:`, error);
-              }
-            } catch (error) {
-              // console.log(`❌ 교회 ${item.church_id} 조회 에러:`, error);
-            }
+          } else if (item.church_address) {
+            churchAddress = item.church_address;
+          } else if (item.church_name) {
+            churchAddress = item.church_name;
           }
 
           return {
             id: item.id,
             title: item.title,
-            description: item.description || item.content, // Use description field from community_sharing table
+            description: item.description || item.content,
             category: item.category,
             condition: item.condition || '양호',
             quantity: item.quantity || 1,
@@ -810,15 +777,15 @@ export const communityService = {
             location: churchAddress,
             contactPhone: item.contact_phone || '',
             contactEmail: item.contact_email || '',
-            contactInfo: item.contact_info || '', // 기존 필드 (호환성 유지)
+            contactInfo: item.contact_info || '',
             status: item.status,
-            createdAt: item.created_at || item.createdAt || null, // snake_case를 camelCase로 변환, null인 경우 null 유지
-            view_count: item.view_count || 0, // 조회수
+            createdAt: item.created_at || item.createdAt || null,
+            view_count: item.view_count || 0,
             likes: item.likes || 0,
             comments: item.comments || 0,
-            userName: userName // 직접 조회한 사용자 이름 사용
+            userName: userName
           };
-        }));
+        });
 
         // 조회수 로그
         // console.log('🔢 조회수 로드:', transformedData.map((item: SharingItem) => `${item.title}: ${item.view_count}회`));

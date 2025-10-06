@@ -85,10 +85,14 @@ Deno.serve(async (req) => {
       const status = url.searchParams.get('status')
       const search = url.searchParams.get('search')
 
-      // Build query
+      // Build query with JOIN to fetch user and church data in one query
       let query = supabaseClient
         .from('community_sharing')
-        .select('*')
+        .select(`
+          *,
+          author:users!author_id(id, full_name, email),
+          church:churches!church_id(id, name, address)
+        `)
         .order('created_at', { ascending: false })
 
       // Apply filters
@@ -122,12 +126,14 @@ Deno.serve(async (req) => {
       const transformedData = (data || []).map(item => ({
         ...item,
         content: item.description, // Map description to content for compatibility
-        author_name: item.author_name || '익명',
-        user_name: item.author_name || '익명'
+        author_name: item.author?.full_name || item.author?.email || '익명',
+        user_name: item.author?.full_name || item.author?.email || '익명',
+        church_name: item.church?.name || null,
+        church_address: item.church?.address || null
       }))
 
       return new Response(
-        JSON.stringify(transformedData),
+        JSON.stringify({ success: true, data: transformedData }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
