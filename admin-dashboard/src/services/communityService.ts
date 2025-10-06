@@ -1273,6 +1273,11 @@ export const communityService = {
       // data가 배열이면 직접 사용, 객체면 data.data 사용
       const responseData = Array.isArray(data) ? data : (data?.data || []);
       console.log('📊 최종 데이터:', responseData.length, '개');
+      console.log('📊 is_free 분포:', responseData.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        is_free: item.is_free
+      })));
 
       // community/sharing function returns object with data array
       if (responseData && Array.isArray(responseData)) {
