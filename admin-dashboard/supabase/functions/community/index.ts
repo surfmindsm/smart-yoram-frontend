@@ -455,8 +455,14 @@ serve(async (req) => {
 
       try {
         const requestData = await req.json();
-        console.log('===== v4 무료나눔 등록 시작 =====');
-        console.log('받은 is_free:', requestData.is_free, 'type:', typeof requestData.is_free);
+        console.log('===== v5 무료나눔 등록 시작 (위치정보 디버깅) =====');
+        console.log('받은 전체 데이터:', JSON.stringify({
+          province: requestData.province,
+          district: requestData.district,
+          deliveryAvailable: requestData.deliveryAvailable,
+          delivery_available: requestData.delivery_available,
+          is_free: requestData.is_free
+        }, null, 2));
 
         // contact_info 생성: contact_phone과 contact_email이 있으면 합치기
         let contactInfo = requestData.contact_info || '';
@@ -468,7 +474,22 @@ serve(async (req) => {
         }
 
         const isFreeValue = requestData.is_free === true;
-        console.log('변환된 is_free:', isFreeValue, 'type:', typeof isFreeValue);
+
+        // 위치 정보 변환
+        const provinceValue = requestData.province || null;
+        const districtValue = requestData.district || null;
+        const deliveryValue = requestData.deliveryAvailable || requestData.delivery_available || false;
+
+        console.log('변환된 위치 정보:', {
+          province: provinceValue,
+          district: districtValue,
+          delivery_available: deliveryValue,
+          types: {
+            province: typeof provinceValue,
+            district: typeof districtValue,
+            delivery_available: typeof deliveryValue
+          }
+        });
 
         const insertData = {
           church_id: requestData.church_id || 6,
@@ -477,8 +498,11 @@ serve(async (req) => {
           category: requestData.category,
           condition: requestData.condition || 'good',
           price: requestData.price || 0,
-          is_free: isFreeValue, // 명시적으로 true인 경우만 true, 나머지는 false
+          is_free: isFreeValue,
           location: requestData.location,
+          province: provinceValue,
+          district: districtValue,
+          delivery_available: deliveryValue,
           contact_info: contactInfo,
           contact_phone: requestData.contact_phone || '',
           contact_email: requestData.contact_email || '',
@@ -487,7 +511,12 @@ serve(async (req) => {
           status: requestData.status || 'active'
         };
 
-        console.log('INSERT할 is_free:', insertData.is_free, 'type:', typeof insertData.is_free);
+        console.log('INSERT할 데이터 (위치정보):', {
+          province: insertData.province,
+          district: insertData.district,
+          delivery_available: insertData.delivery_available,
+          is_free: insertData.is_free
+        });
 
         const { data, error } = await supabaseClient
           .from('community_sharing')
@@ -501,7 +530,13 @@ serve(async (req) => {
         }
 
         console.log('✅ INSERT 성공! ID:', data?.id);
-        console.log('DB에 저장된 is_free:', data?.is_free, 'type:', typeof data?.is_free);
+        console.log('DB에 저장된 데이터:', {
+          province: data?.province,
+          district: data?.district,
+          delivery_available: data?.delivery_available,
+          is_free: data?.is_free,
+          location: data?.location
+        });
         console.log('===== 등록 완료 =====');
 
         return new Response(JSON.stringify({

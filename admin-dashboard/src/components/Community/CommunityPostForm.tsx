@@ -258,18 +258,26 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
       
       // 폼 데이터 준비
       const submitData: { [key: string]: any } = {};
-      
+
       config.fields.forEach(field => {
         if (field.type === 'images') {
           submitData[field.key] = uploadedImageUrls;
           if (uploadedImageUrls.length > 0) {
             submitData['main_image_index'] = mainImageIndex;
           }
+        } else if (field.type === 'location') {
+          // location 필드는 기존 location에 저장하고, province와 district도 별도로 저장
+          submitData.location = formData[field.key];
+          submitData.province = selectedCity || null;
+          submitData.district = selectedDistrict || null;
+        } else if (field.type === 'checkbox' && field.key === 'deliveryAvailable') {
+          // deliveryAvailable은 snake_case로 변환
+          submitData.deliveryAvailable = formData[field.key] === true || formData[field.key] === 'true';
         } else {
           // 백엔드에서 요구하는 snake_case로 변환
           let backendFieldKey = field.key;
           if (field.key === 'contactInfo') {
-            backendFieldKey = 'contact_info';
+            backendFieldKey = 'contact_phone';
           } else if (field.key === 'contactPhone') {
             backendFieldKey = 'contact_phone';
           } else if (field.key === 'contactEmail') {

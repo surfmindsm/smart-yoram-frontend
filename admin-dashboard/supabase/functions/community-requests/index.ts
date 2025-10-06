@@ -87,12 +87,33 @@ Deno.serve(async (req) => {
       // Create new request item
       const body = await req.json()
 
+      console.log('===== 물품요청 등록 시작 (위치정보 디버깅) =====');
+      console.log('받은 전체 데이터:', JSON.stringify({
+        province: body.province,
+        district: body.district,
+        deliveryAvailable: body.deliveryAvailable,
+        delivery_available: body.delivery_available
+      }, null, 2));
+
+      const provinceValue = body.province || null;
+      const districtValue = body.district || null;
+      const deliveryValue = body.deliveryAvailable || body.delivery_available || false;
+
+      console.log('변환된 위치 정보:', {
+        province: provinceValue,
+        district: districtValue,
+        delivery_available: deliveryValue
+      });
+
       const insertData = {
         title: body.title,
         description: body.content || body.description,
         category: body.category || 'general',
         urgency: body.urgency || 'normal',
         location: body.location,
+        province: provinceValue,
+        district: districtValue,
+        delivery_available: deliveryValue,
         contact_info: body.contact_info || body.contactInfo,
         reward_type: body.reward_type || body.rewardType || 'none',
         reward_amount: body.reward_amount || body.rewardAmount || 0,
@@ -101,6 +122,12 @@ Deno.serve(async (req) => {
         author_id: body.author_id,
         status: body.status || 'active'
       }
+
+      console.log('INSERT할 데이터 (위치정보):', {
+        province: insertData.province,
+        district: insertData.district,
+        delivery_available: insertData.delivery_available
+      });
 
       const { data, error } = await supabaseClient
         .from('community_requests')
@@ -118,6 +145,15 @@ Deno.serve(async (req) => {
           }
         )
       }
+
+      console.log('✅ INSERT 성공! ID:', data?.id);
+      console.log('DB에 저장된 데이터:', {
+        province: data?.province,
+        district: data?.district,
+        delivery_available: data?.delivery_available,
+        location: data?.location
+      });
+      console.log('===== 등록 완료 =====');
 
       // Transform response to match frontend expectations
       const transformedItem = {

@@ -286,3 +286,96 @@ export const formatLocation = (city?: string, district?: string): string => {
   const parts = [city, district].filter(Boolean);
   return parts.join(' ');
 };
+
+/**
+ * 위치 정보를 표시용 문자열로 변환
+ * 우선순위:
+ * 1. 사용자가 입력한 위치 (province + district)
+ * 2. 택배 가능 표시
+ * 3. 교회 주소
+ * 4. 기본값 '-'
+ *
+ * @param options 위치 정보 옵션
+ * @returns 표시용 위치 문자열
+ */
+export interface DisplayLocationOptions {
+  province?: string | null;
+  district?: string | null;
+  deliveryAvailable?: boolean;
+  churchAddress?: string | null;
+  location?: string | null; // 레거시 location 필드
+}
+
+export const formatDisplayLocation = (options: DisplayLocationOptions): string => {
+  const { province, district, deliveryAvailable, churchAddress, location } = options;
+
+  // 1. 사용자가 입력한 위치 정보 우선
+  if (province || district) {
+    const parts = [province, district].filter(Boolean);
+    const userLocation = parts.join(' ');
+
+    // 택배 가능이 체크되어 있으면 추가 표시
+    if (deliveryAvailable) {
+      return `${userLocation} (전국 택배가능)`;
+    }
+    return userLocation;
+  }
+
+  // 2. 택배 가능만 체크된 경우
+  if (deliveryAvailable) {
+    return '전국 택배가능';
+  }
+
+  // 3. 레거시 location 필드가 있는 경우
+  if (location && location.trim()) {
+    return location;
+  }
+
+  // 4. 교회 주소 사용
+  if (churchAddress && churchAddress.trim() && churchAddress !== '-') {
+    return churchAddress;
+  }
+
+  // 5. 기본값
+  return '-';
+};
+
+/**
+ * 여러 위치 정보를 중복 제거하여 표시
+ * 예: ["서울특별시 강남구", "서울특별시 서초구", "경기도 성남시"] => "서울특별시 외 2개"
+ *
+ * @param locations 위치 문자열 배열
+ * @returns 중복 제거된 표시용 문자열
+ */
+export const formatMultipleLocations = (locations: string[]): string => {
+  if (!locations || locations.length === 0) {
+    return '-';
+  }
+
+  // 빈 문자열과 '-' 제거
+  const validLocations = locations.filter(loc => loc && loc.trim() && loc !== '-');
+
+  if (validLocations.length === 0) {
+    return '-';
+  }
+
+  if (validLocations.length === 1) {
+    return validLocations[0];
+  }
+
+  // 첫 번째 위치의 도/시 부분 추출
+  const firstLocation = validLocations[0];
+  const firstProvince = firstLocation.split(' ')[0];
+
+  // 모든 위치가 같은 도/시인지 확인
+  const allSameProvince = validLocations.every(loc => loc.startsWith(firstProvince));
+
+  if (allSameProvince && validLocations.length <= 3) {
+    // 같은 도/시이고 3개 이하면 모두 표시
+    return validLocations.join(', ');
+  }
+
+  // 그 외의 경우 "첫 번째 위치 외 N개" 형식
+  const count = validLocations.length - 1;
+  return `${firstProvince} 외 ${count}개`;
+};

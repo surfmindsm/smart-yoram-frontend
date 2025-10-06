@@ -3,6 +3,7 @@ import { formatCreatedAt } from '../utils/dateUtils';
 import { supabase } from '../lib/supabase';
 import { supabaseApiService } from './supabaseApiService';
 import { supabaseAuthService } from './supabaseAuthService';
+import { formatDisplayLocation } from '../data/koreaLocations';
 
 // 표준 페이지네이션 타입 (마이그레이션 가이드 준수)
 export interface StandardPagination {
@@ -371,6 +372,9 @@ export interface SharingItem {
   church: string | null; // null 허용으로 변경 (9998 교회 처리를 위함)
   church_id?: number; // 교회 ID 필드 추가
   location: string;
+  province?: string | null; // 도/시
+  district?: string | null; // 시/군/구
+  deliveryAvailable?: boolean; // 택배 가능 여부
   contactPhone?: string; // 연락처 전화번호
   contactEmail?: string; // 연락처 이메일
   contactInfo?: string; // 기존 필드 (호환성 유지)
@@ -395,6 +399,9 @@ export interface RequestItem {
   church: string | null;
   church_id?: number; // 교회 ID 필드 추가
   location: string;
+  province?: string | null; // 도/시
+  district?: string | null; // 시/군/구
+  deliveryAvailable?: boolean; // 택배 가능 여부
   contactPhone?: string; // 연락처 전화번호
   contactEmail?: string; // 연락처 이메일
   contactInfo?: string; // 기존 필드 (호환성 유지)
@@ -422,6 +429,9 @@ export interface OfferItem {
   description: string;
   church: string | null;
   location: string;
+  province?: string | null; // 도/시
+  district?: string | null; // 시/군/구
+  deliveryAvailable?: boolean; // 택배 가능 여부
   deliveryMethod: string;
   status: 'available' | 'reserved' | 'completed';
   createdAt: string;
@@ -851,6 +861,15 @@ export const communityService = {
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
           const userName = item.author_id ? (userMap.get(item.author_id) || '익명') : '익명';
 
+          // 위치 정보 포맷팅
+          const displayLocation = formatDisplayLocation({
+            province: item.province,
+            district: item.district,
+            deliveryAvailable: item.delivery_available,
+            churchAddress: churchAddress,
+            location: item.location
+          });
+
           return {
             id: item.id,
             title: item.title,
@@ -861,7 +880,7 @@ export const communityService = {
             images: item.images || [],
             church: churchName,
             church_id: churchId,
-            location: churchAddress,
+            location: displayLocation,
             contactPhone: item.contact_phone || '',
             contactEmail: item.contact_email || '',
             contactInfo: item.contact_info || '',
@@ -1010,6 +1029,10 @@ export const communityService = {
         contact_info: contactInfo,
         contact_phone: contactPhone,
         contact_email: contactEmail,
+        // 위치 정보 추가
+        province: itemData.province || null,
+        district: itemData.district || null,
+        deliveryAvailable: itemData.deliveryAvailable || false,
         // 사용자 정보 추가
         church_id: churchId,
         author_id: authorId,
@@ -1196,13 +1219,22 @@ export const communityService = {
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
           const userName = item.author_id ? (userMap.get(item.author_id) || `사용자${item.author_id}`) : '익명';
 
+          // 위치 정보 포맷팅
+          const displayLocation = formatDisplayLocation({
+            province: item.province,
+            district: item.district,
+            deliveryAvailable: item.delivery_available,
+            churchAddress: churchAddress,
+            location: item.location
+          });
+
           return {
             id: item.id,
             title: item.title,
             description: item.description || item.content,
             category: item.category,
             urgency: item.urgency || 'normal',
-            location: churchAddress,
+            location: displayLocation,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
             contactInfo: item.contact_info || item.contactInfo,
@@ -1291,13 +1323,22 @@ export const communityService = {
           const churchId = (item.church_id === 9998) ? undefined : item.church_id;
           const userName = item.author_id ? (userMap.get(item.author_id) || `사용자${item.author_id}`) : '익명';
 
+          // 위치 정보 포맷팅
+          const displayLocation = formatDisplayLocation({
+            province: item.province,
+            district: item.district,
+            deliveryAvailable: item.delivery_available,
+            churchAddress: churchAddress,
+            location: item.location
+          });
+
           return {
             id: item.id,
             title: item.title,
             description: item.description || item.content,
             category: item.category,
             urgency: item.urgency || 'normal',
-            location: churchAddress,
+            location: displayLocation,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
             contactInfo: item.contact_info || item.contactInfo,
@@ -1365,6 +1406,9 @@ export const communityService = {
         category: itemData.category || 'general',
         urgency: itemData.urgency || 'normal',
         location: itemData.location,
+        province: itemData.province || (itemData as any).province || null,
+        district: itemData.district || (itemData as any).district || null,
+        deliveryAvailable: itemData.deliveryAvailable || (itemData as any).deliveryAvailable || false,
         contact_info: itemData.contactInfo || '',
         reward_type: itemData.rewardType || 'none',
         reward_amount: itemData.rewardAmount || 0,
@@ -1529,6 +1573,15 @@ export const communityService = {
           // 사용자 정보 캐시에서 조회
           const userName = item.author_id ? (userMap.get(item.author_id) || '익명') : '익명';
 
+          // 위치 정보 포맷팅
+          const displayLocation = formatDisplayLocation({
+            province: item.province,
+            district: item.district,
+            deliveryAvailable: item.delivery_available,
+            churchAddress: churchAddress,
+            location: item.location
+          });
+
           const parsedImages = parseJsonArray(item.images, []);
           const processedImages = parsedImages.map((img: any) =>
             typeof img === 'string' && img.startsWith('http') ? img :
@@ -1547,7 +1600,7 @@ export const communityService = {
             deliveryMethod: item.delivery_method || item.deliveryMethod || '직거래',
             images: processedImages,
             church: churchName,
-            location: churchAddress,
+            location: displayLocation,
             contactPhone: item.contact_phone || parseContactInfo(item.contact_info || item.contactInfo).phone,
             contactEmail: item.contact_email || parseContactInfo(item.contact_info || item.contactInfo).email,
             contactInfo: item.contact_info || item.contactInfo,
@@ -1608,6 +1661,9 @@ export const communityService = {
         price: itemData.price || 0,
         is_free: false, // 물품판매는 항상 false
         location: itemData.location,
+        province: itemData.province || (itemData as any).province || null,
+        district: itemData.district || (itemData as any).district || null,
+        deliveryAvailable: itemData.deliveryAvailable || (itemData as any).deliveryAvailable || false,
         contact_info: itemData.contactInfo || '',
         contact_phone: itemData.contactPhone || (itemData as any).contact_phone || '',
         contact_email: itemData.contactEmail || (itemData as any).contact_email || '',
