@@ -745,11 +745,18 @@ export const communityService = {
         throw error;
       }
 
+      console.log('✅ 무료나눔 Edge Function 응답:', data);
+
+      // Supabase functions.invoke()는 응답을 직접 파싱하므로
+      // data가 배열이면 직접 사용, 객체면 data.data 사용
+      const responseData = Array.isArray(data) ? data : (data?.data || []);
+      console.log('📊 무료나눔 최종 데이터:', responseData.length, '개');
+
       // community/sharing function returns object with data array
-      if (data && data.success && Array.isArray(data.data)) {
+      if (responseData && Array.isArray(responseData)) {
         // 백엔드 필드명을 프론트엔드 인터페이스에 맞게 변환
         // Edge Function에서 이미 JOIN된 데이터를 사용하므로 추가 조회 불필요
-        const transformedData = data.data.map((item: any): SharingItem => {
+        const transformedData = responseData.map((item: any): SharingItem => {
           // Edge Function에서 JOIN된 교회 정보 사용
           const churchData = item.church; // { id, name, address }
           const churchName = (item.church_id === 9998)
@@ -1258,13 +1265,20 @@ export const communityService = {
       }
 
       console.log('✅ 물품판매 Edge Function 응답:', data);
-      console.log('📊 is_free 값 확인:', data?.data?.map((item: any) => ({ id: item.id, title: item.title, is_free: item.is_free })));
+      console.log('📊 응답 타입:', typeof data, Array.isArray(data) ? '배열' : '객체');
+      console.log('📊 data.success:', data?.success);
+      console.log('📊 data.data:', data?.data);
+
+      // Supabase functions.invoke()는 응답을 직접 파싱하므로
+      // data가 배열이면 직접 사용, 객체면 data.data 사용
+      const responseData = Array.isArray(data) ? data : (data?.data || []);
+      console.log('📊 최종 데이터:', responseData.length, '개');
 
       // community/sharing function returns object with data array
-      if (data && data.success && Array.isArray(data.data)) {
+      if (responseData && Array.isArray(responseData)) {
         // Edge Function에서 이미 is_free=false로 필터링되어 반환됨
         // JOIN된 데이터를 사용하므로 추가 조회 불필요
-        const transformedData = data.data.map((item: any): OfferItem => {
+        const transformedData = responseData.map((item: any): OfferItem => {
           // Edge Function에서 JOIN된 교회 정보 사용
           const churchData = item.church; // { id, name, address }
           const churchName = (item.church_id === 9998)
