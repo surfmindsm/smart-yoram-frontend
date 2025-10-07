@@ -3699,8 +3699,22 @@ export const supabaseApiService = {
 
         // 권한별 필터링
         if (currentUser.user.role === 'church_super_admin') {
-          // 교회 수퍼어드민: 같은 교회의 모든 사용자 로그 (교회 어드민 포함)
-          query = query.eq('church_id', currentUser.user.church_id);
+          // 교회 수퍼어드민: 같은 교회의 church_admin 활동만 조회
+          // users 테이블과 조인하여 role이 church_admin인 사용자만 필터링
+          const { data: churchAdmins } = await supabase
+            .from('users')
+            .select('id')
+            .eq('church_id', currentUser.user.church_id)
+            .eq('role', 'church_admin');
+
+          const adminIds = churchAdmins?.map(admin => admin.id) || [];
+
+          if (adminIds.length > 0) {
+            query = query.in('user_id', adminIds);
+          } else {
+            // church_admin이 없으면 빈 결과 반환
+            query = query.eq('user_id', -1);
+          }
         } else if (currentUser.user.role === 'church_admin') {
           // 교회 어드민: 자신의 로그만
           query = query.eq('user_id', currentUser.user.id);
@@ -3782,8 +3796,22 @@ export const supabaseApiService = {
 
         // 권한별 필터링
         if (currentUser.user.role === 'church_super_admin') {
-          // 교회 수퍼어드민: 같은 교회의 모든 사용자 활동 로그
-          query = query.eq('church_id', currentUser.user.church_id);
+          // 교회 수퍼어드민: 같은 교회의 church_admin 활동만 조회
+          // users 테이블과 조인하여 role이 church_admin인 사용자만 필터링
+          const { data: churchAdmins } = await supabase
+            .from('users')
+            .select('id')
+            .eq('church_id', currentUser.user.church_id)
+            .eq('role', 'church_admin');
+
+          const adminIds = churchAdmins?.map(admin => admin.id) || [];
+
+          if (adminIds.length > 0) {
+            query = query.in('user_id', adminIds);
+          } else {
+            // church_admin이 없으면 빈 결과 반환
+            query = query.eq('user_id', -1);
+          }
         } else if (currentUser.user.role === 'church_admin') {
           // 교회 어드민: 자신의 활동 로그만
           query = query.eq('user_id', currentUser.user.id);
