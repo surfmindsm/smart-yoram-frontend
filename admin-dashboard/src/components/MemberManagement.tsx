@@ -142,6 +142,9 @@ const MemberManagement: React.FC = () => {
   const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('all');
 
+  // 부서 관련 상태
+  const [departments, setDepartments] = useState<string[]>([]);
+
   // Advanced search states
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [advancedSearchData, setAdvancedSearchData] = useState({
@@ -193,22 +196,36 @@ const MemberManagement: React.FC = () => {
     return result;
   };
 
-  // 조직 목록 불러오기
+  // 조직 목록 및 부서 목록 불러오기
   useEffect(() => {
-    const fetchOrganizations = async () => {
+    const fetchOrganizationsAndDepartments = async () => {
       try {
         const result = await supabaseAuthService.getCurrentUser();
         if (result?.user?.church_id) {
+          // 조직 목록 불러오기
           const orgResult = await organizationService.getOrganizations(result.user.church_id);
-          // Flatten the tree structure
           const flatOrgs = flattenOrganizations(orgResult.organizations);
           setOrganizations(flatOrgs);
+
+          // 부서 목록 불러오기
+          const { data, error } = await supabase
+            .from('departments')
+            .select('name')
+            .eq('church_id', result.user.church_id)
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (error) {
+            console.error('Error loading departments:', error);
+          } else {
+            setDepartments(data?.map(d => d.name) || []);
+          }
         }
       } catch (error) {
-        console.error('Error fetching organizations:', error);
+        console.error('Error fetching organizations and departments:', error);
       }
     };
-    fetchOrganizations();
+    fetchOrganizationsAndDepartments();
   }, []);
 
 
@@ -1133,11 +1150,11 @@ const MemberManagement: React.FC = () => {
                 </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                  onClick={() => handleSort('member_status')}
+                  onClick={() => handleSort('department')}
                 >
                   <span className="flex items-center gap-1">
-                    상태
-                    {sortField === 'member_status' && (
+                    부서
+                    {sortField === 'department' && (
                       sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                     )}
                   </span>
@@ -1205,10 +1222,8 @@ const MemberManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.organization_name || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    <Badge variant={getStatusBadgeVariant(member.member_status)}>
-                      {getStatusText(member.member_status)}
-                    </Badge>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                    {member.department || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
                     <Badge variant={getInvitationStatusBadgeVariant(member.invitation_status || '')}>
@@ -1795,11 +1810,9 @@ const MemberManagement: React.FC = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">없음</SelectItem>
-                              <SelectItem value="예배부">예배부</SelectItem>
-                              <SelectItem value="교육부">교육부</SelectItem>
-                              <SelectItem value="선교부">선교부</SelectItem>
-                              <SelectItem value="청년부">청년부</SelectItem>
-                              <SelectItem value="아동부">아동부</SelectItem>
+                              {departments.map(dept => (
+                                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         ) : (

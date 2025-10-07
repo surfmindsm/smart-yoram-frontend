@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -6,15 +6,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Textarea } from "./ui";
 import { Separator } from "./ui";
+import { DatePicker } from "./ui";
 import { ArrowLeft, ArrowRight, Check, ContactRound, Briefcase, Church, Heart, Plus, Trash2, UserPlus, MapPin, Car } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
+import { supabaseAuthService } from '../services/supabaseAuthService';
 
 const AddMemberWizard: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [churchId, setChurchId] = useState<number | null>(null);
+
   const [formData, setFormData] = useState({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
@@ -31,6 +36,36 @@ const AddMemberWizard: React.FC = () => {
     vehicles: [] as { car_type: string; plate_no: string }[]
   });
 
+  // Load church_id and departments
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Get church_id
+        const result = await supabaseAuthService.getCurrentUser();
+        if (result?.user?.church_id) {
+          setChurchId(result.user.church_id);
+
+          // Load departments for this church
+          const { data, error } = await supabase
+            .from('departments')
+            .select('name')
+            .eq('church_id', result.user.church_id)
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (error) {
+            console.error('Error loading departments:', error);
+          } else {
+            setDepartments(data?.map(d => d.name) || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    loadData();
+  }, []);
+
   // 코드 데이터
   const positionCodes = [
     { code: 'PASTOR', label: '목사' },
@@ -38,14 +73,6 @@ const AddMemberWizard: React.FC = () => {
     { code: 'DEACON', label: '집사' },
     { code: 'TEACHER', label: '교사' },
     { code: 'LEADER', label: '부장/회장' }
-  ];
-  
-  const departments = [
-    '예배부',
-    '교육부',
-    '선교부',
-    '청년부',
-    '아동부'
   ];
   
   const contactTypes = [
@@ -283,10 +310,13 @@ const AddMemberWizard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={formData.birthdate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, birthdate: e.target.value }))}
+                    onChange={(value) => setFormData(prev => ({ ...prev, birthdate: value }))}
+                    placeholder="생년월일 선택"
+                    disableFuture={true}
+                    fromYear={1920}
+                    toYear={new Date().getFullYear()}
                   />
                 </div>
               </div>
@@ -350,7 +380,11 @@ const AddMemberWizard: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
-                    <Input type="date" value={formData.appointed_on} onChange={(e) => setFormData(prev => ({ ...prev, appointed_on: e.target.value }))} />
+                    <DatePicker
+                      value={formData.appointed_on}
+                      onChange={(value) => setFormData(prev => ({ ...prev, appointed_on: value }))}
+                      placeholder="임명일 선택"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">안수교회</label>
@@ -456,11 +490,15 @@ const AddMemberWizard: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-foreground mb-1">날짜</label>
-                        <Input type="date" value={sacrament.date} onChange={(e) => {
-                          const newSacraments = [...formData.sacraments];
-                          newSacraments[index].date = e.target.value;
-                          setFormData(prev => ({ ...prev, sacraments: newSacraments }));
-                        }} />
+                        <DatePicker
+                          value={sacrament.date}
+                          onChange={(value) => {
+                            const newSacraments = [...formData.sacraments];
+                            newSacraments[index].date = value;
+                            setFormData(prev => ({ ...prev, sacraments: newSacraments }));
+                          }}
+                          placeholder="날짜 선택"
+                        />
                       </div>
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-foreground mb-1">교회명</label>
@@ -513,11 +551,15 @@ const AddMemberWizard: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-foreground mb-1">날짜</label>
-                        <Input type="date" value={transfer.date} onChange={(e) => {
-                          const newTransfers = [...formData.transfers];
-                          newTransfers[index].date = e.target.value;
-                          setFormData(prev => ({ ...prev, transfers: newTransfers }));
-                        }} />
+                        <DatePicker
+                          value={transfer.date}
+                          onChange={(value) => {
+                            const newTransfers = [...formData.transfers];
+                            newTransfers[index].date = value;
+                            setFormData(prev => ({ ...prev, transfers: newTransfers }));
+                          }}
+                          placeholder="날짜 선택"
+                        />
                       </div>
                       <Button type="button" variant="outline" size="sm" onClick={() => removeTransfer(index)}>
                         <Trash2 className="w-4 h-4" />
@@ -559,7 +601,11 @@ const AddMemberWizard: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">결혼일</label>
-                    <Input type="date" value={formData.married_on} onChange={(e) => setFormData(prev => ({ ...prev, married_on: e.target.value }))} />
+                    <DatePicker
+                      value={formData.married_on}
+                      onChange={(value) => setFormData(prev => ({ ...prev, married_on: value }))}
+                      placeholder="결혼일 선택"
+                    />
                   </div>
                 </div>
               </div>

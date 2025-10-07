@@ -13,6 +13,10 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  disableFuture?: boolean; // 미래 날짜 선택 불가
+  disablePast?: boolean;   // 과거 날짜 선택 불가
+  fromYear?: number;       // 시작 년도
+  toYear?: number;         // 종료 년도
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
@@ -20,11 +24,48 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   onChange,
   placeholder = "날짜를 선택해주세요",
   disabled = false,
-  className
+  className,
+  disableFuture = false,
+  disablePast = false,
+  fromYear = 1920,
+  toYear = new Date().getFullYear() + 10
 }) => {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   );
+
+  // value prop이 변경되면 상태 업데이트
+  React.useEffect(() => {
+    setDate(value ? new Date(value) : undefined);
+  }, [value]);
+
+  // select 요소의 size 속성 조정 (MutationObserver 사용)
+  React.useEffect(() => {
+    const setSelectSize = () => {
+      const selects = document.querySelectorAll('.rdp-dropdown');
+      selects.forEach((select) => {
+        if (select instanceof HTMLSelectElement) {
+          select.setAttribute('size', '5');
+          select.style.height = 'auto';
+        }
+      });
+    };
+
+    // 초기 설정
+    const timer = setTimeout(setSelectSize, 100);
+
+    // DOM 변경 감지
+    const observer = new MutationObserver(setSelectSize);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, []);
 
   // 오늘 날짜의 시작 (00:00:00)
   const today = new Date();
@@ -37,6 +78,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     } else {
       onChange('');
     }
+  };
+
+  // 날짜 제약 조건
+  const getDisabledDates = (date: Date) => {
+    if (disableFuture && date > today) return true;
+    if (disablePast && date < today) return true;
+    return false;
   };
 
   return (
@@ -60,9 +108,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           mode="single"
           selected={date}
           onSelect={handleSelect}
-          disabled={(date) => date < today}
+          disabled={disableFuture || disablePast ? getDisabledDates : undefined}
           initialFocus
           locale={ko}
+          captionLayout="dropdown"
+          fromYear={fromYear}
+          toYear={toYear}
         />
       </PopoverContent>
     </Popover>

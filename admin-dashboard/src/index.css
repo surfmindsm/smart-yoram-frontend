@@ -86,3 +86,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Calendar dropdown styles */
+.rdp-dropdown_root {
+  max-height: 200px !important;
+}
+
+.rdp-dropdown_root select {
+  size: 5 !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}
+
+.rdp-dropdown {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}

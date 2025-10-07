@@ -4,6 +4,7 @@ import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Textarea } from "./ui";
+import { DatePicker } from "./ui";
 import {
   ContactRound,
   Briefcase,
@@ -23,6 +24,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService';
 import { activityLogger } from '../services/activityLogger';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization } from '../types/organization';
+import { supabase } from '../lib/supabase';
 
 interface AddMemberModalProps {
   open: boolean;
@@ -40,6 +42,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
   
   const [formData, setFormData] = useState({
     // 기본 정보
@@ -79,14 +82,6 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     { code: 'DEACON', label: '집사' },
     { code: 'TEACHER', label: '교사' },
     { code: 'LEADER', label: '부장/회장' }
-  ];
-  
-  const departments = [
-    '예배부',
-    '교육부',
-    '선교부',
-    '청년부',
-    '아동부'
   ];
   
   const maritalStatuses = [
@@ -152,6 +147,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   useEffect(() => {
     if (open) {
       loadOrganizations();
+      loadDepartments();
     }
   }, [open]);
 
@@ -169,6 +165,28 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
       console.error('Error loading organizations:', error);
     } finally {
       setLoadingOrganizations(false);
+    }
+  };
+
+  const loadDepartments = async () => {
+    try {
+      const result = await supabaseAuthService.getCurrentUser();
+      if (result?.user?.church_id) {
+        const { data, error } = await supabase
+          .from('departments')
+          .select('name')
+          .eq('church_id', result.user.church_id)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+
+        if (error) {
+          console.error('Error loading departments:', error);
+        } else {
+          setDepartments(data?.map(d => d.name) || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error);
     }
   };
 
@@ -507,10 +525,13 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   {/* 생년월일 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={formData.birthdate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, birthdate: e.target.value }))}
+                      onChange={(value) => setFormData(prev => ({ ...prev, birthdate: value }))}
+                      placeholder="생년월일 선택"
+                      disableFuture={true}
+                      fromYear={1920}
+                      toYear={new Date().getFullYear()}
                     />
                   </div>
                 </div>
@@ -589,6 +610,30 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {/* 임명일 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
+                      <DatePicker
+                        value={formData.appointed_on}
+                        onChange={(value) => setFormData(prev => ({ ...prev, appointed_on: value }))}
+                        placeholder="임명일 선택"
+                        fromYear={1950}
+                        toYear={new Date().getFullYear() + 5}
+                      />
+                    </div>
+
+                    {/* 안수교회 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">안수교회</label>
+                      <Input
+                        value={formData.ordination_church}
+                        onChange={(e) => setFormData(prev => ({ ...prev, ordination_church: e.target.value }))}
+                        placeholder="안수받은 교회"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -659,10 +704,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
               {/* 결혼일 */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">결혼일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.married_on}
-                  onChange={(e) => setFormData(prev => ({ ...prev, married_on: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, married_on: value }))}
+                  placeholder="결혼일 선택"
                 />
               </div>
             </div>
@@ -748,10 +793,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
               {/* 입교일 */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">입교일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.confirmation_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmation_date: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, confirmation_date: value }))}
+                  placeholder="입교일 선택"
                 />
               </div>
 
@@ -788,10 +833,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
               {/* 마지막 연락일 */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">마지막 연락일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.last_contact_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, last_contact_date: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, last_contact_date: value }))}
+                  placeholder="마지막 연락일 선택"
                 />
               </div>
             </div>
@@ -851,10 +896,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
               {/* 사역 시작일 */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">사역 시작일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.ministry_start_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ministry_start_date: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, ministry_start_date: value }))}
+                  placeholder="사역 시작일 선택"
                 />
               </div>
 

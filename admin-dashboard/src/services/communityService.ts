@@ -1431,7 +1431,7 @@ export const communityService = {
       };
 
       // console.log('📤 백엔드로 전송할 물품요청 데이터:', backendData);
-      const { data, error } = await supabaseApiService.supabase.functions.invoke('community/requests', {
+      const { data, error } = await supabaseApiService.supabase.functions.invoke('community-requests', {
         method: 'POST',
         body: backendData
       });

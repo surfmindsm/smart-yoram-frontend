@@ -235,7 +235,30 @@ const OrganizationManagement: React.FC = () => {
     try {
       setLoading(true);
       const result = await organizationService.getOrganizations(churchId, filter);
-      setOrganizations(result.organizations);
+
+      // members 테이블의 organization_id로 인원수 집계
+      const organizationsWithCount = await Promise.all(
+        result.organizations.map(async (org) => {
+          const { count, error } = await supabase
+            .from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('church_id', churchId)
+            .eq('organization_id', org.id);
+
+          if (error) {
+            console.error('Error counting members for org', org.id, error);
+          }
+
+          console.log(`조직 ${org.name} (${org.id}): member_count = ${count}`);
+
+          return {
+            ...org,
+            member_count: count || 0
+          };
+        })
+      );
+
+      setOrganizations(organizationsWithCount);
     } catch (error) {
       console.error('Error loading organizations:', error);
     } finally {
