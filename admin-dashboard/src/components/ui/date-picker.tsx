@@ -39,34 +39,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     setDate(value ? new Date(value) : undefined);
   }, [value]);
 
-  // select 요소의 size 속성 조정 (MutationObserver 사용)
-  React.useEffect(() => {
-    const setSelectSize = () => {
-      const selects = document.querySelectorAll('.rdp-dropdown');
-      selects.forEach((select) => {
-        if (select instanceof HTMLSelectElement) {
-          select.setAttribute('size', '5');
-          select.style.height = 'auto';
-        }
-      });
-    };
-
-    // 초기 설정
-    const timer = setTimeout(setSelectSize, 100);
-
-    // DOM 변경 감지
-    const observer = new MutationObserver(setSelectSize);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
-  }, []);
-
   // 오늘 날짜의 시작 (00:00:00)
   const today = new Date();
   today.setHours(0, 0, 0, 0);

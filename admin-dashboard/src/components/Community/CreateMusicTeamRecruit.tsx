@@ -228,6 +228,8 @@ const CreateMusicTeamRecruit: React.FC = () => {
                   value={formData.eventDate}
                   onChange={(value) => setFormData({...formData, eventDate: value})}
                   placeholder="행사 날짜를 선택해주세요"
+                  fromYear={2020}
+                  toYear={2030}
                 />
               </div>
 
