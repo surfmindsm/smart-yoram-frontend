@@ -606,7 +606,13 @@ const MemberManagement: React.FC = () => {
       }
     }
 
-    const validMembers = selectedMembersList.filter(m => m.phone);
+    const validMembers = selectedMembersList.filter(m => m.phone && m.invitation_status !== 'active');
+
+    const alreadyActiveMembers = selectedMembersList.filter(m => m.invitation_status === 'active');
+    if (alreadyActiveMembers.length > 0) {
+      const activeNames = alreadyActiveMembers.map(m => m.name).join(', ');
+      alert(`이미 활성화된 회원은 제외됩니다: ${activeNames}`);
+    }
 
     if (validMembers.length === 0) {
       alert('전화번호가 등록된 교인이 없습니다.');
@@ -679,6 +685,11 @@ const MemberManagement: React.FC = () => {
   };
 
   const handleSendInvitation = async (member: Member) => {
+    if (member.invitation_status === 'active') {
+      alert('이미 활성화된 회원입니다. 초대를 다시 발송할 수 없습니다.');
+      return;
+    }
+
     if (!member.phone) {
       alert('전화번호가 등록되지 않은 교인입니다.');
       return;
@@ -882,6 +893,7 @@ const MemberManagement: React.FC = () => {
       case 'pending': return '대기중';
       case 'sent': return '발송완료';
       case 'failed': return '발송실패';
+      case 'active': return '활성화';
       case null:
       case undefined:
       case '': return '미발송';
@@ -894,6 +906,7 @@ const MemberManagement: React.FC = () => {
       case 'sent': return 'success';
       case 'failed': return 'destructive';
       case 'pending': return 'secondary';
+      case 'active': return 'default';
       default: return 'default';
     }
   };
@@ -1493,7 +1506,7 @@ const MemberManagement: React.FC = () => {
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1"
-                    disabled={smsLoading === selectedMember?.id || !selectedMember?.phone}
+                    disabled={smsLoading === selectedMember?.id || !selectedMember?.phone || selectedMember?.invitation_status === 'active'}
                   >
                     {smsLoading === selectedMember?.id ? (
                       <Spinner size="sm" variant="white" />

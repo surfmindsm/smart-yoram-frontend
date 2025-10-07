@@ -499,6 +499,28 @@ export const supabaseAuthService = {
       }
 
       console.log('✅ 비밀번호 업데이트 성공');
+
+      // members 테이블에서 해당 사용자 찾아서 invitation_status를 'active'로 업데이트
+      try {
+        const { error: memberUpdateError } = await supabase
+          .from('members')
+          .update({
+            invitation_status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', currentUser.user.email);
+
+        if (memberUpdateError) {
+          console.error('⚠️ members 테이블 invitation_status 업데이트 실패:', memberUpdateError);
+          // 이 에러는 비밀번호 변경 자체를 실패시키지 않음
+        } else {
+          console.log('✅ invitation_status를 active로 업데이트 완료');
+        }
+      } catch (memberError) {
+        console.error('⚠️ members 테이블 업데이트 중 에러:', memberError);
+        // 이 에러는 비밀번호 변경 자체를 실패시키지 않음
+      }
+
       return true;
     } catch (error: any) {
       console.error('💥 비밀번호 업데이트 에러:', error);
