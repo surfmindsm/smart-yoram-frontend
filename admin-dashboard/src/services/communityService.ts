@@ -1399,6 +1399,18 @@ export const communityService = {
 
       // console.log('🔢 변환된 author_id:', authorId);
 
+      // contact_info 생성: contact_phone과 contact_email 합치기
+      const contactPhone = itemData.contactPhone || (itemData as any).contact_phone || '';
+      const contactEmail = itemData.contactEmail || (itemData as any).contact_email || '';
+      let contactInfo = itemData.contactInfo || '';
+
+      if (!contactInfo && contactPhone) {
+        contactInfo = contactPhone;
+        if (contactEmail) {
+          contactInfo += ` | ${contactEmail}`;
+        }
+      }
+
       // 물품요청 특화 데이터 구성
       const backendData = {
         title: itemData.title,
@@ -1409,7 +1421,7 @@ export const communityService = {
         province: itemData.province || (itemData as any).province || null,
         district: itemData.district || (itemData as any).district || null,
         deliveryAvailable: itemData.deliveryAvailable || (itemData as any).deliveryAvailable || false,
-        contact_info: itemData.contactInfo || '',
+        contact_info: contactInfo,
         reward_type: itemData.rewardType || 'none',
         reward_amount: itemData.rewardAmount || 0,
         images: itemData.images || [],

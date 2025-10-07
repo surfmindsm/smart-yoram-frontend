@@ -19,6 +19,7 @@ export interface ChurchApplicationRequest {
   agree_marketing: boolean;
 
   // 선택 필드
+  business_no?: string;
   website?: string;
   established_year?: number;
   denomination?: string;
@@ -101,6 +102,9 @@ class ChurchApplicationService {
     formData.append('agree_marketing', data.agree_marketing.toString());
 
     // 선택 필드 추가 (값이 있을 때만)
+    if (data.business_no) {
+      formData.append('business_no', data.business_no);
+    }
     if (data.website) {
       formData.append('website', data.website);
     }
@@ -345,15 +349,22 @@ class ChurchApplicationService {
       const temporaryPassword = generateTempPassword();
 
       // 교회 정보 생성
+      const churchInsertData: any = {
+        name: data.church_name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        is_active: true
+      };
+
+      // business_no가 있으면 추가
+      if (data.business_no) {
+        churchInsertData.business_no = data.business_no;
+      }
+
       const { data: churchData, error: churchError } = await supabase
         .from('churches')
-        .insert({
-          name: data.church_name,
-          address: data.address,
-          phone: data.phone,
-          email: data.email,
-          is_active: true
-        })
+        .insert(churchInsertData)
         .select()
         .single();
 

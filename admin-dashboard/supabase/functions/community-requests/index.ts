@@ -92,17 +92,34 @@ Deno.serve(async (req) => {
         province: body.province,
         district: body.district,
         deliveryAvailable: body.deliveryAvailable,
-        delivery_available: body.delivery_available
+        delivery_available: body.delivery_available,
+        contact_info: body.contact_info,
+        contactInfo: body.contactInfo
       }, null, 2));
 
       const provinceValue = body.province || null;
       const districtValue = body.district || null;
       const deliveryValue = body.deliveryAvailable || body.delivery_available || false;
 
-      console.log('변환된 위치 정보:', {
+      // contact_info 생성: contact_phone과 contact_email이 있으면 합치기
+      let contactInfo = body.contact_info || body.contactInfo || '';
+      const contactPhone = body.contact_phone || body.contactPhone || '';
+      const contactEmail = body.contact_email || body.contactEmail || '';
+
+      if (!contactInfo && contactPhone) {
+        contactInfo = contactPhone;
+        if (contactEmail) {
+          contactInfo += ` | ${contactEmail}`;
+        }
+      }
+
+      console.log('변환된 위치 및 연락처 정보:', {
         province: provinceValue,
         district: districtValue,
-        delivery_available: deliveryValue
+        delivery_available: deliveryValue,
+        contact_phone: contactPhone,
+        contact_email: contactEmail,
+        contact_info: contactInfo
       });
 
       const insertData = {
@@ -114,7 +131,9 @@ Deno.serve(async (req) => {
         province: provinceValue,
         district: districtValue,
         delivery_available: deliveryValue,
-        contact_info: body.contact_info || body.contactInfo,
+        contact_info: contactInfo,
+        contact_phone: contactPhone,
+        contact_email: contactEmail,
         reward_type: body.reward_type || body.rewardType || 'none',
         reward_amount: body.reward_amount || body.rewardAmount || 0,
         images: body.images || [],
@@ -126,7 +145,9 @@ Deno.serve(async (req) => {
       console.log('INSERT할 데이터 (위치정보):', {
         province: insertData.province,
         district: insertData.district,
-        delivery_available: insertData.delivery_available
+        delivery_available: insertData.delivery_available,
+        contact_phone: insertData.contact_phone,
+        contact_email: insertData.contact_email
       });
 
       const { data, error } = await supabaseClient
@@ -151,6 +172,8 @@ Deno.serve(async (req) => {
         province: data?.province,
         district: data?.district,
         delivery_available: data?.delivery_available,
+        contact_phone: data?.contact_phone,
+        contact_email: data?.contact_email,
         location: data?.location
       });
       console.log('===== 등록 완료 =====');

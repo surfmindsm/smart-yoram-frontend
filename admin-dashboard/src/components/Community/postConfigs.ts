@@ -166,54 +166,43 @@ export const itemRequestConfig: PostTypeConfig = {
       maxLength: 1000
     },
     {
-      key: 'priceRange',
-      label: '희망 가격대',
-      type: 'text',
-      placeholder: '예: 5만원~10만원, 10만원 이하, 협의 가능',
-      required: true,
-      maxLength: 50
-    },
-    {
-      key: 'neededDate',
-      label: '필요일',
-      type: 'date',
-      required: false
-    },
-    {
-      key: 'church',
-      label: '교회명',
-      type: 'text',
-      placeholder: '소속 교회명을 입력해주세요',
-      required: true,
-      maxLength: 50
+      key: 'urgency',
+      label: '긴급도',
+      type: 'select',
+      required: false,
+      options: [
+        { value: 'normal', label: '일반' },
+        { value: 'urgent', label: '긴급' },
+        { value: 'very_urgent', label: '매우 긴급' }
+      ]
     },
     {
       key: 'location',
       label: '거래 희망 지역',
       type: 'location',
       placeholder: '도/시 및 시/군/구를 선택해주세요',
-      required: true
+      required: false
     },
     {
-      key: 'contactInfo',
+      key: 'deliveryAvailable',
+      label: '택배 거래 가능',
+      type: 'checkbox',
+      required: false
+    },
+    {
+      key: 'contactPhone',
       label: '연락처',
       type: 'tel',
       placeholder: '연락 가능한 전화번호를 입력해주세요',
       required: true
     },
     {
-      key: 'email',
+      key: 'contactEmail',
       label: '이메일',
       type: 'email',
       placeholder: '이메일 주소를 입력해주세요 (선택사항)',
       required: false,
       validation: validateEmail
-    },
-    {
-      key: 'images',
-      label: '참고이미지',
-      type: 'images',
-      required: false
     }
   ]
 };

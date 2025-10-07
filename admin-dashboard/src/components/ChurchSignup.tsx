@@ -15,6 +15,7 @@ import { supabaseApiService } from '../services/supabaseApiService';
 
 interface SignupFormData {
   churchName: string;
+  churchRegistrationNumber: string;
   pastorName: string;
   denomination: string;
   establishedYear: string;
@@ -35,6 +36,7 @@ interface SignupFormData {
 const ChurchSignup: React.FC = () => {
   const [formData, setFormData] = useState<SignupFormData>({
     churchName: '',
+    churchRegistrationNumber: '',
     pastorName: '',
     denomination: '',
     establishedYear: '',
@@ -294,6 +296,7 @@ const ChurchSignup: React.FC = () => {
       agree_terms: formData.agreeTerms,
       agree_privacy: formData.agreePrivacy,
       agree_marketing: formData.agreeMarketing,
+      business_no: formData.churchRegistrationNumber || undefined,
       website: formData.website || undefined,
       established_year: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
       denomination: formData.denomination || undefined,
@@ -410,6 +413,16 @@ const ChurchSignup: React.FC = () => {
                       value={formData.churchName}
                       onChange={(e) => handleInputChange('churchName', e.target.value)}
                       placeholder="○○교회"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="churchRegistrationNumber">교회 고유번호</Label>
+                    <Input
+                      id="churchRegistrationNumber"
+                      value={formData.churchRegistrationNumber}
+                      onChange={(e) => handleInputChange('churchRegistrationNumber', e.target.value)}
+                      placeholder="000-00-00000 (선택사항)"
                     />
                   </div>
 
