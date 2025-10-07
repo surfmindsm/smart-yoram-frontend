@@ -253,7 +253,6 @@ const Layout: React.FC = () => {
       title: '대시보드 & 분석',
       items: [
         { path: '/dashboard', name: '대시보드', Icon: BarChart3 },
-        { path: '/statistics', name: '통계 분석', Icon: ChartLine },
       ],
     },
     {

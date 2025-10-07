@@ -18,7 +18,6 @@ const SystemAnnouncementManagement = lazy(() => import('./components/SystemAnnou
 const AnnouncementManagement = lazy(() => import('./components/AnnouncementManagement'));
 const SMSManagement = lazy(() => import('./components/SMSManagement'));
 const QRCodeManagement = lazy(() => import('./components/QRCodeManagement'));
-const StatisticsDashboard = lazy(() => import('./components/StatisticsDashboard'));
 const ExcelManagement = lazy(() => import('./components/ExcelManagement'));
 const Attendance = lazy(() => import('./components/Attendance'));
 const Bulletins = lazy(() => import('./components/Bulletins'));
@@ -239,11 +238,7 @@ function App() {
               <QRCodeManagement />
             </Suspense>
           } />
-          <Route path="statistics" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <StatisticsDashboard />
-            </Suspense>
-          } />
+          <Route path="statistics" element={<Navigate to="/dashboard" replace />} />
           <Route path="excel" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ExcelManagement />
