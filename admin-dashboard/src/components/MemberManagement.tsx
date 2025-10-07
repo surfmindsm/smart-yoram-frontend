@@ -66,6 +66,7 @@ interface Member {
   profile_photo_url: string | null;
   member_status: string;
   registration_date: string | null;
+  invitation_status?: string;
   
   // 사역 정보
   department_code?: string;
@@ -155,6 +156,10 @@ const MemberManagement: React.FC = () => {
     member_type: 'all',
     spiritual_grade: 'all'
   });
+
+  // Bulk invitation states
+  const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
+  const [isBulkInviting, setIsBulkInviting] = useState(false);
 
 
   const [newMember, setNewMember] = useState({
@@ -585,6 +590,94 @@ const MemberManagement: React.FC = () => {
   };
 
   // SMS 초대 발송 함수
+  const handleBulkInvitation = async () => {
+    if (selectedMembers.size === 0) {
+      alert('초대할 교인을 선택해주세요.');
+      return;
+    }
+
+    const selectedMembersList = members.filter(m => selectedMembers.has(m.id));
+    const membersWithoutPhone = selectedMembersList.filter(m => !m.phone);
+
+    if (membersWithoutPhone.length > 0) {
+      const memberNames = membersWithoutPhone.map(m => m.name).join(', ');
+      if (!window.confirm(`전화번호가 없는 교인이 있습니다: ${memberNames}\n\n나머지 교인들에게만 초대를 발송하시겠습니까?`)) {
+        return;
+      }
+    }
+
+    const validMembers = selectedMembersList.filter(m => m.phone);
+
+    if (validMembers.length === 0) {
+      alert('전화번호가 등록된 교인이 없습니다.');
+      return;
+    }
+
+    if (!window.confirm(`선택한 ${validMembers.length}명의 교인에게 앱 초대를 발송하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      setIsBulkInviting(true);
+
+      let successCount = 0;
+      let failCount = 0;
+      const results: string[] = [];
+
+      for (const member of validMembers) {
+        try {
+          const result = await supabaseApiService.smsInvitation.send(
+            member.id,
+            member.phone,
+            member.name || member.phone,
+            member.email,
+            '요람교회'
+          );
+
+          if (result.success) {
+            successCount++;
+            results.push(`✓ ${member.name}: 발송 완료`);
+          } else {
+            failCount++;
+            results.push(`✗ ${member.name}: ${result.message || '발송 실패'}`);
+          }
+        } catch (error) {
+          failCount++;
+          results.push(`✗ ${member.name}: 발송 실패`);
+        }
+      }
+
+      alert(`초대 발송 완료\n\n성공: ${successCount}명\n실패: ${failCount}명\n\n${results.join('\n')}`);
+
+      // 선택 초기화 및 목록 새로고침
+      setSelectedMembers(new Set());
+      fetchMembers();
+    } catch (error) {
+      console.error('대량 초대 발송 실패:', error);
+      alert('초대 발송 중 오류가 발생했습니다.');
+    } finally {
+      setIsBulkInviting(false);
+    }
+  };
+
+  const handleToggleMemberSelection = (memberId: number) => {
+    const newSelection = new Set(selectedMembers);
+    if (newSelection.has(memberId)) {
+      newSelection.delete(memberId);
+    } else {
+      newSelection.add(memberId);
+    }
+    setSelectedMembers(newSelection);
+  };
+
+  const handleToggleAllMembers = () => {
+    if (selectedMembers.size === members.length) {
+      setSelectedMembers(new Set());
+    } else {
+      setSelectedMembers(new Set(members.map(m => m.id)));
+    }
+  };
+
   const handleSendInvitation = async (member: Member) => {
     if (!member.phone) {
       alert('전화번호가 등록되지 않은 교인입니다.');
@@ -784,6 +877,27 @@ const MemberManagement: React.FC = () => {
     }
   };
 
+  const getInvitationStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return '대기중';
+      case 'sent': return '발송완료';
+      case 'failed': return '발송실패';
+      case null:
+      case undefined:
+      case '': return '미발송';
+      default: return status;
+    }
+  };
+
+  const getInvitationStatusBadgeVariant = (status: string): 'default' | 'success' | 'destructive' | 'secondary' => {
+    switch (status) {
+      case 'sent': return 'success';
+      case 'failed': return 'destructive';
+      case 'pending': return 'secondary';
+      default: return 'default';
+    }
+  };
+
   // Clean photo URL - handle both relative and absolute URLs
   const cleanPhotoUrl = (url: string | null) => {
     if (!url) return null;
@@ -808,9 +922,30 @@ const MemberManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
+          {selectedMembers.size > 0 && (
+            <Badge variant="default" className="text-sm px-3 py-1">
+              {selectedMembers.size}명 선택됨
+            </Badge>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button 
+          {selectedMembers.size > 0 && (
+            <Button
+              onClick={handleBulkInvitation}
+              disabled={isBulkInviting}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            >
+              {isBulkInviting ? (
+                <Spinner size="sm" variant="white" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              선택한 교인 초대 ({selectedMembers.size}명)
+            </Button>
+          )}
+          <Button
             onClick={downloadExcelTemplate}
             variant="outline"
             className="flex items-center gap-2"
@@ -920,7 +1055,15 @@ const MemberManagement: React.FC = () => {
           <table className="min-w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th 
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedMembers.size === members.length && members.length > 0}
+                    onChange={handleToggleAllMembers}
+                    className="rounded border-gray-300"
+                  />
+                </th>
+                <th
                   className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('name')}
                 >
@@ -975,7 +1118,7 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th 
+                <th
                   className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
                   onClick={() => handleSort('member_status')}
                 >
@@ -986,13 +1129,31 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('invitation_status')}
+                >
+                  <span className="flex items-center gap-1">
+                    초대상태
+                    {sortField === 'invitation_status' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody className="bg-background divide-y divide-border">
               {members.map((member) => (
-                <tr key={member.id} className="hover:bg-muted/30 cursor-pointer" 
-                    onClick={() => handleMemberClick(member)}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={member.id} className="hover:bg-muted/30">
+                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedMembers.has(member.id)}
+                      onChange={() => handleToggleMemberSelection(member.id)}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         {cleanPhotoUrl(member.profile_photo_url) ? (
@@ -1019,21 +1180,26 @@ const MemberManagement: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {getGenderText(member.gender)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.phone}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.position || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.organization_name || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
                     <Badge variant={getStatusBadgeVariant(member.member_status)}>
                       {getStatusText(member.member_status)}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
+                    <Badge variant={getInvitationStatusBadgeVariant(member.invitation_status || '')}>
+                      {getInvitationStatusText(member.invitation_status || '')}
                     </Badge>
                   </td>
                 </tr>
