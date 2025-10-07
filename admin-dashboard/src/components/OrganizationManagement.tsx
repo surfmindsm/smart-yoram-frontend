@@ -10,7 +10,8 @@ import {
   ChevronDown,
   Edit,
   Trash2,
-  UserPlus
+  UserPlus,
+  Layers
 } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -19,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Spinner } from "./ui/spinner";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
 import OrganizationForm from './OrganizationForm';
 import {
   ChurchOrganization,
@@ -28,6 +31,19 @@ import {
 } from '../types/organization';
 import { organizationService } from '../services/organizationService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { supabase } from '../lib/supabase';
+
+interface Department {
+  id: string;
+  church_id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  member_count?: number;
+}
 
 interface OrganizationTreeNodeProps {
   organization: ChurchOrganization;
@@ -158,6 +174,10 @@ const OrganizationTreeNode: React.FC<OrganizationTreeNodeProps> = ({
 };
 
 const OrganizationManagement: React.FC = () => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'organizations' | 'departments'>('organizations');
+
+  // Organization states
   const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrganization, setSelectedOrganization] = useState<ChurchOrganization | null>(null);
@@ -178,6 +198,20 @@ const OrganizationManagement: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [editingOrganization, setEditingOrganization] = useState<ChurchOrganization | null>(null);
+
+  // Department states
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [showDepartmentCreateModal, setShowDepartmentCreateModal] = useState(false);
+  const [showDepartmentEditModal, setShowDepartmentEditModal] = useState(false);
+  const [showDepartmentDeleteModal, setShowDepartmentDeleteModal] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [departmentLoading, setDepartmentLoading] = useState(false);
+  const [departmentFormData, setDepartmentFormData] = useState({
+    name: '',
+    description: '',
+    is_active: true
+  });
 
   // Get current user's church_id
   useEffect(() => {
@@ -212,8 +246,187 @@ const OrganizationManagement: React.FC = () => {
   useEffect(() => {
     if (churchId) {
       loadOrganizations();
+      if (activeTab === 'departments') {
+        loadDepartments();
+      }
     }
-  }, [filter, churchId]);
+  }, [filter, churchId, activeTab]);
+
+  // Load departments
+  const loadDepartments = async () => {
+    if (!churchId) return;
+
+    try {
+      setDepartmentLoading(true);
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('church_id', churchId)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('부서 목록 로드 오류:', error);
+        alert('부서 목록을 불러오는데 실패했습니다.');
+        return;
+      }
+
+      // 각 부서별 인원 수 집계
+      const departmentsWithCount = await Promise.all(
+        (data || []).map(async (dept) => {
+          const { count } = await supabase
+            .from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('church_id', churchId)
+            .eq('department', dept.name);
+
+          return {
+            ...dept,
+            member_count: count || 0
+          };
+        })
+      );
+
+      setDepartments(departmentsWithCount);
+    } catch (error) {
+      console.error('부서 목록 로드 오류:', error);
+      alert('부서 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setDepartmentLoading(false);
+    }
+  };
+
+  // Department CRUD handlers
+  const handleCreateDepartment = async () => {
+    if (!churchId) return;
+    if (!departmentFormData.name.trim()) {
+      alert('부서명을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setDepartmentLoading(true);
+
+      // Get max display_order
+      const maxOrder = departments.reduce((max, dept) =>
+        Math.max(max, dept.display_order), 0
+      );
+
+      const { error } = await supabase
+        .from('departments')
+        .insert({
+          church_id: churchId,
+          name: departmentFormData.name.trim(),
+          description: departmentFormData.description.trim() || null,
+          is_active: departmentFormData.is_active,
+          display_order: maxOrder + 1
+        });
+
+      if (error) {
+        console.error('부서 생성 오류:', error);
+        alert('부서 생성에 실패했습니다.');
+        return;
+      }
+
+      alert('부서가 생성되었습니다.');
+      setShowDepartmentCreateModal(false);
+      setDepartmentFormData({ name: '', description: '', is_active: true });
+      loadDepartments();
+    } catch (error) {
+      console.error('부서 생성 오류:', error);
+      alert('부서 생성에 실패했습니다.');
+    } finally {
+      setDepartmentLoading(false);
+    }
+  };
+
+  const handleUpdateDepartment = async () => {
+    if (!editingDepartment) return;
+    if (!departmentFormData.name.trim()) {
+      alert('부서명을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setDepartmentLoading(true);
+
+      const { error } = await supabase
+        .from('departments')
+        .update({
+          name: departmentFormData.name.trim(),
+          description: departmentFormData.description.trim() || null,
+          is_active: departmentFormData.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingDepartment.id);
+
+      if (error) {
+        console.error('부서 수정 오류:', error);
+        alert('부서 수정에 실패했습니다.');
+        return;
+      }
+
+      alert('부서가 수정되었습니다.');
+      setShowDepartmentEditModal(false);
+      setEditingDepartment(null);
+      setDepartmentFormData({ name: '', description: '', is_active: true });
+      loadDepartments();
+    } catch (error) {
+      console.error('부서 수정 오류:', error);
+      alert('부서 수정에 실패했습니다.');
+    } finally {
+      setDepartmentLoading(false);
+    }
+  };
+
+  const handleDeleteDepartment = async () => {
+    if (!editingDepartment) return;
+
+    try {
+      setDepartmentLoading(true);
+
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', editingDepartment.id);
+
+      if (error) {
+        console.error('부서 삭제 오류:', error);
+        alert('부서 삭제에 실패했습니다.');
+        return;
+      }
+
+      alert('부서가 삭제되었습니다.');
+      setShowDepartmentDeleteModal(false);
+      setEditingDepartment(null);
+      setSelectedDepartment(null);
+      loadDepartments();
+    } catch (error) {
+      console.error('부서 삭제 오류:', error);
+      alert('부서 삭제에 실패했습니다.');
+    } finally {
+      setDepartmentLoading(false);
+    }
+  };
+
+  const openDepartmentCreateModal = () => {
+    setDepartmentFormData({ name: '', description: '', is_active: true });
+    setShowDepartmentCreateModal(true);
+  };
+
+  const openDepartmentEditModal = (department: Department) => {
+    setEditingDepartment(department);
+    setDepartmentFormData({
+      name: department.name,
+      description: department.description || '',
+      is_active: department.is_active
+    });
+    setShowDepartmentEditModal(true);
+  };
+
+  const openDepartmentDeleteModal = (department: Department) => {
+    setEditingDepartment(department);
+    setShowDepartmentDeleteModal(true);
+  };
 
   // Tree node handlers
   const handleToggleNode = (id: string) => {
@@ -288,72 +501,51 @@ const OrganizationManagement: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">조직 관리</h1>
           <p className="text-gray-600 mt-1">교회 조직 구조와 교인 배정을 관리합니다</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={() => activeTab === 'organizations' ? setShowCreateModal(true) : openDepartmentCreateModal()}>
           <Plus className="w-4 h-4 mr-2" />
-          조직 추가
+          {activeTab === 'organizations' ? '조직 추가' : '부서 추가'}
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="조직명 검색..."
-                  value={filter.search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex -mb-px space-x-8">
+          <button
+            onClick={() => setActiveTab('organizations')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'organizations'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Building2 className="w-5 h-5 inline-block mr-2" />
+            조직 관리
+          </button>
+          <button
+            onClick={() => setActiveTab('departments')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'departments'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Layers className="w-5 h-5 inline-block mr-2" />
+            부서 관리
+          </button>
+        </nav>
+      </div>
 
-            <Select value={filter.organization_type} onValueChange={handleTypeFilterChange}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="조직 유형" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체 유형</SelectItem>
-                <SelectItem value="district">구역</SelectItem>
-                <SelectItem value="sub_district">소구역</SelectItem>
-                <SelectItem value="cell_group">셀그룹</SelectItem>
-                <SelectItem value="ministry_team">사역팀</SelectItem>
-                <SelectItem value="custom">사용자정의</SelectItem>
-              </SelectContent>
-            </Select>
 
-            <Select
-              value={filter.is_active === 'all' ? 'all' : filter.is_active ? 'true' : 'false'}
-              onValueChange={handleStatusFilterChange}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="상태" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="true">활성</SelectItem>
-                <SelectItem value="false">비활성</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              필터 초기화
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Organization Tree */}
-        <div className="lg:col-span-2">
+      {/* Organizations Tab Content */}
+      {activeTab === 'organizations' && (
+        <div>
+        {/* Organization List */}
+        <div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Building2 className="w-5 h-5 mr-2" />
-                조직 구조
+                조직 목록
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -375,95 +567,166 @@ const OrganizationManagement: React.FC = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {renderOrganizationTree(organizations)}
+                <div className="grid grid-cols-1 gap-4">
+                  {organizations.map((organization) => (
+                    <Card
+                      key={organization.id}
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                        selectedOrganization?.id === organization.id ? 'border-blue-500 bg-blue-50' : ''
+                      }`}
+                      onClick={() => setSelectedOrganization(organization)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-semibold text-gray-900">{organization.name}</h3>
+                              <Badge variant="secondary" className="text-xs">
+                                {ORGANIZATION_TYPE_LABELS[organization.organization_type]}
+                              </Badge>
+                              {!organization.is_active && (
+                                <Badge variant="destructive" className="text-xs">
+                                  비활성
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              {organization.description && (
+                                <p className="text-sm text-gray-600">{organization.description}</p>
+                              )}
+                              <span className="text-sm text-gray-500">
+                                {organization.member_count}명
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditOrganization(organization);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOrganization(organization);
+                              }}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
+        </div>
+      )}
 
-        {/* Organization Details */}
+      {/* Departments Tab Content */}
+      {activeTab === 'departments' && (
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
-                조직 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedOrganization ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg">{selectedOrganization.name}</h3>
-                    <p className="text-gray-600 text-sm mt-1">
-                      {ORGANIZATION_TYPE_LABELS[selectedOrganization.organization_type]}
-                    </p>
+          {/* Department List */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Layers className="w-5 h-5 mr-2" />
+                  부서 목록
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {departmentLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Spinner />
+                    <span className="ml-2">부서 목록을 불러오는 중...</span>
                   </div>
-
-                  {selectedOrganization.description && (
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-700">설명</h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {selectedOrganization.description}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">소속 인원</span>
-                      <p className="font-medium">{selectedOrganization.member_count}명</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">계층 레벨</span>
-                      <p className="font-medium">Level {selectedOrganization.level}</p>
-                    </div>
-                  </div>
-
-                  {selectedOrganization.contact_phone && (
-                    <div>
-                      <span className="text-gray-500 text-sm">연락처</span>
-                      <p className="font-medium">{selectedOrganization.contact_phone}</p>
-                    </div>
-                  )}
-
-                  {selectedOrganization.meeting_location && (
-                    <div>
-                      <span className="text-gray-500 text-sm">모임 장소</span>
-                      <p className="font-medium">{selectedOrganization.meeting_location}</p>
-                    </div>
-                  )}
-
-                  <div className="pt-4 space-y-2">
-                    <Button
-                      className="w-full"
-                      onClick={() => handleAddMember(selectedOrganization)}
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      교인 배정
-                    </Button>
+                ) : departments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Layers className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>등록된 부서가 없습니다.</p>
                     <Button
                       variant="outline"
-                      className="w-full"
-                      onClick={() => handleEditOrganization(selectedOrganization)}
+                      className="mt-4"
+                      onClick={openDepartmentCreateModal}
                     >
-                      <Settings className="w-4 h-4 mr-2" />
-                      조직 설정
+                      첫 번째 부서 추가하기
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>조직을 선택해주세요</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {departments.map((department) => (
+                      <Card
+                        key={department.id}
+                        className="cursor-pointer transition-colors hover:bg-gray-50"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-semibold text-gray-900">{department.name}</h3>
+                                {!department.is_active && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    비활성
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2 mt-1">
+                                {department.description && (
+                                  <p className="text-sm text-gray-600">{department.description}</p>
+                                )}
+                                <span className="text-sm text-gray-500">
+                                  {department.member_count || 0}명
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDepartmentEditModal(department);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDepartmentDeleteModal(department);
+                                }}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Organization Form Modal */}
       {churchId && (
@@ -485,6 +748,150 @@ const OrganizationManagement: React.FC = () => {
           churchId={churchId}
         />
       )}
+
+      {/* Department Create Modal */}
+      <Dialog open={showDepartmentCreateModal} onOpenChange={setShowDepartmentCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>부서 추가</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dept-name">부서명 *</Label>
+              <Input
+                id="dept-name"
+                placeholder="부서명을 입력하세요"
+                value={departmentFormData.name}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="dept-description">설명</Label>
+              <Textarea
+                id="dept-description"
+                placeholder="부서 설명을 입력하세요 (선택사항)"
+                value={departmentFormData.description}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="dept-active"
+                checked={departmentFormData.is_active}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, is_active: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="dept-active">활성 상태</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDepartmentCreateModal(false);
+                  setDepartmentFormData({ name: '', description: '', is_active: true });
+                }}
+              >
+                취소
+              </Button>
+              <Button onClick={handleCreateDepartment} disabled={departmentLoading}>
+                {departmentLoading ? <Spinner /> : '추가'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Department Edit Modal */}
+      <Dialog open={showDepartmentEditModal} onOpenChange={setShowDepartmentEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>부서 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-dept-name">부서명 *</Label>
+              <Input
+                id="edit-dept-name"
+                placeholder="부서명을 입력하세요"
+                value={departmentFormData.name}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-dept-description">설명</Label>
+              <Textarea
+                id="edit-dept-description"
+                placeholder="부서 설명을 입력하세요 (선택사항)"
+                value={departmentFormData.description}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-dept-active"
+                checked={departmentFormData.is_active}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, is_active: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="edit-dept-active">활성 상태</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDepartmentEditModal(false);
+                  setEditingDepartment(null);
+                  setDepartmentFormData({ name: '', description: '', is_active: true });
+                }}
+              >
+                취소
+              </Button>
+              <Button onClick={handleUpdateDepartment} disabled={departmentLoading}>
+                {departmentLoading ? <Spinner /> : '수정'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Department Delete Modal */}
+      <Dialog open={showDepartmentDeleteModal} onOpenChange={setShowDepartmentDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>부서 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              정말로 <strong>{editingDepartment?.name}</strong> 부서를 삭제하시겠습니까?
+            </p>
+            <p className="text-sm text-red-600">
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDepartmentDeleteModal(false);
+                  setEditingDepartment(null);
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteDepartment}
+                disabled={departmentLoading}
+              >
+                {departmentLoading ? <Spinner /> : '삭제'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

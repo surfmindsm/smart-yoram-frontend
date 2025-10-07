@@ -66,8 +66,6 @@ export interface OrganizationActivity {
 }
 
 export type OrganizationType =
-  | 'district'      // 구역
-  | 'sub_district'  // 소구역
   | 'cell_group'    // 셀그룹
   | 'ministry_team' // 사역팀
   | 'custom';       // 사용자정의
@@ -179,8 +177,6 @@ export interface MemberFilter {
 
 // Constants
 export const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
-  district: '구역',
-  sub_district: '소구역',
   cell_group: '셀그룹',
   ministry_team: '사역팀',
   custom: '사용자정의'

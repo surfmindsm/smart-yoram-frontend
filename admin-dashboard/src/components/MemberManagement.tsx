@@ -67,9 +67,9 @@ interface Member {
   member_status: string;
   registration_date: string | null;
   invitation_status?: string;
-  
+
   // 사역 정보
-  department_code?: string;
+  department?: string;
   position_code?: string;
   appointed_on?: string;
   ordination_church?: string;
@@ -1323,15 +1323,6 @@ const MemberManagement: React.FC = () => {
                 onChange={(e) => setNewMember({...newMember, position: e.target.value})}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">구역</label>
-              <Input
-                type="text"
-                placeholder="1구역, 2구역 등"
-                value={newMember.district}
-                onChange={(e) => setNewMember({...newMember, district: e.target.value})}
-              />
-            </div>
             <div className="flex justify-end space-x-3 pt-4">
               <Button
                 type="button"
@@ -1769,7 +1760,7 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div>
 
-                      {/* 구역 */}
+                      {/* 조직 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">조직</label>
                         {isEditMode ? (
@@ -1798,25 +1789,21 @@ const MemberManagement: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">부서</label>
                         {isEditMode ? (
-                          <Select value={editedMember.department_code || ''} onValueChange={(value) => setEditedMember({...editedMember, department_code: value})}>
+                          <Select value={editedMember.department || 'none'} onValueChange={(value) => setEditedMember({...editedMember, department: value === 'none' ? undefined : value})}>
                             <SelectTrigger>
                               <SelectValue placeholder="부서 선택" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="WORSHIP">예배부</SelectItem>
-                              <SelectItem value="EDUCATION">교육부</SelectItem>
-                              <SelectItem value="MISSION">선교부</SelectItem>
-                              <SelectItem value="YOUTH">청년부</SelectItem>
-                              <SelectItem value="CHILDREN">아동부</SelectItem>
+                              <SelectItem value="none">없음</SelectItem>
+                              <SelectItem value="예배부">예배부</SelectItem>
+                              <SelectItem value="교육부">교육부</SelectItem>
+                              <SelectItem value="선교부">선교부</SelectItem>
+                              <SelectItem value="청년부">청년부</SelectItem>
+                              <SelectItem value="아동부">아동부</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {selectedMember.department_code ? 
-                              ({'WORSHIP': '예배부', 'EDUCATION': '교육부', 'MISSION': '선교부', 'YOUTH': '청년부', 'CHILDREN': '아동부'}[selectedMember.department_code] || selectedMember.department_code) 
-                              : '-'
-                            }
-                          </p>
+                          <p className="text-sm text-muted-foreground">{selectedMember.department || '-'}</p>
                         )}
                       </div>
 
@@ -2258,14 +2245,6 @@ const MemberManagement: React.FC = () => {
                     value={advancedSearchData.position}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position: e.target.value }))}
                     placeholder="집사, 권사, 장로 등"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">구역</label>
-                  <Input
-                    value={advancedSearchData.district}
-                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, district: e.target.value }))}
-                    placeholder="1구역, 2구역 등"
                   />
                 </div>
                 <div>

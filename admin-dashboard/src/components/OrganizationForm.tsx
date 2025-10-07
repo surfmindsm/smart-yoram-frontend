@@ -34,7 +34,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const [formData, setFormData] = useState<OrganizationFormData>({
     name: '',
     description: '',
-    organization_type: 'district',
+    organization_type: 'cell_group',
     parent_id: '',
     leader_id: null,
     contact_phone: '',
@@ -63,7 +63,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
       setFormData({
         name: '',
         description: '',
-        organization_type: 'district',
+        organization_type: 'cell_group',
         parent_id: '',
         leader_id: null,
         contact_phone: '',
@@ -110,7 +110,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
     setFormData({
       name: '',
       description: '',
-      organization_type: 'district',
+      organization_type: 'cell_group',
       parent_id: '',
       leader_id: null,
       contact_phone: '',
@@ -153,7 +153,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
             {organization ? '조직 수정' : '새 조직 추가'}
           </DialogTitle>
           <DialogDescription>
-            교회 조직 정보를 입력해주세요. 구역, 소구역, 셀그룹 등을 생성할 수 있습니다.
+            교회 조직 정보를 입력해주세요. 셀그룹, 사역팀 등을 생성할 수 있습니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,7 +175,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="예: 1구역, 청년부"
+              placeholder="예: 청년부, 예배팀"
               required
             />
           </div>

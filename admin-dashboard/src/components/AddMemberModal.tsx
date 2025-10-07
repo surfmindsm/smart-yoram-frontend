@@ -45,7 +45,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
     // 사역 정보
-    position: '', district: '', organization_id: '', department_code: '', position_code: '', appointed_on: '',
+    position: '', district: '', organization_id: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', workplace: '', workplace_phone: '',
     // 개인 정보
     address: '', marital_status: '', spouse_name: '', married_on: '',
@@ -81,12 +81,12 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     { code: 'LEADER', label: '부장/회장' }
   ];
   
-  const departmentCodes = [
-    { code: 'WORSHIP', label: '예배부' },
-    { code: 'EDUCATION', label: '교육부' },
-    { code: 'MISSION', label: '선교부' },
-    { code: 'YOUTH', label: '청년부' },
-    { code: 'CHILDREN', label: '아동부' }
+  const departments = [
+    '예배부',
+    '교육부',
+    '선교부',
+    '청년부',
+    '아동부'
   ];
   
   const maritalStatuses = [
@@ -188,7 +188,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // Reset form when closing
     setFormData({
       name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-      position: '', district: '', organization_id: '', department_code: '', position_code: '', appointed_on: '',
+      position: '', district: '', organization_id: '', department: '', position_code: '', appointed_on: '',
       ordination_church: '', workplace: '', workplace_phone: '',
       address: '', marital_status: '', spouse_name: '', married_on: '',
       // 새로 추가된 필드들 리셋
@@ -248,7 +248,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         position: formData.position || null,
         district: formData.district || null,
         organization_id: formData.organization_id || null,
-        department: formData.department_code || null,  // department_code -> department
+        department: formData.department || null,
         marital_status: formData.marital_status || null,
         member_status: 'active',  // 신규 등록 시 항상 활동 상태
 
@@ -575,29 +575,19 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">부서</label>
                     <Select
-                      value={formData.department_code || 'none'}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value === 'none' ? '' : value }))}
+                      value={formData.department || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, department: value === 'none' ? '' : value }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="부서 선택" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">없음</SelectItem>
-                        {departmentCodes.map(dept => (
-                          <SelectItem key={dept.code} value={dept.code}>{dept.label}</SelectItem>
+                        {departments.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  {/* 구역 */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">구역</label>
-                    <Input
-                      value={formData.district}
-                      onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
-                      placeholder="1구역, 2구역 등"
-                    />
                   </div>
                 </div>
               </div>
@@ -762,16 +752,6 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   type="date"
                   value={formData.confirmation_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, confirmation_date: e.target.value }))}
-                />
-              </div>
-
-              {/* 부구역 */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">부구역</label>
-                <Input
-                  value={formData.sub_district}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sub_district: e.target.value }))}
-                  placeholder="A구역, B구역 등"
                 />
               </div>
 

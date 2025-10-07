@@ -18,8 +18,8 @@ const AddMemberWizard: React.FC = () => {
   const [formData, setFormData] = useState({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-    // 사역 정보  
-    position: '', district: '', department_code: '', position_code: '', appointed_on: '',
+    // 사역 정보
+    position: '', district: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', job_title: '', workplace: '', workplace_phone: '',
     // 추가 연락처
     contacts: [] as { type: string; value: string }[],
@@ -40,12 +40,12 @@ const AddMemberWizard: React.FC = () => {
     { code: 'LEADER', label: '부장/회장' }
   ];
   
-  const departmentCodes = [
-    { code: 'WORSHIP', label: '예배부' },
-    { code: 'EDUCATION', label: '교육부' },
-    { code: 'MISSION', label: '선교부' },
-    { code: 'YOUTH', label: '청년부' },
-    { code: 'CHILDREN', label: '아동부' }
+  const departments = [
+    '예배부',
+    '교육부',
+    '선교부',
+    '청년부',
+    '아동부'
   ];
   
   const contactTypes = [
@@ -119,9 +119,9 @@ const AddMemberWizard: React.FC = () => {
       });
       
       // 사역 정보
-      if (formData.department_code && formData.position_code) {
+      if (formData.department && formData.position_code) {
         const ministryData = {
-          department_code: formData.department_code,
+          department: formData.department,
           position_code: formData.position_code,
           appointed_on: formData.appointed_on,
           ordination_church: formData.ordination_church,
@@ -305,11 +305,11 @@ const AddMemberWizard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">부서</label>
-                    <Select value={formData.department_code} onValueChange={(value) => setFormData(prev => ({ ...prev, department_code: value }))}>
+                    <Select value={formData.department} onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}>
                       <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
                       <SelectContent>
-                        {departmentCodes.map(dept => (
-                          <SelectItem key={dept.code} value={dept.code}>{dept.label}</SelectItem>
+                        {departments.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -326,10 +326,6 @@ const AddMemberWizard: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div> */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">구역</label>
-                    <Input value={formData.district} onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))} placeholder="1구역, 2구역 등" />
-                  </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">직분</label>
                     <Select
