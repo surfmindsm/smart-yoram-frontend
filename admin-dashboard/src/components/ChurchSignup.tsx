@@ -26,7 +26,8 @@ interface SignupFormData {
   email: string;
   emailVerificationCode: string;
   memberCount: string;
-  website: string;
+  homepageUrl: string;
+  youtubeChannel: string;
   attachments: File[];
   agreeTerms: boolean;
   agreePrivacy: boolean;
@@ -47,7 +48,8 @@ const ChurchSignup: React.FC = () => {
     email: '',
     emailVerificationCode: '',
     memberCount: '',
-    website: '',
+    homepageUrl: '',
+    youtubeChannel: '',
     attachments: [],
     agreeTerms: false,
     agreePrivacy: false,
@@ -297,7 +299,8 @@ const ChurchSignup: React.FC = () => {
       agree_privacy: formData.agreePrivacy,
       agree_marketing: formData.agreeMarketing,
       business_no: formData.churchRegistrationNumber || undefined,
-      website: formData.website || undefined,
+      homepage_url: formData.homepageUrl || undefined,
+      youtube_channel: formData.youtubeChannel || undefined,
       established_year: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
       denomination: formData.denomination || undefined,
       member_count: formData.memberCount ? parseInt(formData.memberCount) : undefined,
@@ -602,13 +605,24 @@ const ChurchSignup: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="website">홈페이지 (따로 없으면 유튜브 주소 가능)</Label>
+                    <Label htmlFor="homepageUrl">교회 홈페이지</Label>
                     <Input
-                      id="website"
+                      id="homepageUrl"
                       type="url"
-                      value={formData.website}
-                      onChange={(e) => handleInputChange('website', e.target.value)}
-                      placeholder="https://example.com"
+                      value={formData.homepageUrl}
+                      onChange={(e) => handleInputChange('homepageUrl', e.target.value)}
+                      placeholder="https://church.com"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="youtubeChannel">유튜브 채널</Label>
+                    <Input
+                      id="youtubeChannel"
+                      type="url"
+                      value={formData.youtubeChannel}
+                      onChange={(e) => handleInputChange('youtubeChannel', e.target.value)}
+                      placeholder="https://youtube.com/@channel"
                     />
                   </div>
                 </div>

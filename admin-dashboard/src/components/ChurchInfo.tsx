@@ -3,9 +3,8 @@ import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
 import { Card, CardContent } from "./ui";
 import { Input } from "./ui";
-import { Badge } from "./ui";
 import { Alert, AlertDescription } from "./ui";
-import { Building2, Phone, Mail, MapPin, Edit2, Calendar, Users } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Edit2 } from 'lucide-react';
 
 interface Church {
   idx?: number;
@@ -15,6 +14,8 @@ interface Church {
   phone?: string;
   email?: string;
   pastor_name?: string;
+  homepage_url?: string;
+  youtube_channel?: string;
   subscription_status: string;
   subscription_end_date?: string | null;
   member_limit: number;
@@ -45,10 +46,8 @@ const ChurchInfo: React.FC = () => {
     phone: '',
     email: '',
     pastor_name: '',
-    website: '',
-    established_date: '',
-    denomination: '',
-    description: '',
+    homepage_url: '',
+    youtube_channel: '',
     business_no: '',
     district_scheme: ''
   });
@@ -70,10 +69,8 @@ const ChurchInfo: React.FC = () => {
         phone: data.phone || '',
         email: data.email || '',
         pastor_name: data.pastor_name || '',
-        website: '',
-        established_date: '',
-        denomination: '',
-        description: '',
+        homepage_url: data.homepage_url || '',
+        youtube_channel: data.youtube_channel || '',
         business_no: data.business_no || '',
         district_scheme: data.district_scheme || ''
       });
@@ -105,10 +102,8 @@ const ChurchInfo: React.FC = () => {
         phone: church.phone || '',
         email: church.email || '',
         pastor_name: church.pastor_name || '',
-        website: '',
-        established_date: '',
-        denomination: '',
-        description: '',
+        homepage_url: church.homepage_url || '',
+        youtube_channel: church.youtube_channel || '',
         business_no: church.business_no || '',
         district_scheme: church.district_scheme || ''
       });
@@ -222,6 +217,28 @@ const ChurchInfo: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    교회 홈페이지
+                  </label>
+                  <Input
+                    type="url"
+                    placeholder="https://church.com"
+                    value={formData.homepage_url}
+                    onChange={(e) => setFormData({ ...formData, homepage_url: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    유튜브 채널
+                  </label>
+                  <Input
+                    type="url"
+                    placeholder="https://youtube.com/@channel"
+                    value={formData.youtube_channel}
+                    onChange={(e) => setFormData({ ...formData, youtube_channel: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
                 <Button
@@ -276,50 +293,25 @@ const ChurchInfo: React.FC = () => {
                 </h3>
                 <p className="mt-1 text-lg text-foreground">{church?.address || '-'}</p>
               </div>
-            </div>
-          )}
-
-          {/* Subscription Info */}
-          {church && (
-            <div className="mt-8 pt-8 border-t border-border">
-              <h3 className="text-lg font-medium text-foreground mb-4">구독 정보</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="border-muted">
-                  <CardContent className="p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">구독 상태</h4>
-                    <Badge 
-                      variant={church.subscription_status === 'active' ? 'success' : 
-                               church.subscription_status === 'trial' ? 'warning' : 'destructive'}
-                    >
-                      {church.subscription_status === 'active' ? '활성' : 
-                       church.subscription_status === 'trial' ? '체험판' : '만료'}
-                    </Badge>
-                  </CardContent>
-                </Card>
-                <Card className="border-muted">
-                  <CardContent className="p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      만료일
-                    </h4>
-                    <p className="text-foreground">
-                      {church.subscription_end_date 
-                        ? new Date(church.subscription_end_date).toLocaleDateString('ko-KR')
-                        : '-'}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-muted">
-                  <CardContent className="p-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      교인 수 제한
-                    </h4>
-                    <p className="text-foreground">
-                      {church.member_limit === -1 ? '무제한' : `${church.member_limit}명`}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">교회 홈페이지</h3>
+                <p className="mt-1 text-lg text-foreground">
+                  {church?.homepage_url ? (
+                    <a href={church.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {church.homepage_url}
+                    </a>
+                  ) : '-'}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">유튜브 채널</h3>
+                <p className="mt-1 text-lg text-foreground">
+                  {church?.youtube_channel ? (
+                    <a href={church.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {church.youtube_channel}
+                    </a>
+                  ) : '-'}
+                </p>
               </div>
             </div>
           )}

@@ -34,6 +34,8 @@ interface Church {
   pastor_name?: string;
   established_date?: string;
   denomination?: string;
+  homepage_url?: string;
+  youtube_channel?: string;
   subscription_status: string;
   subscription_end_date?: string;
   subscription_plan?: string;
@@ -62,6 +64,8 @@ const ChurchManagement: React.FC = () => {
     subscription_end_date: '',
     member_limit: 100,
     is_active: true,
+    homepage_url: '',
+    youtube_channel: '',
   });
 
   useEffect(() => {
@@ -117,6 +121,8 @@ const ChurchManagement: React.FC = () => {
       subscription_end_date: church.subscription_end_date ? church.subscription_end_date.split('T')[0] : '',
       member_limit: church.member_limit || 100,
       is_active: church.is_active,
+      homepage_url: church.homepage_url || '',
+      youtube_channel: church.youtube_channel || '',
     });
     setShowEditModal(true);
   };
@@ -562,6 +568,26 @@ const ChurchManagement: React.FC = () => {
                 </p>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">교회 홈페이지</label>
+                <Input
+                  type="url"
+                  value={editData.homepage_url}
+                  onChange={(e) => setEditData({...editData, homepage_url: e.target.value})}
+                  placeholder="https://church.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">유튜브 채널</label>
+                <Input
+                  type="url"
+                  value={editData.youtube_channel}
+                  onChange={(e) => setEditData({...editData, youtube_channel: e.target.value})}
+                  placeholder="https://youtube.com/@channel"
+                />
+              </div>
+            </div>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -632,6 +658,29 @@ const ChurchManagement: React.FC = () => {
                   <p className="text-foreground">{selectedChurch.address}</p>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">교회 홈페이지</label>
+                  <p className="text-foreground">
+                    {selectedChurch.homepage_url ? (
+                      <a href={selectedChurch.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {selectedChurch.homepage_url}
+                      </a>
+                    ) : '미설정'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">유튜브 채널</label>
+                  <p className="text-foreground">
+                    {selectedChurch.youtube_channel ? (
+                      <a href={selectedChurch.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {selectedChurch.youtube_channel}
+                      </a>
+                    ) : '미설정'}
+                  </p>
+                </div>
+              </div>
 
               <div className="border-t pt-4">
                 <h4 className="font-semibold text-foreground mb-3">구독 정보</h4>

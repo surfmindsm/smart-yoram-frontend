@@ -21,6 +21,8 @@ export interface ChurchApplicationRequest {
   // 선택 필드
   business_no?: string;
   website?: string;
+  homepage_url?: string;
+  youtube_channel?: string;
   established_year?: number;
   denomination?: string;
   member_count?: number;
@@ -107,6 +109,12 @@ class ChurchApplicationService {
     }
     if (data.website) {
       formData.append('website', data.website);
+    }
+    if (data.homepage_url) {
+      formData.append('homepage_url', data.homepage_url);
+    }
+    if (data.youtube_channel) {
+      formData.append('youtube_channel', data.youtube_channel);
     }
     if (data.established_year) {
       formData.append('established_year', data.established_year.toString());
