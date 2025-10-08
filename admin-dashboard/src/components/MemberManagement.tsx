@@ -32,7 +32,11 @@ import {
   Upload,
   Download,
   Settings,
-  Shield
+  Shield,
+  Phone,
+  Church,
+  ArrowRightLeft,
+  Car
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -108,6 +112,12 @@ const MemberManagement: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedMember, setEditedMember] = useState<Partial<Member>>({});
+
+  // 관계 테이블 데이터
+  const [memberContacts, setMemberContacts] = useState<any[]>([]);
+  const [memberSacraments, setMemberSacraments] = useState<any[]>([]);
+  const [memberTransfers, setMemberTransfers] = useState<any[]>([]);
+  const [memberVehicles, setMemberVehicles] = useState<any[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showExcelImportModal, setShowExcelImportModal] = useState(false);
@@ -517,14 +527,52 @@ const MemberManagement: React.FC = () => {
     }
   };
 
-  const handleMemberClick = (member: Member) => {
+  const loadMemberRelations = async (memberId: number) => {
+    try {
+      // 연락처 조회
+      const { data: contacts } = await supabase
+        .from('member_contacts')
+        .select('*')
+        .eq('member_id', memberId);
+      setMemberContacts(contacts || []);
+
+      // 성례 기록 조회
+      const { data: sacraments } = await supabase
+        .from('sacraments')
+        .select('*')
+        .eq('member_id', memberId);
+      setMemberSacraments(sacraments || []);
+
+      // 이명 기록 조회
+      const { data: transfers } = await supabase
+        .from('transfers')
+        .select('*')
+        .eq('member_id', memberId);
+      setMemberTransfers(transfers || []);
+
+      // 차량 정보 조회
+      const { data: vehicles } = await supabase
+        .from('member_vehicles')
+        .select('*')
+        .eq('member_id', memberId);
+      setMemberVehicles(vehicles || []);
+    } catch (error) {
+      console.error('관계 데이터 로드 실패:', error);
+    }
+  };
+
+  const handleMemberClick = async (member: Member) => {
     // 교인 상세 조회 로그 기록
     const viewedFields = ['name', 'email', 'phone', 'gender', 'birthdate', 'address', 'position', 'district', 'member_status'];
     activityLogger.logMemberView(member.id, member.name, viewedFields);
-    
+
     setSelectedMember(member);
     setEditedMember(member);
     setIsEditMode(false);
+
+    // 관계 테이블 데이터 로드
+    await loadMemberRelations(member.id);
+
     setShowDetailModal(true);
   };
 
@@ -2027,6 +2075,88 @@ const MemberManagement: React.FC = () => {
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* 추가 연락처 */}
+              <div className="bg-purple-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Phone className="w-5 h-5" />
+                  추가 연락처
+                </h3>
+                {memberContacts.length > 0 ? (
+                  <div className="space-y-2">
+                    {memberContacts.map((contact, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-foreground">{contact.type}:</span>
+                        <span className="text-muted-foreground">{contact.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">등록된 추가 연락처가 없습니다.</p>
+                )}
+              </div>
+
+              {/* 성례 기록 */}
+              <div className="bg-indigo-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Church className="w-5 h-5" />
+                  성례 기록
+                </h3>
+                {memberSacraments.length > 0 ? (
+                  <div className="space-y-2">
+                    {memberSacraments.map((sacrament, index) => (
+                      <div key={index} className="text-sm">
+                        <span className="font-medium text-foreground">{sacrament.type}</span>
+                        {sacrament.date && <span className="text-muted-foreground"> ({sacrament.date})</span>}
+                        {sacrament.church_name && <span className="text-muted-foreground"> - {sacrament.church_name}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">등록된 성례 기록이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 이명 기록 */}
+              <div className="bg-teal-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <ArrowRightLeft className="w-5 h-5" />
+                  이명 기록
+                </h3>
+                {memberTransfers.length > 0 ? (
+                  <div className="space-y-2">
+                    {memberTransfers.map((transfer, index) => (
+                      <div key={index} className="text-sm">
+                        <span className="font-medium text-foreground">{transfer.type === 'in' ? '입교' : '이명'}</span>
+                        {transfer.church_name && <span className="text-muted-foreground"> - {transfer.church_name}</span>}
+                        {transfer.date && <span className="text-muted-foreground"> ({transfer.date})</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">등록된 이명 기록이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 차량 정보 */}
+              <div className="bg-orange-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Car className="w-5 h-5" />
+                  차량 정보
+                </h3>
+                {memberVehicles.length > 0 ? (
+                  <div className="space-y-2">
+                    {memberVehicles.map((vehicle, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-foreground">{vehicle.car_type || '차종 미지정'}</span>
+                        {vehicle.plate_no && <span className="text-muted-foreground">({vehicle.plate_no})</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">등록된 차량 정보가 없습니다.</p>
+                )}
               </div>
 
               {/* Action Buttons */}
