@@ -196,11 +196,13 @@ Deno.serve(async (req) => {
 
       // Only include fields that are provided and exist in the members table
       if (body.name !== undefined) insertData.name = body.name
+      if (body.name_eng !== undefined) insertData.name_eng = body.name_eng
       if (body.phone !== undefined) insertData.phone = body.phone
       if (body.email !== undefined) insertData.email = body.email
       if (body.gender !== undefined) insertData.gender = body.gender
       if (body.birthdate !== undefined) insertData.birthdate = body.birthdate
       if (body.address !== undefined) insertData.address = body.address
+      if (body.marital_status !== undefined) insertData.marital_status = body.marital_status
       if (body.position !== undefined) insertData.position = body.position
       if (body.department !== undefined) insertData.department = body.department
       if (body.district !== undefined) insertData.district = body.district
@@ -271,11 +273,13 @@ Deno.serve(async (req) => {
       const updateData: any = {}
 
       if (body.name !== undefined) updateData.name = body.name
+      if (body.name_eng !== undefined) updateData.name_eng = body.name_eng
       if (body.phone !== undefined) updateData.phone = body.phone
       if (body.email !== undefined) updateData.email = body.email
       if (body.gender !== undefined) updateData.gender = body.gender
       if (body.birthdate !== undefined) updateData.birthdate = body.birthdate
       if (body.address !== undefined) updateData.address = body.address
+      if (body.marital_status !== undefined) updateData.marital_status = body.marital_status
       if (body.position !== undefined) updateData.position = body.position
       if (body.department !== undefined) updateData.department = body.department
       if (body.district !== undefined) updateData.district = body.district

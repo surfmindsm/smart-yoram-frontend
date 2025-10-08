@@ -127,53 +127,110 @@ const AddMemberWizard: React.FC = () => {
     setLoading(true);
     try {
       const basicData = {
-        name: formData.name, name_eng: formData.name_eng, email: formData.email,
-        gender: formData.gender, birthdate: formData.birthdate, phone: formData.phone,
-        address: formData.address, position: formData.position, district: formData.district
+        name: formData.name,
+        name_eng: formData.name_eng,
+        email: formData.email,
+        gender: formData.gender,
+        birthdate: formData.birthdate,
+        phone: formData.phone,
+        address: formData.address,
+        marital_status: formData.marital_status,
+        position: formData.position,
+        department: formData.department,
+        district: formData.district
       };
-      
+
       const memberResponse = await api.post('/members/', basicData);
       const memberId = memberResponse.data.id;
-      
+
       // 추가 정보 등록
       const promises = [];
       
-      // 연락처 정보
-      formData.contacts.forEach(contact => {
-        if (contact.type && contact.value) {
-          promises.push(api.post(`/members/${memberId}/contacts`, contact));
+      // 연락처 정보 저장 (Supabase 직접 사용)
+      if (formData.contacts.length > 0) {
+        const contactsData = formData.contacts
+          .filter(c => c.type && c.value)
+          .map(c => ({
+            member_id: memberId,
+            type: c.type,
+            value: c.value
+          }));
+
+        if (contactsData.length > 0) {
+          const { error: contactsError } = await supabase
+            .from('member_contacts')
+            .insert(contactsData);
+
+          if (contactsError) {
+            console.error('연락처 저장 실패:', contactsError);
+          }
         }
-      });
-      
-      // 사역 정보
-      if (formData.department && formData.position_code) {
-        const ministryData = {
-          department: formData.department,
-          position_code: formData.position_code,
-          appointed_on: formData.appointed_on,
-          ordination_church: formData.ordination_church,
-          job_title: formData.job_title,
-          workplace: formData.workplace,
-          workplace_phone: formData.workplace_phone
-        };
-        promises.push(api.post(`/members/${memberId}/ministries`, ministryData));
       }
-      
-      // 성례 기록
-      formData.sacraments.forEach(sacrament => {
-        if (sacrament.type && sacrament.date && sacrament.church_name) {
-          promises.push(api.post(`/members/${memberId}/sacraments`, sacrament));
+
+      // 성례 기록 저장
+      if (formData.sacraments.length > 0) {
+        const sacramentsData = formData.sacraments
+          .filter(s => s.type && s.date && s.church_name)
+          .map(s => ({
+            member_id: memberId,
+            type: s.type,
+            date: s.date,
+            church_name: s.church_name
+          }));
+
+        if (sacramentsData.length > 0) {
+          const { error: sacramentsError } = await supabase
+            .from('sacraments')
+            .insert(sacramentsData);
+
+          if (sacramentsError) {
+            console.error('성례 기록 저장 실패:', sacramentsError);
+          }
         }
-      });
-      
-      // 이명 기록
-      formData.transfers.forEach(transfer => {
-        if (transfer.type && transfer.church_name && transfer.date) {
-          promises.push(api.post(`/members/${memberId}/transfers`, transfer));
+      }
+
+      // 이명 기록 저장
+      if (formData.transfers.length > 0) {
+        const transfersData = formData.transfers
+          .filter(t => t.type && t.church_name && t.date)
+          .map(t => ({
+            member_id: memberId,
+            type: t.type,
+            church_name: t.church_name,
+            date: t.date
+          }));
+
+        if (transfersData.length > 0) {
+          const { error: transfersError } = await supabase
+            .from('transfers')
+            .insert(transfersData);
+
+          if (transfersError) {
+            console.error('이명 기록 저장 실패:', transfersError);
+          }
         }
-      });
-      
-      await Promise.all(promises);
+      }
+
+      // 차량 정보 저장
+      if (formData.vehicles.length > 0) {
+        const vehiclesData = formData.vehicles
+          .filter(v => v.car_type || v.plate_no)
+          .map(v => ({
+            member_id: memberId,
+            car_type: v.car_type,
+            plate_no: v.plate_no
+          }));
+
+        if (vehiclesData.length > 0) {
+          const { error: vehiclesError } = await supabase
+            .from('member_vehicles')
+            .insert(vehiclesData);
+
+          if (vehiclesError) {
+            console.error('차량 정보 저장 실패:', vehiclesError);
+          }
+        }
+      }
       
       alert('교인 정보가 성공적으로 등록되었습니다.');
       navigate('/member-management');
