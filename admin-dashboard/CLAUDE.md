@@ -89,6 +89,16 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Still used for: job postings, music team recruitment, church events
 - Contains auth utilities and token management for legacy endpoints
 
+**Member Management:**
+- `AddMemberWizard.tsx`: 5-step wizard for adding new members
+  - Collects basic info, ministry info, contacts, sacraments/transfers, vehicles
+  - Saves to `members` table and related tables (`member_contacts`, `sacraments`, `transfers`, `member_vehicles`)
+  - Uses Supabase client directly for relation tables
+- `MemberManagement.tsx`: View/edit member details
+  - Detail modal loads and displays relation table data
+  - Uses `members` Edge Function for CRUD operations
+  - Supports member fields: `name_eng`, `marital_status`, `spouse_name`, `married_on`, etc.
+
 ### Supabase Integration
 
 **Edge Functions:**
@@ -103,6 +113,10 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Key tables: `community_sharing`, `community_requests`, `members`, `churches`
 - Row Level Security (RLS) policies for data access control
 - Church ID 9998 represents "no church affiliation"
+- **Member relation tables**: `member_contacts`, `member_vehicles`, `sacraments`, `transfers`
+  - One-to-many relationships with `members` table
+  - Store additional member data (contacts, vehicles, sacrament records, transfer history)
+  - All use `member_id` foreign key
 
 **Storage:**
 - Supabase Storage for file uploads (images, documents)
@@ -203,3 +217,13 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Always return JSON responses from Edge Functions
 - Include Korean error messages for user-facing errors
 - Use try-catch blocks with proper logging
+
+**Member Data Patterns:**
+- Main member data stored in `members` table (76 columns including custom fields)
+- Related data in separate tables:
+  - `member_contacts`: Additional contact methods (type, value)
+  - `sacraments`: Baptism, confirmation records (type, date, church_name)
+  - `transfers`: Transfer in/out records (type, church_name, date)
+  - `member_vehicles`: Vehicle information (car_type, plate_no)
+- When creating/updating members, handle relation tables separately via Supabase client
+- `members` Edge Function handles only the main `members` table fields
