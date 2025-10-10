@@ -134,14 +134,18 @@ class ChurchApplicationService {
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/church/applications`, {
+      // Supabase Edge Function URL
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://khvhkqspwhcgxtkexfcq.supabase.co';
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/church-applications`;
+
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         body: formData
       });
 
       const result = await response.json();
 
-      console.log('🔍 백엔드 응답:', {
+      console.log('🔍 Supabase Edge Function 응답:', {
         status: response.status,
         ok: response.ok,
         result: result
