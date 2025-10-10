@@ -84,74 +84,79 @@ class CommunityApplicationService {
    * 커뮤니티 회원 신청서 제출 (공개 API)
    */
   async submitApplication(data: CommunityApplicationRequest): Promise<{ application_id: number; status: string; submitted_at: string }> {
-    const formData = new FormData();
-    
-    // 필수 필드 추가
-    formData.append('applicant_type', data.applicant_type);
-    formData.append('organization_name', data.organization_name);
-    formData.append('contact_person', data.contact_person);
-    formData.append('email', data.email);
-    formData.append('phone', data.phone);
-    formData.append('description', data.description);
-    
-    // 새로운 필수 필드들 추가
-    // 새로운 auth flow에서는 비밀번호가 없으므로 임시 비밀번호 사용
-    formData.append('password', data.password ?? 'temp_password_will_be_sent_after_approval');
-    formData.append('agree_terms', data.agree_terms.toString());
-    formData.append('agree_privacy', data.agree_privacy.toString());
-    formData.append('agree_marketing', data.agree_marketing.toString());
-    
-    // 선택 필드 추가 (값이 있을 때만)
-    if (data.business_number) {
-      formData.append('business_number', data.business_number);
-    }
-    if (data.address) {
-      formData.append('address', data.address);
-    }
-    if (data.service_area) {
-      formData.append('service_area', data.service_area);
-    }
-    if (data.website) {
-      formData.append('website', data.website);
-    }
-    
-    // 파일 첨부 (multiple files)
-    if (data.attachments && data.attachments.length > 0) {
-      data.attachments.forEach(file => {
-        formData.append('attachments', file);
-      });
-    }
-    
     try {
-      const response = await fetch(`${BASE_URL}/community/applications`, {
+      // Supabase Edge Function URL
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
+
+      // JSON 데이터 준비
+      const requestData = {
+        applicant_type: data.applicant_type,
+        organization_name: data.organization_name,
+        contact_person: data.contact_person,
+        email: data.email,
+        phone: data.phone,
+        description: data.description,
+        agree_terms: data.agree_terms,
+        agree_privacy: data.agree_privacy,
+        agree_marketing: data.agree_marketing,
+        business_number: data.business_number || null,
+        address: data.address || null,
+        service_area: data.service_area || null,
+        website: data.website || null,
+      };
+
+      console.log('📤 Supabase Edge Function 전송:', requestData);
+
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(requestData)
       });
-      
+
       const result = await response.json();
-      
+
       console.log('🔍 백엔드 응답:', {
         status: response.status,
         ok: response.ok,
         result: result
       });
-      
+
       if (!response.ok) {
-        // 413 에러인 경우 (파일 크기 초과)
-        if (response.status === 413) {
-          console.error('❌ 413 Request Entity Too Large:', result);
-          throw new Error('첨부파일 크기가 너무 큽니다. 파일 크기를 줄이거나 개수를 줄여주세요.');
-        }
-        // 422 에러인 경우 상세 정보 포함
-        if (response.status === 422) {
-          console.error('❌ 422 Validation Error:', result);
-          const errorMessage = result.detail || result.message || '입력 데이터 검증에 실패했습니다.';
-          throw new Error(`유효성 검사 실패: ${JSON.stringify(errorMessage)}`);
-        }
-        throw new Error(result.message || '신청서 제출에 실패했습니다.');
+        const errorMessage = result.error || result.message || '신청서 제출에 실패했습니다.';
+        console.error('❌ Edge Function 에러 상세:', result);
+        throw new Error(errorMessage);
       }
-      
+
       if (result.success) {
+        // 알림 이메일 발송
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/notify-application`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              type: 'community',
+              applicantEmail: data.email,
+              applicantName: data.contact_person,
+              organizationName: data.organization_name,
+              applicationId: result.data.application_id
+            })
+          });
+          console.log('✅ 커뮤니티 가입 알림 이메일 발송 완료');
+        } catch (emailError) {
+          console.error('❌ 알림 이메일 발송 실패:', emailError);
+          // 이메일 발송 실패해도 신청은 성공으로 처리
+        }
+
         return result.data;
       } else {
         throw new Error(result.message);
@@ -222,30 +227,46 @@ class CommunityApplicationService {
       }
 
       console.log('✅ [Supabase] 신청서 목록 조회 완료:', data?.length || 0, '건');
+      console.log('📋 [Supabase] 조회된 데이터:', data);
 
       // 데이터 변환
-      const applications = (data || []).map((item: any) => ({
-        id: item.id,
-        applicant_type: item.applicant_type,
-        organization_name: item.organization_name,
-        contact_person: item.contact_person,
-        email: item.email,
-        phone: item.phone,
-        business_number: item.business_number,
-        address: item.address,
-        description: item.description,
-        service_area: item.service_area,
-        website: item.website,
-        attachments: item.attachments ? JSON.parse(item.attachments) : [],
-        status: item.status,
-        submitted_at: item.submitted_at,
-        reviewed_at: item.reviewed_at,
-        reviewed_by: item.reviewed_by,
-        rejection_reason: item.rejection_reason,
-        notes: item.notes,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
+      const applications = (data || []).map((item: any) => {
+        // attachments 파싱 - JSONB 타입이지만 문자열로 올 수 있음
+        let attachments = [];
+        try {
+          if (typeof item.attachments === 'string') {
+            attachments = JSON.parse(item.attachments);
+          } else if (Array.isArray(item.attachments)) {
+            attachments = item.attachments;
+          }
+        } catch (e) {
+          console.warn('첨부파일 파싱 실패:', e);
+          attachments = [];
+        }
+
+        return {
+          id: item.id,
+          applicant_type: item.applicant_type,
+          organization_name: item.organization_name,
+          contact_person: item.contact_person,
+          email: item.email,
+          phone: item.phone,
+          business_number: item.business_number,
+          address: item.address,
+          description: item.description,
+          service_area: item.service_area,
+          website: item.website,
+          attachments: attachments,
+          status: item.status,
+          submitted_at: item.submitted_at,
+          reviewed_at: item.reviewed_at,
+          reviewed_by: item.reviewed_by,
+          rejection_reason: item.rejection_reason,
+          notes: item.notes,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        };
+      });
 
       // 통계 계산
       const totalCount = count || 0;
@@ -353,154 +374,47 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 승인 (Supabase 직접 접근)
+   * 신청서 승인 (Edge Function 사용)
    */
   async approveApplication(applicationId: number, notes?: string): Promise<{
     application_id: number;
     status: string;
-    reviewed_at: string;
-    user_account?: {
-      username: string;
-      temporary_password: string;
-      login_url: string;
-    };
+    message?: string;
   }> {
     try {
-      // Supabase 클라이언트 동적 import
-      const { supabase } = await import('../lib/supabase');
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
 
-      console.log('✅ [Supabase] 신청서 승인 처리 중...', applicationId);
+      console.log('✅ [Edge Function] 신청서 승인 처리 중...', applicationId);
 
-      const reviewedAt = new Date().toISOString();
-
-      const { data, error } = await supabase
-        .from('community_applications')
-        .update({
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          applicationId,
           status: 'approved',
-          reviewed_at: reviewedAt,
-          reviewed_by: 1, // 현재 사용자 ID (추후 개선 가능)
-          notes: notes || null
+          notes
         })
-        .eq('id', applicationId)
-        .select()
-        .single();
+      });
 
-      if (error) {
-        console.error('❌ Supabase 신청서 승인 오류:', error);
-        throw new Error('신청서 승인 처리에 실패했습니다.');
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('❌ Edge Function 승인 오류:', result);
+        throw new Error(result.message || '신청서 승인 처리에 실패했습니다.');
       }
 
-      console.log('✅ [Supabase] 신청서 승인 완료:', data?.id);
-
-      // 랜덤 임시 비밀번호 생성 (8자리: 대문자, 소문자, 숫자 조합)
-      const generateTempPassword = (): string => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let password = '';
-        for (let i = 0; i < 8; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
-      };
-
-      const temporaryPassword = generateTempPassword();
-
-      // users 테이블에 사용자 정보 추가 (커뮤니티 멤버)
-      console.log('👤 [Supabase] users 테이블에 사용자 데이터 추가 중...', data.email);
-
-      // 기존 최대 ID 조회해서 다음 ID 생성
-      const { data: maxIdData } = await supabase
-        .from('users')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-
-      const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id : 0;
-      const userId = maxId + 1;
-
-      // church_id 결정
-      let churchId = 9998; // 기본값: no church affiliation
-      let userRole = 'community_member';
-
-      if (data.applicant_type === 'organization') {
-        // 교회 관리자인 경우 새로운 교회 생성
-        try {
-          const { data: churchData, error: churchError } = await supabase
-            .from('churches')
-            .insert({
-              name: data.organization_name,
-              address: data.address,
-              phone: data.phone,
-              email: data.email,
-              is_active: true
-            })
-            .select()
-            .single();
-
-          if (churchError) {
-            console.error('❌ 교회 생성 오류:', churchError);
-            throw new Error('교회 정보 생성에 실패했습니다.');
-          }
-
-          churchId = churchData.id;
-          userRole = 'church_admin';
-          console.log('✅ 새로운 교회 생성 완료:', churchData.id, data.organization_name);
-        } catch (churchCreationError) {
-          console.error('❌ 교회 생성 실패:', churchCreationError);
-          throw new Error('교회 정보 생성에 실패했습니다.');
-        }
-      }
-
-      try {
-        // users 테이블에 사용자 정보 추가 (church_id 포함)
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: userId,
-            username: data.email, // 이메일을 username으로 사용
-            email: data.email,
-            full_name: data.contact_person,
-            church_id: churchId,
-            role: userRole,
-            hashed_password: temporaryPassword, // 실제로는 해시해야 하지만 임시로 평문 저장
-            is_active: true
-          });
-
-        if (userError) {
-          console.error('❌ users 테이블 삽입 오류:', userError);
-          throw userError; // 사용자 생성 실패 시 전체 프로세스 중단
-        } else {
-          console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
-        }
-
-      } catch (userCreationError) {
-        console.error('❌ 사용자 데이터 추가 과정에서 오류 발생:', userCreationError);
-        throw new Error('사용자 계정 생성에 실패했습니다.');
-      }
-
-      // 임시 비밀번호 이메일 발송
-      try {
-        const { supabaseApiService } = await import('./supabaseApiService');
-        await supabaseApiService.sendTempPassword.send(
-          data.email,
-          temporaryPassword,
-          data.contact_person,
-          data.organization_name
-        );
-        console.log('✅ 임시 비밀번호 이메일 발송 완료');
-      } catch (emailError) {
-        console.error('❌ 임시 비밀번호 이메일 발송 실패:', emailError);
-        // 이메일 발송이 실패해도 승인 프로세스는 계속 진행
-      }
+      console.log('✅ [Edge Function] 신청서 승인 완료:', result);
 
       return {
         application_id: applicationId,
         status: 'approved',
-        reviewed_at: reviewedAt,
-        user_account: {
-          username: data.email,
-          temporary_password: temporaryPassword,
-          login_url: window.location.origin + '/login'
-        }
+        message: '신청서가 승인되었습니다.'
       };
 
     } catch (error) {
@@ -510,45 +424,48 @@ class CommunityApplicationService {
   }
 
   /**
-   * 신청서 반려 (Supabase 직접 접근)
+   * 신청서 반려 (Edge Function 사용)
    */
   async rejectApplication(applicationId: number, rejectionReason: string, notes?: string): Promise<{
     application_id: number;
     status: string;
-    reviewed_at: string;
+    message: string;
   }> {
     try {
-      // Supabase 클라이언트 동적 import
-      const { supabase } = await import('../lib/supabase');
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
 
-      console.log('❌ [Supabase] 신청서 반려 처리 중...', applicationId);
+      console.log('❌ [Edge Function] 신청서 반려 처리 중...', applicationId);
 
-      const reviewedAt = new Date().toISOString();
-
-      const { data, error } = await supabase
-        .from('community_applications')
-        .update({
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          applicationId,
           status: 'rejected',
-          reviewed_at: reviewedAt,
-          reviewed_by: 1, // 현재 사용자 ID (추후 개선 가능)
-          rejection_reason: rejectionReason,
-          notes: notes || null
+          rejectionReason,
+          notes
         })
-        .eq('id', applicationId)
-        .select()
-        .single();
+      });
 
-      if (error) {
-        console.error('❌ Supabase 신청서 반려 오류:', error);
-        throw new Error('신청서 반려 처리에 실패했습니다.');
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('❌ Edge Function 반려 오류:', result);
+        throw new Error(result.message || '신청서 반려 처리에 실패했습니다.');
       }
 
-      console.log('✅ [Supabase] 신청서 반려 완료:', data?.id);
+      console.log('✅ [Edge Function] 신청서 반려 완료:', result);
 
       return {
         application_id: applicationId,
         status: 'rejected',
-        reviewed_at: reviewedAt
+        message: '신청서가 반려되었습니다.'
       };
 
     } catch (error) {

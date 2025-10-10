@@ -92,6 +92,9 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 // Community Application Management
 const CommunityApplicationManagement = lazy(() => import('./components/CommunityApplicationManagement'));
 
+// Church Application Management
+const ChurchApplicationManagement = lazy(() => import('./components/ChurchApplicationManagement'));
+
 // Admin Role Management
 const AdminRoleManagement = lazy(() => import('./components/AdminRoleManagement'));
 
@@ -433,6 +436,11 @@ function App() {
           <Route path="community-applications" element={
             <Suspense fallback={<LoadingSpinner />}>
               <CommunityApplicationManagement />
+            </Suspense>
+          } />
+          <Route path="church-applications" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ChurchApplicationManagement />
             </Suspense>
           } />
           <Route path="admin-roles" element={

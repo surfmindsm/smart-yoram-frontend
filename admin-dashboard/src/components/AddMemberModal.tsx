@@ -238,22 +238,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
       const currentUser = await supabaseAuthService.getCurrentUser();
       const userChurchId = currentUser?.user?.church_id || 9998;
 
-      // 교인 등록 제한 확인
-      try {
-        const { data: limitCheck } = await supabaseApiService.churches.checkMemberLimit(userChurchId);
-
-        if (!limitCheck.canAddMember) {
-          if (limitCheck.memberLimit) {
-            alert(`교인 등록 제한에 도달했습니다.\n현재: ${limitCheck.currentMemberCount}명 / 최대: ${limitCheck.memberLimit}명\n\n유료 플랜으로 업그레이드하면 무제한으로 교인을 등록할 수 있습니다.`);
-          } else {
-            alert('교인 등록이 제한되었습니다. 관리자에게 문의하세요.');
-          }
-          return;
-        }
-      } catch (limitError) {
-        console.warn('교인 제한 확인 실패, 계속 진행:', limitError);
-        // 제한 확인 실패 시에도 등록은 계속 진행 (기존 동작 유지)
-      }
+      // 인원 제한 체크 제거 - 모든 교회에서 무제한 등록 가능
       const memberData = {
         // 기존 필드들 (실제 DB 컬럼명에 맞춤)
         name: formData.name,

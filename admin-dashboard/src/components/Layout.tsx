@@ -321,6 +321,7 @@ const Layout: React.FC = () => {
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
         ...(isSystemAdmin ? [
           { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+          { path: '/church-applications', name: '교회 가입 신청 관리', Icon: Church },
           { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 },
           { path: '/church-management', name: '교회 관리', Icon: Church },
           { path: '/gpt-license-management', name: 'GPT 라이선스 관리', Icon: Key }

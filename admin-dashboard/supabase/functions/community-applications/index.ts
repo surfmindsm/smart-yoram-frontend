@@ -15,39 +15,35 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client with Service Role Key
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     if (req.method === 'POST') {
-      // 교회 가입 신청서 제출 (JSON 기반)
+      // 커뮤니티 가입 신청서 제출
       const body = await req.json()
 
       // 필수 필드 추출
       const {
-        church_name,
-        pastor_name,
-        admin_name,
+        applicant_type,
+        organization_name,
+        contact_person,
         email,
         phone,
-        address,
         description,
         agree_terms,
         agree_privacy,
         agree_marketing,
-        business_no,
-        website,
-        homepage_url,
-        youtube_channel,
-        established_year,
-        denomination,
-        member_count
+        business_number,
+        address,
+        service_area,
+        website
       } = body
 
-      // 필수 필드 검증 (빈 문자열도 허용하지 않음)
-      if (!church_name || !pastor_name || !admin_name || !email || !phone || !address) {
+      // 필수 필드 검증
+      if (!applicant_type || !organization_name || !contact_person || !email || !phone || !description) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -75,12 +71,11 @@ Deno.serve(async (req) => {
 
       // DB에 신청서 저장
       const insertData: any = {
-        church_name,
-        pastor_name,
-        admin_name,
+        applicant_type,
+        organization_name,
+        contact_person,
         email,
         phone,
-        address,
         description,
         agree_terms,
         agree_privacy,
@@ -90,33 +85,26 @@ Deno.serve(async (req) => {
       }
 
       // 선택 필드 추가
-      if (business_no) insertData.business_no = business_no
+      if (business_number) insertData.business_number = business_number
+      if (address) insertData.address = address
+      if (service_area) insertData.service_area = service_area
       if (website) insertData.website = website
-      if (homepage_url) insertData.homepage_url = homepage_url
-      if (youtube_channel) insertData.youtube_channel = youtube_channel
-      if (established_year) insertData.established_year = established_year
-      if (denomination) insertData.denomination = denomination
-      if (member_count) insertData.member_count = member_count
 
-      console.log('📝 교회 신청서 저장 중:', insertData)
+      console.log('📝 커뮤니티 신청서 저장 중:', insertData)
 
       const { data, error } = await supabaseClient
-        .from('church_applications')
+        .from('community_applications')
         .insert([insertData])
         .select()
         .single()
 
       if (error) {
-        console.error('❌ 교회 신청서 저장 실패:', error)
-        console.error('❌ Error details:', JSON.stringify(error, null, 2))
+        console.error('❌ 커뮤니티 신청서 저장 실패:', error)
         return new Response(
           JSON.stringify({
             success: false,
             message: '신청서 저장에 실패했습니다.',
-            error: error.message,
-            error_details: error.details,
-            error_hint: error.hint,
-            error_code: error.code
+            error: error.message
           }),
           {
             status: 500,
@@ -125,7 +113,7 @@ Deno.serve(async (req) => {
         )
       }
 
-      console.log('✅ 교회 신청서 저장 완료:', data.id)
+      console.log('✅ 커뮤니티 신청서 저장 완료:', data.id)
 
       return new Response(
         JSON.stringify({
@@ -145,9 +133,9 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PUT') {
-      // 교회 신청서 승인/반려 처리
+      // 커뮤니티 신청서 승인/반려 처리
       const body = await req.json()
-      const { applicationId, status } = body
+      const { applicationId, status, rejectionReason, notes } = body
 
       if (!applicationId || !status) {
         return new Response(
@@ -175,16 +163,27 @@ Deno.serve(async (req) => {
         )
       }
 
-      console.log(`📝 교회 신청서 ${status === 'approved' ? '승인' : '반려'} 처리 중:`, applicationId)
+      console.log(`📝 커뮤니티 신청서 ${status === 'approved' ? '승인' : '반려'} 처리 중:`, applicationId)
+
+      // 업데이트 데이터 구성
+      const updateData: any = {
+        status,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: 1
+      }
+
+      if (rejectionReason) {
+        updateData.rejection_reason = rejectionReason
+      }
+
+      if (notes) {
+        updateData.notes = notes
+      }
 
       // Service Role Key로 UPDATE 수행 (RLS 우회)
       const { data: updatedApplication, error: updateError } = await supabaseClient
-        .from('church_applications')
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: 1
-        })
+        .from('community_applications')
+        .update(updateData)
         .eq('id', applicationId)
         .select()
         .single()
@@ -204,7 +203,55 @@ Deno.serve(async (req) => {
         )
       }
 
-      console.log(`✅ 교회 신청서 ${status} 처리 완료:`, applicationId)
+      console.log(`✅ 커뮤니티 신청서 ${status} 처리 완료:`, applicationId)
+
+      // 승인 시 임시 비밀번호 생성 및 이메일 알림 발송
+      if (status === 'approved') {
+        try {
+          console.log('🔑 임시 비밀번호 생성 중...')
+
+          // 임시 비밀번호 생성 (8자리: 대문자, 소문자, 숫자 조합)
+          const generateTempPassword = (): string => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let password = '';
+            for (let i = 0; i < 8; i++) {
+              password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+          };
+
+          const temporaryPassword = generateTempPassword();
+          const username = updatedApplication.email; // 이메일을 username으로 사용
+
+          console.log('📧 승인 이메일 발송 중...')
+
+          const notifyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-application`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.get('Authorization') || '',
+            },
+            body: JSON.stringify({
+              type: 'community_approved',
+              applicantEmail: updatedApplication.email,
+              applicantName: updatedApplication.contact_person,
+              organizationName: updatedApplication.organization_name,
+              applicationId: applicationId,
+              username: username,
+              temporaryPassword: temporaryPassword
+            })
+          })
+
+          if (notifyResponse.ok) {
+            console.log('✅ 승인 이메일 발송 완료 (아이디:', username, ')')
+          } else {
+            console.error('❌ 승인 이메일 발송 실패:', await notifyResponse.text())
+          }
+        } catch (emailError) {
+          console.error('❌ 이메일 발송 오류:', emailError)
+          // 이메일 발송 실패해도 승인은 완료
+        }
+      }
 
       return new Response(
         JSON.stringify({

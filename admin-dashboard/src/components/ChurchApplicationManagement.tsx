@@ -28,21 +28,20 @@ import {
   Loader2
 } from 'lucide-react';
 import { Spinner } from './ui/spinner';
-import { 
-  communityApplicationService, 
-  CommunityApplication, 
+import {
+  churchApplicationService,
+  ChurchApplication,
   ApplicationsResponse,
-  ApplicationsQueryParams 
-} from '../services/communityApplicationService';
+  ApplicationsQueryParams
+} from '../services/churchApplicationService';
 
-const CommunityApplicationManagement: React.FC = () => {
-  const [applications, setApplications] = useState<CommunityApplication[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<CommunityApplication[]>([]);
+const ChurchApplicationManagement: React.FC = () => {
+  const [applications, setApplications] = useState<ChurchApplication[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<ChurchApplication[]>([]);
   const [statistics, setStatistics] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [selectedApplication, setSelectedApplication] = useState<CommunityApplication | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ChurchApplication | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -60,11 +59,10 @@ const CommunityApplicationManagement: React.FC = () => {
         page: 1,
         limit: 100, // 일단 많이 가져와서 클라이언트 사이드에서 필터링
         status: statusFilter === 'all' ? undefined : statusFilter as any,
-        applicant_type: typeFilter === 'all' ? undefined : typeFilter as any,
         search: searchTerm || undefined,
       };
 
-      const response: ApplicationsResponse = await communityApplicationService.getApplications(params);
+      const response: ApplicationsResponse = await churchApplicationService.getApplications(params);
       
       // 백엔드에서 오는 데이터 정제
       const processedApplications = response.applications.map(app => ({
@@ -90,7 +88,7 @@ const CommunityApplicationManagement: React.FC = () => {
 
   useEffect(() => {
     loadApplications();
-  }, [statusFilter, typeFilter, searchTerm]);
+  }, [statusFilter, searchTerm]);
 
   useEffect(() => {
     // applications이 undefined이거나 배열이 아닌 경우 안전하게 처리
@@ -100,19 +98,18 @@ const CommunityApplicationManagement: React.FC = () => {
     }
 
     let filtered = applications.filter(app => {
-      const matchesSearch = 
-        app.organization_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.contact_person.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        app.church_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.admin_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-      const matchesType = typeFilter === 'all' || app.applicant_type === typeFilter;
-      
-      return matchesSearch && matchesStatus && matchesType;
+
+      return matchesSearch && matchesStatus;
     });
 
     setFilteredApplications(filtered);
-  }, [applications, searchTerm, statusFilter, typeFilter]);
+  }, [applications, searchTerm, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -134,19 +131,8 @@ const CommunityApplicationManagement: React.FC = () => {
     );
   };
 
-  const getTypeLabel = (type: string) => {
-    const typeLabels = {
-      company: '업체/회사',
-      individual: '개인사업자',
-      musician: '연주자/음악가',
-      minister: '사역자',
-      organization: '단체/기관',
-      other: '기타'
-    };
-    return typeLabels[type as keyof typeof typeLabels] || type;
-  };
 
-  const handleViewDetails = (application: CommunityApplication) => {
+  const handleViewDetails = (application: ChurchApplication) => {
     setSelectedApplication(application);
     setShowDetailsModal(true);
   };
@@ -154,13 +140,18 @@ const CommunityApplicationManagement: React.FC = () => {
   const handleApprove = async (applicationId: number, notes?: string) => {
     setProcessingId(applicationId);
     try {
-      const result = await communityApplicationService.approveApplication(applicationId, notes);
+      const result = await churchApplicationService.approveApplication(applicationId, notes);
       
       // 성공적으로 승인되면 목록 다시 로드
       await loadApplications();
-
+      
       alert('신청이 승인되었습니다.');
       console.log('승인 결과:', result);
+      
+      // 계정 생성 정보가 있다면 보여주기
+      if (result.user_account) {
+        alert(`계정이 생성되었습니다.\n아이디: ${result.user_account.username}\n임시 비밀번호: ${result.user_account.temporary_password}`);
+      }
     } catch (error: any) {
       console.error('승인 처리 실패:', error);
       setError(error.message || '승인 처리 중 오류가 발생했습니다.');
@@ -177,7 +168,7 @@ const CommunityApplicationManagement: React.FC = () => {
 
     setProcessingId(selectedApplication.id);
     try {
-      const result = await communityApplicationService.rejectApplication(
+      const result = await churchApplicationService.rejectApplication(
         selectedApplication.id, 
         rejectionReason
       );
@@ -211,8 +202,8 @@ const CommunityApplicationManagement: React.FC = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">회원 신청 관리</h1>
-          <p className="text-gray-600">커뮤니티 회원 신청서를 검토하고 승인/반려 처리하세요</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">교회 가입 신청 관리</h1>
+          <p className="text-gray-600">교회 가입 신청서를 검토하고 승인/반려 처리하세요</p>
         </div>
       </div>
 
@@ -239,21 +230,6 @@ const CommunityApplicationManagement: React.FC = () => {
                 <SelectItem value="pending">검토중</SelectItem>
                 <SelectItem value="approved">승인됨</SelectItem>
                 <SelectItem value="rejected">반려됨</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="유형 필터" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체 유형</SelectItem>
-                <SelectItem value="company">업체/회사</SelectItem>
-                <SelectItem value="individual">개인사업자</SelectItem>
-                <SelectItem value="musician">연주자/음악가</SelectItem>
-                <SelectItem value="minister">사역자</SelectItem>
-                <SelectItem value="organization">단체/기관</SelectItem>
-                <SelectItem value="other">기타</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -347,7 +323,7 @@ const CommunityApplicationManagement: React.FC = () => {
               <div key={application.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
-                    <Badge variant="outline">{getTypeLabel(application.applicant_type)}</Badge>
+                    
                     {getStatusBadge(application.status)}
                   </div>
                   <div className="text-sm text-gray-500">
@@ -357,10 +333,10 @@ const CommunityApplicationManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{application.organization_name}</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">{application.church_name}</h3>
                     <div className="flex items-center text-sm text-gray-600">
                       <User className="w-4 h-4 mr-1" />
-                      {application.contact_person}
+                      {application.admin_name}
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -474,22 +450,16 @@ const CommunityApplicationManagement: React.FC = () => {
                 <h3 className="text-lg font-semibold mb-3">기본 정보</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>신청자 유형</Label>
-                    <div className="mt-1">
-                      <Badge variant="outline">{getTypeLabel(selectedApplication.applicant_type)}</Badge>
-                    </div>
-                  </div>
-                  <div>
                     <Label>신청 상태</Label>
                     <div className="mt-1">{getStatusBadge(selectedApplication.status)}</div>
                   </div>
                   <div>
-                    <Label>단체/회사명</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.organization_name}</p>
+                    <Label>교회명</Label>
+                    <p className="mt-1 text-sm">{selectedApplication.church_name}</p>
                   </div>
                   <div>
                     <Label>담당자명</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.contact_person}</p>
+                    <p className="mt-1 text-sm">{selectedApplication.admin_name}</p>
                   </div>
                   <div>
                     <Label>이메일</Label>
@@ -499,10 +469,10 @@ const CommunityApplicationManagement: React.FC = () => {
                     <Label>연락처</Label>
                     <p className="mt-1 text-sm">{selectedApplication.phone}</p>
                   </div>
-                  {selectedApplication.business_number && (
+                  {selectedApplication.business_no && (
                     <div>
                       <Label>사업자등록번호</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.business_number}</p>
+                      <p className="mt-1 text-sm">{selectedApplication.business_no}</p>
                     </div>
                   )}
                   {selectedApplication.address && (
@@ -511,10 +481,22 @@ const CommunityApplicationManagement: React.FC = () => {
                       <p className="mt-1 text-sm">{selectedApplication.address}</p>
                     </div>
                   )}
-                  {selectedApplication.service_area && (
+                  {selectedApplication.denomination && (
                     <div>
-                      <Label>서비스 지역</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.service_area}</p>
+                      <Label>교단</Label>
+                      <p className="mt-1 text-sm">{selectedApplication.denomination}</p>
+                    </div>
+                  )}
+                  {selectedApplication.established_year && (
+                    <div>
+                      <Label>설립연도</Label>
+                      <p className="mt-1 text-sm">{selectedApplication.established_year}</p>
+                    </div>
+                  )}
+                  {selectedApplication.member_count && (
+                    <div>
+                      <Label>교인 수</Label>
+                      <p className="mt-1 text-sm">{selectedApplication.member_count}</p>
                     </div>
                   )}
                   {selectedApplication.website && (
@@ -550,16 +532,11 @@ const CommunityApplicationManagement: React.FC = () => {
                           <span className="text-sm">{file.filename}</span>
                           <span className="text-xs text-gray-400 ml-2">({(file.size / 1024).toFixed(1)}KB)</span>
                         </div>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
-                          onClick={async () => {
-                            try {
-                              await communityApplicationService.downloadAttachment(selectedApplication.id, file.filename);
-                            } catch (error) {
-                              alert('파일 다운로드에 실패했습니다. 백엔드 API가 구현되지 않았거나 파일이 존재하지 않습니다.');
-                              console.error('다운로드 에러:', error);
-                            }
+                          onClick={() => {
+                            alert('파일 다운로드 기능은 준비 중입니다.');
                           }}
                         >
                           <Download className="w-4 h-4" />
@@ -697,4 +674,4 @@ const CommunityApplicationManagement: React.FC = () => {
   );
 };
 
-export default CommunityApplicationManagement;
+export default ChurchApplicationManagement;

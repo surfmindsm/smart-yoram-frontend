@@ -20,7 +20,10 @@ import {
   CreditCard,
   Settings,
   Eye,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -57,6 +60,8 @@ const ChurchManagement: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [memberCounts, setMemberCounts] = useState<{[key: number]: number}>({});
+  const [sortField, setSortField] = useState<'id' | 'name' | 'pastor_name' | 'created_at' | 'member_count'>('id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [editData, setEditData] = useState({
     subscription_status: '',
@@ -88,20 +93,28 @@ const ChurchManagement: React.FC = () => {
         const counts: {[key: number]: number} = {};
         for (const church of data) {
           try {
-            // serial_id가 유효한 경우에만 교인 수 조회
-            if (church.serial_id && typeof church.serial_id === 'number') {
-              const { data: members } = await supabaseApiService.supabase
+            const churchId = parseInt(church.id);
+            if (churchId) {
+              const { count, error } = await supabaseApiService.supabase
                 .from('members')
-                .select('id', { count: 'exact' })
-                .eq('church_id', church.serial_id);
-              counts[church.serial_id] = members?.length || 0;
+                .select('*', { count: 'exact', head: true })
+                .eq('church_id', churchId);
+
+              if (error) {
+                console.warn(`교회 ${church.name} (ID: ${churchId}) 교인 수 조회 오류:`, error);
+                counts[churchId] = 0;
+              } else {
+                counts[churchId] = count || 0;
+                console.log(`✅ 교회 ${church.name} (ID: ${churchId}) 교인 수: ${count}명`);
+              }
             } else {
-              console.warn(`교회 ${church.name}의 serial_id가 유효하지 않음:`, church.serial_id);
-              counts[church.serial_id || 0] = 0;
+              console.warn(`교회 ${church.name}의 ID가 유효하지 않음:`, church.id);
+              counts[parseInt(church.id) || 0] = 0;
             }
           } catch (error) {
-            console.warn(`교회 ${church.serial_id} 교인 수 조회 실패:`, error);
-            counts[church.serial_id || 0] = 0;
+            console.warn(`교회 ${church.name} 교인 수 조회 실패:`, error);
+            const churchId = parseInt(church.id);
+            counts[churchId || 0] = 0;
           }
         }
         setMemberCounts(counts);
@@ -256,19 +269,66 @@ const ChurchManagement: React.FC = () => {
     }
   };
 
-  const filteredChurches = churches.filter(church => {
-    const matchesSearch = !searchTerm ||
-      church.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      church.pastor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      church.email?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleSort = (field: 'id' | 'name' | 'pastor_name' | 'created_at' | 'member_count') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
-    const matchesStatus = statusFilter === 'all' || church.subscription_status === statusFilter;
-    const matchesPlan = planFilter === 'all' ||
-      (planFilter === 'free' && (!church.subscription_plan || church.subscription_plan === 'trial')) ||
-      (planFilter === 'paid' && church.subscription_plan && church.subscription_plan !== 'trial');
+  const getSortIcon = (field: 'id' | 'name' | 'pastor_name' | 'created_at' | 'member_count') => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline opacity-40" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="w-4 h-4 ml-1 inline" />
+      : <ArrowDown className="w-4 h-4 ml-1 inline" />;
+  };
 
-    return matchesSearch && matchesStatus && matchesPlan;
-  });
+  const filteredChurches = churches
+    .filter(church => {
+      const matchesSearch = !searchTerm ||
+        church.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        church.pastor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        church.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'id':
+          aValue = parseInt(a.id);
+          bValue = parseInt(b.id);
+          break;
+        case 'name':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'pastor_name':
+          aValue = a.pastor_name || '';
+          bValue = b.pastor_name || '';
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'member_count':
+          aValue = memberCounts[parseInt(a.id)] || 0;
+          bValue = memberCounts[parseInt(b.id)] || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   if (loading) {
     return (
@@ -283,24 +343,14 @@ const ChurchManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교회 관리</h2>
-        <div className="flex gap-2">
-          <Button
-            onClick={applySubscriptionPolicy}
-            variant="default"
-            className="flex items-center gap-2"
-          >
-            <CreditCard className="w-4 h-4" />
-            구독 정책 일괄 적용
-          </Button>
-          <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            새로고침
-          </Button>
-        </div>
+        <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
+          <RefreshCw className="w-4 h-4" />
+          새로고침
+        </Button>
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -317,8 +367,8 @@ const ChurchManagement: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-green-600">
-                  {churches.filter(c => c.subscription_status === 'active').length}
+                <p className="text-2xl font-bold text-foreground">
+                  {churches.filter(c => c.is_active).length}
                 </p>
                 <p className="text-sm text-muted-foreground">활성 교회</p>
               </div>
@@ -326,80 +376,19 @@ const ChurchManagement: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-blue-600">
-                  {churches.filter(c => c.subscription_plan && c.subscription_plan !== 'trial').length}
-                </p>
-                <p className="text-sm text-muted-foreground">유료 교회</p>
-              </div>
-              <CreditCard className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-orange-600">
-                  {churches.filter(c => !c.subscription_plan || c.subscription_plan === 'trial').length}
-                </p>
-                <p className="text-sm text-muted-foreground">무료 교회</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* 검색 및 필터 */}
+      {/* 검색 */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-1">검색</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="교회명, 담임목사, 이메일 검색"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">구독 상태</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체</SelectItem>
-                  <SelectItem value="active">활성</SelectItem>
-                  <SelectItem value="inactive">비활성</SelectItem>
-                  <SelectItem value="trial">체험</SelectItem>
-                  <SelectItem value="suspended">정지</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">요금제</label>
-              <Select value={planFilter} onValueChange={setPlanFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체</SelectItem>
-                  <SelectItem value="free">무료</SelectItem>
-                  <SelectItem value="paid">유료</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="교회명, 담임목사, 이메일 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
@@ -409,93 +398,69 @@ const ChurchManagement: React.FC = () => {
         <CardHeader>
           <CardTitle>교회 목록 ({filteredChurches.length}개)</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredChurches.map((church) => (
-              <div key={church.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-foreground">{church.name}</h3>
-                      {getStatusBadge(church.subscription_status)}
-                      {getPlanBadge(church.subscription_plan)}
-                      {!church.is_active && (
-                        <Badge variant="destructive" className="text-xs">비활성</Badge>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                      <div>
-                        <span className="font-medium">담임목사:</span> {church.pastor_name || '미설정'}
-                      </div>
-                      <div>
-                        <span className="font-medium">교인 수:</span> {getMemberLimitInfo(church)}
-                      </div>
-                      <div>
-                        <span className="font-medium">이메일:</span> {church.email || '미설정'}
-                      </div>
-                      <div>
-                        <span className="font-medium">등록일:</span> {new Date(church.created_at).toLocaleDateString('ko-KR')}
-                      </div>
-                    </div>
-                    {church.subscription_end_date && (
-                      <div className="mt-2 text-sm">
-                        <span className="font-medium text-muted-foreground">구독 만료일:</span>{' '}
-                        <span className={cn(
-                          new Date(church.subscription_end_date) < new Date()
-                            ? "text-red-600 font-medium"
-                            : "text-foreground"
-                        )}>
-                          {new Date(church.subscription_end_date).toLocaleDateString('ko-KR')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {/* 구독 상태 빠른 업데이트 버튼 */}
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        onClick={() => updateSubscription(church.serial_id, 'trial', 'inactive')}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs px-2 py-1 h-auto"
-                        disabled={subscriptionUpdateLoading[church.serial_id]}
-                      >
-                        {subscriptionUpdateLoading[church.serial_id] ? '처리중...' : '무료(500명)'}
-                      </Button>
-                      <Button
-                        onClick={() => updateSubscription(church.serial_id, 'premium', 'active')}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs px-2 py-1 h-auto"
-                        disabled={subscriptionUpdateLoading[church.serial_id]}
-                      >
-                        {subscriptionUpdateLoading[church.serial_id] ? '처리중...' : '유료(무제한)'}
-                      </Button>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        onClick={() => handleViewDetails(church)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" />
-                        상세보기
-                      </Button>
-                      <Button
-                        onClick={() => handleEditChurch(church)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                      >
-                        <Edit className="w-4 h-4" />
-                        편집
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/30">
+                <tr className="border-b">
+                  <th
+                    className="text-left py-4 px-6 font-semibold cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
+                    onClick={() => handleSort('id')}
+                  >
+                    ID{getSortIcon('id')}
+                  </th>
+                  <th
+                    className="text-left py-4 px-6 font-semibold cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
+                    onClick={() => handleSort('name')}
+                  >
+                    교회명{getSortIcon('name')}
+                  </th>
+                  <th
+                    className="text-left py-4 px-6 font-semibold cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
+                    onClick={() => handleSort('pastor_name')}
+                  >
+                    담임목사{getSortIcon('pastor_name')}
+                  </th>
+                  <th
+                    className="text-left py-4 px-6 font-semibold cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
+                    onClick={() => handleSort('member_count')}
+                  >
+                    교인 수{getSortIcon('member_count')}
+                  </th>
+                  <th
+                    className="text-left py-4 px-6 font-semibold cursor-pointer hover:bg-muted/50 transition-colors whitespace-nowrap"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    등록일{getSortIcon('created_at')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredChurches.map((church) => (
+                  <tr
+                    key={church.id}
+                    className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => handleViewDetails(church)}
+                  >
+                    <td className="py-4 px-6 text-muted-foreground whitespace-nowrap">
+                      {church.id}
+                    </td>
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <span className="font-medium text-base">{church.name}</span>
+                    </td>
+                    <td className="py-4 px-6 text-muted-foreground whitespace-nowrap">
+                      {church.pastor_name || '미설정'}
+                    </td>
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <span className="font-medium">{memberCounts[parseInt(church.id)] || 0}명</span>
+                    </td>
+                    <td className="py-4 px-6 text-muted-foreground whitespace-nowrap">
+                      {new Date(church.created_at).toLocaleDateString('ko-KR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
             {filteredChurches.length === 0 && (
               <div className="text-center py-12">

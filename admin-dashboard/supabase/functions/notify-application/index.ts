@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 // CORS 헤더 설정
 const corsHeaders = {
@@ -6,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // CORS 처리
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
@@ -16,7 +17,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { type, applicantEmail, applicantName, organizationName, applicationId } = requestBody;
+    const { type, applicantEmail, applicantName, organizationName, applicationId, username, temporaryPassword } = requestBody;
 
     // 필수 필드 검증
     if (!type || !applicantEmail || !applicantName) {
@@ -32,9 +33,9 @@ serve(async (req) => {
     }
 
     // type 검증
-    if (type !== 'church' && type !== 'community') {
+    if (type !== 'church' && type !== 'community' && type !== 'community_approved') {
       return new Response(JSON.stringify({
-        error: '유효하지 않은 신청 타입입니다. (church 또는 community)'
+        error: '유효하지 않은 신청 타입입니다. (church, community, community_approved)'
       }), {
         status: 400,
         headers: {
@@ -53,6 +54,13 @@ serve(async (req) => {
     const typeLabel = type === 'church' ? '교회 가입' : '커뮤니티 가입';
     const orgDisplay = organizationName || applicantName;
 
+    // 승인 이메일인 경우 신청자에게 발송
+    const isApprovalEmail = type === 'community_approved';
+    const recipientEmail = isApprovalEmail ? applicantEmail : 'surfmind.sm@gmail.com';
+    const emailSubject = isApprovalEmail
+      ? `[Church Round] 커뮤니티 가입 신청이 승인되었습니다`
+      : `[Church Round] 새로운 ${typeLabel} 신청이 접수되었습니다`;
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -61,9 +69,61 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'noreply@churchround.com',
-        to: 'surfmind.sm@gmail.com',
-        subject: `[Church Round] 새로운 ${typeLabel} 신청이 접수되었습니다`,
-        html: `
+        to: recipientEmail,
+        subject: emailSubject,
+        html: isApprovalEmail ? `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h2 style="color: #333; margin-bottom: 30px;">
+              커뮤니티 가입 신청이 승인되었습니다
+            </h2>
+
+            <p style="color: #555; line-height: 1.6; margin-bottom: 30px;">
+              ${applicantName}님, 안녕하세요.<br>
+              Church Round 커뮤니티 가입 신청이 승인되었습니다.<br>
+              이제 Church Round 플랫폼의 모든 기능을 이용하실 수 있습니다.
+            </p>
+
+            <div style="background-color: #f8f9fa; padding: 25px; border-radius: 4px; margin-bottom: 30px;">
+              <h3 style="color: #333; margin-top: 0; margin-bottom: 20px; font-size: 16px;">로그인 정보</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px 0; color: #666; width: 120px;">아이디</td>
+                  <td style="padding: 10px 0; color: #333; font-family: monospace; font-weight: bold;">${username || applicantEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #666;">임시 비밀번호</td>
+                  <td style="padding: 10px 0; color: #333; font-family: monospace; font-weight: bold; font-size: 18px;">${temporaryPassword || '(별도 안내 예정)'}</td>
+                </tr>
+              </table>
+              <p style="margin-top: 20px; margin-bottom: 0; font-size: 14px; color: #666;">
+                * 보안을 위해 첫 로그인 후 비밀번호를 변경해주세요.
+              </p>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+              <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">다음 단계</h3>
+              <ol style="color: #555; line-height: 1.8; padding-left: 20px;">
+                <li>위의 아이디와 임시 비밀번호로 로그인하세요</li>
+                <li>로그인 후 비밀번호를 변경해주세요</li>
+                <li>프로필을 완성하고 서비스를 시작하세요</li>
+              </ol>
+            </div>
+
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="https://churchround.com/login"
+                 style="display: inline-block; padding: 14px 40px; background-color: #333; color: white; text-decoration: none; border-radius: 4px; font-weight: normal;">
+                로그인하기
+              </a>
+            </div>
+
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
+
+            <p style="font-size: 13px; color: #999; text-align: center; line-height: 1.6;">
+              Church Round<br>
+              승인 일시: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+            </p>
+          </div>
+        ` : `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
             <h2 style="color: #333; text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
               🔔 새로운 ${typeLabel} 신청 알림
@@ -132,6 +192,8 @@ serve(async (req) => {
         `
       })
     });
+
+    console.log(`✅ 이메일 발송 완료:`, recipientEmail, isApprovalEmail ? '(승인 알림)' : '(신청 접수 알림)');
 
     const responseData = await response.json();
 

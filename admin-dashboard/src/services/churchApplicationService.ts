@@ -38,7 +38,10 @@ export interface ChurchApplication {
   phone: string;
   address: string;
   description: string;
+  business_no?: string;
   website?: string;
+  homepage_url?: string;
+  youtube_channel?: string;
   established_year?: number;
   denomination?: string;
   member_count?: number;
@@ -87,65 +90,50 @@ class ChurchApplicationService {
    * 교회 가입 신청서 제출 (공개 API)
    */
   async submitApplication(data: ChurchApplicationRequest): Promise<{ application_id: number; status: string; submitted_at: string }> {
-    const formData = new FormData();
-
-    // 필수 필드 추가
-    formData.append('church_name', data.church_name);
-    formData.append('pastor_name', data.pastor_name);
-    formData.append('admin_name', data.admin_name);
-    formData.append('email', data.email);
-    formData.append('phone', data.phone);
-    formData.append('address', data.address);
-    formData.append('description', data.description);
-
-    // 약관 동의 필드
-    formData.append('agree_terms', data.agree_terms.toString());
-    formData.append('agree_privacy', data.agree_privacy.toString());
-    formData.append('agree_marketing', data.agree_marketing.toString());
-
-    // 선택 필드 추가 (값이 있을 때만)
-    if (data.business_no) {
-      formData.append('business_no', data.business_no);
-    }
-    if (data.website) {
-      formData.append('website', data.website);
-    }
-    if (data.homepage_url) {
-      formData.append('homepage_url', data.homepage_url);
-    }
-    if (data.youtube_channel) {
-      formData.append('youtube_channel', data.youtube_channel);
-    }
-    if (data.established_year) {
-      formData.append('established_year', data.established_year.toString());
-    }
-    if (data.denomination) {
-      formData.append('denomination', data.denomination);
-    }
-    if (data.member_count) {
-      formData.append('member_count', data.member_count.toString());
-    }
-
-    // 파일 첨부 (multiple files)
-    if (data.attachments && data.attachments.length > 0) {
-      data.attachments.forEach(file => {
-        formData.append('attachments', file);
-      });
-    }
-
     try {
       // Supabase Edge Function URL
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://khvhkqspwhcgxtkexfcq.supabase.co';
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/church-applications`;
+
+      // JSON 데이터 준비 (파일 제외)
+      const requestData = {
+        church_name: data.church_name,
+        pastor_name: data.pastor_name,
+        admin_name: data.admin_name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        description: data.description,
+        agree_terms: data.agree_terms,
+        agree_privacy: data.agree_privacy,
+        agree_marketing: data.agree_marketing,
+        business_no: data.business_no || null,
+        website: data.website || null,
+        homepage_url: data.homepage_url || null,
+        youtube_channel: data.youtube_channel || null,
+        established_year: data.established_year || null,
+        denomination: data.denomination || null,
+        member_count: data.member_count || null,
+      };
+
+      console.log('📤 Supabase Edge Function 전송:', requestData);
+
+      // Supabase anon key 추가
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(requestData)
       });
 
       const result = await response.json();
 
-      console.log('🔍 Supabase Edge Function 응답:', {
+      console.log('🔍 백엔드 응답:', {
         status: response.status,
         ok: response.ok,
         result: result
@@ -235,29 +223,49 @@ class ChurchApplicationService {
       console.log('✅ [Supabase] 교회 신청서 목록 조회 완료:', data?.length || 0, '건');
 
       // 데이터 변환
-      const applications = (data || []).map((item: any) => ({
-        id: item.id,
-        church_name: item.church_name,
-        pastor_name: item.pastor_name,
-        admin_name: item.admin_name,
-        email: item.email,
-        phone: item.phone,
-        address: item.address,
-        description: item.description,
-        website: item.website,
-        established_year: item.established_year,
-        denomination: item.denomination,
-        member_count: item.member_count,
-        attachments: item.attachments ? JSON.parse(item.attachments) : [],
-        status: item.status,
-        submitted_at: item.submitted_at,
-        reviewed_at: item.reviewed_at,
-        reviewed_by: item.reviewed_by,
-        rejection_reason: item.rejection_reason,
-        notes: item.notes,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
+      const applications = (data || []).map((item: any) => {
+        // attachments 필드 안전하게 처리
+        let attachments = [];
+        if (item.attachments) {
+          if (typeof item.attachments === 'string') {
+            try {
+              attachments = JSON.parse(item.attachments);
+            } catch (e) {
+              console.warn('Failed to parse attachments:', item.attachments);
+              attachments = [];
+            }
+          } else if (Array.isArray(item.attachments)) {
+            attachments = item.attachments;
+          }
+        }
+
+        return {
+          id: item.id,
+          church_name: item.church_name,
+          pastor_name: item.pastor_name,
+          admin_name: item.admin_name,
+          email: item.email,
+          phone: item.phone,
+          address: item.address,
+          description: item.description,
+          business_no: item.business_no,
+          website: item.website,
+          homepage_url: item.homepage_url,
+          youtube_channel: item.youtube_channel,
+          established_year: item.established_year,
+          denomination: item.denomination,
+          member_count: item.member_count,
+          attachments: attachments,
+          status: item.status,
+          submitted_at: item.submitted_at,
+          reviewed_at: item.reviewed_at,
+          reviewed_by: item.reviewed_by,
+          rejection_reason: item.rejection_reason,
+          notes: item.notes,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        };
+      });
 
       // 통계 계산
       const totalCount = count || 0;
@@ -309,7 +317,7 @@ class ChurchApplicationService {
   }
 
   /**
-   * 신청서 승인 (Supabase 직접 접근)
+   * 신청서 승인 (Edge Function 사용)
    */
   async approveApplication(applicationId: number, notes?: string): Promise<{
     application_id: number;
@@ -325,28 +333,38 @@ class ChurchApplicationService {
       // Supabase 클라이언트 동적 import
       const { supabase } = await import('../lib/supabase');
 
-      console.log('✅ [Supabase] 교회 신청서 승인 처리 중...', applicationId);
+      console.log('✅ [Edge Function] 교회 신청서 승인 처리 중...', applicationId);
 
-      const reviewedAt = new Date().toISOString();
+      // Edge Function을 통해 Service Role Key로 업데이트 수행
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
 
-      const { data, error } = await supabase
-        .from('church_applications')
-        .update({
-          status: 'approved',
-          reviewed_at: reviewedAt,
-          reviewed_by: 1,
-          notes: notes || null
-        })
-        .eq('id', applicationId)
-        .select()
-        .single();
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/church-applications`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            applicationId,
+            status: 'approved'
+          })
+        }
+      );
 
-      if (error) {
-        console.error('❌ Supabase 교회 신청서 승인 오류:', error);
-        throw new Error('신청서 승인 처리에 실패했습니다.');
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('❌ 상태 업데이트 실패:', result);
+        throw new Error(result.message || '상태 업데이트에 실패했습니다.');
       }
 
-      console.log('✅ [Supabase] 교회 신청서 승인 완료:', data?.id);
+      const data = result.data;
+
+      console.log('✅ [Edge Function] 교회 신청서 승인 완료:', data?.id);
 
       // 랜덤 임시 비밀번호 생성
       const generateTempPassword = (): string => {
@@ -363,16 +381,17 @@ class ChurchApplicationService {
       // 교회 정보 생성
       const churchInsertData: any = {
         name: data.church_name,
+        pastor_name: data.pastor_name,
         address: data.address,
         phone: data.phone,
         email: data.email,
         is_active: true
       };
 
-      // business_no가 있으면 추가
-      if (data.business_no) {
-        churchInsertData.business_no = data.business_no;
-      }
+      // 선택 필드 추가
+      if (data.business_no) churchInsertData.business_no = data.business_no;
+      if (data.homepage_url) churchInsertData.homepage_url = data.homepage_url;
+      if (data.youtube_channel) churchInsertData.youtube_channel = data.youtube_channel;
 
       const { data: churchData, error: churchError } = await supabase
         .from('churches')
@@ -387,36 +406,66 @@ class ChurchApplicationService {
 
       console.log('✅ 새로운 교회 생성 완료:', churchData.id, data.church_name);
 
-      // 기존 최대 ID 조회해서 다음 ID 생성
-      const { data: maxIdData } = await supabase
+      // 이메일로 기존 사용자 확인
+      const { data: existingUser } = await supabase
         .from('users')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
+        .select('id, email')
+        .eq('email', data.email)
+        .single();
 
-      const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id : 0;
-      const userId = maxId + 1;
+      let userId: number;
 
-      // users 테이블에 교회 관리자 계정 추가
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          username: data.email,
-          email: data.email,
-          full_name: data.pastor_name,
-          church_id: churchData.id,
-          role: 'church_admin',
-          hashed_password: temporaryPassword,
-          is_active: true
-        });
+      if (existingUser) {
+        console.log('⚠️ 이미 존재하는 사용자:', existingUser.email);
+        userId = existingUser.id;
 
-      if (userError) {
-        console.error('❌ users 테이블 삽입 오류:', userError);
-        throw new Error('사용자 계정 생성에 실패했습니다.');
+        // 기존 사용자의 church_id를 업데이트
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            church_id: churchData.id,
+            role: 'church_admin',
+            is_active: true
+          })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error('❌ 사용자 정보 업데이트 오류:', updateError);
+        } else {
+          console.log('✅ 기존 사용자 정보 업데이트 완료');
+        }
+      } else {
+        // 기존 최대 ID 조회해서 다음 ID 생성
+        const { data: maxIdData } = await supabase
+          .from('users')
+          .select('id')
+          .order('id', { ascending: false })
+          .limit(1);
+
+        const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id : 0;
+        userId = maxId + 1;
+
+        // users 테이블에 교회 관리자 계정 추가
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            username: data.email,
+            email: data.email,
+            full_name: data.pastor_name,
+            church_id: churchData.id,
+            role: 'church_admin',
+            hashed_password: temporaryPassword,
+            is_active: true
+          });
+
+        if (userError) {
+          console.error('❌ users 테이블 삽입 오류:', userError);
+          throw new Error('사용자 계정 생성에 실패했습니다.');
+        }
+
+        console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
       }
-
-      console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
 
       // 임시 비밀번호 이메일 발송
       try {
@@ -435,7 +484,7 @@ class ChurchApplicationService {
       return {
         application_id: applicationId,
         status: 'approved',
-        reviewed_at: reviewedAt,
+        reviewed_at: data.reviewed_at,
         user_account: {
           username: data.email,
           temporary_password: temporaryPassword,
@@ -450,7 +499,7 @@ class ChurchApplicationService {
   }
 
   /**
-   * 신청서 반려 (Supabase 직접 접근)
+   * 신청서 반려 (Edge Function 사용)
    */
   async rejectApplication(applicationId: number, rejectionReason: string, notes?: string): Promise<{
     application_id: number;
@@ -458,36 +507,43 @@ class ChurchApplicationService {
     reviewed_at: string;
   }> {
     try {
-      const { supabase } = await import('../lib/supabase');
+      console.log('❌ [Edge Function] 교회 신청서 반려 처리 중...', applicationId);
 
-      console.log('❌ [Supabase] 교회 신청서 반려 처리 중...', applicationId);
+      // Edge Function을 통해 Service Role Key로 업데이트 수행
+      const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
+      const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
 
-      const reviewedAt = new Date().toISOString();
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/church-applications`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            applicationId,
+            status: 'rejected'
+          })
+        }
+      );
 
-      const { data, error } = await supabase
-        .from('church_applications')
-        .update({
-          status: 'rejected',
-          reviewed_at: reviewedAt,
-          reviewed_by: 1,
-          rejection_reason: rejectionReason,
-          notes: notes || null
-        })
-        .eq('id', applicationId)
-        .select()
-        .single();
+      const result = await response.json();
 
-      if (error) {
-        console.error('❌ Supabase 교회 신청서 반려 오류:', error);
-        throw new Error('신청서 반려 처리에 실패했습니다.');
+      if (!response.ok || !result.success) {
+        console.error('❌ 상태 업데이트 실패:', result);
+        throw new Error(result.message || '상태 업데이트에 실패했습니다.');
       }
 
-      console.log('✅ [Supabase] 교회 신청서 반려 완료:', data?.id);
+      const data = result.data;
+
+      console.log('✅ [Edge Function] 교회 신청서 반려 완료:', data?.id);
 
       return {
         application_id: applicationId,
         status: 'rejected',
-        reviewed_at: reviewedAt
+        reviewed_at: data.reviewed_at
       };
 
     } catch (error) {

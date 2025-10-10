@@ -2156,15 +2156,16 @@ export const supabaseApiService = {
             phone,
             email,
             pastor_name,
-            established_date,
-            denomination,
             subscription_plan,
             subscription_status,
             subscription_end_date,
             member_limit,
             created_at,
             updated_at,
-            is_active
+            is_active,
+            business_no,
+            homepage_url,
+            youtube_channel
           `)
           .order('serial_id', { ascending: true });
 
