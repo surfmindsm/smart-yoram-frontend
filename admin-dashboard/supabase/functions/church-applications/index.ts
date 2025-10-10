@@ -132,36 +132,6 @@ Deno.serve(async (req) => {
 
       console.log('✅ 교회 신청서 저장 완료:', data.id)
 
-      // 관리자에게 알림 이메일 발송
-      try {
-        const notifyResponse = await fetch(
-          `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-application`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-            },
-            body: JSON.stringify({
-              type: 'church',
-              applicantEmail: email,
-              applicantName: pastor_name,
-              organizationName: church_name,
-              applicationId: data.id,
-            }),
-          }
-        )
-
-        if (!notifyResponse.ok) {
-          console.error('❌ 알림 이메일 발송 실패')
-        } else {
-          console.log('✅ 알림 이메일 발송 완료')
-        }
-      } catch (emailError) {
-        console.error('❌ 알림 이메일 발송 오류:', emailError)
-        // 이메일 실패해도 신청서는 저장되었으므로 계속 진행
-      }
-
       return new Response(
         JSON.stringify({
           success: true,
