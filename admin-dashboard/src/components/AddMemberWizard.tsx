@@ -25,15 +25,30 @@ const AddMemberWizard: React.FC = () => {
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
     // 사역 정보
     position: '', district: '', department: '', position_code: '', appointed_on: '',
-    ordination_church: '', job_title: '', workplace: '', workplace_phone: '',
+    ordination_church: '', ministry_start_date: '', neighboring_church: '',
+    position_decision: '', daily_activity: '',
+    // 직업 정보
+    job_category: '', job_detail: '', job_position: '',
+    job_title: '', workplace: '', workplace_phone: '',
+    // 주소 정보
+    address: '', postal_code: '', region_1: '', region_2: '', region_3: '',
+    // 개인 및 가족 정보
+    marital_status: '', spouse_name: '', married_on: '',
+    member_type: '', age_group: '', spiritual_grade: '',
     // 추가 연락처
     contacts: [] as { type: string; value: string }[],
     // 성례/이명 기록
     sacraments: [] as { type: string; date: string; church_name: string }[],
     transfers: [] as { type: string; church_name: string; date: string }[],
-    // 기타 정보
-    address: '', marital_status: '', spouse_name: '', married_on: '',
-    vehicles: [] as { car_type: string; plate_no: string }[]
+    // 차량 정보
+    vehicles: [] as { car_type: string; plate_no: string }[],
+    // 자유 필드
+    custom_field_1: '', custom_field_2: '', custom_field_3: '',
+    custom_field_4: '', custom_field_5: '', custom_field_6: '',
+    custom_field_7: '', custom_field_8: '', custom_field_9: '',
+    custom_field_10: '', custom_field_11: '', custom_field_12: '',
+    // 특별 사항
+    special_notes: ''
   });
 
   // Load church_id and departments
@@ -127,17 +142,58 @@ const AddMemberWizard: React.FC = () => {
     setLoading(true);
     try {
       const basicData = {
+        // 기본 정보
         name: formData.name,
         name_eng: formData.name_eng,
         email: formData.email,
         gender: formData.gender,
         birthdate: formData.birthdate,
         phone: formData.phone,
-        address: formData.address,
-        marital_status: formData.marital_status,
+        // 사역 정보
         position: formData.position,
         department: formData.department,
-        district: formData.district
+        district: formData.district,
+        appointed_on: formData.appointed_on,
+        ordination_church: formData.ordination_church,
+        ministry_start_date: formData.ministry_start_date,
+        neighboring_church: formData.neighboring_church,
+        position_decision: formData.position_decision,
+        daily_activity: formData.daily_activity,
+        // 직업 정보
+        job_category: formData.job_category,
+        job_detail: formData.job_detail,
+        job_position: formData.job_position,
+        job_title: formData.job_title,
+        workplace: formData.workplace,
+        workplace_phone: formData.workplace_phone,
+        // 주소 정보
+        address: formData.address,
+        postal_code: formData.postal_code,
+        region_1: formData.region_1,
+        region_2: formData.region_2,
+        region_3: formData.region_3,
+        // 개인 및 가족 정보
+        marital_status: formData.marital_status,
+        spouse_name: formData.spouse_name,
+        married_on: formData.married_on,
+        member_type: formData.member_type,
+        age_group: formData.age_group,
+        spiritual_grade: formData.spiritual_grade,
+        // 자유 필드
+        custom_field_1: formData.custom_field_1,
+        custom_field_2: formData.custom_field_2,
+        custom_field_3: formData.custom_field_3,
+        custom_field_4: formData.custom_field_4,
+        custom_field_5: formData.custom_field_5,
+        custom_field_6: formData.custom_field_6,
+        custom_field_7: formData.custom_field_7,
+        custom_field_8: formData.custom_field_8,
+        custom_field_9: formData.custom_field_9,
+        custom_field_10: formData.custom_field_10,
+        custom_field_11: formData.custom_field_11,
+        custom_field_12: formData.custom_field_12,
+        // 특별 사항
+        special_notes: formData.special_notes
       };
 
       const memberResponse = await api.post('/members/', basicData);

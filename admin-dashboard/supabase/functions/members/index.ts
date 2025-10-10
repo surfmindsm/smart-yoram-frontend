@@ -195,17 +195,64 @@ Deno.serve(async (req) => {
       }
 
       // Only include fields that are provided and exist in the members table
+      // 기본 정보
       if (body.name !== undefined) insertData.name = body.name
       if (body.name_eng !== undefined) insertData.name_eng = body.name_eng
       if (body.phone !== undefined) insertData.phone = body.phone
       if (body.email !== undefined) insertData.email = body.email
       if (body.gender !== undefined) insertData.gender = body.gender
       if (body.birthdate !== undefined) insertData.birthdate = body.birthdate
-      if (body.address !== undefined) insertData.address = body.address
-      if (body.marital_status !== undefined) insertData.marital_status = body.marital_status
+
+      // 사역 정보
       if (body.position !== undefined) insertData.position = body.position
       if (body.department !== undefined) insertData.department = body.department
       if (body.district !== undefined) insertData.district = body.district
+      if (body.appointed_on !== undefined) insertData.appointed_on = body.appointed_on
+      if (body.ordination_church !== undefined) insertData.ordination_church = body.ordination_church
+      if (body.ministry_start_date !== undefined) insertData.ministry_start_date = body.ministry_start_date
+      if (body.neighboring_church !== undefined) insertData.neighboring_church = body.neighboring_church
+      if (body.position_decision !== undefined) insertData.position_decision = body.position_decision
+      if (body.daily_activity !== undefined) insertData.daily_activity = body.daily_activity
+
+      // 직업 정보
+      if (body.job_category !== undefined) insertData.job_category = body.job_category
+      if (body.job_detail !== undefined) insertData.job_detail = body.job_detail
+      if (body.job_position !== undefined) insertData.job_position = body.job_position
+      if (body.job_title !== undefined) insertData.job_title = body.job_title
+      if (body.workplace !== undefined) insertData.workplace = body.workplace
+      if (body.workplace_phone !== undefined) insertData.workplace_phone = body.workplace_phone
+
+      // 주소 정보
+      if (body.address !== undefined) insertData.address = body.address
+      if (body.postal_code !== undefined) insertData.postal_code = body.postal_code
+      if (body.region_1 !== undefined) insertData.region_1 = body.region_1
+      if (body.region_2 !== undefined) insertData.region_2 = body.region_2
+      if (body.region_3 !== undefined) insertData.region_3 = body.region_3
+
+      // 개인 및 가족 정보
+      if (body.marital_status !== undefined) insertData.marital_status = body.marital_status
+      if (body.spouse_name !== undefined) insertData.spouse_name = body.spouse_name
+      if (body.married_on !== undefined) insertData.married_on = body.married_on
+      if (body.member_type !== undefined) insertData.member_type = body.member_type
+      if (body.age_group !== undefined) insertData.age_group = body.age_group
+      if (body.spiritual_grade !== undefined) insertData.spiritual_grade = body.spiritual_grade
+
+      // 자유 필드
+      if (body.custom_field_1 !== undefined) insertData.custom_field_1 = body.custom_field_1
+      if (body.custom_field_2 !== undefined) insertData.custom_field_2 = body.custom_field_2
+      if (body.custom_field_3 !== undefined) insertData.custom_field_3 = body.custom_field_3
+      if (body.custom_field_4 !== undefined) insertData.custom_field_4 = body.custom_field_4
+      if (body.custom_field_5 !== undefined) insertData.custom_field_5 = body.custom_field_5
+      if (body.custom_field_6 !== undefined) insertData.custom_field_6 = body.custom_field_6
+      if (body.custom_field_7 !== undefined) insertData.custom_field_7 = body.custom_field_7
+      if (body.custom_field_8 !== undefined) insertData.custom_field_8 = body.custom_field_8
+      if (body.custom_field_9 !== undefined) insertData.custom_field_9 = body.custom_field_9
+      if (body.custom_field_10 !== undefined) insertData.custom_field_10 = body.custom_field_10
+      if (body.custom_field_11 !== undefined) insertData.custom_field_11 = body.custom_field_11
+      if (body.custom_field_12 !== undefined) insertData.custom_field_12 = body.custom_field_12
+
+      // 특별 사항
+      if (body.special_notes !== undefined) insertData.special_notes = body.special_notes
 
       console.log('📝 Insert data prepared:', insertData)
 
@@ -272,19 +319,68 @@ Deno.serve(async (req) => {
       // Only include fields that exist in the members table and are being updated
       const updateData: any = {}
 
+      // 기본 정보
       if (body.name !== undefined) updateData.name = body.name
       if (body.name_eng !== undefined) updateData.name_eng = body.name_eng
       if (body.phone !== undefined) updateData.phone = body.phone
       if (body.email !== undefined) updateData.email = body.email
       if (body.gender !== undefined) updateData.gender = body.gender
       if (body.birthdate !== undefined) updateData.birthdate = body.birthdate
-      if (body.address !== undefined) updateData.address = body.address
-      if (body.marital_status !== undefined) updateData.marital_status = body.marital_status
+      if (body.profile_photo_url !== undefined) updateData.profile_photo_url = body.profile_photo_url
+
+      // 사역 정보
       if (body.position !== undefined) updateData.position = body.position
       if (body.department !== undefined) updateData.department = body.department
       if (body.district !== undefined) updateData.district = body.district
+      if (body.appointed_on !== undefined) updateData.appointed_on = body.appointed_on
+      if (body.ordination_church !== undefined) updateData.ordination_church = body.ordination_church
+      if (body.ministry_start_date !== undefined) updateData.ministry_start_date = body.ministry_start_date
+      if (body.neighboring_church !== undefined) updateData.neighboring_church = body.neighboring_church
+      if (body.position_decision !== undefined) updateData.position_decision = body.position_decision
+      if (body.daily_activity !== undefined) updateData.daily_activity = body.daily_activity
+
+      // 직업 정보
+      if (body.job_category !== undefined) updateData.job_category = body.job_category
+      if (body.job_detail !== undefined) updateData.job_detail = body.job_detail
+      if (body.job_position !== undefined) updateData.job_position = body.job_position
+      if (body.job_title !== undefined) updateData.job_title = body.job_title
+      if (body.workplace !== undefined) updateData.workplace = body.workplace
+      if (body.workplace_phone !== undefined) updateData.workplace_phone = body.workplace_phone
+
+      // 주소 정보
+      if (body.address !== undefined) updateData.address = body.address
+      if (body.postal_code !== undefined) updateData.postal_code = body.postal_code
+      if (body.region_1 !== undefined) updateData.region_1 = body.region_1
+      if (body.region_2 !== undefined) updateData.region_2 = body.region_2
+      if (body.region_3 !== undefined) updateData.region_3 = body.region_3
+
+      // 개인 및 가족 정보
+      if (body.marital_status !== undefined) updateData.marital_status = body.marital_status
+      if (body.spouse_name !== undefined) updateData.spouse_name = body.spouse_name
+      if (body.married_on !== undefined) updateData.married_on = body.married_on
+      if (body.member_type !== undefined) updateData.member_type = body.member_type
+      if (body.age_group !== undefined) updateData.age_group = body.age_group
+      if (body.spiritual_grade !== undefined) updateData.spiritual_grade = body.spiritual_grade
+
+      // 자유 필드
+      if (body.custom_field_1 !== undefined) updateData.custom_field_1 = body.custom_field_1
+      if (body.custom_field_2 !== undefined) updateData.custom_field_2 = body.custom_field_2
+      if (body.custom_field_3 !== undefined) updateData.custom_field_3 = body.custom_field_3
+      if (body.custom_field_4 !== undefined) updateData.custom_field_4 = body.custom_field_4
+      if (body.custom_field_5 !== undefined) updateData.custom_field_5 = body.custom_field_5
+      if (body.custom_field_6 !== undefined) updateData.custom_field_6 = body.custom_field_6
+      if (body.custom_field_7 !== undefined) updateData.custom_field_7 = body.custom_field_7
+      if (body.custom_field_8 !== undefined) updateData.custom_field_8 = body.custom_field_8
+      if (body.custom_field_9 !== undefined) updateData.custom_field_9 = body.custom_field_9
+      if (body.custom_field_10 !== undefined) updateData.custom_field_10 = body.custom_field_10
+      if (body.custom_field_11 !== undefined) updateData.custom_field_11 = body.custom_field_11
+      if (body.custom_field_12 !== undefined) updateData.custom_field_12 = body.custom_field_12
+
+      // 특별 사항
+      if (body.special_notes !== undefined) updateData.special_notes = body.special_notes
+
+      // 상태
       if (body.status !== undefined) updateData.status = body.status
-      if (body.profile_photo_url !== undefined) updateData.profile_photo_url = body.profile_photo_url
 
       console.log('📝 Update data prepared:', updateData)
 

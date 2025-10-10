@@ -77,24 +77,59 @@ interface Member {
   position_code?: string;
   appointed_on?: string;
   ordination_church?: string;
+  ministry_start_date?: string;
+  neighboring_church?: string;
+  position_decision?: string;
+  daily_activity?: string;
+
+  // 직업 정보
+  job_category?: string;
+  job_detail?: string;
+  job_position?: string;
   job_title?: string;
   workplace?: string;
   workplace_phone?: string;
-  
+
+  // 주소 정보
+  postal_code?: string;
+  region_1?: string;
+  region_2?: string;
+  region_3?: string;
+
   // 개인 정보
+  member_type?: string;
+  age_group?: string;
+  spiritual_grade?: string;
   marital_status?: string;
   spouse_name?: string;
   married_on?: string;
-  
+
+  // 자유 필드
+  custom_field_1?: string;
+  custom_field_2?: string;
+  custom_field_3?: string;
+  custom_field_4?: string;
+  custom_field_5?: string;
+  custom_field_6?: string;
+  custom_field_7?: string;
+  custom_field_8?: string;
+  custom_field_9?: string;
+  custom_field_10?: string;
+  custom_field_11?: string;
+  custom_field_12?: string;
+
+  // 특별 사항
+  special_notes?: string;
+
   // 연락처 정보
   contacts?: Array<{ type: string; value: string; }>;
-  
+
   // 성례 기록
   sacraments?: Array<{ type: string; date: string; church_name: string; }>;
-  
+
   // 이명 기록
   transfers?: Array<{ type: string; church_name: string; date: string; }>;
-  
+
   // 차량 정보
   vehicles?: Array<{ car_type: string; plate_no: string; }>;
 }
@@ -1894,6 +1929,20 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div> */}
 
+                      {/* 교구/지역 */}
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">교구/지역</label>
+                        {isEditMode ? (
+                          <Input
+                            value={editedMember.district || ''}
+                            onChange={(e) => setEditedMember({...editedMember, district: e.target.value})}
+                            placeholder="중앙"
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{selectedMember.district || '-'}</p>
+                        )}
+                      </div>
+
                       {/* 임명일 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
@@ -1945,16 +1994,134 @@ const MemberManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* 사역 및 직업 정보 */}
+              {/* 사역 정보 */}
               <div className="bg-blue-50/50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Briefcase className="w-5 h-5" />
-                  사역 및 직업 정보
+                  사역 정보
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* 직업 */}
+                  {/* 사역 시작일 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직업</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">사역 시작일</label>
+                    {isEditMode ? (
+                      <Input
+                        type="date"
+                        value={editedMember.ministry_start_date || ''}
+                        onChange={(e) => setEditedMember({...editedMember, ministry_start_date: e.target.value})}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.ministry_start_date || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 이웃교회 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">이웃교회</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.neighboring_church || ''}
+                        onChange={(e) => setEditedMember({...editedMember, neighboring_church: e.target.value})}
+                        placeholder="협력하는 인근 교회"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.neighboring_church || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 직책 결정 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직책 결정</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.position_decision || ''}
+                        onChange={(e) => setEditedMember({...editedMember, position_decision: e.target.value})}
+                        placeholder="직책 결정 내용"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.position_decision || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 일일 활동 */}
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <label className="block text-sm font-medium text-foreground mb-1">일일 활동</label>
+                    {isEditMode ? (
+                      <Textarea
+                        value={editedMember.daily_activity || ''}
+                        onChange={(e) => setEditedMember({...editedMember, daily_activity: e.target.value})}
+                        placeholder="일상적인 사역 활동 내용"
+                        rows={3}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 직업 정보 */}
+              <div className="bg-cyan-50/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5" />
+                  직업 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* 직업 분류 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직업 분류</label>
+                    {isEditMode ? (
+                      <Select value={editedMember.job_category || ''} onValueChange={(value) => setEditedMember({...editedMember, job_category: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="직업 분류 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="전문직">전문직</SelectItem>
+                          <SelectItem value="사무직">사무직</SelectItem>
+                          <SelectItem value="기술직">기술직</SelectItem>
+                          <SelectItem value="판매/서비스직">판매/서비스직</SelectItem>
+                          <SelectItem value="자영업">자영업</SelectItem>
+                          <SelectItem value="주부">주부</SelectItem>
+                          <SelectItem value="학생">학생</SelectItem>
+                          <SelectItem value="기타">기타</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.job_category || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 직업 상세 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직업 상세</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.job_detail || ''}
+                        onChange={(e) => setEditedMember({...editedMember, job_detail: e.target.value})}
+                        placeholder="개발자, 디자이너 등"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.job_detail || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 직급/직위 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직급/직위</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.job_position || ''}
+                        onChange={(e) => setEditedMember({...editedMember, job_position: e.target.value})}
+                        placeholder="과장, 부장 등"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.job_position || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 직업 (기존 필드) */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">직업명</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_title || ''}
@@ -2004,6 +2171,74 @@ const MemberManagement: React.FC = () => {
                   개인 및 가족 정보
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* 교인 분류 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">교인 분류</label>
+                    {isEditMode ? (
+                      <Select value={editedMember.member_type || ''} onValueChange={(value) => setEditedMember({...editedMember, member_type: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="분류 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="등록교인">등록교인</SelectItem>
+                          <SelectItem value="입교인">입교인</SelectItem>
+                          <SelectItem value="세례교인">세례교인</SelectItem>
+                          <SelectItem value="유아세례교인">유아세례교인</SelectItem>
+                          <SelectItem value="학습교인">학습교인</SelectItem>
+                          <SelectItem value="원입교인">원입교인</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.member_type || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 연령대 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">연령대</label>
+                    {isEditMode ? (
+                      <Select value={editedMember.age_group || ''} onValueChange={(value) => setEditedMember({...editedMember, age_group: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="연령대 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="유아">유아</SelectItem>
+                          <SelectItem value="유치부">유치부</SelectItem>
+                          <SelectItem value="유년부">유년부</SelectItem>
+                          <SelectItem value="초등부">초등부</SelectItem>
+                          <SelectItem value="중등부">중등부</SelectItem>
+                          <SelectItem value="고등부">고등부</SelectItem>
+                          <SelectItem value="청년">청년</SelectItem>
+                          <SelectItem value="장년">장년</SelectItem>
+                          <SelectItem value="노년">노년</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.age_group || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 신앙 등급 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">신앙 등급</label>
+                    {isEditMode ? (
+                      <Select value={editedMember.spiritual_grade || ''} onValueChange={(value) => setEditedMember({...editedMember, spiritual_grade: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="등급 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="초신자">초신자</SelectItem>
+                          <SelectItem value="새신자">새신자</SelectItem>
+                          <SelectItem value="일반신자">일반신자</SelectItem>
+                          <SelectItem value="성숙신자">성숙신자</SelectItem>
+                          <SelectItem value="리더">리더</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.spiritual_grade || '-'}</p>
+                    )}
+                  </div>
+
                   {/* 결혼 상태 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">결혼 상태</label>
@@ -2060,103 +2295,142 @@ const MemberManagement: React.FC = () => {
                   <MapPin className="w-5 h-5" />
                   주소 정보
                 </h3>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
-                  {isEditMode ? (
-                    <Textarea
-                      value={editedMember.address || ''}
-                      onChange={(e) => setEditedMember({...editedMember, address: e.target.value})}
-                      placeholder="상세 주소 입력"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {selectedMember.address || '-'}
-                    </p>
-                  )}
+                <div className="space-y-4">
+                  {/* 우편번호 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">우편번호</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.postal_code || ''}
+                        onChange={(e) => setEditedMember({...editedMember, postal_code: e.target.value})}
+                        placeholder="12345"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.postal_code || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 지역 정보 */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">시/도</label>
+                      {isEditMode ? (
+                        <Input
+                          value={editedMember.region_1 || ''}
+                          onChange={(e) => setEditedMember({...editedMember, region_1: e.target.value})}
+                          placeholder="서울특별시"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">{selectedMember.region_1 || '-'}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">시/군/구</label>
+                      {isEditMode ? (
+                        <Input
+                          value={editedMember.region_2 || ''}
+                          onChange={(e) => setEditedMember({...editedMember, region_2: e.target.value})}
+                          placeholder="강남구"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">{selectedMember.region_2 || '-'}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">동/읍/면</label>
+                      {isEditMode ? (
+                        <Input
+                          value={editedMember.region_3 || ''}
+                          onChange={(e) => setEditedMember({...editedMember, region_3: e.target.value})}
+                          placeholder="역삼동"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">{selectedMember.region_3 || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 상세 주소 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">상세 주소</label>
+                    {isEditMode ? (
+                      <Textarea
+                        value={editedMember.address || ''}
+                        onChange={(e) => setEditedMember({...editedMember, address: e.target.value})}
+                        placeholder="상세 주소 입력"
+                        rows={3}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {selectedMember.address || '-'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* 추가 연락처 */}
-              <div className="bg-purple-50/50 rounded-lg p-6">
+              {/* 자유 필드 (커스텀 정보) */}
+              <div className="bg-pink-50/50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Phone className="w-5 h-5" />
-                  추가 연락처
+                  <Settings className="w-5 h-5" />
+                  자유 필드 (커스텀 정보)
                 </h3>
-                {memberContacts.length > 0 ? (
-                  <div className="space-y-2">
-                    {memberContacts.map((contact, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm">
-                        <span className="font-medium text-foreground">{contact.type}:</span>
-                        <span className="text-muted-foreground">{contact.value}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
+                    const fieldKey = `custom_field_${num}` as keyof Member;
+                    const value = isEditMode
+                      ? editedMember[fieldKey]
+                      : selectedMember[fieldKey];
+
+                    // 값이 있거나 편집 모드일 때만 표시
+                    if (!value && !isEditMode) return null;
+
+                    return (
+                      <div key={num}>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                          자유필드 {num}
+                        </label>
+                        {isEditMode ? (
+                          <Input
+                            value={(editedMember[fieldKey] as string) || ''}
+                            onChange={(e) => setEditedMember({...editedMember, [fieldKey]: e.target.value})}
+                            placeholder={`추가 정보 ${num}`}
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{value as string || '-'}</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">등록된 추가 연락처가 없습니다.</p>
+                    );
+                  })}
+                </div>
+                {!isEditMode && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].some(num =>
+                  selectedMember[`custom_field_${num}` as keyof Member]
+                ) && (
+                  <p className="text-sm text-muted-foreground">등록된 추가 정보가 없습니다.</p>
                 )}
               </div>
 
-              {/* 성례 기록 */}
-              <div className="bg-indigo-50/50 rounded-lg p-6">
+              {/* 특별 사항 */}
+              <div className="bg-gray-50/50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Church className="w-5 h-5" />
-                  성례 기록
+                  <MessageSquare className="w-5 h-5" />
+                  특별 사항
                 </h3>
-                {memberSacraments.length > 0 ? (
-                  <div className="space-y-2">
-                    {memberSacraments.map((sacrament, index) => (
-                      <div key={index} className="text-sm">
-                        <span className="font-medium text-foreground">{sacrament.type}</span>
-                        {sacrament.date && <span className="text-muted-foreground"> ({sacrament.date})</span>}
-                        {sacrament.church_name && <span className="text-muted-foreground"> - {sacrament.church_name}</span>}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">등록된 성례 기록이 없습니다.</p>
-                )}
-              </div>
-
-              {/* 이명 기록 */}
-              <div className="bg-teal-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <ArrowRightLeft className="w-5 h-5" />
-                  이명 기록
-                </h3>
-                {memberTransfers.length > 0 ? (
-                  <div className="space-y-2">
-                    {memberTransfers.map((transfer, index) => (
-                      <div key={index} className="text-sm">
-                        <span className="font-medium text-foreground">{transfer.type === 'in' ? '입교' : '이명'}</span>
-                        {transfer.church_name && <span className="text-muted-foreground"> - {transfer.church_name}</span>}
-                        {transfer.date && <span className="text-muted-foreground"> ({transfer.date})</span>}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">등록된 이명 기록이 없습니다.</p>
-                )}
-              </div>
-
-              {/* 차량 정보 */}
-              <div className="bg-orange-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Car className="w-5 h-5" />
-                  차량 정보
-                </h3>
-                {memberVehicles.length > 0 ? (
-                  <div className="space-y-2">
-                    {memberVehicles.map((vehicle, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm">
-                        <span className="font-medium text-foreground">{vehicle.car_type || '차종 미지정'}</span>
-                        {vehicle.plate_no && <span className="text-muted-foreground">({vehicle.plate_no})</span>}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">등록된 차량 정보가 없습니다.</p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">특이사항 및 메모</label>
+                  {isEditMode ? (
+                    <Textarea
+                      value={editedMember.special_notes || ''}
+                      onChange={(e) => setEditedMember({...editedMember, special_notes: e.target.value})}
+                      placeholder="교인에 대한 특별한 사항이나 메모를 입력하세요"
+                      rows={4}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {selectedMember.special_notes || '-'}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}
