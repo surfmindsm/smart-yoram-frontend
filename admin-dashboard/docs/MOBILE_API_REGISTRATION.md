@@ -13,10 +13,10 @@
 3. **로그인**: Supabase Auth `signInWithPassword`
 
 **이메일 알림 (`notify-application`):**
-- ⚠️ **신청 접수 알림** (관리자에게): POST 메서드에서 미구현 - 추가 필요
+- ✅ **신청 접수 알림** (관리자에게): 프론트엔드에서 직접 호출 필요
 - ✅ **승인 알림** (신청자에게): 웹 대시보드에서 승인 시 자동 발송됨
-- 📧 신청 시 관리자(`surfmind.sm@gmail.com`) 알림 기능 추가 필요
-- 🔔 **모바일 앱에서 직접 호출하지 않음 (백엔드에서 자동 호출)**
+- 📧 관리자(`surfmind.sm@gmail.com`)에게 알림 발송
+- 🔔 **중요: 모바일 앱에서 신청 후 별도로 notify-application 호출 필요**
 
 ---
 
@@ -72,8 +72,10 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/church-applications
 
 **결과:**
 1. 신청서가 `church_applications` 테이블에 저장됨
-2. ⚠️ 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송 **미구현** - 추가 필요
-3. 관리자 승인 후 교회 계정 생성 및 로그인 정보 이메일 발송 **미구현** - 추가 필요
+2. ✅ **별도로 `notify-application` 호출하여** 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송
+3. 관리자 승인 후 교회 계정 생성 및 로그인 정보 이메일 발송
+
+**⚠️ 중요:** 신청서 제출 성공 후 **반드시 `notify-application`을 별도로 호출**해야 관리자에게 알림이 갑니다!
 
 ---
 
@@ -92,8 +94,10 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/community-application
 
 **결과:**
 1. 신청서가 `community_applications` 테이블에 저장됨
-2. ⚠️ 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송 **미구현** - 추가 필요
-3. ✅ 관리자 승인 후 커뮤니티 회원 계정 생성 및 로그인 정보 이메일 발송 **구현됨**
+2. ✅ **별도로 `notify-application` 호출하여** 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송
+3. ✅ 관리자 승인 후 커뮤니티 회원 계정 생성 및 로그인 정보 이메일 발송
+
+**⚠️ 중요:** 신청서 제출 성공 후 **반드시 `notify-application`을 별도로 호출**해야 관리자에게 알림이 갑니다!
 
 ---
 
@@ -143,20 +147,40 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application
 **⚠️ 중요:** 이 Edge Function은 **모바일 앱에서 직접 호출하지 않습니다!**
 
 **현재 구현 상태:**
+
 1. **신청 접수 알림** (관리자에게 `surfmind.sm@gmail.com`):
-   - ❌ `church-applications` POST: **미구현** - Edge Function에 추가 필요
-   - ❌ `community-applications` POST: **미구현** - Edge Function에 추가 필요
+   - ✅ **프론트엔드에서 직접 호출** - Edge Function과 별도로 호출
+   - 웹에서는 신청 후 자동으로 `notify-application` 호출
+   - 모바일에서도 동일하게 구현 필요
 
 2. **승인 알림** (신청자 이메일로):
-   - ✅ `community-applications` PUT (승인 시): **구현됨** (웹 대시보드에서 사용 중)
-   - ❌ `church-applications` PUT (승인 시): **미구현** - Edge Function에 추가 필요
+   - ✅ `community-applications` PUT (승인 시): Edge Function 내부에서 자동 호출
+   - ❌ `church-applications` PUT (승인 시): 미구현
 
-**작동 흐름:**
-```
-모바일 앱 → POST /community-applications → DB 저장
-→ ⚠️ (알림 없음) → 웹 대시보드에서 확인
-→ 승인 버튼 클릭 → PUT /community-applications
-→ ✅ notify-application 호출 → 신청자에게 로그인 정보 이메일 발송
+**작동 흐름 (웹/모바일 동일):**
+
+```javascript
+// 1단계: 신청서 제출
+const result = await fetch('POST /functions/v1/church-applications', { ... })
+const { application_id } = await result.json()
+
+// 2단계: 관리자 알림 발송 (별도 호출 필요!)
+await fetch('POST /functions/v1/notify-application', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'apikey': 'YOUR_KEY' },
+  body: JSON.stringify({
+    type: 'church',  // 또는 'community'
+    applicantEmail: 'user@example.com',
+    applicantName: '홍길동',
+    organizationName: '서울중앙교회',
+    applicationId: application_id
+  })
+})
+
+// 3단계: 웹 대시보드에서 승인
+// → PUT /community-applications (승인 시)
+// → Edge Function 내부에서 자동으로 notify-application 호출
+// → 신청자에게 로그인 정보 이메일 발송
 ```
 
 **이메일 발송 대상:**
@@ -642,9 +666,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 ### 4.1 cURL 예제 - 교회 관리자 가입
 
+**1단계: 신청서 제출**
 ```bash
-curl -X POST \
-  https://your-project.supabase.co/functions/v1/church-applications \
+# 신청서 제출 및 application_id 받기
+RESPONSE=$(curl -X POST \
+  https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/church-applications \
   -H "Content-Type: application/json" \
   -H "apikey: YOUR_SUPABASE_ANON_KEY" \
   -d '{
@@ -658,14 +684,37 @@ curl -X POST \
     "agree_terms": true,
     "agree_privacy": true,
     "agree_marketing": false
+  }')
+
+echo $RESPONSE
+# 출력: {"success":true,"data":{"application_id":123,...}}
+```
+
+**2단계: 관리자 알림 발송 (중요!)**
+```bash
+# 위에서 받은 application_id를 사용
+curl -X POST \
+  https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application \
+  -H "Content-Type: application/json" \
+  -H "apikey: YOUR_SUPABASE_ANON_KEY" \
+  -d '{
+    "type": "church",
+    "applicantEmail": "test@church.org",
+    "applicantName": "이관리자",
+    "organizationName": "테스트교회",
+    "applicationId": 123
   }'
+
+# surfmind.sm@gmail.com으로 알림 이메일 발송됨
 ```
 
 ### 4.2 cURL 예제 - 커뮤니티 회원 가입
 
+**1단계: 신청서 제출**
 ```bash
-curl -X POST \
-  https://your-project.supabase.co/functions/v1/community-applications \
+# 신청서 제출 및 application_id 받기
+RESPONSE=$(curl -X POST \
+  https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/community-applications \
   -H "Content-Type: application/json" \
   -H "apikey: YOUR_SUPABASE_ANON_KEY" \
   -d '{
@@ -678,7 +727,28 @@ curl -X POST \
     "agree_terms": true,
     "agree_privacy": true,
     "agree_marketing": false
+  }')
+
+echo $RESPONSE
+# 출력: {"success":true,"data":{"application_id":456,...}}
+```
+
+**2단계: 관리자 알림 발송 (중요!)**
+```bash
+# 위에서 받은 application_id를 사용
+curl -X POST \
+  https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application \
+  -H "Content-Type: application/json" \
+  -H "apikey: YOUR_SUPABASE_ANON_KEY" \
+  -d '{
+    "type": "community",
+    "applicantEmail": "user@example.com",
+    "applicantName": "홍길동",
+    "organizationName": "홍길동",
+    "applicationId": 456
   }'
+
+# surfmind.sm@gmail.com으로 알림 이메일 발송됨
 ```
 
 ### 4.3 JavaScript/TypeScript 예제
@@ -686,8 +756,9 @@ curl -X POST \
 ```typescript
 // 교회 관리자 가입
 async function registerChurch(data: ChurchApplicationData) {
+  // 1단계: 신청서 제출
   const response = await fetch(
-    'https://your-project.supabase.co/functions/v1/church-applications',
+    'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/church-applications',
     {
       method: 'POST',
       headers: {
@@ -700,10 +771,36 @@ async function registerChurch(data: ChurchApplicationData) {
 
   const result = await response.json();
 
-  if (result.success) {
-    console.log('신청 완료:', result.data.application_id);
-  } else {
+  if (!result.success) {
     console.error('신청 실패:', result.message);
+    return result;
+  }
+
+  console.log('신청 완료:', result.data.application_id);
+
+  // 2단계: 관리자 알림 발송 (중요!)
+  try {
+    await fetch(
+      'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'YOUR_SUPABASE_ANON_KEY'
+        },
+        body: JSON.stringify({
+          type: 'church',
+          applicantEmail: data.email,
+          applicantName: data.admin_name,
+          organizationName: data.church_name,
+          applicationId: result.data.application_id
+        })
+      }
+    );
+    console.log('✅ 관리자 알림 이메일 발송 완료');
+  } catch (notifyError) {
+    console.error('⚠️ 알림 이메일 발송 실패 (신청은 완료됨):', notifyError);
+    // 알림 발송 실패해도 신청은 성공으로 처리
   }
 
   return result;
@@ -711,8 +808,9 @@ async function registerChurch(data: ChurchApplicationData) {
 
 // 커뮤니티 회원 가입
 async function registerCommunityMember(data: CommunityApplicationData) {
+  // 1단계: 신청서 제출
   const response = await fetch(
-    'https://your-project.supabase.co/functions/v1/community-applications',
+    'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/community-applications',
     {
       method: 'POST',
       headers: {
@@ -725,10 +823,36 @@ async function registerCommunityMember(data: CommunityApplicationData) {
 
   const result = await response.json();
 
-  if (result.success) {
-    console.log('신청 완료:', result.data.application_id);
-  } else {
+  if (!result.success) {
     console.error('신청 실패:', result.message);
+    return result;
+  }
+
+  console.log('신청 완료:', result.data.application_id);
+
+  // 2단계: 관리자 알림 발송 (중요!)
+  try {
+    await fetch(
+      'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'YOUR_SUPABASE_ANON_KEY'
+        },
+        body: JSON.stringify({
+          type: 'community',
+          applicantEmail: data.email,
+          applicantName: data.contact_person,
+          organizationName: data.organization_name,
+          applicationId: result.data.application_id
+        })
+      }
+    );
+    console.log('✅ 관리자 알림 이메일 발송 완료');
+  } catch (notifyError) {
+    console.error('⚠️ 알림 이메일 발송 실패 (신청은 완료됨):', notifyError);
+    // 알림 발송 실패해도 신청은 성공으로 처리
   }
 
   return result;
