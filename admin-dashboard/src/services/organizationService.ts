@@ -190,9 +190,17 @@ class OrganizationService {
         updated_at: new Date().toISOString()
       };
 
+      // Convert empty string to null for UUID fields
+      if (updateData.parent_id === '') {
+        updateData.parent_id = null;
+      }
+      if (updateData.leader_id === '') {
+        updateData.leader_id = null;
+      }
+
       // Recalculate level if parent changed
       if (data.parent_id !== undefined) {
-        if (data.parent_id) {
+        if (data.parent_id && data.parent_id !== '') {
           const { data: parent } = await supabase
             .from('church_organizations')
             .select('level')
