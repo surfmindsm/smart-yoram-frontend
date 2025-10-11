@@ -313,61 +313,6 @@ const SecurityLogs: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">보안 로그 관리</h2>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={async () => {
-              try {
-                console.log('🔍 테이블 확인 시작...');
-                const result = await supabaseApiService.securityLogs.checkAndCreateTables();
-                console.log('테이블 확인 결과:', result);
-
-                if (result.data) {
-                  const { security_logs_exists, activity_logs_exists } = result.data;
-                  alert(`테이블 확인 완료!\n- security_logs: ${security_logs_exists ? '✅ 존재' : '❌ 없음'}\n- activity_logs: ${activity_logs_exists ? '✅ 존재' : '❌ 없음'}`);
-                }
-              } catch (error) {
-                console.error('테이블 확인 실패:', error);
-                alert('테이블 확인에 실패했습니다. 콘솔을 확인해주세요.');
-              }
-            }}
-          >
-            🔍 테이블 확인
-          </Button>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={async () => {
-              try {
-                console.log('🏛️ 테스트 교회 데이터 생성 시작...');
-                await supabaseApiService.securityLogs.createTestChurchData();
-                alert('테스트 교회 데이터가 생성되었습니다. Church ID 7 문제가 해결되었습니다.');
-                window.location.reload();
-              } catch (error) {
-                console.error('테스트 교회 데이터 생성 실패:', error);
-                alert('테스트 교회 데이터 생성에 실패했습니다. 콘솔을 확인해주세요.');
-              }
-            }}
-          >
-            🏛️ Church ID 7 추가
-          </Button>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={async () => {
-              try {
-                console.log('🧪 테스트 로그 생성 시작...');
-                await supabaseApiService.securityLogs.createTestLoginLog();
-                await supabaseApiService.securityLogs.createTestActivityLog();
-                alert('테스트 로그가 생성되었습니다. 페이지를 새로고침해주세요.');
-              } catch (error) {
-                console.error('테스트 로그 생성 실패:', error);
-                alert('테스트 로그 생성에 실패했습니다. 콘솔을 확인해주세요.');
-              }
-            }}
-          >
-            🧪 테스트 로그 생성
-          </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <Download className="w-4 h-4" />
             Excel 내보내기

@@ -147,43 +147,7 @@ const getLocationInfo = async (): Promise<string> => {
     if (data.city && data.country_name) {
       const koreanCity = cityMap[data.city] || data.city;
       const koreanCountry = countryMap[data.country_name] || data.country_name;
-
-      // ISP나 조직 정보로 테더링/모바일 감지
-      const org = data.org || data.asn || '';
-      const isp = data.isp || '';
-
-      // 모바일 캐리어 패턴 감지
-      const mobileCarriers = [
-        'LG U+', 'SK Telecom', 'KT Corporation', 'Korea Telecom',
-        'Verizon', 'AT&T', 'T-Mobile', 'Sprint',
-        'Vodafone', 'Orange', 'O2', 'Three',
-        'NTT DOCOMO', 'SoftBank', 'au'
-      ];
-
-      const isMobileCarrier = mobileCarriers.some(carrier =>
-        org.toLowerCase().includes(carrier.toLowerCase()) ||
-        isp.toLowerCase().includes(carrier.toLowerCase())
-      );
-
-      // "Mobile" 키워드 감지
-      const hasMobileKeyword = org.toLowerCase().includes('mobile') ||
-                              isp.toLowerCase().includes('mobile') ||
-                              org.toLowerCase().includes('cellular') ||
-                              isp.toLowerCase().includes('cellular');
-
-      if (isMobileCarrier || hasMobileKeyword) {
-        return `📱 모바일 테더링 (${koreanCity}, ${koreanCountry})`;
-      }
-
       return `${koreanCity}, ${koreanCountry}`;
-    }
-
-    // 도시나 국가 정보가 없는 경우
-    if (data.org || data.isp) {
-      const org = data.org || data.isp || '';
-      if (org.toLowerCase().includes('mobile') || org.toLowerCase().includes('cellular')) {
-        return '📱 모바일 테더링';
-      }
     }
 
     return '위치 정보 없음';

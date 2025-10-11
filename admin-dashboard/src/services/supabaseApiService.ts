@@ -4036,7 +4036,7 @@ export const supabaseApiService = {
       details?: any;
     }) => {
       try {
-        // console.log('📝 [로그인 로그] 기록 시작:', loginData);
+        console.log('📝 [로그인 로그] 기록 시작:', loginData);
 
         const { data, error } = await supabase
           .from('security_logs')
@@ -4059,7 +4059,7 @@ export const supabaseApiService = {
           throw error;
         }
 
-        // console.log('✅ [로그인 로그] 기록 성공:', data);
+        console.log('✅ [로그인 로그] 기록 성공:', data);
         return { success: true, data };
       } catch (error) {
         console.error('📝 [로그인 로그] 기록 실패:', error);
