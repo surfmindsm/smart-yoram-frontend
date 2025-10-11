@@ -13,9 +13,9 @@
 3. **로그인**: Supabase Auth `signInWithPassword`
 
 **이메일 알림 (`notify-application`):**
-- ✅ `community-applications`에서 **자동 호출** (이미 구현됨)
-- ⚠️ `church-applications`에서 **미구현** (추가 예정)
-- 📧 관리자(`surfmind.sm@gmail.com`)에게 자동 발송
+- ⚠️ **신청 접수 알림** (관리자에게): 미구현 - 추가 필요
+- ✅ **승인 알림** (신청자에게): `community-applications` PUT에서 구현됨
+- 📧 관리자(`surfmind.sm@gmail.com`)에게 알림 발송 기능 추가 필요
 - 🔔 **모바일 앱에서 직접 호출하지 않음**
 
 ---
@@ -72,8 +72,8 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/church-applications
 
 **결과:**
 1. 신청서가 `church_applications` 테이블에 저장됨
-2. 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송
-3. 관리자 승인 후 교회 계정 생성 및 로그인 정보 이메일 발송
+2. ⚠️ 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송 **미구현** - 추가 필요
+3. 관리자 승인 후 교회 계정 생성 및 로그인 정보 이메일 발송 **미구현** - 추가 필요
 
 ---
 
@@ -92,8 +92,8 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/community-application
 
 **결과:**
 1. 신청서가 `community_applications` 테이블에 저장됨
-2. 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송 (자동)
-3. 관리자 승인 후 커뮤니티 회원 계정 생성 및 로그인 정보 이메일 발송 (자동)
+2. ⚠️ 관리자(`surfmind.sm@gmail.com`)에게 알림 이메일 발송 **미구현** - 추가 필요
+3. ✅ 관리자 승인 후 커뮤니티 회원 계정 생성 및 로그인 정보 이메일 발송 **구현됨**
 
 ---
 
@@ -142,9 +142,14 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application
 
 **⚠️ 중요:** 이 Edge Function은 **모바일 앱에서 직접 호출하지 않습니다!**
 
-**작동 방식:**
-1. **커뮤니티 가입** (`community-applications`): 신청서 제출 시 **자동으로** `notify-application` 호출하여 관리자에게 알림 이메일 발송
-2. **교회 가입** (`church-applications`): 현재는 이메일 알림 미구현 (추가 예정)
+**현재 구현 상태:**
+1. **신청 접수 알림** (관리자에게 `surfmind.sm@gmail.com`):
+   - ❌ `church-applications` POST: **미구현** - 추가 필요
+   - ❌ `community-applications` POST: **미구현** - 추가 필요
+
+2. **승인 알림** (신청자 이메일로):
+   - ✅ `community-applications` PUT (승인 시): **구현됨**
+   - ❌ `church-applications` PUT (승인 시): **미구현** - 추가 필요
 
 **이메일 발송 대상:**
 - 📧 **관리자 알림**: `surfmind.sm@gmail.com` (신청 접수 시)
@@ -839,8 +844,8 @@ const { data, error } = await supabase.auth.resetPasswordForEmail(
 #### 7.3.3 구현 위치
 
 **현재 구현 상태:**
-- ✅ `community-applications` - 이미 구현됨
-- ⚠️ `church-applications` - 구현 필요
+- ❌ `community-applications` POST - **미구현** (추가 필요)
+- ❌ `church-applications` POST - **미구현** (추가 필요)
 
 **구현 코드 예시:**
 
