@@ -13,10 +13,10 @@
 3. **로그인**: Supabase Auth `signInWithPassword`
 
 **이메일 알림 (`notify-application`):**
-- ⚠️ **신청 접수 알림** (관리자에게): 미구현 - 추가 필요
-- ✅ **승인 알림** (신청자에게): `community-applications` PUT에서 구현됨
-- 📧 관리자(`surfmind.sm@gmail.com`)에게 알림 발송 기능 추가 필요
-- 🔔 **모바일 앱에서 직접 호출하지 않음**
+- ⚠️ **신청 접수 알림** (관리자에게): POST 메서드에서 미구현 - 추가 필요
+- ✅ **승인 알림** (신청자에게): 웹 대시보드에서 승인 시 자동 발송됨
+- 📧 신청 시 관리자(`surfmind.sm@gmail.com`) 알림 기능 추가 필요
+- 🔔 **모바일 앱에서 직접 호출하지 않음 (백엔드에서 자동 호출)**
 
 ---
 
@@ -144,12 +144,20 @@ POST https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/notify-application
 
 **현재 구현 상태:**
 1. **신청 접수 알림** (관리자에게 `surfmind.sm@gmail.com`):
-   - ❌ `church-applications` POST: **미구현** - 추가 필요
-   - ❌ `community-applications` POST: **미구현** - 추가 필요
+   - ❌ `church-applications` POST: **미구현** - Edge Function에 추가 필요
+   - ❌ `community-applications` POST: **미구현** - Edge Function에 추가 필요
 
 2. **승인 알림** (신청자 이메일로):
-   - ✅ `community-applications` PUT (승인 시): **구현됨**
-   - ❌ `church-applications` PUT (승인 시): **미구현** - 추가 필요
+   - ✅ `community-applications` PUT (승인 시): **구현됨** (웹 대시보드에서 사용 중)
+   - ❌ `church-applications` PUT (승인 시): **미구현** - Edge Function에 추가 필요
+
+**작동 흐름:**
+```
+모바일 앱 → POST /community-applications → DB 저장
+→ ⚠️ (알림 없음) → 웹 대시보드에서 확인
+→ 승인 버튼 클릭 → PUT /community-applications
+→ ✅ notify-application 호출 → 신청자에게 로그인 정보 이메일 발송
+```
 
 **이메일 발송 대상:**
 - 📧 **관리자 알림**: `surfmind.sm@gmail.com` (신청 접수 시)
