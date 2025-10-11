@@ -43,12 +43,14 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [organizations, setOrganizations] = useState<ChurchOrganization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [members, setMembers] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   
   const [formData, setFormData] = useState({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
     // 사역 정보
-    position: '', district: '', organization_id: '', department: '', position_code: '', appointed_on: '',
+    position: '', organization_id: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', workplace: '', workplace_phone: '',
     // 개인 정보
     address: '', marital_status: '', spouse_name: '', married_on: '',
@@ -64,7 +66,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // 신앙 정보
     spiritual_grade: '',
     // 직업 정보 확장
-    job_category: '', job_detail: '', job_position: '',
+    job_category: '', job_detail: '', job_position: '', job_title: '',
     // 사역 정보 확장
     ministry_start_date: '', neighboring_church: '', position_decision: '', daily_activity: '',
     // 자유 필드
@@ -143,11 +145,12 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     setProfilePhotoPreview(null);
   };
 
-  // Load organizations
+  // Load organizations, departments, and members
   useEffect(() => {
     if (open) {
       loadOrganizations();
       loadDepartments();
+      loadMembers();
     }
   }, [open]);
 
@@ -190,6 +193,31 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     }
   };
 
+  const loadMembers = async () => {
+    try {
+      setLoadingMembers(true);
+      const result = await supabaseAuthService.getCurrentUser();
+      if (result?.user?.church_id) {
+        const { data, error } = await supabase
+          .from('members')
+          .select('id, name')
+          .eq('church_id', result.user.church_id)
+          .eq('status', 'active')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error loading members:', error);
+        } else {
+          setMembers(data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading members:', error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
   // Helper function to flatten organization tree
   const flattenOrganizations = (orgs: ChurchOrganization[], level: number = 0): ChurchOrganization[] => {
     let result: ChurchOrganization[] = [];
@@ -206,14 +234,14 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // Reset form when closing
     setFormData({
       name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-      position: '', district: '', organization_id: '', department: '', position_code: '', appointed_on: '',
+      position: '', organization_id: '', department: '', position_code: '', appointed_on: '',
       ordination_church: '', workplace: '', workplace_phone: '',
       address: '', marital_status: '', spouse_name: '', married_on: '',
       // 새로 추가된 필드들 리셋
       member_type: '', confirmation_date: '', sub_district: '', age_group: '',
       region_1: '', region_2: '', region_3: '', postal_code: '',
       inviter3_member_id: '', last_contact_date: '', spiritual_grade: '',
-      job_category: '', job_detail: '', job_position: '',
+      job_category: '', job_detail: '', job_position: '', job_title: '',
       ministry_start_date: '', neighboring_church: '', position_decision: '', daily_activity: '',
       custom_field_1: '', custom_field_2: '', custom_field_3: '', custom_field_4: '',
       custom_field_5: '', custom_field_6: '', custom_field_7: '', custom_field_8: '',
@@ -240,7 +268,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
       // 인원 제한 체크 제거 - 모든 교회에서 무제한 등록 가능
       const memberData = {
-        // 기존 필드들 (실제 DB 컬럼명에 맞춤)
+        // 기본 정보
         name: formData.name,
         name_eng: formData.name_eng || null,
         email: formData.email || null,
@@ -248,12 +276,24 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         birthdate: formData.birthdate || null,
         phone: formData.phone || null,
         address: formData.address || null,
+
+        // 교회 정보
         position: formData.position || null,
-        district: formData.district || null,
         organization_id: formData.organization_id || null,
         department: formData.department || null,
+        appointed_on: formData.appointed_on || null,
+        ordination_church: formData.ordination_church || null,
+
+        // 직장 정보
+        workplace: formData.workplace || null,
+        workplace_phone: formData.workplace_phone || null,
+
+        // 개인 및 가족 정보
         marital_status: formData.marital_status || null,
-        member_status: 'active',  // 신규 등록 시 항상 활동 상태
+        spouse_name: formData.spouse_name || null,
+        married_on: formData.married_on || null,
+
+        status: 'active',  // 신규 등록 시 항상 활동 상태
 
         // 새로 추가된 25개 필드들
         // 교회 정보 확장
@@ -281,6 +321,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         job_category: formData.job_category || null,
         job_detail: formData.job_detail || null,
         job_position: formData.job_position || null,
+        job_title: formData.job_title || null,
 
         // 사역 정보 확장
         ministry_start_date: formData.ministry_start_date || null,
@@ -624,36 +665,6 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
             </div>
           </div>
 
-          {/* 직장 정보 */}
-          <div className="bg-blue-50/50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Briefcase className="w-5 h-5" />
-              직장 정보
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 직장명 */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">직장명</label>
-                <Input
-                  value={formData.workplace}
-                  onChange={(e) => setFormData(prev => ({ ...prev, workplace: e.target.value }))}
-                  placeholder="삼성전자"
-                />
-              </div>
-
-              {/* 직장 전화번호 */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">직장 전화번호</label>
-                <Input
-                  type="tel"
-                  value={formData.workplace_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, workplace_phone: e.target.value }))}
-                  placeholder="02-1234-5678"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* 개인 및 가족 정보 */}
           <div className="bg-green-50/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -827,13 +838,13 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
             </div>
           </div>
 
-          {/* 직업 정보 */}
+          {/* 직업 및 직장 정보 */}
           <div className="bg-indigo-50/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5" />
               직업 정보
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* 직업분류 */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">직업분류</label>
@@ -866,6 +877,37 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   value={formData.job_position}
                   onChange={(e) => setFormData(prev => ({ ...prev, job_position: e.target.value }))}
                   placeholder="팀장, 과장, 원장 등"
+                />
+              </div>
+
+              {/* 직업명 */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">직업명</label>
+                <Input
+                  value={formData.job_title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))}
+                  placeholder="회사원, 교사 등"
+                />
+              </div>
+
+              {/* 직장명 */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">직장명</label>
+                <Input
+                  value={formData.workplace}
+                  onChange={(e) => setFormData(prev => ({ ...prev, workplace: e.target.value }))}
+                  placeholder="삼성전자"
+                />
+              </div>
+
+              {/* 직장 전화번호 */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">직장 전화번호</label>
+                <Input
+                  type="tel"
+                  value={formData.workplace_phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, workplace_phone: e.target.value }))}
+                  placeholder="02-1234-5678"
                 />
               </div>
             </div>
@@ -908,15 +950,27 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 />
               </div>
 
-              {/* 인도자3 */}
+              {/* 인도자 (전도한 사람) */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">인도자3 ID</label>
-                <Input
-                  type="number"
-                  value={formData.inviter3_member_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, inviter3_member_id: e.target.value }))}
-                  placeholder="교인 ID 입력"
-                />
+                <label className="block text-sm font-medium text-foreground mb-1">인도자</label>
+                <Select
+                  value={formData.inviter3_member_id || 'none'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, inviter3_member_id: value === 'none' ? '' : value }))}
+                  disabled={loadingMembers}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingMembers ? "교인 목록 불러오는 중..." : "인도자 선택"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">없음</SelectItem>
+                    {members.map(member => (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">이 교인을 전도하거나 교회로 인도한 사람</p>
               </div>
             </div>
 

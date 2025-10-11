@@ -63,7 +63,6 @@ interface Member {
   phone: string;
   address: string | null;
   position: string | null;
-  district: string | null;
   organization_id?: string | null;
   organization_name?: string | null;
   church_id: number;
@@ -81,6 +80,8 @@ interface Member {
   neighboring_church?: string;
   position_decision?: string;
   daily_activity?: string;
+  inviter3_member_id?: number;
+  inviter_name?: string;
 
   // 직업 정보
   job_category?: string;
@@ -1929,20 +1930,6 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div> */}
 
-                      {/* 교구/지역 */}
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">교구/지역</label>
-                        {isEditMode ? (
-                          <Input
-                            value={editedMember.district || ''}
-                            onChange={(e) => setEditedMember({...editedMember, district: e.target.value})}
-                            placeholder="중앙"
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.district || '-'}</p>
-                        )}
-                      </div>
-
                       {/* 임명일 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
@@ -2040,6 +2027,21 @@ const MemberManagement: React.FC = () => {
                       />
                     ) : (
                       <p className="text-sm text-muted-foreground">{selectedMember.position_decision || '-'}</p>
+                    )}
+                  </div>
+
+                  {/* 인도자 */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">인도자</label>
+                    {isEditMode ? (
+                      <Input
+                        value={editedMember.inviter_name || ''}
+                        disabled
+                        placeholder="수정 불가 (교인 추가 시에만 설정)"
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{selectedMember.inviter_name || '-'}</p>
                     )}
                   </div>
 

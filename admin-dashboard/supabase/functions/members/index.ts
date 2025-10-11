@@ -157,10 +157,39 @@ Deno.serve(async (req) => {
 
       console.log('Query successful, found rows:', count)
 
+      // Enrich data with inviter names and organization names
+      const enrichedData = await Promise.all((data || []).map(async (member: any) => {
+        let enrichedMember = { ...member }
+
+        // Get inviter name if exists
+        if (member.inviter3_member_id) {
+          const { data: inviterData } = await supabaseClient
+            .from('members')
+            .select('name')
+            .eq('id', member.inviter3_member_id)
+            .single()
+
+          enrichedMember.inviter_name = inviterData?.name || null
+        }
+
+        // Get organization name if exists
+        if (member.organization_id) {
+          const { data: orgData } = await supabaseClient
+            .from('church_organizations')
+            .select('name')
+            .eq('id', member.organization_id)
+            .single()
+
+          enrichedMember.organization_name = orgData?.name || null
+        }
+
+        return enrichedMember
+      }))
+
       // Return paginated response
       return new Response(
         JSON.stringify({
-          data: data || [],
+          data: enrichedData,
           count: count || 0,
           page,
           limit,
@@ -206,13 +235,14 @@ Deno.serve(async (req) => {
       // 사역 정보
       if (body.position !== undefined) insertData.position = body.position
       if (body.department !== undefined) insertData.department = body.department
-      if (body.district !== undefined) insertData.district = body.district
+      if (body.organization_id !== undefined) insertData.organization_id = body.organization_id
       if (body.appointed_on !== undefined) insertData.appointed_on = body.appointed_on
       if (body.ordination_church !== undefined) insertData.ordination_church = body.ordination_church
       if (body.ministry_start_date !== undefined) insertData.ministry_start_date = body.ministry_start_date
       if (body.neighboring_church !== undefined) insertData.neighboring_church = body.neighboring_church
       if (body.position_decision !== undefined) insertData.position_decision = body.position_decision
       if (body.daily_activity !== undefined) insertData.daily_activity = body.daily_activity
+      if (body.inviter3_member_id !== undefined) insertData.inviter3_member_id = body.inviter3_member_id
 
       // 직업 정보
       if (body.job_category !== undefined) insertData.job_category = body.job_category
@@ -331,7 +361,7 @@ Deno.serve(async (req) => {
       // 사역 정보
       if (body.position !== undefined) updateData.position = body.position
       if (body.department !== undefined) updateData.department = body.department
-      if (body.district !== undefined) updateData.district = body.district
+      if (body.organization_id !== undefined) updateData.organization_id = body.organization_id
       if (body.appointed_on !== undefined) updateData.appointed_on = body.appointed_on
       if (body.ordination_church !== undefined) updateData.ordination_church = body.ordination_church
       if (body.ministry_start_date !== undefined) updateData.ministry_start_date = body.ministry_start_date
