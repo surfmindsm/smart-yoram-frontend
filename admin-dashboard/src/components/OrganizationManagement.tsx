@@ -604,9 +604,6 @@ const OrganizationManagement: React.FC = () => {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
                               <h3 className="font-semibold text-gray-900">{organization.name}</h3>
-                              <Badge variant="secondary" className="text-xs">
-                                {ORGANIZATION_TYPE_LABELS[organization.organization_type]}
-                              </Badge>
                               {!organization.is_active && (
                                 <Badge variant="destructive" className="text-xs">
                                   비활성
