@@ -46,7 +46,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const handleSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     if (selectedDate) {
-      onChange(selectedDate.toISOString().split('T')[0]);
+      // 로컬 시간대를 고려하여 날짜 문자열 생성
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      onChange(`${year}-${month}-${day}`);
     } else {
       onChange('');
     }
