@@ -90,10 +90,15 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Contains auth utilities and token management for legacy endpoints
 
 **Member Management:**
-- `AddMemberWizard.tsx`: 5-step wizard for adding new members
-  - Collects basic info, ministry info, contacts, sacraments/transfers, vehicles
+- `AddMemberModal.tsx`: Collapsible sections modal for adding new members
+  - All sections are collapsible using `<details>` elements with shadcn styling
+  - Basic info and church info sections default to open (`open` attribute)
+  - Uses border, rounded corners, and ChevronDown icons for visual feedback
+  - Section spacing: `space-y-4` for compact layout
   - Saves to `members` table and related tables (`member_contacts`, `sacraments`, `transfers`, `member_vehicles`)
   - Uses Supabase client directly for relation tables
+- `AddMemberWizard.tsx`: Alternative 5-step wizard approach (not currently used)
+  - Collects basic info, ministry info, contacts, sacraments/transfers, vehicles
 - `MemberManagement.tsx`: View/edit member details
   - Detail modal loads and displays relation table data
   - Uses `members` Edge Function for CRUD operations
@@ -129,6 +134,10 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Use `formatCreatedAt()` from `src/utils/dateUtils.ts` for null-safe formatting
 - Fallback text: "등록일 없음" for missing dates
 - Korean locale formatting (`ko-KR`)
+- **DatePicker component**: Uses local timezone for date selection to avoid timezone bugs
+  - Located in `src/components/ui/date-picker.tsx`
+  - Converts selected dates using `getFullYear()`, `getMonth()`, `getDate()` to avoid UTC conversion issues
+  - Format: `YYYY-MM-DD` using local timezone
 
 **Field Mapping:**
 - Backend: snake_case, Frontend: camelCase
@@ -149,13 +158,17 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 **Design System:**
 - Tailwind CSS with custom component variants
 - Radix UI primitives for accessibility
-- Lucide React for consistent iconography
+- Lucide React for consistent iconography (ChevronDown, ChevronRight, etc.)
 - class-variance-authority for component variants
+- Collapsible sections using native `<details>` and `<summary>` elements
+- Styling pattern: `border rounded-lg group` with `list-none` on summary
+- Animation: `group-open:rotate-180 transition-transform` for chevron icons
 
 **Form Patterns:**
 - `CommunityPostForm.tsx`: Unified form for community features
 - File uploads via Supabase Storage with progress tracking
 - Real-time validation and user feedback
+- Collapsible sections for better UX in long forms (see AddMemberModal)
 
 ### Korean Language Support
 - Primary language: Korean

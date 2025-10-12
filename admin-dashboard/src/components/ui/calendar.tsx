@@ -8,6 +8,7 @@ import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
 import { cn } from "../../lib/utils"
 import { Button, buttonVariants } from "./button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 function Calendar({
   className,
@@ -151,6 +152,54 @@ function Calendar({
 
           return (
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
+          )
+        },
+        MonthsDropdown: ({ value, onChange, options }) => {
+          return (
+            <Select
+              value={value?.toString()}
+              onValueChange={(val) => {
+                const changeEvent = {
+                  target: { value: val }
+                } as React.ChangeEvent<HTMLSelectElement>;
+                onChange?.(changeEvent);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[90px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options?.map((option, i) => (
+                  <SelectItem key={i} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
+        },
+        YearsDropdown: ({ value, onChange, options }) => {
+          return (
+            <Select
+              value={value?.toString()}
+              onValueChange={(val) => {
+                const changeEvent = {
+                  target: { value: val }
+                } as React.ChangeEvent<HTMLSelectElement>;
+                onChange?.(changeEvent);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[80px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {options?.map((option, i) => (
+                  <SelectItem key={i} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )
         },
         DayButton: CalendarDayButton,
