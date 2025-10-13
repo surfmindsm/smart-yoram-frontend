@@ -315,6 +315,24 @@ Deno.serve(async (req) => {
     if (req.method === 'PUT') {
       // Update member
       console.log('📝 PUT request received')
+
+      // Extract member ID from URL path
+      const url = new URL(req.url)
+      const pathParts = url.pathname.split('/')
+      const memberId = pathParts[pathParts.length - 1] ? parseInt(pathParts[pathParts.length - 1]) : null
+
+      console.log('📝 Member ID from URL:', memberId)
+
+      if (!memberId || isNaN(memberId)) {
+        return new Response(
+          JSON.stringify({ error: 'Member ID is required' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
       let body
       try {
         const text = await req.text()
@@ -324,21 +342,8 @@ Deno.serve(async (req) => {
         console.log('📝 Parsed body keys:', Object.keys(body))
       } catch (error) {
         console.error('JSON parsing error in PUT:', error)
-        console.error('Request text that failed to parse:', text)
         return new Response(
           JSON.stringify({ error: 'Invalid JSON in request body' }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-
-      const memberId = body.id
-
-      if (!memberId) {
-        return new Response(
-          JSON.stringify({ error: 'Member ID is required' }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -632,11 +632,13 @@ const MemberManagement: React.FC = () => {
 
       const memberDataToSave = {
         ...memberDataWithoutOrgName,
+        id: selectedMember.id, // Ensure ID is included
         profile_photo_url: selectedMember.profile_photo_url
       };
 
       console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
-      
+      console.log('💾 Member ID:', memberDataToSave.id);
+
       const response = await supabaseApiService.members.update(memberDataToSave);
       
       // 수정된 필드들 확인
@@ -2456,45 +2458,6 @@ const MemberManagement: React.FC = () => {
                 </div>
               </details>
             </div>
-
-              {/* Action Buttons */}
-              {!isEditMode && (
-                <div className="flex gap-3 pt-6 border-t border-border">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowPhotoModal(true);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    사진 관리
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/qr-management');
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <QrCode className="w-4 h-4 mr-2" />
-                    QR 코드
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleGetPassword(selectedMember.id);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Key className="w-4 h-4 mr-2" />
-                    비밀번호 조회
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </DialogContent>
