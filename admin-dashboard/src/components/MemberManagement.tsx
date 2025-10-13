@@ -1577,7 +1577,7 @@ const MemberManagement: React.FC = () => {
 
       {/* Member Detail Modal */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-start justify-between mb-2">
               <DialogTitle className="flex items-center gap-2 flex-1">
@@ -1722,14 +1722,16 @@ const MemberManagement: React.FC = () => {
               </div>
 
               {/* 기본 정보 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      기본 정보
-                    </h3>
-                    <div className="space-y-4">
+              <div className="space-y-4">
+                <details className="border rounded-lg group">
+                    <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <User className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="text-sm font-medium">기본 정보</h3>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                    </summary>
+                    <div className="px-6 pb-6 space-y-4">
                       {/* 이름 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">이름</label>
@@ -1820,17 +1822,18 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </details>
 
-                <div className="space-y-6">
-                  {/* 교회 정보 */}
-                  <div className="bg-primary/5 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <UserCheck className="w-5 h-5" />
-                      교회 정보
-                    </h3>
-                    <div className="space-y-4">
+                {/* 교회 정보 */}
+                <details className="border rounded-lg group">
+                    <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <UserCheck className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="text-sm font-medium">교회 정보</h3>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                    </summary>
+                    <div className="px-6 pb-6 space-y-4">
                       {/* 직분 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">직분</label>
@@ -1977,17 +1980,18 @@ const MemberManagement: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
+                  </details>
 
               {/* 사역 정보 */}
-              <div className="bg-blue-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  사역 정보
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">사역 정보</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* 사역 시작일 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">사역 시작일</label>
@@ -2060,15 +2064,18 @@ const MemberManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </details>
 
               {/* 직업 정보 */}
-              <div className="bg-cyan-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  직업 정보
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">직업 정보</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* 직업 분류 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">직업 분류</label>
@@ -2164,15 +2171,18 @@ const MemberManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </details>
 
               {/* 개인 및 가족 정보 */}
-              <div className="bg-green-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Heart className="w-5 h-5" />
-                  개인 및 가족 정보
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Heart className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">개인 및 가족 정보</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* 교인 분류 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">교인 분류</label>
@@ -2289,14 +2299,18 @@ const MemberManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </details>
 
               {/* 주소 정보 */}
-              <div className="bg-yellow-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  주소 정보
-                </h3>
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">주소 정보</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6">
                 <div className="space-y-4">
                   {/* 우편번호 */}
                   <div>
@@ -2369,15 +2383,19 @@ const MemberManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+                </div>
+              </details>
 
               {/* 자유 필드 (커스텀 정보) */}
-              <div className="bg-pink-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  자유 필드 (커스텀 정보)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">자유 필드 (커스텀 정보)</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
                     const fieldKey = `custom_field_${num}` as keyof Member;
                     const value = isEditMode
@@ -2410,15 +2428,18 @@ const MemberManagement: React.FC = () => {
                 ) && (
                   <p className="text-sm text-muted-foreground">등록된 추가 정보가 없습니다.</p>
                 )}
-              </div>
+              </details>
 
               {/* 특별 사항 */}
-              <div className="bg-gray-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  특별 사항
-                </h3>
-                <div>
+              <details className="border rounded-lg group">
+                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium">특별 사항</h3>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-6 pb-6">
                   <label className="block text-sm font-medium text-foreground mb-1">특이사항 및 메모</label>
                   {isEditMode ? (
                     <Textarea
@@ -2433,7 +2454,8 @@ const MemberManagement: React.FC = () => {
                     </p>
                   )}
                 </div>
-              </div>
+              </details>
+            </div>
 
               {/* Action Buttons */}
               {!isEditMode && (
