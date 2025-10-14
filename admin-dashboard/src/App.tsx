@@ -103,6 +103,9 @@ const ChurchManagement = lazy(() => import('./components/ChurchManagement'));
 const GptLicenseManagement = lazy(() => import('./components/GptLicenseManagement'));
 const ChurchGptLicenseAssignment = lazy(() => import('./components/ChurchGptLicenseAssignment'));
 
+// Landing Page
+const LandingPage = lazy(() => import('./components/Landing/LandingPage'));
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -118,6 +121,14 @@ function App() {
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/supabase-test" element={<SupabaseTest />} />
+
+        {/* Landing Page */}
+        <Route path="/landing" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <LandingPage />
+          </Suspense>
+        } />
+
         {/* Community Signup - New Enhanced Version */}
         <Route path="/community-signup" element={
           <Suspense fallback={<LoadingSpinner />}>
@@ -130,7 +141,7 @@ function App() {
             <ChurchSignup />
           </Suspense>
         } />
-        
+
         {/* Terms and Privacy Pages */}
         <Route path="/terms" element={
           <Suspense fallback={<LoadingSpinner />}>
