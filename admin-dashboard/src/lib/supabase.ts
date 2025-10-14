@@ -12,6 +12,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
 
+// Export these for use in API services
+export const SUPABASE_URL = supabaseUrl
+export const SUPABASE_ANON_KEY = supabaseAnonKey
+
 // 일반 사용자용 클라이언트 (ANON_KEY)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
