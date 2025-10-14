@@ -282,6 +282,31 @@ const Login: React.FC = () => {
                   교회 관리자는 '교회 가입 신청'을 이용해주세요
                 </p>
               </div>
+
+              {/* 서비스 이용약관 및 개인정보처리방침 링크 */}
+              <div className="text-center pt-4 border-t border-muted">
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => navigate('/terms')}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    서비스 이용약관
+                  </Button>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => navigate('/privacy')}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    개인정보처리방침
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </CardContent>

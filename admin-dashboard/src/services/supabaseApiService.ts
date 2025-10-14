@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { supabaseAuthService } from './supabaseAuthService';
 
 // Supabase Edge Functions 호출을 위한 서비스
@@ -1717,21 +1717,26 @@ export const supabaseApiService = {
         if (filters.limit) params.append('limit', filters.limit.toString());
 
         const queryString = params.toString();
-        const url = queryString ? `?${queryString}` : '';
 
-        const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins${url}`, {
+        // Use direct fetch instead of supabase.functions.invoke to support custom paths
+        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins${queryString ? `?${queryString}` : ''}`;
+
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
 
-        if (error) {
-          console.error('📰 [주보 API] 목록 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📰 [주보 API] 목록 조회 오류:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [주보 API] 목록 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1750,19 +1755,25 @@ export const supabaseApiService = {
 
         // console.log('📰 [주보 API] 단일 조회 시작:', id);
 
-        const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
+        // Use direct fetch instead of supabase.functions.invoke to support custom paths
+        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins/${id}`;
+
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
 
-        if (error) {
-          console.error('📰 [주보 API] 단일 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📰 [주보 API] 단일 조회 오류:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [주보 API] 단일 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1781,19 +1792,25 @@ export const supabaseApiService = {
 
         // console.log('📰 [주보 API] 교회별 조회 시작:', churchId);
 
-        const { data, error } = await supabase.functions.invoke(`bulletins/church/${churchId}`, {
+        // Use direct fetch instead of supabase.functions.invoke to support custom paths
+        const url = `${SUPABASE_URL}/functions/v1/bulletins/church/${churchId}`;
+
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
 
-        if (error) {
-          console.error('📰 [주보 API] 교회별 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📰 [주보 API] 교회별 조회 오류:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [주보 API] 교회별 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1819,20 +1836,26 @@ export const supabaseApiService = {
 
         // console.log('📰 [주보 API] 생성 시작:', bulletinData);
 
-        const { data, error } = await supabase.functions.invoke('bulletins/admin/bulletins', {
+        // Use direct fetch instead of supabase.functions.invoke to support custom paths
+        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins`;
+
+        const response = await fetch(url, {
           method: 'POST',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify(bulletinData),
         });
 
-        if (error) {
-          console.error('📰 [주보 API] 생성 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📰 [주보 API] 생성 오류:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [주보 API] 생성 성공:', data);
         return data;
       } catch (error) {
@@ -1854,23 +1877,28 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📰 [주보 API] 수정 시작:', id, bulletinData);
+        console.log('📰 [주보 API] 수정 시작:', id, bulletinData);
 
-        const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
-          method: 'PUT',
-          headers: {
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(bulletinData),
-        });
+        // Directly query the database instead of using Edge Function for PUT
+        const { data, error } = await supabase
+          .from('bulletins')
+          .update({
+            title: bulletinData.title,
+            date: bulletinData.date,
+            content: bulletinData.content,
+            file_url: bulletinData.file_url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select()
+          .single();
 
         if (error) {
           console.error('📰 [주보 API] 수정 오류:', error);
           throw error;
         }
 
-        // console.log('✅ [주보 API] 수정 성공:', data);
+        console.log('✅ [주보 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 수정 실패:', error);
@@ -1888,19 +1916,25 @@ export const supabaseApiService = {
 
         // console.log('📰 [주보 API] 삭제 시작:', id);
 
-        const { data, error } = await supabase.functions.invoke(`bulletins/admin/bulletins/${id}`, {
+        // Use direct fetch instead of supabase.functions.invoke to support custom paths
+        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins/${id}`;
+
+        const response = await fetch(url, {
           method: 'DELETE',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
 
-        if (error) {
-          console.error('📰 [주보 API] 삭제 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📰 [주보 API] 삭제 오류:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [주보 API] 삭제 성공:', data);
         return data;
       } catch (error) {
@@ -2024,41 +2058,44 @@ export const supabaseApiService = {
     },
 
     // 공지사항 생성
-    create: async (announcementData: {
-      church_id: number;
-      title: string;
-      content: string;
-      author_id: number;
-      author_name?: string;
-      is_active?: boolean;
-      is_pinned?: boolean;
-      target_audience?: string;
-      category: string;
-      subcategory?: string;
-    }) => {
+    create: async (announcementData: any) => {
       try {
         const token = await supabaseAuthService.getToken();
         if (!token) {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📢 [공지사항 API] 생성 시작:', announcementData);
+        console.log('📢 [공지사항 API] 생성 시작:', announcementData);
 
-        const { data, error } = await supabase.functions.invoke('announcements/admin/announcements', {
-          method: 'POST',
-          headers: {
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(announcementData),
-        });
+        // Filter out fields that don't exist in the announcements table
+        // Note: author_id removed due to foreign key constraint with users table
+        const allowedFields = [
+          'title', 'content', 'author_name', 'church_id',
+          'is_active', 'is_pinned', 'target_audience', 'category', 'subcategory'
+        ];
+
+        const filteredData: any = {};
+        for (const key of allowedFields) {
+          if (announcementData[key] !== undefined) {
+            filteredData[key] = announcementData[key];
+          }
+        }
+
+        console.log('📢 [공지사항 API] 필터링된 데이터:', filteredData);
+
+        // Directly query the database instead of using Edge Function for POST
+        const { data, error } = await supabase
+          .from('announcements')
+          .insert([filteredData])
+          .select()
+          .single();
 
         if (error) {
           console.error('📢 [공지사항 API] 생성 오류:', error);
           throw error;
         }
 
-        // console.log('✅ [공지사항 API] 생성 성공:', data);
+        console.log('✅ [공지사항 API] 생성 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 생성 실패:', error);
@@ -2067,39 +2104,47 @@ export const supabaseApiService = {
     },
 
     // 공지사항 수정
-    update: async (id: string, announcementData: {
-      title?: string;
-      content?: string;
-      author_name?: string;
-      is_active?: boolean;
-      is_pinned?: boolean;
-      target_audience?: string;
-      category?: string;
-      subcategory?: string;
-    }) => {
+    update: async (id: string, announcementData: any) => {
       try {
         const token = await supabaseAuthService.getToken();
         if (!token) {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📢 [공지사항 API] 수정 시작:', id, announcementData);
+        console.log('📢 [공지사항 API] 수정 시작:', id, announcementData);
 
-        const { data, error } = await supabase.functions.invoke(`announcements/admin/announcements/${id}`, {
-          method: 'PUT',
-          headers: {
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(announcementData),
-        });
+        // Filter out fields that don't exist in the announcements table
+        // Note: author_id removed due to foreign key constraint with users table
+        const allowedFields = [
+          'title', 'content', 'author_name', 'church_id',
+          'is_active', 'is_pinned', 'target_audience', 'category', 'subcategory'
+        ];
+
+        const filteredData: any = {};
+        for (const key of allowedFields) {
+          if (announcementData[key] !== undefined) {
+            filteredData[key] = announcementData[key];
+          }
+        }
+
+        filteredData.updated_at = new Date().toISOString();
+
+        console.log('📢 [공지사항 API] 필터링된 데이터:', filteredData);
+
+        // Directly query the database instead of using Edge Function for PUT
+        const { data, error } = await supabase
+          .from('announcements')
+          .update(filteredData)
+          .eq('id', id)
+          .select()
+          .single();
 
         if (error) {
           console.error('📢 [공지사항 API] 수정 오류:', error);
           throw error;
         }
 
-        // console.log('✅ [공지사항 API] 수정 성공:', data);
+        console.log('✅ [공지사항 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 수정 실패:', error);
@@ -2115,23 +2160,21 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📢 [공지사항 API] 삭제 시작:', id);
+        console.log('📢 [공지사항 API] 삭제 시작:', id);
 
-        const { data, error } = await supabase.functions.invoke(`announcements/admin/announcements/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        });
+        // Directly query the database instead of using Edge Function for DELETE
+        const { error } = await supabase
+          .from('announcements')
+          .delete()
+          .eq('id', id);
 
         if (error) {
           console.error('📢 [공지사항 API] 삭제 오류:', error);
           throw error;
         }
 
-        // console.log('✅ [공지사항 API] 삭제 성공:', data);
-        return data;
+        console.log('✅ [공지사항 API] 삭제 성공');
+        return { message: 'Announcement deleted successfully' };
       } catch (error) {
         console.error('📢 [공지사항 API] 삭제 실패:', error);
         throw error;
