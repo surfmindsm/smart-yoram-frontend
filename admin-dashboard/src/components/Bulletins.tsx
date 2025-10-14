@@ -119,13 +119,59 @@ const Bulletins: React.FC = () => {
     try {
       console.log('📰 주보 저장 시작:', editingBulletin ? '수정' : '생성', formData);
 
+      let fileUrl = formData.file_url;
+
+      // 파일이 새로 선택된 경우 업로드
+      if (selectedFile) {
+        setUploadingFile(true);
+        console.log('📤 파일 업로드 시작:', selectedFile.name);
+
+        try {
+          // Supabase Storage에 파일 업로드
+          const fileExt = selectedFile.name.split('.').pop();
+          const fileName = `${formData.date}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `bulletins/${churchId}/${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await supabaseApiService.supabase.storage
+            .from('bulletins')
+            .upload(filePath, selectedFile, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('파일 업로드 실패:', uploadError);
+            throw new Error('파일 업로드에 실패했습니다.');
+          }
+
+          // 업로드된 파일의 공개 URL 가져오기
+          const { data: publicUrlData } = supabaseApiService.supabase.storage
+            .from('bulletins')
+            .getPublicUrl(filePath);
+
+          fileUrl = publicUrlData.publicUrl;
+          console.log('✅ 파일 업로드 성공:', fileUrl);
+        } catch (uploadError) {
+          console.error('파일 업로드 오류:', uploadError);
+          toast({
+            title: '오류',
+            description: '파일 업로드에 실패했습니다.',
+            variant: 'destructive',
+          });
+          setUploadingFile(false);
+          return;
+        } finally {
+          setUploadingFile(false);
+        }
+      }
+
       if (editingBulletin) {
         // 수정
         await supabaseApiService.bulletins.update(editingBulletin.id.toString(), {
           title: formData.title,
           date: formData.date,
           content: formData.content || undefined,
-          file_url: formData.file_url || undefined
+          file_url: fileUrl || undefined
         });
         console.log('✅ 주보 수정 성공');
       } else {
@@ -135,7 +181,7 @@ const Bulletins: React.FC = () => {
           title: formData.title,
           date: formData.date,
           content: formData.content || undefined,
-          file_url: formData.file_url || undefined
+          file_url: fileUrl || undefined
         });
         console.log('✅ 주보 생성 성공');
       }

@@ -143,30 +143,23 @@ serve(async (req) => {
       console.log('📊 [템플릿 다운로드] 템플릿 생성 시작');
 
       const templateContent = [
-        '이름,성별,전화번호,이메일,주소,생년월일',
-        '홍길동,남성,010-1234-5678,hong@example.com,서울시 강남구,1990-01-15',
-        '김영희,여성,010-9876-5432,kim@example.com,서울시 서초구,1985-05-20'
+        '이름*,영문명,이메일*,전화번호*,성별,생년월일,직분,조직,부서,임명일,안수교회,결혼상태,배우자이름,결혼일,우편번호,주소,지역1,지역2,지역3,교인구분,입교일,소구역,나이그룹,신급,마지막연락일,직업분류,구체적업무,직책직위,직업명,직장명,직장전화번호,사역시작일,이웃교회,직분결정,인도자ID,일상활동,자유필드1,자유필드2,자유필드3,자유필드4,자유필드5,자유필드6,자유필드7,자유필드8,자유필드9,자유필드10,자유필드11,자유필드12,특별사항',
+        '홍길동,Hong Gil Dong,hong@example.com,010-1234-5678,남,1990-01-15,장로,청년부,청년1부,2020-01-01,서울중앙교회,기혼,김영희,2015-05-20,06234,서울시 강남구 테헤란로 123,서울시,강남구,역삼동,정교인,2010-06-01,1구역,청년,A급,2024-12-01,사무직,소프트웨어 개발,팀장,회사원,삼성전자,02-2255-0114,2018-01-01,은혜교회,장로 추천,,새벽기도 참석,특기사항1,,,,,,,,,,,,건강상 주의사항 없음',
+        '김영희,Kim Young Hee,kim@example.com,010-9876-5432,여,1985-05-20,집사,여전도회,여전도1부,2019-03-15,부산온누리교회,기혼,홍길동,2015-05-20,06235,서울시 서초구 서초대로 456,서울시,서초구,서초동,정교인,2008-03-10,2구역,성인,B급,2024-11-28,교육직,초등학교 교사,교사,교사,서울초등학교,02-3456-7890,2017-06-01,사랑교회,집사 임명,,구역모임 리더,,,,,,,,,,,,알레르기: 새우'
       ].join('\n');
 
-      console.log('📊 [템플릿 다운로드] 템플릿 생성 완료');
+      console.log('📊 [템플릿 다운로드] 템플릿 생성 완료 (51개 필드)');
 
       return new Response(templateContent, {
         headers: {
           ...corsHeaders,
-          'Content-Type': 'text/csv',
+          'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': 'attachment; filename="member_upload_template.csv"'
         }
       });
     }
 
-    // 다른 엔드포인트들은 일시적으로 비활성화
-    console.log('📊 [Excel Function] 현재는 템플릿 다운로드만 지원');
-    return new Response('Not implemented yet', {
-      status: 501,
-      headers: corsHeaders
-    });
-
-    /*
+    // 인증이 필요한 엔드포인트들
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -214,13 +207,10 @@ serve(async (req) => {
     }
 
     const churchId = payload.church_id;
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
 
-    console.log('🔍 URL 파싱 결과:', {
-      pathname: url.pathname,
-      pathParts,
-      method: req.method
+    console.log('🔍 인증 성공:', {
+      churchId,
+      userId: payload.user_id
     });
 
     // /excel/members/upload 엔드포인트
@@ -272,7 +262,7 @@ serve(async (req) => {
     // /excel/members/download 엔드포인트
     if (pathParts.includes('members') && pathParts.includes('download') && req.method === 'GET') {
       try {
-        console.log('📊 [엑셀 다운로드] 교인 명단 다운로드 시작');
+        console.log('📊 [엑셀 다운로드] 교인 명단 다운로드 시작, Church ID:', churchId);
 
         // 교인 데이터 조회
         const { data: members, error } = await supabaseClient
@@ -292,19 +282,91 @@ serve(async (req) => {
           )
         }
 
-        // CSV 형태로 생성 (실제로는 엑셀 파일 생성)
-        const csvContent = [
-          '이름,성별,전화번호,이메일,주소,생년월일,등록일',
-          ...members.map(m => `${m.name},${m.gender || ''},${m.phone || ''},${m.email || ''},${m.address || ''},${m.birth_date || ''},${m.created_at || ''}`)
-        ].join('\n');
+        console.log('✅ 교인 데이터 조회 성공, 교인 수:', members.length);
+
+        // CSV 헤더 생성 (51개 필드)
+        const headers = [
+          '이름', '영문명', '이메일', '전화번호', '성별', '생년월일', '직분', '조직', '부서', '임명일', '안수교회',
+          '결혼상태', '배우자이름', '결혼일', '우편번호', '주소', '지역1', '지역2', '지역3',
+          '교인구분', '입교일', '소구역', '나이그룹', '신급', '마지막연락일',
+          '직업분류', '구체적업무', '직책직위', '직업명', '직장명', '직장전화번호',
+          '사역시작일', '이웃교회', '직분결정', '인도자ID', '일상활동',
+          '자유필드1', '자유필드2', '자유필드3', '자유필드4', '자유필드5', '자유필드6',
+          '자유필드7', '자유필드8', '자유필드9', '자유필드10', '자유필드11', '자유필드12',
+          '특별사항', '등록일', '상태'
+        ];
+
+        // CSV 데이터 행 생성
+        const rows = members.map(m => [
+          m.name || '',
+          m.name_eng || '',
+          m.email || '',
+          m.phone || '',
+          m.gender || '',
+          m.birthdate || '',
+          m.position || '',
+          m.organization_id || '',
+          m.department || '',
+          m.appointed_on || '',
+          m.ordination_church || '',
+          m.marital_status || '',
+          m.spouse_name || '',
+          m.married_on || '',
+          m.postal_code || '',
+          m.address || '',
+          m.region_1 || '',
+          m.region_2 || '',
+          m.region_3 || '',
+          m.member_type || '',
+          m.confirmation_date || '',
+          m.sub_district || '',
+          m.age_group || '',
+          m.spiritual_grade || '',
+          m.last_contact_date || '',
+          m.job_category || '',
+          m.job_detail || '',
+          m.job_position || '',
+          m.job_title || '',
+          m.workplace || '',
+          m.workplace_phone || '',
+          m.ministry_start_date || '',
+          m.neighboring_church || '',
+          m.position_decision || '',
+          m.inviter3_member_id || '',
+          m.daily_activity || '',
+          m.custom_field_1 || '',
+          m.custom_field_2 || '',
+          m.custom_field_3 || '',
+          m.custom_field_4 || '',
+          m.custom_field_5 || '',
+          m.custom_field_6 || '',
+          m.custom_field_7 || '',
+          m.custom_field_8 || '',
+          m.custom_field_9 || '',
+          m.custom_field_10 || '',
+          m.custom_field_11 || '',
+          m.custom_field_12 || '',
+          m.special_notes || '',
+          m.created_at || '',
+          m.status || ''
+        ].map(field => {
+          // CSV 이스케이프 처리: 쉼표나 줄바꿈이 있으면 따옴표로 감싸기
+          const str = String(field);
+          if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        }).join(','));
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
 
         console.log('✅ [엑셀 다운로드] CSV 생성 완료, 교인 수:', members.length);
 
         return new Response(csvContent, {
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="교인명단_${new Date().toISOString().split('T')[0]}.xlsx"`
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="교인명단_${new Date().toISOString().split('T')[0]}.csv"`
           }
         });
 
@@ -319,7 +381,6 @@ serve(async (req) => {
         )
       }
     }
-
 
     // /excel/attendance/download 엔드포인트
     if (pathParts.includes('attendance') && pathParts.includes('download') && req.method === 'GET') {
@@ -380,7 +441,15 @@ serve(async (req) => {
       }
     }
 
-    */
+    // 지원하지 않는 엔드포인트
+    console.log('❌ [Excel Function] 지원하지 않는 엔드포인트:', url.pathname);
+    return new Response(
+      JSON.stringify({ error: 'Not found' }),
+      {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
 
   } catch (error) {
     console.error('❌ [Excel Function] 오류:', error);
