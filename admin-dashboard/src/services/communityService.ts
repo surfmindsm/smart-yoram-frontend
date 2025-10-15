@@ -1963,52 +1963,74 @@ export const communityService = {
 
   getJobPost: async (jobId: number): Promise<JobPost | null> => {
     try {
-      // console.log('💼 구인 공고 상세 조회 API 호출 중...', jobId);
-      const response = await api.get(getApiUrl(`/community/job-posting/${jobId}`));
-      // console.log('✅ 구인 공고 상세 조회 API 응답:', response.data);
-      
-      // API 응답 구조가 { success: true, data: {...} } 형태인 경우 처리
-      if (response.data && response.data.success && response.data.data) {
-        const item = response.data.data;
-        // 교회 9998의 경우 null로 처리
-        const churchName = item.church || item.company || getChurchNameById(item.church_id);
-        
+      // console.log('💼 구인 공고 상세 조회 Supabase Edge Function 호출 중...', jobId);
+
+      // Supabase Edge Function으로 특정 ID의 구인 공고 조회
+      const { data, error } = await supabaseApiService.supabase.functions.invoke(`job-posts/${jobId}`, {
+        method: 'GET'
+      });
+
+      if (error) {
+        console.error('❌ 구인 공고 상세 조회 실패 (Edge Function):', error);
+        // Fallback: 전체 목록에서 찾기
+        const allJobs = await communityService.getJobPosts();
+        return allJobs.find(job => job.id === jobId) || null;
+      }
+
+      // console.log('✅ 구인 공고 상세 Edge Function 응답:', data);
+
+      if (data) {
+        const item = data;
+        // church_id 9998(협력사)인 경우 또는 church_name이 '스마트요람 커뮤니티'인 경우 null 처리
+        const churchName = (item.church_id === 9998 || item.church_name === '스마트요람 커뮤니티') ? null : (item.church_name || item.church || getChurchNameById(item.church_id));
+        const rawPosition = item.job_type || item.position || '미정';
+        const transformedPosition = rawPosition === '일반' ? '기타' : rawPosition;
+
+        // 사용자 정보를 직접 조회
+        let userName = '익명';
+        if (item.author_id) {
+          try {
+            const { data: userData, error } = await supabaseApiService.supabase
+              .from('users')
+              .select('full_name, email')
+              .eq('id', item.author_id)
+              .single();
+
+            if (!error && userData) {
+              userName = userData.full_name || userData.email?.split('@')[0] || '익명';
+            }
+          } catch (err) {
+            console.warn('사용자 정보 조회 실패:', err);
+          }
+        }
+
         return {
-          ...item,
+          id: item.id,
+          title: item.title,
+          description: item.description || item.content,
           church: churchName,
           churchName: churchName,
-          userName: item.author_name || '익명',
-          // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
-          company: item.company || item.company_name,
-          position: item.position || item.job_type,
+          userName: userName,
+          position: transformedPosition,
+          jobType: item.job_type || item.jobType || 'full-time',
           salary: item.salary || item.salary_range,
-          view_count: item.view_count || 0,
+          location: item.location,
+          qualifications: item.qualifications || [],
+          benefits: item.benefits || [],
+          requiredDocuments: item.required_documents || item.requiredDocuments || [],
+          applications: item.applications || 0,
+          churchIntro: item.church_intro || item.churchIntro || '',
           deadline: item.deadline || item.expires_at,
-          createdAt: item.createdAt || item.created_at
+          status: item.status || 'open',
+          view_count: item.view_count || 0,
+          likes: item.likes || 0,
+          createdAt: item.created_at || item.createdAt,
+          contactInfo: item.contact_info || item.contactInfo,
+          contactPhone: item.contact_phone || item.contactPhone,
+          contactEmail: item.contact_email || item.contactEmail
         };
       }
-      
-      // 직접 객체가 반환되는 경우
-      if (response.data && typeof response.data === 'object') {
-        const item = response.data;
-        // 교회 9998의 경우 null로 처리
-        const churchName = item.church || item.churchName || getChurchNameById(item.church_id);
-        
-        return {
-          ...item,
-          church: churchName,
-          churchName: churchName,
-          userName: item.author_name || '익명',
-          // 백엔드 응답 필드명을 프론트엔드 인터페이스에 맞게 변환
-          company: item.company || item.company_name,
-          position: item.position || item.job_type,
-          salary: item.salary || item.salary_range,
-          view_count: item.view_count || 0,
-          deadline: item.deadline || item.expires_at,
-          createdAt: item.createdAt || item.created_at
-        };
-      }
-      
+
       return null;
     } catch (error: any) {
       console.error('❌ 구인 공고 상세 조회 실패:', error);

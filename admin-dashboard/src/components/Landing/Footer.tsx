@@ -77,14 +77,14 @@ export function Footer() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-[#0078FF]" />
-                  <a href="mailto:support@churchround.com" className="text-gray-400 hover:text-[#0078FF] transition-colors">
-                    support@churchround.com
+                  <a href="mailto:surfmind.sm@gmail.com" className="text-gray-400 hover:text-[#0078FF] transition-colors">
+                  surfmind.sm@gmail.com
                   </a>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-[#0078FF]" />
-                  <a href="tel:02-1234-5678" className="text-gray-400 hover:text-[#0078FF] transition-colors">
-                    02-1234-5678
+                  <a href="tel:010-6617-1875" className="text-gray-400 hover:text-[#0078FF] transition-colors">
+                    010-6617-1875
                   </a>
                 </div>
               </div>
