@@ -28,47 +28,76 @@ export function FaqSection() {
   };
 
   return (
-    <section id="faq" className="py-16 px-6 bg-background">
-      <div className="max-w-3xl mx-auto">
+    <section id="faq" className="relative py-32 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl lg:text-3xl font-bold mb-3 text-foreground">
+        <div className="mb-24">
+          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">FAQ</p>
+          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
             자주 묻는 질문
           </h2>
-          <p className="text-base text-muted-foreground">
-            궁금한 점을 빠르게 확인하세요
-          </p>
+          <div className="w-16 h-px bg-gray-900"></div>
         </div>
 
-        {/* FAQ 아코디언 */}
-        <div className="space-y-2">
+        {/* FAQ 리스트 - 미니멀 스타일 */}
+        <div className="space-y-0 border-t border-gray-200">
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-card border border-border rounded-xl overflow-hidden"
+              className="border-b border-gray-200"
             >
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full text-left px-5 py-4 flex items-center justify-between gap-4 hover:bg-muted/30 transition-colors"
+                className="w-full text-left py-8 flex items-start justify-between gap-8 hover:bg-gray-50 transition-colors px-4"
               >
-                <span className="text-base font-medium text-foreground pr-4">
-                  {faq.question}
-                </span>
+                <div className="flex-1">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+                    {faq.question}
+                  </h3>
+                  {openIndex === index && (
+                    <p className="text-lg text-gray-600 font-light leading-relaxed mt-6 max-w-3xl">
+                      {faq.answer}
+                    </p>
+                  )}
+                </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${
+                  className={`w-6 h-6 text-gray-400 flex-shrink-0 mt-1 transition-transform duration-300 ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                 />
               </button>
-              {openIndex === index && (
-                <div className="px-5 pb-4 pt-1">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              )}
             </div>
           ))}
+        </div>
+
+        {/* 추가 문의 CTA - 미니멀 */}
+        <div className="mt-24 pt-24 border-t border-gray-200">
+          <div className="grid md:grid-cols-2 gap-16">
+            <div>
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                더 궁금한 점이<br />있으신가요?
+              </h3>
+              <p className="text-lg text-gray-600 font-light leading-relaxed">
+                전담 매니저가 친절하게 안내해드립니다
+              </p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <a
+                href="mailto:surfmind.sm@gmail.com"
+                className="group flex items-center justify-between p-6 border border-gray-200 hover:border-gray-900 transition-all"
+              >
+                <span className="text-lg font-medium text-gray-900">이메일 문의</span>
+                <span className="text-gray-400 group-hover:translate-x-2 transition-transform">→</span>
+              </a>
+              <a
+                href="tel:010-6617-1875"
+                className="group flex items-center justify-between p-6 bg-gray-900 text-white hover:bg-gray-800 transition-all"
+              >
+                <span className="text-lg font-medium">전화 상담</span>
+                <span className="group-hover:translate-x-2 transition-transform">→</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>

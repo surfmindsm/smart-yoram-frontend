@@ -27,8 +27,10 @@ export function Header() {
   };
 
   const navigationItems = [
-    { label: '서비스소개', id: 'hero' },
     { label: '핵심기능', id: 'features' },
+    { label: '교회 커뮤니티', id: 'community' },
+    { label: '도입절차', id: 'process' },
+    { label: 'FAQ', id: 'faq' },
   ];
 
   const handleAppDownload = () => {
@@ -36,8 +38,8 @@ export function Header() {
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'}`}>
-      <div className="max-w-6xl mx-auto px-6">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}>
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollToSection('hero')}>
             <img
@@ -46,53 +48,71 @@ export function Header() {
               className="h-10 w-auto"
             />
             <div>
-              <h1 className="text-xl text-foreground leading-tight font-semibold">Church Round</h1>
-              <p className="text-xs text-muted-foreground">스마트 요람 플랫폼</p>
+              <h1 className="text-xl text-gray-900 leading-tight font-bold">Church Round</h1>
+              <p className="text-xs text-gray-500 font-light">스마트 요람 플랫폼</p>
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-10">
             {navigationItems.map((item) => (
-              <button key={item.id} onClick={() => scrollToSection(item.id)} className="text-muted-foreground hover:text-primary transition-colors duration-200 relative group">
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 font-medium"
+              >
                 {item.label}
-                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover:w-full"></div>
               </button>
             ))}
           </nav>
 
           <div className="hidden lg:flex items-center gap-3">
-            <Button variant="outline" onClick={handleAppDownload} className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
+            <button
+              onClick={handleAppDownload}
+              className="px-5 py-2.5 text-sm text-gray-700 border border-gray-300 hover:border-gray-900 hover:bg-gray-50 transition-all font-medium"
+            >
               앱 다운로드
-            </Button>
-            <Button onClick={() => navigate('/login')} className="flex items-center gap-2">
-              <LogIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium"
+            >
               관리자 로그인
-            </Button>
+            </button>
           </div>
 
-          <button className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button
+            className="lg:hidden p-2 hover:bg-gray-100 transition-colors"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6 text-gray-900" /> : <Menu className="w-6 h-6 text-gray-900" />}
           </button>
         </div>
 
         {isMobileMenuOpen && (
-          <div className="lg:hidden bg-background border-t border-border py-4">
+          <div className="lg:hidden bg-white border-t border-gray-200 py-6">
             <nav className="flex flex-col gap-4">
               {navigationItems.map((item) => (
-                <button key={item.id} onClick={() => scrollToSection(item.id)} className="text-left text-muted-foreground hover:text-primary transition-colors py-2">
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className="text-left text-gray-600 hover:text-gray-900 transition-colors py-2 font-medium"
+                >
                   {item.label}
                 </button>
               ))}
-              <div className="pt-4 border-t border-border space-y-3">
-                <Button variant="outline" onClick={handleAppDownload} className="w-full flex items-center justify-center gap-2">
-                  <Smartphone className="w-4 h-4" />
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <button
+                  onClick={handleAppDownload}
+                  className="w-full px-5 py-3 text-sm text-gray-700 border border-gray-300 hover:border-gray-900 hover:bg-gray-50 transition-all font-medium"
+                >
                   앱 다운로드
-                </Button>
-                <Button onClick={() => navigate('/login')} className="w-full flex items-center justify-center gap-2">
-                  <LogIn className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full px-5 py-3 text-sm bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium"
+                >
                   관리자 로그인
-                </Button>
+                </button>
               </div>
             </nav>
           </div>

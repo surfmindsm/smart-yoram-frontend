@@ -25,29 +25,37 @@ export function CommunitySection() {
   ];
 
   return (
-    <section id="community" className="py-16 px-6 bg-muted/20">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl lg:text-3xl font-bold mb-3 text-foreground">
+    <section id="community" className="relative py-32 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
+        {/* 섹션 타이틀 */}
+        <div className="mb-24">
+          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">COMMUNITY</p>
+          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
             교회 커뮤니티
           </h2>
-          <p className="text-base text-muted-foreground">
+          <p className="text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
             인증된 교인 간 안전한 거래와 소통
           </p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6">
+        {/* 2x2 그리드 레이아웃 */}
+        <div className="grid md:grid-cols-2 gap-px bg-gray-200">
           {communityFeatures.map((feature, index) => (
-            <div key={index} className="text-center">
-              <div className="w-14 h-14 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">{feature.icon}</span>
+            <div
+              key={index}
+              className="group bg-gray-50 p-12 hover:bg-white transition-all duration-300"
+            >
+              <div className="flex items-start gap-6">
+                <span className="text-4xl">{feature.icon}</span>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 font-light leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-base font-semibold mb-2 text-foreground">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
             </div>
           ))}
         </div>

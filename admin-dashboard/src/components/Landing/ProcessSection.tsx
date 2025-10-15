@@ -34,33 +34,53 @@ export function ProcessSection() {
   ];
 
   return (
-    <section id="process" className="py-16 px-6 bg-background">
-      <div className="max-w-5xl mx-auto">
+    <section id="process" className="relative py-32 px-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl lg:text-3xl font-bold mb-3 text-foreground">
-            간단한 도입 절차
+        <div className="mb-24">
+          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">PROCESS</p>
+          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
+            도입 절차
           </h2>
-          <p className="text-base text-muted-foreground">
+          <p className="text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
             평균 1-2주 내 모든 설정 완료
           </p>
         </div>
 
-        {/* 4단계 도입 절차 - 간소화 */}
-        <div className="grid md:grid-cols-4 gap-6">
+        {/* 세로 타임라인 레이아웃 */}
+        <div className="space-y-0 border-l-2 border-gray-200 ml-8">
           {steps.map((step, index) => (
-            <div key={index} className="text-center">
-              <div className="bg-muted/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">{step.icon}</span>
+            <div
+              key={index}
+              className="group relative pl-12 pb-16 last:pb-0"
+            >
+              {/* 타임라인 도트 */}
+              <div className="absolute -left-3 top-0 w-5 h-5 bg-gray-900 rounded-full group-hover:scale-125 transition-transform"></div>
+
+              {/* 컨텐츠 */}
+              <div>
+                <span className="text-sm text-gray-400 font-light mb-4 block">
+                  STEP {index + 1}
+                </span>
+                <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                  {step.title}
+                </h3>
+                <p className="text-lg text-gray-600 font-light leading-relaxed max-w-2xl">
+                  {step.description}
+                </p>
               </div>
-              <h4 className="text-base font-semibold text-foreground mb-2">
-                {step.title}
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {step.description}
-              </p>
             </div>
           ))}
+        </div>
+
+        {/* CTA */}
+        <div className="mt-20 pt-12 border-t border-gray-200">
+          <p className="text-gray-500 font-light mb-2">지금 바로 시작하세요</p>
+          <div className="flex items-center gap-4 text-sm text-gray-400">
+            <span>무료 도입 상담</span>
+            <span>·</span>
+            <span>1-2주 빠른 설정</span>
+          </div>
         </div>
       </div>
     </section>

@@ -11,11 +11,13 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <HeroSection />
-      <FeaturesSection />
-      <CommunitySection />
-      <ProcessSection />
-      <FaqSection />
+      <main className="overflow-hidden">
+        <HeroSection />
+        <FeaturesSection />
+        <CommunitySection />
+        <ProcessSection />
+        <FaqSection />
+      </main>
       <Footer />
     </div>
   );
