@@ -3,22 +3,18 @@ import React from 'react';
 export function CommunitySection() {
   const communityFeatures = [
     {
-      icon: "🛍️",
       title: "중고 장터",
       description: "인증된 교인 간 거래로 안전한 교회 중심 중고 거래",
     },
     {
-      icon: "💼",
       title: "구인·구직",
       description: "사역자, 반주자, 방송·음향 인력 등 교회 관련 구인 게시",
     },
     {
-      icon: "📣",
       title: "교계 소식",
       description: "컨퍼런스, 세미나, 행사 등 대외 교계 소식 공유",
     },
     {
-      icon: "🏗️",
       title: "교회 공사/업체 정보",
       description: "인증된 업자를 통해 합리적인 견적 확인",
     },
@@ -45,17 +41,12 @@ export function CommunitySection() {
               key={index}
               className="group bg-gray-50 p-12 hover:bg-white transition-all duration-300"
             >
-              <div className="flex items-start gap-6">
-                <span className="text-4xl">{feature.icon}</span>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 font-light leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 font-light leading-relaxed">
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
