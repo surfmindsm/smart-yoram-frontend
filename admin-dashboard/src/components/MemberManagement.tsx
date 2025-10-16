@@ -52,6 +52,7 @@ import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../
 import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
+import * as XLSX from 'xlsx';
 
 interface Member {
   id: number;
@@ -881,6 +882,7 @@ const MemberManagement: React.FC = () => {
   };
 
   const downloadExcelTemplate = () => {
+    // 엑셀 헤더 정의 (사용자가 입력 가능한 필드만)
     const headers = [
       '이름',
       '영문명',
@@ -891,58 +893,165 @@ const MemberManagement: React.FC = () => {
       '주소',
       '직분',
       '구역',
-      '부서코드',
+      '결혼상태',
+      '배우자이름',
+      '결혼일',
+      '직업분류',
+      '직업상세',
+      '직책',
+      '직함',
+      '직장명',
+      '직장전화번호',
+      '부서',
       '직분코드',
       '임명일',
       '안수교회',
-      '직업',
-      '직장명',
-      '직장전화번호',
-      '결혼상태',
-      '배우자이름',
-      '결혼일'
+      '사역시작일',
+      '인근교회',
+      '직분결정',
+      '일상활동'
     ];
-    
+
+    // 샘플 데이터 (사용자가 참고할 수 있도록)
     const sampleData = [
       '홍길동',
       'Hong Gil Dong',
-      'hong@email.com',
+      'hong@example.com',
       '남',
       '1990-01-01',
       '010-1234-5678',
       '서울시 강남구',
       '집사',
       '1구역',
-      'WORSHIP',
+      '기혼',
+      '김영희',
+      '2015-05-20',
+      '회사원',
+      'IT 개발자',
+      '팀장',
+      '부장',
+      '삼성전자',
+      '02-1234-5678',
+      '예배부',
       'DEACON',
       '2020-01-01',
       '중앙교회',
-      '회사원',
-      '삼성전자',
-      '02-1234-5678',
-      '기혼',
-      '김영희',
-      '2015-05-20'
+      '2018-03-01',
+      '',
+      '',
+      ''
     ];
-    
-    // CSV 형식으로 생성
-    const csvContent = [
-      headers.join(','),
-      sampleData.join(',')
-    ].join('\n');
-    
-    // BOM을 추가하여 한글 인코딩 문제 해결
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { 
-      type: 'text/csv;charset=utf-8;' 
+
+    // 워크시트 생성
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, sampleData]);
+
+    // 열 너비 설정
+    const columnWidths = headers.map(() => ({ wch: 15 }));
+    worksheet['!cols'] = columnWidths;
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '교인정보');
+
+    // 엑셀 파일 다운로드
+    XLSX.writeFile(workbook, '교인정보_엑셀템플릿.xlsx');
+  };
+
+  const downloadMembersExcel = () => {
+    if (members.length === 0) {
+      alert('다운로드할 교인 데이터가 없습니다.');
+      return;
+    }
+
+    // 엑셀 헤더 정의
+    const headers = [
+      '이름',
+      '영문명',
+      '이메일',
+      '성별',
+      '생년월일',
+      '전화번호',
+      '주소',
+      '직분',
+      '구역',
+      '교인상태',
+      '등록일',
+      '결혼상태',
+      '배우자이름',
+      '결혼일',
+      '직업분류',
+      '직업상세',
+      '직책',
+      '직함',
+      '직장명',
+      '직장전화번호',
+      '부서',
+      '직분코드',
+      '임명일',
+      '안수교회',
+      '사역시작일',
+      '인근교회',
+      '직분결정',
+      '일상활동'
+    ];
+
+    // 교인 데이터를 엑셀 행으로 변환
+    const data = members.map(member => [
+      member.name || '',
+      member.name_eng || '',
+      member.email || '',
+      member.gender || '',
+      member.birthdate || '',
+      member.phone || '',
+      member.address || '',
+      member.position || '',
+      member.organization_name || '',
+      member.member_status || '',
+      member.registration_date || '',
+      member.marital_status || '',
+      member.spouse_name || '',
+      member.married_on || '',
+      member.job_category || '',
+      member.job_detail || '',
+      member.job_position || '',
+      member.job_title || '',
+      member.workplace || '',
+      member.workplace_phone || '',
+      member.department || '',
+      member.position_code || '',
+      member.appointed_on || '',
+      member.ordination_church || '',
+      member.ministry_start_date || '',
+      member.neighboring_church || '',
+      member.position_decision || '',
+      member.daily_activity || ''
+    ]);
+
+    // 워크시트 생성
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+    // 열 너비 자동 조정
+    const maxWidth = 30;
+    const columnWidths = headers.map((header, i) => {
+      const headerWidth = header.length;
+      const dataWidth = Math.max(
+        ...data.map(row => String(row[i] || '').length)
+      );
+      return { wch: Math.min(Math.max(headerWidth, dataWidth) + 2, maxWidth) };
     });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = '교인정보_엑셀템플릿.csv';
-    link.click();
-    
-    URL.revokeObjectURL(link.href);
+    worksheet['!cols'] = columnWidths;
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '교인목록');
+
+    // 파일명 생성 (현재 날짜 포함)
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0].replace(/-/g, '');
+    const fileName = `교인목록_${dateString}.xlsx`;
+
+    // 엑셀 파일 다운로드
+    XLSX.writeFile(workbook, fileName);
   };
 
   const handleExcelImport = async () => {
@@ -950,30 +1059,133 @@ const MemberManagement: React.FC = () => {
       alert('파일을 선택해주세요.');
       return;
     }
-    
-    setIsImporting(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', excelFile);
-      
-      // TODO: 엑셀 일괄 등록 기능을 Supabase Edge Function에 구현 필요
-      alert('엑셀 일괄 등록 기능은 현재 마이그레이션 중입니다.');
-      return;
-      // const response = await api.post('/members/bulk-import', formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // });
 
-      // alert(`총 ${response.data.imported_count}명의 교인이 성공적으로 등록되었습니다.`);
-      setShowExcelImportModal(false);
-      setExcelFile(null);
-      fetchMembers(); // 목록 새로고침
+    if (!currentUser?.church_id) {
+      alert('교회 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      // 엑셀 파일 읽기
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 첫 번째 시트 읽기
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // JSON으로 변환 (헤더 포함)
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonData.length < 2) {
+        alert('엑셀 파일에 데이터가 없습니다.');
+        return;
+      }
+
+      // 헤더와 데이터 분리
+      const headers = jsonData[0];
+      const rows = jsonData.slice(1);
+
+      // 헤더 인덱스 매핑
+      const headerMap: { [key: string]: number } = {};
+      headers.forEach((header: string, index: number) => {
+        headerMap[header] = index;
+      });
+
+      // 필수 헤더 확인
+      const requiredHeaders = ['이름', '전화번호', '이메일'];
+      const missingHeaders = requiredHeaders.filter(h => !(h in headerMap));
+
+      if (missingHeaders.length > 0) {
+        alert(`필수 컬럼이 누락되었습니다: ${missingHeaders.join(', ')}\n엑셀 템플릿을 다운로드하여 양식을 확인해주세요.`);
+        return;
+      }
+
+      // 교인 데이터 변환
+      const membersToImport = rows
+        .filter((row: any[]) => row[headerMap['이름']] && row[headerMap['전화번호']]) // 이름과 전화번호가 있는 행만
+        .map((row: any[]) => ({
+          name: row[headerMap['이름']] || '',
+          name_eng: row[headerMap['영문명']] || null,
+          email: row[headerMap['이메일']] || '',
+          gender: row[headerMap['성별']] || '',
+          birthdate: row[headerMap['생년월일']] || null,
+          phone: row[headerMap['전화번호']] || '',
+          address: row[headerMap['주소']] || null,
+          position: row[headerMap['직분']] || null,
+          organization_name: row[headerMap['구역']] || null,
+          church_id: currentUser.church_id,
+          member_status: row[headerMap['교인상태']] || 'active',
+          registration_date: row[headerMap['등록일']] || null,
+          marital_status: row[headerMap['결혼상태']] || null,
+          spouse_name: row[headerMap['배우자이름']] || null,
+          married_on: row[headerMap['결혼일']] || null,
+          job_category: row[headerMap['직업분류']] || null,
+          job_detail: row[headerMap['직업상세']] || null,
+          job_position: row[headerMap['직책']] || null,
+          job_title: row[headerMap['직함']] || null,
+          workplace: row[headerMap['직장명']] || null,
+          workplace_phone: row[headerMap['직장전화번호']] || null,
+          department: row[headerMap['부서']] || null,
+          position_code: row[headerMap['직분코드']] || null,
+          appointed_on: row[headerMap['임명일']] || null,
+          ordination_church: row[headerMap['안수교회']] || null,
+          ministry_start_date: row[headerMap['사역시작일']] || null,
+          neighboring_church: row[headerMap['인근교회']] || null,
+          position_decision: row[headerMap['직분결정']] || null,
+          daily_activity: row[headerMap['일상활동']] || null,
+        }));
+
+      if (membersToImport.length === 0) {
+        alert('등록할 유효한 교인 데이터가 없습니다.');
+        return;
+      }
+
+      // 진행 상황 표시
+      const confirmMessage = `총 ${membersToImport.length}명의 교인을 등록하시겠습니까?`;
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+
+      // 교인 일괄 등록 (Supabase Edge Function 사용)
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < membersToImport.length; i++) {
+        try {
+          await supabaseApiService.members.create(membersToImport[i]);
+          successCount++;
+        } catch (error: any) {
+          failCount++;
+          const memberName = membersToImport[i].name;
+          errors.push(`${memberName}: ${error.message || '등록 실패'}`);
+          console.error(`교인 등록 실패 (${memberName}):`, error);
+        }
+      }
+
+      // 결과 표시
+      let resultMessage = `등록 완료:\n성공: ${successCount}명\n실패: ${failCount}명`;
+
+      if (errors.length > 0 && errors.length <= 10) {
+        resultMessage += '\n\n실패 상세:\n' + errors.join('\n');
+      } else if (errors.length > 10) {
+        resultMessage += '\n\n실패 상세 (처음 10개):\n' + errors.slice(0, 10).join('\n');
+        resultMessage += `\n... 외 ${errors.length - 10}건`;
+      }
+
+      alert(resultMessage);
+
+      if (successCount > 0) {
+        setShowExcelImportModal(false);
+        setExcelFile(null);
+        fetchMembers(); // 목록 새로고침
+      }
     } catch (error: any) {
       console.error('엑셀 등록 실패:', error);
-      const errorMessage = error.response?.data?.detail || '엑셀 등록에 실패했습니다.';
-      alert(`엑셀 등록 실패: ${errorMessage}`);
+      alert(`엑셀 파일 처리 중 오류가 발생했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
     } finally {
       setIsImporting(false);
     }
@@ -1061,6 +1273,14 @@ const MemberManagement: React.FC = () => {
               선택한 교인 초대 ({selectedMembers.size}명)
             </Button>
           )}
+          <Button
+            onClick={downloadMembersExcel}
+            variant="outline"
+            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+          >
+            <Download className="w-4 h-4" />
+            교인 데이터 다운로드
+          </Button>
           <Button
             onClick={downloadExcelTemplate}
             variant="outline"
