@@ -9,6 +9,7 @@ import { Switch } from "../ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
 import { toast } from "../ui";
+import { TimePicker } from "../ui/time-picker";
 import { supabaseApiService } from '../../services/supabaseApiService';
 
 interface WorshipService {
@@ -487,21 +488,16 @@ export default function WorshipScheduleManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="start_time">시작 시간</Label>
-                <Input
-                  id="start_time"
-                  type="time"
+                <TimePicker
                   value={formData.start_time}
-                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                  required
+                  onChange={(value) => setFormData({ ...formData, start_time: value })}
                 />
               </div>
               <div>
                 <Label htmlFor="end_time">종료 시간</Label>
-                <Input
-                  id="end_time"
-                  type="time"
+                <TimePicker
                   value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, end_time: value })}
                 />
               </div>
             </div>
