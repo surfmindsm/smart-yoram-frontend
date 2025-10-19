@@ -1,7 +1,12 @@
 import * as React from "react"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronUp, ChevronDown, Clock } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./popover"
 
 interface TimePickerProps {
   value: string
@@ -10,6 +15,8 @@ interface TimePickerProps {
 }
 
 export function TimePicker({ value, onChange, className }: TimePickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false)
+
   // Parse the time value (HH:mm format)
   const [hours, minutes] = value ? value.split(':').map(Number) : [12, 0]
   const isPM = hours >= 12
@@ -65,86 +72,109 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
     onChange(`${String(newHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`)
   }
 
+  const formatDisplayTime = () => {
+    if (!value) return "-- --:--"
+    return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
+  }
+
   return (
-    <div className={cn("flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-input", className)}>
-      {/* Hours */}
-      <div className="flex flex-col items-center">
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleHourIncrement}
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !value && "text-muted-foreground",
+            className
+          )}
         >
-          <ChevronUp className="h-4 w-4" />
+          <Clock className="mr-2 h-4 w-4" />
+          {formatDisplayTime()}
         </Button>
-        <div className="text-2xl font-semibold w-12 text-center">
-          {String(displayHours).padStart(2, '0')}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="flex items-center gap-2 p-4 bg-popover">
+          {/* Hours */}
+          <div className="flex flex-col items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleHourIncrement}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <div className="text-2xl font-semibold w-12 text-center">
+              {String(displayHours).padStart(2, '0')}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleHourDecrement}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="text-2xl font-semibold">:</div>
+
+          {/* Minutes */}
+          <div className="flex flex-col items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleMinuteIncrement}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <div className="text-2xl font-semibold w-12 text-center">
+              {String(minutes).padStart(2, '0')}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleMinuteDecrement}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="text-2xl font-semibold">:</div>
+
+          {/* AM/PM */}
+          <div className="flex flex-col items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleMeridiemToggle}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <div className="text-xl font-semibold w-12 text-center">
+              {isPM ? 'pm' : 'am'}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 w-8 p-0"
+              onClick={handleMeridiemToggle}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleHourDecrement}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="text-2xl font-semibold">:</div>
-
-      {/* Minutes */}
-      <div className="flex flex-col items-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleMinuteIncrement}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-        <div className="text-2xl font-semibold w-12 text-center">
-          {String(minutes).padStart(2, '0')}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleMinuteDecrement}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="text-2xl font-semibold">:</div>
-
-      {/* AM/PM */}
-      <div className="flex flex-col items-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleMeridiemToggle}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-        <div className="text-xl font-semibold w-12 text-center">
-          {isPM ? 'pm' : 'am'}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 w-8 p-0"
-          onClick={handleMeridiemToggle}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+      </PopoverContent>
+    </Popover>
   )
 }
