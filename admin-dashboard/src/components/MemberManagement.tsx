@@ -53,7 +53,7 @@ import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
 import * as XLSX from 'xlsx';
-import { ADMIN_POSITION_OPTIONS } from '../constants/memberPositions';
+import { ADMIN_POSITION_OPTIONS, getPositionMainLabel, getPositionDetailLabel } from '../constants/memberPositions';
 
 interface Member {
   id: number;
@@ -1447,8 +1447,19 @@ const MemberManagement: React.FC = () => {
                   onClick={() => handleSort('position_main')}
                 >
                   <span className="flex items-center gap-1">
-                    직분
+                    직분 대분류
                     {sortField === 'position_main' && (
+                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  onClick={() => handleSort('position_detail')}
+                >
+                  <span className="flex items-center gap-1">
+                    직분 세부
+                    {sortField === 'position_detail' && (
                       sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                     )}
                   </span>
@@ -1533,7 +1544,10 @@ const MemberManagement: React.FC = () => {
                     {member.phone}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {member.position_main || '-'}{member.position_detail ? ` (${member.position_detail})` : ''}
+                    {getPositionMainLabel(member.position_main)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                    {getPositionDetailLabel(member.position_detail) || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.organization_name || '-'}
