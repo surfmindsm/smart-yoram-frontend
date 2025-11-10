@@ -485,21 +485,12 @@ export default function WorshipScheduleManagement() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="start_time">시작 시간</Label>
-                <TimePicker
-                  value={formData.start_time}
-                  onChange={(value) => setFormData({ ...formData, start_time: value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="end_time">종료 시간</Label>
-                <TimePicker
-                  value={formData.end_time}
-                  onChange={(value) => setFormData({ ...formData, end_time: value })}
-                />
-              </div>
+            <div>
+              <Label htmlFor="start_time">시작 시간</Label>
+              <TimePicker
+                value={formData.start_time}
+                onChange={(value) => setFormData({ ...formData, start_time: value })}
+              />
             </div>
 
             <div>

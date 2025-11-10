@@ -27,6 +27,7 @@ import { activityLogger } from '../services/activityLogger';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization } from '../types/organization';
 import { supabase } from '../lib/supabase';
+import { ADMIN_POSITION_OPTIONS } from '../constants/memberPositions';
 
 interface AddMemberModalProps {
   open: boolean;
@@ -52,7 +53,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // 기본 정보
     name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
     // 사역 정보
-    position: '', organization_id: '', department: '', position_code: '', appointed_on: '',
+    position_main: 'MEMBER', position_detail: '', organization_id: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', workplace: '', workplace_phone: '',
     // 개인 정보
     address: '', marital_status: '', spouse_name: '', married_on: '',
@@ -80,14 +81,6 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   });
 
   // 코드 데이터
-  const positionCodes = [
-    { code: 'PASTOR', label: '목사' },
-    { code: 'ELDER', label: '장로' },
-    { code: 'DEACON', label: '집사' },
-    { code: 'TEACHER', label: '교사' },
-    { code: 'LEADER', label: '부장/회장' }
-  ];
-  
   const maritalStatuses = [
     { value: '미혼', label: '미혼' },
     { value: '기혼', label: '기혼' },
@@ -236,7 +229,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
     // Reset form when closing
     setFormData({
       name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
-      position: '', organization_id: '', department: '', position_code: '', appointed_on: '',
+      position_main: 'MEMBER', position_detail: '', organization_id: '', department: '', position_code: '', appointed_on: '',
       ordination_church: '', workplace: '', workplace_phone: '',
       address: '', marital_status: '', spouse_name: '', married_on: '',
       // 새로 추가된 필드들 리셋
@@ -280,7 +273,8 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         address: formData.address || null,
 
         // 교회 정보
-        position: formData.position || null,
+        position_main: formData.position_main || null,
+        position_detail: formData.position_detail || null,
         organization_id: formData.organization_id || null,
         department: formData.department || null,
         appointed_on: formData.appointed_on || null,
@@ -583,29 +577,54 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
             </summary>
             <div className="px-6 pb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 직분 */}
+                {/* 직분 대분류 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
                   <Select
-                    value={formData.position || 'none'}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, position: value === 'none' ? '' : value }))}
+                    value={formData.position_main}
+                    onValueChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      position_main: value,
+                      position_detail: '' // 대분류 변경 시 세부 초기화
+                    }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="직분 선택" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">없음</SelectItem>
-                      <SelectItem value="목사">목사</SelectItem>
-                      <SelectItem value="장로">장로</SelectItem>
-                      <SelectItem value="집사">집사</SelectItem>
-                      <SelectItem value="권사">권사</SelectItem>
-                      <SelectItem value="전도사">전도사</SelectItem>
-                      <SelectItem value="교사">교사</SelectItem>
-                      <SelectItem value="부장">부장</SelectItem>
-                      <SelectItem value="회장">회장</SelectItem>
+                      {ADMIN_POSITION_OPTIONS.map((option) => (
+                        <SelectItem key={option.mainValue} value={option.mainValue}>
+                          {option.mainLabel}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 직분 세부 (대분류 선택 시에만 표시) */}
+                {(() => {
+                  const selectedOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === formData.position_main);
+                  return selectedOption && selectedOption.details.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">세부 직분</label>
+                      <Select
+                        value={formData.position_detail}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, position_detail: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="세부 직분 선택" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedOption.details.map((detail) => (
+                            <SelectItem key={detail.value} value={detail.value}>
+                              {detail.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
 
                 {/* 조직 */}
                 <div>

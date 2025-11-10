@@ -3,4 +3,4 @@ ALTER TABLE public.churches
 ADD COLUMN IF NOT EXISTS business_registration_number VARCHAR(20);
 
 -- Add comment for clarity
-COMMENT ON COLUMN public.churches.business_registration_number IS '¬Åñ]ˆ8 (0€ ‰©)';
+COMMENT ON COLUMN public.churches.business_registration_number IS 'ì‚¬ì—…ìë“±ë¡ë²ˆí˜¸ (10ìë¦¬ í˜•ì‹)';

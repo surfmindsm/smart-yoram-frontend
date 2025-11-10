@@ -94,33 +94,33 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <div className="flex items-center gap-2 p-4 bg-popover">
+        <div className="flex items-center gap-1 p-2 bg-popover">
           {/* Hours */}
           <div className="flex flex-col items-center">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleHourIncrement}
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-3 w-3" />
             </Button>
-            <div className="text-2xl font-semibold w-12 text-center">
+            <div className="text-sm font-medium w-7 text-center py-0.5">
               {String(displayHours).padStart(2, '0')}
             </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleHourDecrement}
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
             </Button>
           </div>
 
-          <div className="text-2xl font-semibold">:</div>
+          <div className="text-sm font-medium">:</div>
 
           {/* Minutes */}
           <div className="flex flex-col items-center">
@@ -128,26 +128,26 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleMinuteIncrement}
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-3 w-3" />
             </Button>
-            <div className="text-2xl font-semibold w-12 text-center">
+            <div className="text-sm font-medium w-7 text-center py-0.5">
               {String(minutes).padStart(2, '0')}
             </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleMinuteDecrement}
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
             </Button>
           </div>
 
-          <div className="text-2xl font-semibold">:</div>
+          <div className="text-sm font-medium">:</div>
 
           {/* AM/PM */}
           <div className="flex flex-col items-center">
@@ -155,22 +155,22 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleMeridiemToggle}
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-3 w-3" />
             </Button>
-            <div className="text-xl font-semibold w-12 text-center">
+            <div className="text-xs font-medium w-7 text-center py-0.5">
               {isPM ? 'pm' : 'am'}
             </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-8 p-0"
+              className="h-5 w-6 p-0"
               onClick={handleMeridiemToggle}
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
             </Button>
           </div>
         </div>

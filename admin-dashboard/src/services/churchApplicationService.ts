@@ -378,8 +378,26 @@ class ChurchApplicationService {
 
       const temporaryPassword = generateTempPassword();
 
+      // 현재 최대 serial_id 조회 (중복 키 오류 방지)
+      const { data: maxSerialData, error: maxSerialError } = await supabase
+        .from('churches')
+        .select('serial_id')
+        .order('serial_id', { ascending: false })
+        .limit(1);
+
+      if (maxSerialError) {
+        console.error('❌ 최대 serial_id 조회 오류:', maxSerialError);
+      }
+
+      const nextSerialId = maxSerialData && maxSerialData.length > 0
+        ? maxSerialData[0].serial_id + 1
+        : 1;
+
+      console.log('📝 다음 serial_id:', nextSerialId);
+
       // 교회 정보 생성
       const churchInsertData: any = {
+        serial_id: nextSerialId,
         name: data.church_name,
         pastor_name: data.pastor_name,
         address: data.address,
