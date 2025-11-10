@@ -234,6 +234,8 @@ Deno.serve(async (req) => {
 
       // 사역 정보
       if (body.position !== undefined) insertData.position = body.position
+      if (body.position_main !== undefined) insertData.position_main = body.position_main
+      if (body.position_detail !== undefined) insertData.position_detail = body.position_detail
       if (body.department !== undefined) insertData.department = body.department
       if (body.organization_id !== undefined) insertData.organization_id = body.organization_id
       if (body.appointed_on !== undefined) insertData.appointed_on = body.appointed_on
@@ -365,6 +367,8 @@ Deno.serve(async (req) => {
 
       // 사역 정보
       if (body.position !== undefined) updateData.position = body.position
+      if (body.position_main !== undefined) updateData.position_main = body.position_main
+      if (body.position_detail !== undefined) updateData.position_detail = body.position_detail
       if (body.department !== undefined) updateData.department = body.department
       if (body.organization_id !== undefined) updateData.organization_id = body.organization_id
       if (body.appointed_on !== undefined) updateData.appointed_on = body.appointed_on
@@ -436,7 +440,7 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('Database update error:', error)
         return new Response(
-          JSON.stringify({ error: 'Failed to update member' }),
+          JSON.stringify({ error: 'Failed to update member', details: error.message, code: error.code }),
           {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -602,9 +602,11 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 </div>
 
                 {/* 직분 세부 (대분류 선택 시에만 표시) */}
-                {(() => {
+                {formData.position_main && (() => {
                   const selectedOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === formData.position_main);
-                  return selectedOption && selectedOption.details.length > 0 && (
+                  if (!selectedOption || selectedOption.details.length === 0) return null;
+
+                  return (
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-1">세부 직분</label>
                       <Select

@@ -53,6 +53,7 @@ import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
 import * as XLSX from 'xlsx';
+import { ADMIN_POSITION_OPTIONS } from '../constants/memberPositions';
 
 interface Member {
   id: number;
@@ -63,7 +64,8 @@ interface Member {
   birthdate: string | null;
   phone: string;
   address: string | null;
-  position: string | null;
+  position_main?: string | null;  // 직분 대분류
+  position_detail?: string | null; // 직분 세부
   organization_id?: string | null;
   organization_name?: string | null;
   church_id: number;
@@ -199,7 +201,8 @@ const MemberManagement: React.FC = () => {
     email: '',
     phone: '',
     gender: 'all',
-    position: '',
+    position_main: '',
+    position_detail: '',
     district: '',
     ageFrom: '',
     ageTo: '',
@@ -219,7 +222,8 @@ const MemberManagement: React.FC = () => {
     birthdate: '',
     phone: '',
     address: '',
-    position: '',
+    position_main: '',
+    position_detail: '',
     district: ''
   });
 
@@ -408,7 +412,8 @@ const MemberManagement: React.FC = () => {
         birthdate: '',
         phone: '',
         address: '',
-        position: '',
+        position_main: '',
+        position_detail: '',
         district: ''
       });
     } catch (error) {
@@ -1004,7 +1009,8 @@ const MemberManagement: React.FC = () => {
       member.birthdate || '',
       member.phone || '',
       member.address || '',
-      member.position || '',
+      member.position_main || '',  // 직분 대분류
+      member.position_detail || '',  // 직분 세부
       member.organization_name || '',
       member.member_status || '',
       member.registration_date || '',
@@ -1114,7 +1120,8 @@ const MemberManagement: React.FC = () => {
           birthdate: row[headerMap['생년월일']] || null,
           phone: row[headerMap['전화번호']] || '',
           address: row[headerMap['주소']] || null,
-          position: row[headerMap['직분']] || null,
+          position_main: row[headerMap['직분대분류']] || null,  // 엑셀: 직분대분류
+          position_detail: row[headerMap['직분세부']] || null,  // 엑셀: 직분세부
           organization_name: row[headerMap['구역']] || null,
           church_id: currentUser.church_id,
           member_status: row[headerMap['교인상태']] || 'active',
@@ -1432,13 +1439,13 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th 
+                <th
                   className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
-                  onClick={() => handleSort('position')}
+                  onClick={() => handleSort('position_main')}
                 >
                   <span className="flex items-center gap-1">
                     직분
-                    {sortField === 'position' && (
+                    {sortField === 'position_main' && (
                       sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
                     )}
                   </span>
@@ -1523,7 +1530,7 @@ const MemberManagement: React.FC = () => {
                     {member.phone}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {member.position || '-'}
+                    {member.position_main || '-'}{member.position_detail ? ` (${member.position_detail})` : ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.organization_name || '-'}
@@ -1636,12 +1643,12 @@ const MemberManagement: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+              <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
               <Input
                 type="text"
-                placeholder="집사, 권사, 장로 등"
-                value={newMember.position}
-                onChange={(e) => setNewMember({...newMember, position: e.target.value})}
+                placeholder="교역자, 직분자, 평신도 등"
+                value={newMember.position_main}
+                onChange={(e) => setNewMember({...newMember, position_main: e.target.value})}
               />
             </div>
             <div className="flex justify-end space-x-3 pt-4">
@@ -1945,7 +1952,7 @@ const MemberManagement: React.FC = () => {
 
               {/* 기본 정보 */}
               <div className="space-y-4">
-                <details className="border rounded-lg group">
+                <details open className="border rounded-lg group">
                     <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <User className="w-5 h-5 text-muted-foreground" />
@@ -1953,7 +1960,8 @@ const MemberManagement: React.FC = () => {
                       </div>
                       <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                     </summary>
-                    <div className="px-6 pb-6 space-y-4">
+                    <div className="px-6 pb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* 이름 */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1">이름</label>
@@ -2043,11 +2051,12 @@ const MemberManagement: React.FC = () => {
                           <p className="text-sm text-muted-foreground">{selectedMember.birthdate || '-'}</p>
                         )}
                       </div>
+                      </div>
                     </div>
                   </details>
 
                 {/* 교회 정보 */}
-                <details className="border rounded-lg group">
+                <details open className="border rounded-lg group">
                     <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <UserCheck className="w-5 h-5 text-muted-foreground" />
@@ -2055,34 +2064,79 @@ const MemberManagement: React.FC = () => {
                       </div>
                       <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                     </summary>
-                    <div className="px-6 pb-6 space-y-4">
-                      {/* 직분 */}
+                    <div className="px-6 pb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 직분 대분류 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+                        <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
                         {isEditMode ? (
                           <Select
-                            value={editedMember.position || 'none'}
-                            onValueChange={(value) => setEditedMember({...editedMember, position: value === 'none' ? null : value})}
+                            value={editedMember.position_main || 'none'}
+                            onValueChange={(value) => {
+                              setEditedMember({
+                                ...editedMember,
+                                position_main: value === 'none' ? null : value,
+                                position_detail: null  // 대분류 변경 시 세부 직분 초기화
+                              });
+                            }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="직분 선택" />
+                              <SelectValue placeholder="직분 대분류 선택" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">없음</SelectItem>
-                              <SelectItem value="목사">목사</SelectItem>
-                              <SelectItem value="장로">장로</SelectItem>
-                              <SelectItem value="집사">집사</SelectItem>
-                              <SelectItem value="권사">권사</SelectItem>
-                              <SelectItem value="전도사">전도사</SelectItem>
-                              <SelectItem value="교사">교사</SelectItem>
-                              <SelectItem value="부장">부장</SelectItem>
-                              <SelectItem value="회장">회장</SelectItem>
+                              {ADMIN_POSITION_OPTIONS.map((option) => (
+                                <SelectItem key={option.mainValue} value={option.mainValue}>
+                                  {option.mainLabel}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.position || '-'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main)?.mainLabel || '-'}
+                          </p>
                         )}
                       </div>
+
+                      {/* 직분 세부 (대분류 선택 시에만 표시) */}
+                      {editedMember.position_main && (() => {
+                        const mainOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === editedMember.position_main);
+                        if (!mainOption || mainOption.details.length === 0) return null;
+
+                        return (
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">세부 직분</label>
+                            {isEditMode ? (
+                              <Select
+                                value={editedMember.position_detail || 'none'}
+                                onValueChange={(value) => setEditedMember({...editedMember, position_detail: value === 'none' ? null : value})}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="세부 직분 선택" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">없음</SelectItem>
+                                  {mainOption.details.map((detail) => (
+                                    <SelectItem key={detail.value} value={detail.value}>
+                                      {detail.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                {(() => {
+                                  const selectedOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main);
+                                  if (!selectedOption || selectedOption.details.length === 0) return '-';
+                                  const detailOption = (selectedOption.details as any[]).find((d: any) => d.value === selectedMember.position_detail);
+                                  return detailOption?.label || '-';
+                                })()}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* 조직 */}
                       <div>
@@ -2201,6 +2255,7 @@ const MemberManagement: React.FC = () => {
                           <p className="text-sm text-muted-foreground">{getStatusText(selectedMember.member_status)}</p>
                         )}
                       </div>
+                      </div>
                     </div>
                   </details>
 
@@ -2213,7 +2268,8 @@ const MemberManagement: React.FC = () => {
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="px-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 사역 시작일 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">사역 시작일</label>
@@ -2272,7 +2328,7 @@ const MemberManagement: React.FC = () => {
                   </div>
 
                   {/* 일일 활동 */}
-                  <div className="md:col-span-2 lg:col-span-3">
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-foreground mb-1">일일 활동</label>
                     {isEditMode ? (
                       <Textarea
@@ -2284,6 +2340,7 @@ const MemberManagement: React.FC = () => {
                     ) : (
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
                     )}
+                  </div>
                   </div>
                 </div>
               </details>
@@ -2297,7 +2354,8 @@ const MemberManagement: React.FC = () => {
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="px-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 직업 분류 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">직업 분류</label>
@@ -2392,6 +2450,7 @@ const MemberManagement: React.FC = () => {
                       <p className="text-sm text-muted-foreground">{selectedMember.workplace_phone || '-'}</p>
                     )}
                   </div>
+                  </div>
                 </div>
               </details>
 
@@ -2404,7 +2463,8 @@ const MemberManagement: React.FC = () => {
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="px-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 교인 분류 */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1">교인 분류</label>
@@ -2520,6 +2580,7 @@ const MemberManagement: React.FC = () => {
                       <p className="text-sm text-muted-foreground">{selectedMember.married_on || '-'}</p>
                     )}
                   </div>
+                  </div>
                 </div>
               </details>
 
@@ -2617,7 +2678,8 @@ const MemberManagement: React.FC = () => {
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="px-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
                     const fieldKey = `custom_field_${num}` as keyof Member;
                     const value = isEditMode
@@ -2644,12 +2706,13 @@ const MemberManagement: React.FC = () => {
                       </div>
                     );
                   })}
+                  </div>
+                  {!isEditMode && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].some(num =>
+                    selectedMember[`custom_field_${num}` as keyof Member]
+                  ) && (
+                    <p className="text-sm text-muted-foreground px-6 pb-6">등록된 추가 정보가 없습니다.</p>
+                  )}
                 </div>
-                {!isEditMode && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].some(num =>
-                  selectedMember[`custom_field_${num}` as keyof Member]
-                ) && (
-                  <p className="text-sm text-muted-foreground">등록된 추가 정보가 없습니다.</p>
-                )}
               </details>
 
               {/* 특별 사항 */}
@@ -2864,11 +2927,11 @@ const MemberManagement: React.FC = () => {
               <h3 className="text-lg font-semibold">교회 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">직분</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
                   <Input
-                    value={advancedSearchData.position}
-                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position: e.target.value }))}
-                    placeholder="집사, 권사, 장로 등"
+                    value={advancedSearchData.position_main}
+                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position_main: e.target.value }))}
+                    placeholder="교역자, 직분자, 평신도 등"
                   />
                 </div>
                 <div>
@@ -2942,7 +3005,8 @@ const MemberManagement: React.FC = () => {
                   email: '',
                   phone: '',
                   gender: 'all',
-                  position: '',
+                  position_main: '',
+                  position_detail: '',
                   district: '',
                   ageFrom: '',
                   ageTo: '',
