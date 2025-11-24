@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Search, Trash2, Image as ImageIcon, MapPin } from 'lucide-react';
 import { Button } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { Spinner } from "../ui/spinner";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { supabaseApiService } from '../../services/supabaseApiService';
@@ -219,36 +220,31 @@ const Wishlists: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-end pr-6 mb-4">
-        <div className="flex-1 max-w-md">
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">내가 찜한 글</h1>
-          <p className="text-sm text-gray-600">관심있는 게시물들을 한 곳에서 확인하세요</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* 검색바 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+    <PageContainer>
+      <PageHeader
+        title="내가 찜한 글"
+        description="관심있는 게시물들을 한 곳에서 확인하세요"
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <CustomSelect
+              options={postTypeOptions}
+              value={selectedPostType}
+              onChange={setSelectedPostType}
+              className="w-auto"
             />
           </div>
-
-          {/* 게시물 타입 필터 */}
-          <CustomSelect
-            options={postTypeOptions}
-            value={selectedPostType}
-            onChange={setSelectedPostType}
-            className="w-auto"
-          />
-        </div>
-      </div>
+        }
+      />
 
       <CommunityTable
         columns={columns}
@@ -259,7 +255,7 @@ const Wishlists: React.FC = () => {
         emptyIcon={<Heart className="h-12 w-12 text-gray-400" />}
         selectable={false}
       />
-    </div>
+    </PageContainer>
   );
 };
 

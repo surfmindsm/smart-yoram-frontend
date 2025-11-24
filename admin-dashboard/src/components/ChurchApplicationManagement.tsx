@@ -535,8 +535,13 @@ const ChurchApplicationManagement: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            alert('파일 다운로드 기능은 준비 중입니다.');
+                          onClick={async () => {
+                            try {
+                              await churchApplicationService.downloadAttachment(selectedApplication.id, file.filename);
+                            } catch (error) {
+                              alert('파일 다운로드에 실패했습니다. 백엔드 API가 구현되지 않았거나 파일이 존재하지 않습니다.');
+                              console.error('다운로드 에러:', error);
+                            }
                           }}
                         >
                           <Download className="w-4 h-4" />

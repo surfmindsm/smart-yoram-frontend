@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from "./ui";
+import { Button, Combobox } from "./ui";
 import { cn } from '../lib/utils';
 import { prayerRequestService } from '../services/api';
+import { supabaseApiService } from '../services/supabaseApiService';
 import {
-  Heart, Calendar, Clock, Phone, User, Filter, Search, 
-  MoreHorizontal, Eye, Edit, CheckCircle, XCircle, 
+  Heart, Calendar, Clock, Phone, User, Filter, Search,
+  MoreHorizontal, Eye, Edit, CheckCircle, XCircle,
   MessageSquare, Users, Globe, Lock, AlertTriangle,
   BookOpen, Star, Timer, FileText, Plus
 } from 'lucide-react';
 import { Spinner } from "./ui/spinner";
+import { PageContainer, PageHeader } from "./ui";
+
+interface Member {
+  id: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+}
 
 interface PrayerRequest {
   id: string;
@@ -46,7 +56,9 @@ const PrayerRequestManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState('');
   const [prayerRecord, setPrayerRecord] = useState('');
+  const [members, setMembers] = useState<Member[]>([]);
   const [newRequest, setNewRequest] = useState({
+    memberId: '',
     requesterName: '',
     requesterPhone: '',
     prayerType: 'general' as const,
@@ -61,6 +73,56 @@ const PrayerRequestManagement: React.FC = () => {
   useEffect(() => {
     loadPrayerRequests();
   }, [statusFilter, typeFilter, visibilityFilter]);
+
+  // 교인 데이터 로드
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        // 현재 사용자 정보 가져오기
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+          console.error('User not found in localStorage');
+          return;
+        }
+
+        const user = JSON.parse(userStr);
+        const userChurchId = user.church_id;
+
+        if (!userChurchId) {
+          console.error('Church ID not found for user');
+          return;
+        }
+
+        // church_id로 필터링하여 교인 목록 가져오기
+        const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
+
+        console.log('📥 Loaded members for church_id:', userChurchId, response);
+
+        // 응답 데이터 구조 확인 및 변환
+        let membersData = [];
+        if (Array.isArray(response)) {
+          membersData = response;
+        } else if (response && Array.isArray(response.data)) {
+          membersData = response.data;
+        }
+
+        // 필요한 필드만 추출하여 변환
+        const transformedMembers: Member[] = membersData.map((member: any) => ({
+          id: member.id,
+          name: member.name || member.name_kor || '이름 없음',
+          phone: member.phone || member.mobile || '',
+          address: member.address || '',
+          email: member.email || ''
+        }));
+
+        setMembers(transformedMembers);
+      } catch (error) {
+        console.error('Failed to load members:', error);
+      }
+    };
+
+    loadMembers();
+  }, []);
 
   const loadPrayerRequests = async () => {
     try {
@@ -245,9 +307,9 @@ const PrayerRequestManagement: React.FC = () => {
     }
 
     setIsCreating(true);
-    
+
     try {
-      const requestData = {
+      const requestData: any = {
         requester_name: newRequest.isAnonymous ? '익명' : newRequest.requesterName,
         requester_phone: newRequest.requesterPhone,
         prayer_type: newRequest.prayerType,
@@ -258,10 +320,18 @@ const PrayerRequestManagement: React.FC = () => {
         status: 'active' // 관리자가 등록하는 경우 바로 활성 상태로
       };
 
+      // memberId가 있을 경우에만 추가
+      if (newRequest.memberId) {
+        requestData.member_id = parseInt(newRequest.memberId);
+      }
+
+      console.log('📤 Creating prayer request with data:', requestData);
+
       await prayerRequestService.createRequest(requestData);
-      
+
       // 폼 초기화
       setNewRequest({
+        memberId: '',
         requesterName: '',
         requesterPhone: '',
         prayerType: 'general',
@@ -270,10 +340,10 @@ const PrayerRequestManagement: React.FC = () => {
         isUrgent: false,
         isPublic: true
       });
-      
+
       setShowCreateModal(false);
       await loadPrayerRequests();
-      
+
       alert('기도 요청이 성공적으로 등록되었습니다.');
     } catch (error: any) {
       console.error('기도 요청 등록 실패:', error);
@@ -318,31 +388,30 @@ const PrayerRequestManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">중보 기도 요청 관리</h1>
-          <p className="text-slate-600 mt-1">교인들의 기도 요청을 관리하고 응답을 기록하세요</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white"
-          >
-            <Plus className="h-4 w-4" />
-            <span>기도 요청 등록</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2"
-          >
-            <Filter className="h-4 w-4" />
-            <span>필터</span>
-          </Button>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="중보 기도 요청 관리"
+        description="교인들의 기도 요청을 관리하고 응답을 기록하세요"
+        actions={
+          <>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white"
+            >
+              <Plus className="h-4 w-4" />
+              <span>기도 요청 등록</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center space-x-2"
+            >
+              <Filter className="h-4 w-4" />
+              <span>필터</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* 기도 요청 현황 및 빠른 액션 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -901,7 +970,45 @@ const PrayerRequestManagement: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 교인 검색 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  교인 선택 (선택사항)
+                </label>
+                <Combobox
+                  options={members.map(member => ({
+                    value: member.id.toString(),
+                    label: member.name,
+                    description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
+                  }))}
+                  value={newRequest.memberId}
+                  onChange={(value) => {
+                    const selectedMember = members.find(m => m.id.toString() === value);
+                    if (selectedMember) {
+                      // 교인 선택 시 자동으로 정보 입력
+                      setNewRequest({
+                        ...newRequest,
+                        memberId: value,
+                        requesterName: selectedMember.name,
+                        requesterPhone: selectedMember.phone || ''
+                      });
+                    } else {
+                      // 선택 해제 시 모든 필드 초기화
+                      setNewRequest({
+                        ...newRequest,
+                        memberId: '',
+                        requesterName: '',
+                        requesterPhone: ''
+                      });
+                    }
+                  }}
+                  placeholder="교인 검색 (이름, 전화번호) - 선택 안 하면 직접 입력"
+                  emptyMessage="교인을 찾을 수 없습니다"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 요청자 이름 */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -911,8 +1018,12 @@ const PrayerRequestManagement: React.FC = () => {
                     type="text"
                     value={newRequest.requesterName}
                     onChange={(e) => setNewRequest({...newRequest, requesterName: e.target.value})}
-                    placeholder="이름을 입력하세요"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    readOnly={!!newRequest.memberId}
+                    className={cn(
+                      "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent",
+                      newRequest.memberId && "bg-gray-50 text-gray-600"
+                    )}
+                    placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "요청자 성명 직접 입력"}
                     disabled={newRequest.isAnonymous}
                   />
                 </div>
@@ -926,8 +1037,12 @@ const PrayerRequestManagement: React.FC = () => {
                     type="tel"
                     value={newRequest.requesterPhone}
                     onChange={(e) => setNewRequest({...newRequest, requesterPhone: e.target.value})}
-                    placeholder="010-1234-5678"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    readOnly={!!newRequest.memberId}
+                    className={cn(
+                      "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent",
+                      newRequest.memberId && "bg-gray-50 text-gray-600"
+                    )}
+                    placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "010-0000-0000"}
                   />
                 </div>
               </div>
@@ -1043,7 +1158,7 @@ const PrayerRequestManagement: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

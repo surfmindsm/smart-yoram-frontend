@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Input } from "./ui";
 import { Textarea } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import { Calendar, FileText, Plus, Edit2, Trash2, Upload } from 'lucide-react';
 import { useToast } from "./ui";
 
@@ -252,73 +253,74 @@ const Bulletins: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">주보 관리</h2>
-        <Button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          주보 추가
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="주보 관리"
+        description="교회 주보를 관리하고 파일을 업로드합니다."
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            주보 추가
+          </Button>
+        }
+      />
 
       {/* Bulletins Grid */}
       {bulletins.length === 0 ? (
-        <Card className="border-muted">
-          <CardContent className="text-center py-8">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">등록된 주보가 없습니다.</p>
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-600">등록된 주보가 없습니다.</p>
+            <p className="text-sm text-gray-500 mt-1">첫 번째 주보를 추가해보세요.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bulletins.map((bulletin) => (
-            <Card key={bulletin.id} className="border-muted">
+            <Card key={bulletin.id} className="group hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">{bulletin.title}</h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{bulletin.title}</h3>
+                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(bulletin.date).toLocaleDateString('ko-KR')}
                     </p>
                   </div>
 
                   {bulletin.content && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">{bulletin.content}</p>
+                    <p className="text-sm text-gray-600 line-clamp-3">{bulletin.content}</p>
                   )}
 
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center pt-2 border-t">
                     {bulletin.file_url ? (
                       <a
                         href={bulletin.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline text-sm flex items-center gap-1"
+                        className="text-blue-600 hover:underline text-sm flex items-center gap-1"
                       >
                         <FileText className="w-3 h-3" />
                         파일 보기
                       </a>
                     ) : (
-                      <span className="text-muted-foreground text-sm">첨부파일 없음</span>
+                      <span className="text-gray-500 text-sm">첨부파일 없음</span>
                     )}
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(bulletin)}
                       >
-                        <Edit2 className="w-3 h-3" />
+                        <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(bulletin.id)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -339,7 +341,7 @@ const Bulletins: React.FC = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">제목</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
               <Input
                 type="text"
                 required
@@ -348,7 +350,7 @@ const Bulletins: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">날짜</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">날짜</label>
               <Input
                 type="date"
                 required
@@ -357,7 +359,7 @@ const Bulletins: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">내용</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
               <Textarea
                 rows={4}
                 value={formData.content}
@@ -365,7 +367,7 @@ const Bulletins: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">파일 업로드</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">파일 업로드</label>
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
@@ -378,20 +380,20 @@ const Bulletins: React.FC = () => {
                   }}
                   className="flex-1"
                 />
-                <Upload className="w-4 h-4 text-muted-foreground" />
+                <Upload className="w-4 h-4 text-gray-400" />
               </div>
               {selectedFile && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-gray-600 mt-1">
                   선택된 파일: {selectedFile.name}
                 </p>
               )}
               {editingBulletin?.file_url && !selectedFile && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">보기</a>
+                <p className="text-sm text-gray-600 mt-1">
+                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">보기</a>
                 </p>
               )}
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
+            <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -409,7 +411,7 @@ const Bulletins: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

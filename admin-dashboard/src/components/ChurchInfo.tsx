@@ -4,6 +4,7 @@ import { Button } from "./ui";
 import { Card, CardContent } from "./ui";
 import { Input } from "./ui";
 import { Alert, AlertDescription } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import { Building2, Phone, Mail, MapPin, Edit2 } from 'lucide-react';
 
 interface Church {
@@ -113,34 +114,41 @@ const ChurchInfo: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-muted-foreground">로딩 중...</p>
-      </div>
+      <PageContainer>
+        <div className="flex justify-center items-center h-64">
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </PageContainer>
     );
   }
 
   if (error && !church) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <PageContainer>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </PageContainer>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">교회 정보</h2>
-        {!isEditing && (
-          <Button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2"
-          >
-            <Edit2 className="w-4 h-4" />
-            수정
-          </Button>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="교회 정보"
+        description="교회의 기본 정보를 확인하고 수정합니다."
+        actions={
+          !isEditing && (
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              수정
+            </Button>
+          )
+        }
+      />
 
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -148,13 +156,13 @@ const ChurchInfo: React.FC = () => {
         </Alert>
       )}
 
-      <Card className="border-muted">
+      <Card>
         <CardContent className="p-6">
           {isEditing ? (
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     <Building2 className="w-4 h-4 inline mr-1" />
                     교회명
                   </label>
@@ -166,7 +174,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">담임목사</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">담임목사</label>
                   <Input
                     type="text"
                     value={formData.pastor_name}
@@ -174,7 +182,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     <Phone className="w-4 h-4 inline mr-1" />
                     전화번호
                   </label>
@@ -185,7 +193,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     <Mail className="w-4 h-4 inline mr-1" />
                     이메일
                   </label>
@@ -196,7 +204,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     사업자등록번호
                   </label>
                   <Input
@@ -207,7 +215,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     <MapPin className="w-4 h-4 inline mr-1" />
                     주소
                   </label>
@@ -218,7 +226,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     교회 홈페이지
                   </label>
                   <Input
@@ -229,7 +237,7 @@ const ChurchInfo: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     유튜브 채널
                   </label>
                   <Input
@@ -256,46 +264,46 @@ const ChurchInfo: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <h3 className="text-sm font-medium text-gray-600 flex items-center gap-1">
                   <Building2 className="w-4 h-4" />
                   교회명
                 </h3>
-                <p className="mt-1 text-lg text-foreground">{church?.name || '-'}</p>
+                <p className="mt-1 text-lg text-gray-900">{church?.name || '-'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">담임목사</h3>
-                <p className="mt-1 text-lg text-foreground">{church?.pastor_name || '-'}</p>
+                <h3 className="text-sm font-medium text-gray-600">담임목사</h3>
+                <p className="mt-1 text-lg text-gray-900">{church?.pastor_name || '-'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <h3 className="text-sm font-medium text-gray-600 flex items-center gap-1">
                   <Phone className="w-4 h-4" />
                   전화번호
                 </h3>
-                <p className="mt-1 text-lg text-foreground">{church?.phone || '-'}</p>
+                <p className="mt-1 text-lg text-gray-900">{church?.phone || '-'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <h3 className="text-sm font-medium text-gray-600 flex items-center gap-1">
                   <Mail className="w-4 h-4" />
                   이메일
                 </h3>
-                <p className="mt-1 text-lg text-foreground">{church?.email || '-'}</p>
+                <p className="mt-1 text-lg text-gray-900">{church?.email || '-'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">
+                <h3 className="text-sm font-medium text-gray-600">
                   사업자등록번호
                 </h3>
-                <p className="mt-1 text-lg text-foreground">{church?.business_no || '-'}</p>
+                <p className="mt-1 text-lg text-gray-900">{church?.business_no || '-'}</p>
               </div>
               <div className="md:col-span-2">
-                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <h3 className="text-sm font-medium text-gray-600 flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
                   주소
                 </h3>
-                <p className="mt-1 text-lg text-foreground">{church?.address || '-'}</p>
+                <p className="mt-1 text-lg text-gray-900">{church?.address || '-'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">교회 홈페이지</h3>
-                <p className="mt-1 text-lg text-foreground">
+                <h3 className="text-sm font-medium text-gray-600">교회 홈페이지</h3>
+                <p className="mt-1 text-lg text-gray-900">
                   {church?.homepage_url ? (
                     <a href={church.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                       {church.homepage_url}
@@ -304,8 +312,8 @@ const ChurchInfo: React.FC = () => {
                 </p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">유튜브 채널</h3>
-                <p className="mt-1 text-lg text-foreground">
+                <h3 className="text-sm font-medium text-gray-600">유튜브 채널</h3>
+                <p className="mt-1 text-lg text-gray-900">
                   {church?.youtube_channel ? (
                     <a href={church.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                       {church.youtube_channel}
@@ -317,7 +325,7 @@ const ChurchInfo: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 };
 

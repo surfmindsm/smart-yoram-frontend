@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import OrganizationForm from './OrganizationForm';
 import {
   ChurchOrganization,
@@ -517,18 +518,17 @@ const OrganizationManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">조직 관리</h1>
-          <p className="text-gray-600 mt-1">교회 조직 구조와 교인 배정을 관리합니다</p>
-        </div>
-        <Button onClick={() => activeTab === 'organizations' ? setShowCreateModal(true) : openDepartmentCreateModal()}>
-          <Plus className="w-4 h-4 mr-2" />
-          {activeTab === 'organizations' ? '조직 추가' : '부서 추가'}
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="조직 관리"
+        description="교회 조직 구조와 교인 배정을 관리합니다"
+        actions={
+          <Button onClick={() => activeTab === 'organizations' ? setShowCreateModal(true) : openDepartmentCreateModal()}>
+            <Plus className="w-4 h-4 mr-2" />
+            {activeTab === 'organizations' ? '조직 추가' : '부서 추가'}
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
@@ -563,69 +563,178 @@ const OrganizationManagement: React.FC = () => {
       {activeTab === 'organizations' && (
         <div>
         {/* Organization List */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building2 className="w-5 h-5 mr-2" />
-                조직 목록
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Spinner />
-                  <span className="ml-2">조직 목록을 불러오는 중...</span>
-                </div>
-              ) : organizations.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>등록된 조직이 없습니다.</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    첫 번째 조직 추가하기
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner />
+            <span className="ml-2">조직 목록을 불러오는 중...</span>
+          </div>
+        ) : organizations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>등록된 조직이 없습니다.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setShowCreateModal(true)}
+            >
+              첫 번째 조직 추가하기
+            </Button>
+          </div>
+        ) : (
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      조직명
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      설명
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      인원 수
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      상태
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      작업
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {organizations.map((organization) => (
-                    <Card
+                    <tr
                       key={organization.id}
-                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
-                        selectedOrganization?.id === organization.id ? 'border-blue-500 bg-blue-50' : ''
+                      className={`hover:bg-gray-50 cursor-pointer ${
+                        selectedOrganization?.id === organization.id ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => setSelectedOrganization(organization)}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-semibold text-gray-900">{organization.name}</h3>
-                              {!organization.is_active && (
-                                <Badge variant="destructive" className="text-xs">
-                                  비활성
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2 mt-1">
-                              {organization.description && (
-                                <p className="text-sm text-gray-600">{organization.description}</p>
-                              )}
-                              <span className="text-sm text-gray-500">
-                                {organization.member_count}명
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-1">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{organization.name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600">{organization.description || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="text-sm text-gray-700">{organization.member_count}명</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {organization.is_active ? (
+                          <Badge variant="secondary" className="text-xs">활성</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">비활성</Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditOrganization(organization);
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteOrganization(organization);
+                            }}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+        </div>
+      )}
+
+      {/* Departments Tab Content */}
+      {activeTab === 'departments' && (
+        <div>
+          {/* Department List */}
+          {departmentLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner />
+              <span className="ml-2">부서 목록을 불러오는 중...</span>
+            </div>
+          ) : departments.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Layers className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>등록된 부서가 없습니다.</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={openDepartmentCreateModal}
+              >
+                첫 번째 부서 추가하기
+              </Button>
+            </div>
+          ) : (
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                        부서명
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                        설명
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
+                        인원 수
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                        작업
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {departments.map((department) => (
+                      <tr key={department.id} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{department.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-600">{department.description || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className="text-sm text-gray-700">{department.member_count || 0}명</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {department.is_active ? (
+                            <Badge variant="secondary" className="text-xs">활성</Badge>
+                          ) : (
+                            <Badge variant="destructive" className="text-xs">비활성</Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end space-x-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditOrganization(organization);
+                                openDepartmentEditModal(department);
                               }}
                               className="h-8 w-8 p-0"
                             >
@@ -636,115 +745,21 @@ const OrganizationManagement: React.FC = () => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteOrganization(organization);
+                                openDepartmentDeleteModal(department);
                               }}
                               className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        </div>
-      )}
-
-      {/* Departments Tab Content */}
-      {activeTab === 'departments' && (
-        <div>
-          {/* Department List */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Layers className="w-5 h-5 mr-2" />
-                  부서 목록
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {departmentLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Spinner />
-                    <span className="ml-2">부서 목록을 불러오는 중...</span>
-                  </div>
-                ) : departments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Layers className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>등록된 부서가 없습니다.</p>
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={openDepartmentCreateModal}
-                    >
-                      첫 번째 부서 추가하기
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {departments.map((department) => (
-                      <Card
-                        key={department.id}
-                        className="cursor-pointer transition-colors hover:bg-gray-50"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                <h3 className="font-semibold text-gray-900">{department.name}</h3>
-                                {!department.is_active && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    비활성
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center space-x-2 mt-1">
-                                {department.description && (
-                                  <p className="text-sm text-gray-600">{department.description}</p>
-                                )}
-                                <span className="text-sm text-gray-500">
-                                  {department.member_count || 0}명
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDepartmentEditModal(department);
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDepartmentDeleteModal(department);
-                                }}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                )}
-              </CardContent>
+                  </tbody>
+                </table>
+              </div>
             </Card>
-          </div>
+          )}
         </div>
       )}
 
@@ -912,7 +927,7 @@ const OrganizationManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

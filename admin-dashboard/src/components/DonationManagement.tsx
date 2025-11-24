@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Plus, 
-  Search, 
-  Trash2, 
+  Plus,
+  Search,
+  Trash2,
   FileText,
   DollarSign,
   User,
   Receipt,
   Users,
-  Download,
   X,
   ArrowUpDown,
   ArrowUp,
@@ -23,7 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui"
 import { SimpleTabs } from "./ui";
 import { Combobox } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { financialService, memberService, churchService } from '../services/api';
+import { PageContainer, PageHeader } from "./ui";
+// Legacy API imports removed - now using Supabase Edge Functions
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabase } from '../lib/supabase';
@@ -279,10 +279,11 @@ const DonationManagement: React.FC = () => {
       try {
         console.log('🔄 Supabase API 호출 시작...');
 
-        // Supabase API 병렬 호출
-        const [offeringsResult, membersResult] = await Promise.allSettled([
+        // Supabase API 병렬 호출 (receipts 추가)
+        const [offeringsResult, membersResult, receiptsResult] = await Promise.allSettled([
           supabaseApiService.offerings.getAll({ church_id: userChurchId }),
-          supabaseApiService.members.getAll()
+          supabaseApiService.members.getAll(),
+          supabaseApiService.receipts.getAll({ church_id: userChurchId })
         ]);
 
         if (offeringsResult.status === 'fulfilled') {
@@ -298,6 +299,14 @@ const DonationManagement: React.FC = () => {
         } else {
           console.error('❌ Supabase Members API 오류:', membersResult.reason);
           membersResponse = [];
+        }
+
+        if (receiptsResult.status === 'fulfilled') {
+          receiptsResponse = receiptsResult.value.data || receiptsResult.value; // .data 프로퍼티 접근
+          console.log('✅ 영수증 데이터 로드 성공:', Array.isArray(receiptsResponse) ? receiptsResponse.length : 0, '건');
+        } else {
+          console.error('❌ Supabase Receipts API 오류:', receiptsResult.reason);
+          receiptsResponse = [];
         }
 
       } catch (error) {
@@ -472,7 +481,7 @@ const DonationManagement: React.FC = () => {
   // 목업 데이터 제거됨 - 실제 API 데이터만 사용
 
   const handleAddDonation = async () => {
-    
+
     if ((!newDonation.donorId && !newDonation.isAnonymous) || newDonation.amount <= 0) {
       alert('기부자 또는 무명 선택과 금액을 입력해주세요.');
       return;
@@ -480,17 +489,25 @@ const DonationManagement: React.FC = () => {
 
     try {
       setSubmitLoading(true);
-      
+
       let memberId: number | null = null;
-      
+
       if (!newDonation.isAnonymous) {
         // member_id 직접 사용
         memberId = parseInt(newDonation.donorId);
         const memberData = members.find(m => m.id === memberId);
-        
+
         if (!memberData) {
           throw new Error('선택한 교인 정보를 찾을 수 없습니다.');
         }
+      }
+
+      // 현재 로그인한 사용자 ID 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const inputUserId = currentUser?.user?.id;
+
+      if (!inputUserId) {
+        throw new Error('로그인 사용자 정보를 찾을 수 없습니다.');
       }
 
       const offeringData = {
@@ -499,18 +516,21 @@ const DonationManagement: React.FC = () => {
         offered_on: newDonation.offeredOn,
         fund_type: newDonation.fundType,
         amount: newDonation.amount.toString(),
-        note: newDonation.note || null
+        note: newDonation.note || null,
+        input_user_id: inputUserId
       };
 
-      
+      console.log('📤 헌금 등록 데이터:', offeringData);
+
       try {
-        const result = await financialService.createOffering(offeringData);
-        
+        const result = await supabaseApiService.offerings.create(offeringData);
+        console.log('✅ 헌금 등록 성공:', result);
+
         // 옵티미스틱 UI 업데이트 - 즉시 화면에 반영
         const newDonationItem: Donation = {
           id: result.id || Date.now(), // 임시 ID
           donorId: memberId,
-          donorName: newDonation.isAnonymous ? '무명' : 
+          donorName: newDonation.isAnonymous ? '무명' :
                     members.find(m => m.id === parseInt(newDonation.donorId))?.name || '무명',
           offeredOn: newDonation.offeredOn,
           fundType: newDonation.fundType,
@@ -518,12 +538,13 @@ const DonationManagement: React.FC = () => {
           note: newDonation.note || '',
           inputUserId: 1 // 현재 사용자 ID
         };
-        
+
         // 기존 목록에 새 헌금 추가
         setDonations(prev => [newDonationItem, ...prev]);
-        
+
         setIsAddModalOpen(false);
-        
+        alert('헌금이 등록되었으며, 회계 수입으로 자동 기록되었습니다.');
+
         // 폼 초기화
         setNewDonation({
           donorId: '',
@@ -533,12 +554,15 @@ const DonationManagement: React.FC = () => {
           note: '',
           isAnonymous: false
         });
-        
+
       } catch (apiError: any) {
+        console.error('❌ 헌금 등록 실패:', apiError);
         throw apiError; // 상위 catch로 에러 전달
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '헌금 추가에 실패했습니다.';
+      console.error('❌ 헌금 추가 오류:', error);
+      alert(errorMessage);
       setError(errorMessage);
     } finally {
       setSubmitLoading(false);
@@ -573,13 +597,21 @@ const DonationManagement: React.FC = () => {
       try {
         setSubmitLoading(true);
         let successCount = 0;
-        
+
+        // 현재 로그인한 사용자 ID 가져오기
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        const inputUserId = currentUser?.user?.id;
+
+        if (!inputUserId) {
+          throw new Error('로그인 사용자 정보를 찾을 수 없습니다.');
+        }
+
         // 병렬 처리로 속도 대폭 개선
-        
+
         // 모든 헌금을 병렬로 등록 (member_id 직접 사용)
         const offeringPromises = validDonations.map(async (bulk, index) => {
           const memberId = bulk.isAnonymous ? null : Number(bulk.donorId);
-          
+
           // 무명이 아닌 경우 교인 정보 확인
           if (!bulk.isAnonymous && memberId) {
             const memberData = members.find(m => m.id === memberId);
@@ -587,22 +619,23 @@ const DonationManagement: React.FC = () => {
               throw new Error(`선택한 교인 정보를 찾을 수 없습니다. (ID: ${memberId})`);
             }
           }
-          
+
           const offeringData = {
             member_id: memberId,
             church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
             offered_on: bulkSettings.offeredOn,
             fund_type: bulk.fundType,
             amount: bulk.amount.toString(),
-            note: bulk.note || null
+            note: bulk.note || null,
+            input_user_id: inputUserId
           };
 
-          const result = await financialService.createOffering(offeringData);
-          
+          const result = await supabaseApiService.offerings.create(offeringData);
+
           return {
             id: result.id || Date.now() + index,
             donorId: memberId,
-            donorName: bulk.isAnonymous ? '무명' : 
+            donorName: bulk.isAnonymous ? '무명' :
                       members.find(m => m.id === Number(bulk.donorId))?.name || '무명',
             offeredOn: bulkSettings.offeredOn,
             fundType: bulk.fundType,
@@ -611,19 +644,21 @@ const DonationManagement: React.FC = () => {
             inputUserId: 1
           } as Donation;
         });
-        
+
         const newDonationItems = await Promise.all(offeringPromises);
         successCount = newDonationItems.length;
-        
+
         // 기존 목록에 새 헌금들 추가 (옵티미스틱 업데이트)
         setDonations(prev => [...newDonationItems, ...prev]);
-        
+
         setBulkDonations([]);
         setIsBulkModalOpen(false);
-        
-        alert(`${successCount}건의 헌금이 등록되었습니다.`);
+
+        alert(`${successCount}건의 헌금이 등록되었으며, 회계 수입으로 자동 기록되었습니다.`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : '일괄 헌금 추가에 실패했습니다.';
+        console.error('❌ 일괄 헌금 추가 오류:', error);
+        alert(errorMessage);
         setError(errorMessage);
       } finally {
         setSubmitLoading(false);
@@ -676,20 +711,22 @@ const DonationManagement: React.FC = () => {
 
   // 헌금 삭제 함수
   const handleDeleteDonation = async (donationId: number) => {
-    if (!window.confirm('정말로 이 헌금 내역을 삭제하시겠습니까?')) {
+    if (!window.confirm('정말로 이 헌금 내역을 삭제하시겠습니까? (연동된 회계 거래도 함께 삭제됩니다)')) {
       return;
     }
 
     try {
       setLoading(true);
-      await financialService.deleteOffering(donationId);
-      
+      await supabaseApiService.offerings.delete(donationId.toString());
+
       // 옵티미스틱 업데이트 - 즉시 화면에서 제거
       setDonations(prev => prev.filter(d => d.id !== donationId));
-      
-      alert('헌금 내역이 삭제되었습니다.');
+
+      alert('헌금 내역 및 연동된 회계 거래가 삭제되었습니다.');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '헌금 삭제에 실패했습니다.';
+      console.error('❌ 헌금 삭제 오류:', error);
+      alert(errorMessage);
       setError(errorMessage);
       // 에러 발생 시 데이터 다시 로드
       loadData();
@@ -704,7 +741,7 @@ const DonationManagement: React.FC = () => {
 
     try {
       setSubmitLoading(true);
-      
+
       const updateData = {
         offered_on: editingDonation.offeredOn,
         fund_type: editingDonation.fundType,
@@ -712,18 +749,20 @@ const DonationManagement: React.FC = () => {
         note: editingDonation.note || null
       };
 
-      await financialService.updateOffering(editingDonation.id, updateData);
-      
+      await supabaseApiService.offerings.update(editingDonation.id.toString(), updateData);
+
       // 옵티미스틱 업데이트
-      setDonations(prev => prev.map(d => 
+      setDonations(prev => prev.map(d =>
         d.id === editingDonation.id ? editingDonation : d
       ));
-      
+
       setIsEditModalOpen(false);
       setEditingDonation(null);
-      alert('헌금 내역이 수정되었습니다.');
+      alert('헌금 내역 및 연동된 회계 거래가 수정되었습니다.');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '헌금 수정에 실패했습니다.';
+      console.error('❌ 헌금 수정 오류:', error);
+      alert(errorMessage);
       setError(errorMessage);
     } finally {
       setSubmitLoading(false);
@@ -776,7 +815,7 @@ const DonationManagement: React.FC = () => {
         church_id: churchInfo?.id || 1, // 실제 교회 ID 사용
         issue_no: issueNo
       };
-      const result = await financialService.createReceipt(receiptData);
+      const result = await supabaseApiService.receipts.create(receiptData);
       
       // PDF 생성 및 다운로드
       generateReceiptPDF(selectedMember, donorDonations, selectedYear, result.issue_no || issueNo, receiptInfo);
@@ -1084,26 +1123,23 @@ const DonationManagement: React.FC = () => {
             <div style="margin-left: 80px;">소득세법 제34조제1항의 기부금종 &nbsp;&nbsp;&nbsp;&nbsp; (종교단체기부금, 코드 41)</div>
             <div style="margin-left: 80px;">조세특례제한법 제88조의4 기부금 &nbsp;&nbsp;&nbsp;&nbsp; (우리사주조합기부금, 코드 42)</div>
             <div style="margin-left: 80px;">기타기부금 &nbsp;&nbsp;&nbsp;&nbsp; (기타기부금, 코드 50)</div>
-            <div style="text-align: right; margin-top: 10px;">
-              210㎜×297㎜(신문지 54g/㎡(재활용품))
-            </div>
           </div>
         </body>
       </html>
     `;
 
-    // 새 창에서 PDF로 출력
+    // 새 창에서 인쇄 대화상자 열기
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
+      printWindow.document.title = `기부금영수증_${member.name}_${year}`;
       printWindow.focus();
-      
+
       // 페이지 로드 후 자동으로 인쇄 대화상자 열기
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.print();
-          printWindow.close();
         }, 500);
       };
     }
@@ -1131,19 +1167,12 @@ const DonationManagement: React.FC = () => {
     generateReceiptPDF(member, memberDonations, taxYear, receipt.issueNo || receipt.issue_no, receiptInfo);
   };
 
-  // 개별 영수증 다운로드 처리
-  const handleReceiptDownload = (receipt: any) => {
-    handleReceiptPrint(receipt); // 동일한 로직 사용
-  };
-
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">헌금 관리</h1>
-          <p className="text-gray-600">교인별 헌금내역을 관리하고 연말정산 영수증을 발행합니다.</p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="헌금 관리"
+        description="교인별 헌금내역을 관리하고 연말정산 영수증을 발행합니다."
+      />
 
       {/* 탭 네비게이션 */}
       <SimpleTabs
@@ -1259,7 +1288,7 @@ const DonationManagement: React.FC = () => {
             {loading ? (
               // 스켈레톤 카드들
               Array.from({ length: 4 }).map((_, index) => (
-                <Card key={index} className="border-muted">
+                <Card key={index} className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
                       <div className="p-3 rounded-lg bg-gray-200 animate-pulse">
@@ -1275,58 +1304,58 @@ const DonationManagement: React.FC = () => {
               ))
             ) : (
               <>
-                <Card className="border-muted">
+                <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
                       <div className="p-3 rounded-lg bg-green-500/10">
                         <DollarSign className="h-6 w-6 text-green-500" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-muted-foreground">이번 달 총액</p>
-                        <div className="text-2xl font-bold text-foreground">
+                        <p className="text-sm font-medium text-gray-600">이번 달 총액</p>
+                        <div className="text-2xl font-bold text-gray-900">
                           {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-muted">
+                <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
                       <div className="p-3 rounded-lg bg-blue-500/10">
                         <Receipt className="h-6 w-6 text-blue-500" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-muted-foreground">헌금 건수</p>
-                        <div className="text-2xl font-bold text-foreground">{donations.length}건</div>
+                        <p className="text-sm font-medium text-gray-600">헌금 건수</p>
+                        <div className="text-2xl font-bold text-gray-900">{donations.length}건</div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-muted">
+                <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
                       <div className="p-3 rounded-lg bg-purple-500/10">
                         <Users className="h-6 w-6 text-purple-500" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-muted-foreground">기부자 수</p>
-                        <div className="text-2xl font-bold text-foreground">
+                        <p className="text-sm font-medium text-gray-600">기부자 수</p>
+                        <div className="text-2xl font-bold text-gray-900">
                           {new Set(donations.map(d => d.donorId)).size}명
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-muted">
+                <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
                       <div className="p-3 rounded-lg bg-orange-500/10">
                         <DollarSign className="h-6 w-6 text-orange-500" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-muted-foreground">평균 헌금</p>
-                        <div className="text-2xl font-bold text-foreground">
+                        <p className="text-sm font-medium text-gray-600">평균 헌금</p>
+                        <div className="text-2xl font-bold text-gray-900">
                           {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
                         </div>
                       </div>
@@ -1338,83 +1367,72 @@ const DonationManagement: React.FC = () => {
           </div>
 
           {/* 헌금 목록 */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">헌금 내역</h3>
-            <Card className="border-muted">
-              <CardContent className="p-6">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-2">
-                        <Button
-                          onClick={() => handleSort('offeredOn')}
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
-                        >
-                          <span>날짜</span>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('offeredOn')}
+                      >
+                        <span className="flex items-center gap-1">
+                          날짜
                           {getSortIcon('offeredOn')}
-                        </Button>
+                        </span>
                       </th>
-                      <th className="text-left py-2 px-2">
-                        <Button
-                          onClick={() => handleSort('donorName')}
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
-                        >
-                          <span>기부자</span>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('donorName')}
+                      >
+                        <span className="flex items-center gap-1">
+                          기부자
                           {getSortIcon('donorName')}
-                        </Button>
+                        </span>
                       </th>
-                      <th className="text-left py-2 px-2">
-                        <Button
-                          onClick={() => handleSort('fundType')}
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal"
-                        >
-                          <span>헌금 유형</span>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('fundType')}
+                      >
+                        <span className="flex items-center gap-1">
+                          헌금 유형
                           {getSortIcon('fundType')}
-                        </Button>
+                        </span>
                       </th>
-                      <th className="text-right py-2 px-4">
-                        <Button
-                          onClick={() => handleSort('amount')}
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center space-x-1 hover:text-blue-600 p-0 h-auto font-normal ml-auto"
-                        >
-                          <span>금액</span>
+                      <th
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('amount')}
+                      >
+                        <span className="flex items-center gap-1 justify-end">
+                          금액
                           {getSortIcon('amount')}
-                        </Button>
+                        </span>
                       </th>
-                      <th className="text-left py-2 px-4">적요</th>
-                      <th className="text-center py-2 px-4">작업</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
                       // 스켈레톤 테이블 행들
                       Array.from({ length: 5 }).map((_, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-3 px-2">
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
                           </td>
-                          <td className="py-3 px-2">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                           </td>
-                          <td className="py-3 px-2">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
                           </td>
-                          <td className="py-3 px-4 text-right">
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
                             <div className="h-4 bg-gray-200 rounded animate-pulse w-20 ml-auto"></div>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                           </td>
-                          <td className="py-3 px-4 text-center">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="flex items-center justify-center space-x-1">
                               <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
                               <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -1424,13 +1442,13 @@ const DonationManagement: React.FC = () => {
                       ))
                     ) : (
                       filteredDonations.map((donation) => (
-                        <tr key={donation.id} className="border-b">
-                          <td className="py-3 px-2">{donation.offeredOn}</td>
-                          <td className="py-3 px-2">{donation.donorName}</td>
-                          <td className="py-3 px-2">{donation.fundType}</td>
-                          <td className="py-3 px-4 text-right font-medium">{formatCurrency(donation.amount)}</td>
-                          <td className="py-3 px-4 text-gray-600">{donation.note}</td>
-                          <td className="py-3 px-4 text-center">
+                        <tr key={donation.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.offeredOn}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.donorName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.fundType}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{formatCurrency(donation.amount)}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{donation.note}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="flex items-center justify-center space-x-1">
                               <Button 
                                 variant="ghost" 
@@ -1455,15 +1473,13 @@ const DonationManagement: React.FC = () => {
                       ))
                     )}
                   </tbody>
-                </table>
-                {filteredDonations.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    등록된 헌금 내역이 없습니다.
-                  </div>
-                )}
+              </table>
+            </div>
+            {!loading && filteredDonations.length === 0 && (
+              <div className="text-center py-8 text-gray-600">
+                등록된 헌금 내역이 없습니다.
               </div>
-              </CardContent>
-            </Card>
+            )}
           </div>
         </div>
       )}
@@ -1511,68 +1527,58 @@ const DonationManagement: React.FC = () => {
           </div>
 
           {/* 영수증 목록 */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">기부금 영수증</h3>
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground mb-6">{selectedYear}년 발행된 기부금 영수증 목록입니다.</p>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">발행번호</th>
-                      <th className="text-left py-2">기부자</th>
-                      <th className="text-right py-2">총액</th>
-                      <th className="text-left py-2">발행일</th>
-                      <th className="text-left py-2">발행자</th>
-                      <th className="text-center py-2">작업</th>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">기부금 영수증</h3>
+              <p className="text-sm text-gray-600">{selectedYear}년 발행된 기부금 영수증 목록입니다.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행번호</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">기부자</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">총액</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행일</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행자</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {filteredReceipts.map((receipt) => (
-                      <tr key={receipt.id} className="border-b">
-                        <td className="py-3 font-mono">{receipt.issueNo || receipt.issue_no}</td>
-                        <td className="py-3">{receipt.donorName || receipt.member?.name || ''}</td>
-                        <td className="py-3 text-right font-medium">
+                      <tr key={receipt.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{receipt.issueNo || receipt.issue_no}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{receipt.donorName || receipt.member?.name || ''}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
                           {formatCurrency(receipt.totalAmount || Number(receipt.total_amount) || 0)}
                         </td>
-                        <td className="py-3">
-                          {receipt.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('ko-KR') : 
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {receipt.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('ko-KR') :
                            receipt.issued_at ? new Date(receipt.issued_at).toLocaleDateString('ko-KR') : ''}
                         </td>
-                        <td className="py-3">관리자</td>
-                        <td className="py-3 text-center">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">관리자</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center space-x-1">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleReceiptPrint(receipt)}
                               title="영수증 인쇄"
                             >
                               <Printer className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleReceiptDownload(receipt)}
-                              title="PDF 다운로드"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
-                {filteredReceipts.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {selectedYear}년에 발행된 영수증이 없습니다.
-                  </div>
-                )}
+              </table>
+            </div>
+            {filteredReceipts.length === 0 && (
+              <div className="text-center py-8 text-gray-600">
+                {selectedYear}년에 발행된 영수증이 없습니다.
               </div>
-              </CardContent>
-            </Card>
+            )}
           </div>
         </div>
       )}
@@ -1611,20 +1617,20 @@ const DonationManagement: React.FC = () => {
               
               <div className="border rounded-lg flex-1 flex flex-col overflow-hidden">
                 <div className="overflow-y-auto max-h-96">
-                <table className="w-full relative">
+                <table className="min-w-full divide-y divide-gray-200 relative">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-center py-2 px-3 border-b w-16">무명</th>
-                      <th className="text-left py-2 px-3 border-b">기부자</th>
-                      <th className="text-left py-2 px-3 border-b">헌금 유형</th>
-                      <th className="text-right py-2 px-3 border-b">금액</th>
-                      <th className="text-left py-2 px-3 border-b">적요</th>
-                      <th className="text-center py-2 px-3 border-b w-20">작업</th>
+                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-16">무명</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">기부자</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">헌금 유형</th>
+                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">금액</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
+                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-20">작업</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {bulkDonations.map((bulk, index) => (
-                      <tr key={index} className="border-b">
+                      <tr key={index} className="hover:bg-gray-50">
                         <td className="py-2 px-3 text-center">
                           <input
                             type="checkbox"
@@ -2093,7 +2099,7 @@ const DonationManagement: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, History, Users, User, Bell, Image, Clock } from 'lucide-react';
 import { Button } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
@@ -283,10 +284,11 @@ export default function PushNotifications() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">푸시 알림</h2>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="푸시 알림"
+        description="교인들에게 푸시 알림을 발송하고 발송 이력을 확인합니다."
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
@@ -302,10 +304,10 @@ export default function PushNotifications() {
 
         <TabsContent value="send" className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">알림 대상 선택</h3>
-            <Card className="border-muted">
+            <h3 className="text-lg font-semibold text-gray-900">알림 대상 선택</h3>
+            <Card>
               <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground mb-6">푸시 알림을 받을 대상을 선택하세요</p>
+                <p className="text-sm text-gray-600 mb-6">푸시 알림을 받을 대상을 선택하세요</p>
                 <RadioGroup value={targetType} onValueChange={setTargetType}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="all" id="all" />
@@ -344,10 +346,10 @@ export default function PushNotifications() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">알림 내용</h3>
-            <Card className="border-muted">
+            <h3 className="text-lg font-semibold text-gray-900">알림 내용</h3>
+            <Card>
               <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground mb-6">발송할 푸시 알림의 내용을 작성하세요</p>
+                <p className="text-sm text-gray-600 mb-6">발송할 푸시 알림의 내용을 작성하세요</p>
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="type">알림 유형</Label>
@@ -434,21 +436,21 @@ export default function PushNotifications() {
 
         <TabsContent value="history" className="space-y-4">
           {history.length === 0 ? (
-            <Card className="border-muted">
+            <Card>
               <CardContent className="text-center py-8">
-                <Bell className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">발송한 알림이 없습니다</p>
+                <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600">발송한 알림이 없습니다</p>
               </CardContent>
             </Card>
           ) : (
             history.map((item) => (
-              <Card key={item.id} className="border-muted">
+              <Card key={item.id}>
                 <CardContent className="p-6">
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <h4 className="font-semibold text-foreground">{item.title}</h4>
-                        <p className="text-sm text-muted-foreground">{item.body}</p>
+                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                        <p className="text-sm text-gray-600">{item.body}</p>
                       </div>
                       <div className="flex gap-2">
                         {getStatusBadge(item)}
@@ -456,7 +458,7 @@ export default function PushNotifications() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
                       <span>{getTargetLabel(item.target_type, item.total_recipients)}</span>
                       {item.sent_count > 0 && (
                         <>
@@ -483,11 +485,11 @@ export default function PushNotifications() {
                         </>
                       )}
                       {item.total_recipients === 0 && (
-                        <span className="text-muted-foreground">대상 없음</span>
+                        <span className="text-gray-600">대상 없음</span>
                       )}
                     </div>
 
-                    <div className="flex items-center text-sm text-muted-foreground">
+                    <div className="flex items-center text-sm text-gray-600">
                       <Clock className="mr-1 h-3 w-3" />
                       {new Date(item.sent_at || item.created_at).toLocaleString()}
                     </div>
@@ -553,6 +555,6 @@ export default function PushNotifications() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

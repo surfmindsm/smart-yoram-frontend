@@ -25,7 +25,7 @@ interface Database {
           name: string
           email: string
           phone: string
-          birth_date: string | null
+          birthdate: string | null
           gender: string | null
           address: string | null
           church_id: number
@@ -223,7 +223,7 @@ serve(async (req) => {
       // 교인 데이터 조회 (교회 ID 필터 포함)
       let membersQuery = supabase
         .from('members')
-        .select('gender, church_id')
+        .select('gender, birthdate, church_id')
         .eq('status', 'active')
 
       console.log('🔍 Before church filtering - churchId:', churchId)
@@ -278,16 +278,51 @@ serve(async (req) => {
         return acc
       }, {}) || {}
 
-      // 연령대 통계 (birth_date 컬럼이 없으므로 기본값 반환)
+      // 연령대 통계 (birth_date 기반으로 계산)
       const ageGroups = {
-        '10대 이하': 0,
+        '10대': 0,
         '20대': 0,
         '30대': 0,
         '40대': 0,
         '50대': 0,
-        '60대 이상': 0,
-        '미상': membersData?.length || 0  // 모든 회원을 '미상'으로 분류
+        '60대 이상': 0
       }
+
+      // 현재 날짜
+      const now = new Date()
+
+      // 각 교인의 나이 계산 및 연령대 분류
+      membersData?.forEach((member: any) => {
+        if (member.birthdate) {
+          try {
+            const birthDate = new Date(member.birthdate)
+            const age = now.getFullYear() - birthDate.getFullYear()
+            const monthDiff = now.getMonth() - birthDate.getMonth()
+
+            // 생일이 지나지 않았으면 나이에서 1 빼기
+            const actualAge = (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate()))
+              ? age - 1
+              : age
+
+            // 연령대 분류
+            if (actualAge < 20) {
+              ageGroups['10대']++
+            } else if (actualAge < 30) {
+              ageGroups['20대']++
+            } else if (actualAge < 40) {
+              ageGroups['30대']++
+            } else if (actualAge < 50) {
+              ageGroups['40대']++
+            } else if (actualAge < 60) {
+              ageGroups['50대']++
+            } else {
+              ageGroups['60대 이상']++
+            }
+          } catch (error) {
+            console.error('나이 계산 오류:', error)
+          }
+        }
+      })
 
       const result = {
         gender_distribution: Object.entries(genderStats).map(([gender, count]) => ({

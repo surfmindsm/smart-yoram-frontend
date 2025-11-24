@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
 Deno.serve(async (req) => {
@@ -24,12 +25,20 @@ Deno.serve(async (req) => {
 
     console.log('✅ Supabase 클라이언트 초기화 완료')
 
+    const url = new URL(req.url)
+    const pathParts = url.pathname.split('/').filter(p => p)
+    console.log('🔍 URL 파싱:', { pathname: url.pathname, pathParts, method: req.method })
+
     // Custom authentication header approach
     const customToken = req.headers.get('X-Custom-Auth') || req.headers.get('Authorization')?.replace('Bearer ', '')
     console.log('🔍 인증 토큰 확인:', customToken ? customToken.substring(0, 20) + '...' : 'None')
+    console.log('🔍 모든 헤더:', Object.fromEntries(req.headers.entries()))
 
-    if (!customToken) {
-      console.log('❌ 인증 토큰이 없습니다')
+    // /today endpoint doesn't require authentication (public access)
+    const isPublicEndpoint = pathParts.includes('today')
+
+    if (!customToken && !isPublicEndpoint) {
+      console.log('❌ 인증 토큰이 없습니다 (관리자 엔드포인트)')
       return new Response(
         JSON.stringify({ error: 'Missing authentication' }),
         {
@@ -38,10 +47,6 @@ Deno.serve(async (req) => {
         }
       )
     }
-
-    const url = new URL(req.url)
-    const pathParts = url.pathname.split('/').filter(p => p)
-    console.log('🔍 URL 파싱:', { pathname: url.pathname, pathParts, method: req.method })
 
     // Handle different daily verses endpoints
     if (req.method === 'GET') {

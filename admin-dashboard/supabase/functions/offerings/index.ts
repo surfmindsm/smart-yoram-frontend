@@ -7,6 +7,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 }
 
+// 헌금 유형을 회계 계정과목명으로 매핑하는 함수
+function mapFundTypeToAccountCategory(fundType: string): string {
+  const mapping: { [key: string]: string } = {
+    '십일조': '십일조',
+    '주일헌금': '주일헌금',
+    '감사헌금': '감사헌금',
+    '선교헌금': '선교헌금',
+    '건축헌금': '건축헌금',
+    '절기헌금': '절기헌금',
+    '특별헌금': '특별헌금',
+    '기타': '기타헌금',
+  }
+
+  return mapping[fundType] || '기타헌금'
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -319,6 +335,19 @@ Deno.serve(async (req) => {
 
       // POST /offerings/admin/offerings - Create new offering
       if (pathParts.includes('admin') && pathParts.includes('offerings')) {
+        // input_user_id 검증
+        const inputUserId = body.input_user_id || body.inputUserId;
+        if (!inputUserId) {
+          console.error('❌ input_user_id 누락');
+          return new Response(
+            JSON.stringify({ error: 'input_user_id is required' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+
         const insertData = {
           church_id: body.church_id || body.churchId || 6,
           member_id: body.member_id || body.memberId,
@@ -326,12 +355,73 @@ Deno.serve(async (req) => {
           fund_type: body.fund_type || body.fundType,
           amount: body.amount,
           note: body.note,
-          input_user_id: body.input_user_id || body.inputUserId || 1 // TODO: Extract from token
+          input_user_id: inputUserId
         }
 
+        // 1. 먼저 회계 계정과목 찾기
+        const categoryName = mapFundTypeToAccountCategory(insertData.fund_type)
+        console.log(`🔍 계정과목 찾기: church_id=${insertData.church_id}, categoryName=${categoryName}`)
+
+        const { data: categoryData, error: categoryError } = await supabaseClient
+          .from('account_categories')
+          .select('id')
+          .eq('church_id', insertData.church_id)
+          .eq('name', categoryName)
+          .eq('type', 'income')
+          .single()
+
+        if (categoryError) {
+          console.log('⚠️ 계정과목 조회 오류:', categoryError)
+        }
+
+        let accountingTransactionId = null
+
+        // 2. 회계 거래 생성 (계정과목이 있을 때만)
+        if (categoryData) {
+          console.log(`✅ 계정과목 찾음: id=${categoryData.id}`)
+          // 기부자 이름 조회
+          let donorName = '무명'
+          if (insertData.member_id) {
+            const { data: memberData } = await supabaseClient
+              .from('members')
+              .select('name')
+              .eq('id', insertData.member_id)
+              .single()
+
+            if (memberData) {
+              donorName = memberData.name
+            }
+          }
+
+          const { data: accountingData, error: accountingError } = await supabaseClient
+            .from('accounting_transactions')
+            .insert({
+              church_id: insertData.church_id,
+              transaction_date: insertData.offered_on,
+              category_id: categoryData.id,
+              type: 'income',
+              amount: insertData.amount,
+              description: `헌금 - ${donorName}${insertData.note ? ` (${insertData.note})` : ''}`,
+              payment_method: 'other',
+              input_user_id: insertData.input_user_id,
+            })
+            .select('id')
+            .single()
+
+          if (!accountingError && accountingData) {
+            accountingTransactionId = accountingData.id
+            console.log('✅ 회계 거래 자동 생성:', accountingTransactionId)
+          } else {
+            console.log('⚠️ 회계 거래 생성 실패 (헌금은 등록됨):', accountingError)
+          }
+        } else {
+          console.log('⚠️ 계정과목을 찾을 수 없음 (헌금은 등록됨)')
+        }
+
+        // 3. 헌금 등록 (accounting_transaction_id 포함)
         const { data, error } = await supabaseClient
           .from('offerings')
-          .insert([insertData])
+          .insert([{ ...insertData, accounting_transaction_id: accountingTransactionId }])
           .select(`
             *,
             members:member_id(id, name, email),
@@ -341,6 +431,15 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Database insert error:', error)
+
+          // 헌금 등록 실패 시 생성된 회계 거래 롤백
+          if (accountingTransactionId) {
+            await supabaseClient
+              .from('accounting_transactions')
+              .delete()
+              .eq('id', accountingTransactionId)
+          }
+
           return new Response(
             JSON.stringify({ error: 'Failed to create offering', details: error.message }),
             {
@@ -367,6 +466,13 @@ Deno.serve(async (req) => {
       if (pathParts.includes('admin') && pathParts.includes('offerings')) {
         const offeringId = pathParts[pathParts.length - 1]
 
+        // 1. 기존 헌금 데이터 조회 (accounting_transaction_id 포함)
+        const { data: existingOffering } = await supabaseClient
+          .from('offerings')
+          .select('accounting_transaction_id, church_id, member_id')
+          .eq('id', offeringId)
+          .single()
+
         const updateData = {
           member_id: body.member_id || body.memberId,
           offered_on: body.offered_on || body.offeredOn,
@@ -383,6 +489,7 @@ Deno.serve(async (req) => {
           }
         })
 
+        // 2. 헌금 데이터 업데이트
         const { data, error } = await supabaseClient
           .from('offerings')
           .update(updateData)
@@ -405,6 +512,66 @@ Deno.serve(async (req) => {
           )
         }
 
+        // 3. 연동된 회계 거래가 있으면 업데이트
+        if (existingOffering?.accounting_transaction_id) {
+          // 기부자 이름 조회 (업데이트된 member_id 사용)
+          let donorName = '무명'
+          const memberId = updateData.member_id || existingOffering.member_id
+          if (memberId) {
+            const { data: memberData } = await supabaseClient
+              .from('members')
+              .select('name')
+              .eq('id', memberId)
+              .single()
+
+            if (memberData) {
+              donorName = memberData.name
+            }
+          }
+
+          // 회계 거래 업데이트 데이터 준비
+          const accountingUpdateData: any = {
+            updated_at: new Date().toISOString()
+          }
+
+          if (updateData.offered_on) {
+            accountingUpdateData.transaction_date = updateData.offered_on
+          }
+          if (updateData.amount !== undefined) {
+            accountingUpdateData.amount = updateData.amount
+          }
+          if (updateData.fund_type || updateData.note !== undefined || memberId) {
+            accountingUpdateData.description = `헌금 - ${donorName}${updateData.note || data.note ? ` (${updateData.note || data.note})` : ''}`
+          }
+
+          // 계정과목 변경이 있으면 category_id도 업데이트
+          if (updateData.fund_type) {
+            const categoryName = mapFundTypeToAccountCategory(updateData.fund_type)
+            const { data: categoryData } = await supabaseClient
+              .from('account_categories')
+              .select('id')
+              .eq('church_id', existingOffering.church_id)
+              .eq('name', categoryName)
+              .eq('type', 'income')
+              .single()
+
+            if (categoryData) {
+              accountingUpdateData.category_id = categoryData.id
+            }
+          }
+
+          const { error: accountingUpdateError } = await supabaseClient
+            .from('accounting_transactions')
+            .update(accountingUpdateData)
+            .eq('id', existingOffering.accounting_transaction_id)
+
+          if (accountingUpdateError) {
+            console.log('⚠️ 회계 거래 업데이트 실패:', accountingUpdateError)
+          } else {
+            console.log('✅ 회계 거래 동기화 완료')
+          }
+        }
+
         return new Response(
           JSON.stringify(data),
           {
@@ -419,6 +586,14 @@ Deno.serve(async (req) => {
       if (pathParts.includes('admin') && pathParts.includes('offerings')) {
         const offeringId = pathParts[pathParts.length - 1]
 
+        // 1. 삭제할 헌금의 accounting_transaction_id 먼저 조회
+        const { data: existingOffering } = await supabaseClient
+          .from('offerings')
+          .select('accounting_transaction_id')
+          .eq('id', offeringId)
+          .single()
+
+        // 2. 헌금 삭제
         const { error } = await supabaseClient
           .from('offerings')
           .delete()
@@ -433,6 +608,20 @@ Deno.serve(async (req) => {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           )
+        }
+
+        // 3. 연동된 회계 거래가 있으면 함께 삭제
+        if (existingOffering?.accounting_transaction_id) {
+          const { error: accountingDeleteError } = await supabaseClient
+            .from('accounting_transactions')
+            .delete()
+            .eq('id', existingOffering.accounting_transaction_id)
+
+          if (accountingDeleteError) {
+            console.log('⚠️ 회계 거래 삭제 실패:', accountingDeleteError)
+          } else {
+            console.log('✅ 연동된 회계 거래도 삭제 완료')
+          }
         }
 
         return new Response(

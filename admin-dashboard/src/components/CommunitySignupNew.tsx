@@ -12,6 +12,7 @@ import { Spinner } from "./ui/spinner";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { communityApplicationService, CommunityApplicationRequest } from '../services/communityApplicationService';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabase } from '../lib/supabase';
 
 interface SignupFormData {
   applicantType: string;
@@ -251,38 +252,96 @@ const CommunitySignupNew: React.FC = () => {
 
     setLoading(true);
 
-    // church_admin을 임시로 organization으로 매핑 (백엔드 수정 전까지)
-    const mappedApplicantType = formData.applicantType === 'church_admin' 
-      ? 'organization' 
-      : formData.applicantType;
-
-    const requestData: CommunityApplicationRequest = {
-      applicant_type: mappedApplicantType as any,
-      organization_name: formData.organizationName,
-      contact_person: formData.contactPerson,
-      email: formData.email,
-      phone: formData.phone,
-      description: formData.description,
-      business_number: formData.businessNumber || undefined,
-      address: formData.address || undefined,
-      service_area: formData.serviceArea || undefined,
-      website: formData.website || undefined,
-      attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
-      agree_terms: formData.agreeTerms,
-      agree_privacy: formData.agreePrivacy,
-      agree_marketing: formData.agreeMarketing
-    };
-
     try {
-      // 파일 첨부 기능이 다시 활성화됨
+      // 1. 먼저 파일을 Supabase Storage에 업로드
+      const uploadedAttachments: Array<{ filename: string; path: string; size: number; url: string }> = [];
+
+      if (formData.attachments.length > 0) {
+        console.log(`📎 ${formData.attachments.length}개 파일 업로드 시작...`);
+
+        for (let i = 0; i < formData.attachments.length; i++) {
+          const file = formData.attachments[i];
+          const timestamp = Date.now();
+          const randomString = Math.random().toString(36).substring(2, 15);
+          const fileExtension = file.name.split('.').pop();
+          const fileName = `application_${timestamp}_${randomString}.${fileExtension}`;
+          const storagePath = `applications/${fileName}`;
+
+          console.log(`📎 파일 ${i + 1} 업로드 시작: ${file.name} -> ${storagePath}`);
+
+          try {
+            // Supabase Storage에 업로드
+            const { data, error } = await supabase.storage
+              .from('community-application-files')
+              .upload(storagePath, file, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
+            if (error) {
+              console.error(`❌ 파일 ${i + 1} 업로드 실패:`, error);
+              throw new Error(`파일 업로드 실패: ${file.name}`);
+            }
+
+            // 공개 URL 생성
+            const { data: publicUrlData } = supabase.storage
+              .from('community-application-files')
+              .getPublicUrl(storagePath);
+
+            const publicUrl = publicUrlData.publicUrl;
+            console.log(`✅ 파일 ${i + 1} 업로드 완료:`, publicUrl);
+
+            uploadedAttachments.push({
+              filename: file.name,
+              path: storagePath,
+              size: file.size,
+              url: publicUrl
+            });
+
+          } catch (uploadError: any) {
+            console.error(`❌ 파일 ${i + 1} 업로드 중 오류:`, uploadError);
+            setError(`파일 업로드 실패: ${file.name}. ${uploadError.message}`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log(`✅ 총 ${uploadedAttachments.length}개 파일 업로드 완료`);
+      }
+
+      // 2. church_admin을 임시로 organization으로 매핑 (백엔드 수정 전까지)
+      const mappedApplicantType = formData.applicantType === 'church_admin'
+        ? 'organization'
+        : formData.applicantType;
+
+      // 3. 신청서 데이터 준비 (파일 정보 포함)
+      const requestData: CommunityApplicationRequest = {
+        applicant_type: mappedApplicantType as any,
+        organization_name: formData.organizationName,
+        contact_person: formData.contactPerson,
+        email: formData.email,
+        phone: formData.phone,
+        description: formData.description,
+        business_number: formData.businessNumber || undefined,
+        address: formData.address || undefined,
+        service_area: formData.serviceArea || undefined,
+        website: formData.website || undefined,
+        // 업로드된 파일 정보를 attachments에 포함
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments as any : undefined,
+        agree_terms: formData.agreeTerms,
+        agree_privacy: formData.agreePrivacy,
+        agree_marketing: formData.agreeMarketing
+      };
+
       console.log('🔍 전송할 데이터:', requestData);
+
+      // 4. 신청서 제출
       const result = await communityApplicationService.submitApplication(requestData);
       console.log('✅ 신청 완료:', result);
       setSuccess(true);
     } catch (err: any) {
       console.error('❌ 신청 실패:', err);
-      console.error('❌ 전송한 데이터:', requestData);
-      
+
       // 422 에러인 경우 상세 정보 표시
       if (err.response?.status === 422) {
         console.error('❌ 422 에러 상세:', err.response?.data);

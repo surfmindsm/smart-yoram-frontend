@@ -12,6 +12,7 @@ import { Spinner } from "./ui/spinner";
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { churchApplicationService, ChurchApplicationRequest } from '../services/churchApplicationService';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { supabase } from '../lib/supabase';
 
 interface SignupFormData {
   churchName: string;
@@ -287,32 +288,92 @@ const ChurchSignup: React.FC = () => {
 
     setLoading(true);
 
-    const requestData: ChurchApplicationRequest = {
-      church_name: formData.churchName,
-      pastor_name: formData.pastorName,
-      admin_name: formData.adminName,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      description: '',
-      agree_terms: formData.agreeTerms,
-      agree_privacy: formData.agreePrivacy,
-      agree_marketing: formData.agreeMarketing,
-      business_no: formData.churchRegistrationNumber || undefined,
-      homepage_url: formData.homepageUrl || undefined,
-      youtube_channel: formData.youtubeChannel || undefined,
-      established_year: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
-      denomination: formData.denomination || undefined,
-      member_count: formData.memberCount ? parseInt(formData.memberCount) : undefined,
-      attachments: formData.attachments.length > 0 ? formData.attachments : undefined
-    };
-
     try {
+      // 1. 먼저 파일을 Supabase Storage에 업로드
+      const uploadedAttachments: Array<{ filename: string; path: string; size: number; url: string }> = [];
+
+      if (formData.attachments.length > 0) {
+        console.log(`📎 ${formData.attachments.length}개 파일 업로드 시작...`);
+
+        for (let i = 0; i < formData.attachments.length; i++) {
+          const file = formData.attachments[i];
+          const timestamp = Date.now();
+          const randomString = Math.random().toString(36).substring(2, 15);
+          const fileExtension = file.name.split('.').pop();
+          const fileName = `application_${timestamp}_${randomString}.${fileExtension}`;
+          const storagePath = `applications/${fileName}`;
+
+          console.log(`📎 파일 ${i + 1} 업로드 시작: ${file.name} -> ${storagePath}`);
+
+          try {
+            // Supabase Storage에 업로드
+            const { data, error } = await supabase.storage
+              .from('church-application-files')
+              .upload(storagePath, file, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
+            if (error) {
+              console.error(`❌ 파일 ${i + 1} 업로드 실패:`, error);
+              throw new Error(`파일 업로드 실패: ${file.name}`);
+            }
+
+            // 공개 URL 생성
+            const { data: publicUrlData } = supabase.storage
+              .from('church-application-files')
+              .getPublicUrl(storagePath);
+
+            const publicUrl = publicUrlData.publicUrl;
+            console.log(`✅ 파일 ${i + 1} 업로드 완료:`, publicUrl);
+
+            uploadedAttachments.push({
+              filename: file.name,
+              path: storagePath,
+              size: file.size,
+              url: publicUrl
+            });
+
+          } catch (uploadError: any) {
+            console.error(`❌ 파일 ${i + 1} 업로드 중 오류:`, uploadError);
+            setError(`파일 업로드 실패: ${file.name}. ${uploadError.message}`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log(`✅ 총 ${uploadedAttachments.length}개 파일 업로드 완료`);
+      }
+
+      // 2. 신청서 데이터 준비 (파일 정보 포함)
+      const requestData: ChurchApplicationRequest = {
+        church_name: formData.churchName,
+        pastor_name: formData.pastorName,
+        admin_name: formData.adminName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        description: '',
+        agree_terms: formData.agreeTerms,
+        agree_privacy: formData.agreePrivacy,
+        agree_marketing: formData.agreeMarketing,
+        business_no: formData.churchRegistrationNumber || undefined,
+        homepage_url: formData.homepageUrl || undefined,
+        youtube_channel: formData.youtubeChannel || undefined,
+        established_year: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
+        denomination: formData.denomination || undefined,
+        member_count: formData.memberCount ? parseInt(formData.memberCount) : undefined,
+        // 업로드된 파일 정보를 attachments에 포함
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments as any : undefined
+      };
+
       console.log('🔍 전송할 데이터:', requestData);
+
+      // 3. 신청서 제출
       const result = await churchApplicationService.submitApplication(requestData);
       console.log('✅ 신청 완료:', result);
 
-      // 신청 알림 이메일 발송
+      // 4. 신청 알림 이메일 발송
       try {
         await supabaseApiService.notifyApplication.send(
           'church',
@@ -330,7 +391,6 @@ const ChurchSignup: React.FC = () => {
       setSuccess(true);
     } catch (err: any) {
       console.error('❌ 신청 실패:', err);
-      console.error('❌ 전송한 데이터:', requestData);
 
       if (err.response?.status === 422) {
         console.error('❌ 422 에러 상세:', err.response?.data);

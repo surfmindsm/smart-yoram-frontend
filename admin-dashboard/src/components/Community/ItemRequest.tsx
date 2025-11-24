@@ -7,6 +7,7 @@ import {
   HandHeart
 } from 'lucide-react';
 import { Button } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, RequestItem } from '../../services/communityService';
@@ -17,7 +18,6 @@ import { getCities, getDistricts } from '../../data/koreaLocations';
 
 
 const ItemRequest: React.FC = () => {
-  console.log('ItemRequest 컴포넌트 로드됨');
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -34,7 +34,6 @@ const ItemRequest: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`📈 물품요청 조회수 증가: ${data.data?.previous_view_count || 'unknown'} → ${data.data?.new_view_count || 'unknown'}`);
         return data.data?.new_view_count;
       }
     } catch (error) {
@@ -192,19 +191,16 @@ const ItemRequest: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('물품 요청 데이터 로딩 시작');
         setLoading(true);
-        
+
         const params = {
           category: selectedCategory === 'all' ? undefined : selectedCategory,
           status: selectedStatus === 'all' ? undefined : selectedStatus,
           search: searchTerm || undefined,
           limit: 50
         };
-        console.log('🔍 현재 필터 상태:', { selectedCategory, selectedStatus, searchTerm });
-        
+
         const data = await communityService.getRequestItems(params);
-        console.log('물품 요청 데이터 받음:', data?.length || 0, '개');
 
         // 필터링 로직에서 표준 상태값 사용
         const filteredData = data.filter((item: any) => {
@@ -225,7 +221,6 @@ const ItemRequest: React.FC = () => {
         console.error('물품 요청 데이터 로드 실패:', error);
         setRequestItems([]);
       } finally {
-        console.log('물품 요청 데이터 로딩 완료');
         setLoading(false);
       }
     };
@@ -255,39 +250,35 @@ const ItemRequest: React.FC = () => {
 
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-end pr-6 mb-4">
-        <div className="flex-1 max-w-md">
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">물품 요청</h1>
-          <p className="text-sm text-gray-600">필요한 물품을 요청하고 다른 교회와 나누어요</p>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title="물품 요청"
+        description="필요한 물품을 요청하고 다른 교회와 나누어요"
+        actions={
+          <div className="flex items-center gap-3">
+            {/* 검색바 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
 
-        <div className="flex items-center gap-3">
-          {/* 검색바 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
+            {/* New 버튼 */}
+            <Button
+              onClick={() => navigate(getCreatePagePath('item-request'))}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
           </div>
-
-
-
-          {/* New 버튼 */}
-          <Button
-            onClick={() => navigate(getCreatePagePath('item-request'))}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 필터들 */}
       <div className="mb-4 flex gap-4">
@@ -343,8 +334,7 @@ const ItemRequest: React.FC = () => {
         emptyIcon={<HandHeart className="h-12 w-12 text-gray-400" />}
         selectable={false}
       />
-
-    </div>
+    </PageContainer>
   );
 };
 

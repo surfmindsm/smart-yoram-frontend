@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function FeaturesSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [sectionRef, isVisible] = useIntersectionObserver({ threshold: 0.1 });
 
   const features = [
     {
@@ -48,10 +50,10 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="relative py-32 px-6 bg-gray-50">
+    <section id="features" className="relative py-32 px-6 bg-gray-50" ref={sectionRef}>
       <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 - Big Typo */}
-        <div className="mb-24">
+        <div className={`mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">FEATURES</p>
           <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
             핵심 기능
@@ -64,7 +66,10 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="border-b border-gray-200"
+              className={`border-b border-gray-200 transition-all duration-700 ${
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              }`}
+              style={{ transitionDelay: `${index * 150 + 300}ms` }}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}

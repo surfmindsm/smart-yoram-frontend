@@ -15,6 +15,8 @@ Deno.serve(async (req) => {
 
   try {
     console.log('⛪ Worship Services Edge Function 시작')
+    console.log('⛪ 요청 메서드:', req.method)
+    console.log('⛪ 요청 URL:', req.url)
 
     // Initialize Supabase client with service role key for database access
     const supabaseClient = createClient(
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
 
     // Validate custom token format (temp_token_${user_id}_${timestamp} or temp_system_token)
     if (!customToken.startsWith('temp_token_') && customToken !== 'temp_system_token') {
-      console.log('❌ 잘못된 토큰 형식')
+      console.log('❌ 잘못된 토큰 형식:', customToken)
       return new Response(
         JSON.stringify({ error: 'Invalid token format' }),
         {
@@ -55,7 +57,14 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(p => p)
-    console.log('🔍 URL 파싱:', { pathname: url.pathname, pathParts, method: req.method })
+    console.log('🔍 URL 파싱:', {
+      pathname: url.pathname,
+      pathParts,
+      pathPartsLength: pathParts.length,
+      method: req.method,
+      includesAdmin: pathParts.includes('admin'),
+      includesServices: pathParts.includes('services')
+    })
 
     // Handle different worship services endpoints
     if (req.method === 'GET') {
@@ -186,24 +195,236 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== Category Endpoints (check before general POST to avoid body consumption) =====
+
+    if (req.method === 'POST' && pathParts.includes('categories')) {
+      console.log('📂 카테고리 생성 요청')
+
+      let body
+      try {
+        const rawBody = await req.text()
+        body = JSON.parse(rawBody)
+      } catch (parseError: any) {
+        console.error('❌ JSON 파싱 오류:', parseError.message)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      const insertData = {
+        church_id: body.church_id,
+        name: body.name,
+        description: body.description || null,
+        order_index: body.order_index !== undefined ? body.order_index : 0
+      }
+
+      const { data, error } = await supabaseClient
+        .from('worship_service_categories')
+        .insert([insertData])
+        .select('*')
+        .single()
+
+      if (error) {
+        console.error('❌ 카테고리 생성 오류:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create category', details: error.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      console.log('✅ 카테고리 생성 성공:', data)
+      return new Response(
+        JSON.stringify(data),
+        {
+          status: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (req.method === 'GET' && pathParts.includes('categories')) {
+      console.log('📂 카테고리 목록 조회 요청')
+
+      const churchId = url.searchParams.get('church_id')
+
+      let query = supabaseClient
+        .from('worship_service_categories')
+        .select('*')
+        .order('order_index', { ascending: true })
+
+      if (churchId) {
+        query = query.eq('church_id', parseInt(churchId))
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('❌ 카테고리 조회 오류:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch categories', details: error.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      console.log('✅ 카테고리 조회 성공:', data?.length || 0, '개')
+      return new Response(
+        JSON.stringify({ data: data || [] }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (req.method === 'PUT' && pathParts.includes('categories')) {
+      console.log('📂 카테고리 수정 요청')
+
+      const categoryId = pathParts[pathParts.length - 1]
+
+      let body
+      try {
+        const rawBody = await req.text()
+        body = JSON.parse(rawBody)
+      } catch (parseError: any) {
+        console.error('❌ JSON 파싱 오류:', parseError.message)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      const updateData = {
+        name: body.name,
+        description: body.description,
+        order_index: body.order_index,
+        updated_at: new Date().toISOString()
+      }
+
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key]
+        }
+      })
+
+      const { data, error } = await supabaseClient
+        .from('worship_service_categories')
+        .update(updateData)
+        .eq('id', categoryId)
+        .select('*')
+        .single()
+
+      if (error) {
+        console.error('❌ 카테고리 수정 오류:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to update category', details: error.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      console.log('✅ 카테고리 수정 성공:', data)
+      return new Response(
+        JSON.stringify(data),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (req.method === 'DELETE' && pathParts.includes('categories')) {
+      console.log('📂 카테고리 삭제 요청')
+
+      const categoryId = pathParts[pathParts.length - 1]
+
+      const { error } = await supabaseClient
+        .from('worship_service_categories')
+        .delete()
+        .eq('id', categoryId)
+
+      if (error) {
+        console.error('❌ 카테고리 삭제 오류:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to delete category', details: error.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      console.log('✅ 카테고리 삭제 성공')
+      return new Response(
+        JSON.stringify({ message: 'Category deleted successfully' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     if (req.method === 'POST') {
-      const body = await req.json()
+      console.log('📥 POST 요청 처리 시작')
+      console.log('📥 Content-Type:', req.headers.get('Content-Type'))
+
+      let body
+      try {
+        const rawBody = await req.text()
+        console.log('📥 Raw body:', rawBody)
+        console.log('📥 Raw body type:', typeof rawBody)
+        body = JSON.parse(rawBody)
+        console.log('📥 Parsed body:', JSON.stringify(body, null, 2))
+      } catch (parseError: any) {
+        console.error('❌ JSON 파싱 오류:', parseError.message)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
 
       // POST /worship-services/admin/services - Create new service
       if (pathParts.includes('admin') && pathParts.includes('services')) {
+        // Convert HH:MM to HH:MM:SS for PostgreSQL TIME type
+        const formatTime = (time: string) => {
+          if (!time) return time
+          const parts = time.split(':')
+          if (parts.length === 2) {
+            return `${time}:00`
+          }
+          return time
+        }
+
         const insertData = {
           church_id: body.church_id,
           name: body.name,
           location: body.location,
           day_of_week: body.day_of_week,
-          start_time: body.start_time,
-          end_time: body.end_time,
+          start_time: formatTime(body.start_time),
+          end_time: body.end_time ? formatTime(body.end_time) : null,
           service_type: body.service_type,
           target_group: body.target_group,
           is_online: body.is_online !== undefined ? body.is_online : false,
           is_active: body.is_active !== undefined ? body.is_active : true,
-          order_index: body.order_index
+          order_index: body.order_index !== undefined ? body.order_index : 0
         }
+
+        console.log('💾 데이터베이스 삽입 데이터:', JSON.stringify(insertData, null, 2))
 
         const { data, error } = await supabaseClient
           .from('worship_services')
@@ -212,9 +433,15 @@ Deno.serve(async (req) => {
           .single()
 
         if (error) {
-          console.error('Database insert error:', error)
+          console.error('❌ Database insert error:', error)
+          console.error('❌ Error details:', JSON.stringify(error, null, 2))
           return new Response(
-            JSON.stringify({ error: 'Failed to create service', details: error.message }),
+            JSON.stringify({
+              error: 'Failed to create service',
+              details: error.message,
+              code: error.code,
+              hint: error.hint
+            }),
             {
               status: 500,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -222,6 +449,7 @@ Deno.serve(async (req) => {
           )
         }
 
+        console.log('✅ 예배 서비스 생성 성공:', data)
         return new Response(
           JSON.stringify(data),
           {
@@ -325,10 +553,26 @@ Deno.serve(async (req) => {
       }
     )
 
-  } catch (error) {
-    console.error('Unexpected error:', error)
+  } catch (error: any) {
+    console.error('❌ Unexpected error:', error)
+    console.error('❌ Error type:', typeof error)
+    console.error('❌ Error keys:', error ? Object.keys(error) : 'null')
+
+    const errorMessage = error?.message || error?.toString() || 'Unknown error'
+    const errorDetails = {
+      message: errorMessage,
+      name: error?.name,
+      stack: error?.stack,
+    }
+
+    console.error('❌ Error details:', errorDetails)
+
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({
+        error: 'Internal server error',
+        details: errorMessage,
+        debug: errorDetails
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

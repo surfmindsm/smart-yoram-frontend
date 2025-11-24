@@ -95,7 +95,7 @@ class ChurchApplicationService {
       const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/church-applications`;
 
-      // JSON 데이터 준비 (파일 제외)
+      // JSON 데이터 준비 (파일 정보 포함)
       const requestData = {
         church_name: data.church_name,
         pastor_name: data.pastor_name,
@@ -114,6 +114,7 @@ class ChurchApplicationService {
         established_year: data.established_year || null,
         denomination: data.denomination || null,
         member_count: data.member_count || null,
+        attachments: data.attachments || null, // 파일 정보 포함
       };
 
       console.log('📤 Supabase Edge Function 전송:', requestData);
@@ -566,6 +567,71 @@ class ChurchApplicationService {
 
     } catch (error) {
       console.error('교회 신청서 반려 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 첨부파일 다운로드 (Supabase Storage 사용)
+   */
+  async downloadAttachment(applicationId: number, filename: string): Promise<void> {
+    try {
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
+
+      console.log('📥 파일 다운로드 시작:', filename);
+
+      // 신청서 정보를 가져와서 attachments에서 해당 파일 찾기
+      const { data: application, error: fetchError } = await supabase
+        .from('church_applications')
+        .select('attachments')
+        .eq('id', applicationId)
+        .single();
+
+      if (fetchError || !application) {
+        console.error('❌ 신청서 조회 실패:', fetchError);
+        throw new Error('신청서를 찾을 수 없습니다.');
+      }
+
+      // attachments 파싱
+      let attachments = [];
+      if (typeof application.attachments === 'string') {
+        attachments = JSON.parse(application.attachments || '[]');
+      } else if (Array.isArray(application.attachments)) {
+        attachments = application.attachments;
+      }
+
+      // 파일 정보 찾기
+      const fileInfo = attachments.find((att: any) => att.filename === filename);
+      if (!fileInfo) {
+        throw new Error('파일을 찾을 수 없습니다.');
+      }
+
+      console.log('📥 파일 정보:', fileInfo);
+
+      // Supabase Storage에서 파일 다운로드
+      const { data, error } = await supabase.storage
+        .from('church-application-files')
+        .download(fileInfo.path);
+
+      if (error) {
+        console.error('❌ Supabase Storage 다운로드 실패:', error);
+        throw new Error('파일 다운로드에 실패했습니다.');
+      }
+
+      // Blob을 URL로 변환하여 다운로드
+      const url = window.URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log('✅ 파일 다운로드 완료:', filename);
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
       throw error;
     }
   }

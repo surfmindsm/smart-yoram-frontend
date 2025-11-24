@@ -103,20 +103,51 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PUT') {
-      // Mark announcement as read
+      // Update announcement or mark as read
       const url = new URL(req.url)
       const pathParts = url.pathname.split('/')
-      const announcementId = pathParts[pathParts.length - 2] // Get ID from path like /read/1
+      const announcementId = pathParts[pathParts.length - 2] // Get ID from path like /1/read or /1
 
       if (pathParts[pathParts.length - 1] === 'read') {
-        // Mock marking as read
+        // Mark announcement as read
         return new Response(
           JSON.stringify({ message: 'Announcement marked as read' }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
+      } else {
+        // Update announcement
+        const body = await req.json()
+        const id = pathParts[pathParts.length - 1]
+
+        const updatedAnnouncement = {
+          id: parseInt(id),
+          ...body,
+          updated_at: new Date().toISOString()
+        }
+
+        return new Response(
+          JSON.stringify(updatedAnnouncement),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
+    }
+
+    if (req.method === 'DELETE') {
+      // Delete announcement
+      const url = new URL(req.url)
+      const pathParts = url.pathname.split('/')
+      const id = pathParts[pathParts.length - 1]
+
+      return new Response(
+        JSON.stringify({ message: 'Announcement deleted successfully', id }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     return new Response(

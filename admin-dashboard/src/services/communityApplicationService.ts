@@ -90,7 +90,7 @@ class CommunityApplicationService {
       const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
 
-      // JSON 데이터 준비
+      // JSON 데이터 준비 (파일 정보 포함)
       const requestData = {
         applicant_type: data.applicant_type,
         organization_name: data.organization_name,
@@ -105,6 +105,7 @@ class CommunityApplicationService {
         address: data.address || null,
         service_area: data.service_area || null,
         website: data.website || null,
+        attachments: data.attachments || null, // 파일 정보 포함
       };
 
       console.log('📤 Supabase Edge Function 전송:', requestData);
@@ -475,32 +476,55 @@ class CommunityApplicationService {
   }
 
   /**
-   * 첨부파일 다운로드 (슈퍼어드민 전용)
+   * 첨부파일 다운로드 (Supabase Storage 사용)
    */
   async downloadAttachment(applicationId: number, filename: string): Promise<void> {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
+      // Supabase 클라이언트 동적 import
+      const { supabase } = await import('../lib/supabase');
+
+      console.log('📥 파일 다운로드 시작:', filename);
+
+      // 신청서 정보를 가져와서 attachments에서 해당 파일 찾기
+      const { data: application, error: fetchError } = await supabase
+        .from('community_applications')
+        .select('attachments')
+        .eq('id', applicationId)
+        .single();
+
+      if (fetchError || !application) {
+        console.error('❌ 신청서 조회 실패:', fetchError);
+        throw new Error('신청서를 찾을 수 없습니다.');
       }
 
-      const response = await fetch(
-        `${BASE_URL}/community/admin/applications/${applicationId}/attachments/${filename}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (!response.ok) {
+      // attachments 파싱
+      let attachments = [];
+      if (typeof application.attachments === 'string') {
+        attachments = JSON.parse(application.attachments || '[]');
+      } else if (Array.isArray(application.attachments)) {
+        attachments = application.attachments;
+      }
+
+      // 파일 정보 찾기
+      const fileInfo = attachments.find((att: any) => att.filename === filename);
+      if (!fileInfo) {
+        throw new Error('파일을 찾을 수 없습니다.');
+      }
+
+      console.log('📥 파일 정보:', fileInfo);
+
+      // Supabase Storage에서 파일 다운로드
+      const { data, error } = await supabase.storage
+        .from('community-application-files')
+        .download(fileInfo.path);
+
+      if (error) {
+        console.error('❌ Supabase Storage 다운로드 실패:', error);
         throw new Error('파일 다운로드에 실패했습니다.');
       }
-      
-      // 파일 다운로드 처리
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+
+      // Blob을 URL로 변환하여 다운로드
+      const url = window.URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -508,6 +532,8 @@ class CommunityApplicationService {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      console.log('✅ 파일 다운로드 완료:', filename);
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
       throw error;

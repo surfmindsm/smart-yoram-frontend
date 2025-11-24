@@ -107,19 +107,31 @@ export const announcementService = {
 
   // 시스템 공지사항 수정 (시스템 관리자용)
   updateSystemAnnouncement: async (id: number, announcement: AnnouncementUpdate): Promise<Announcement> => {
-    const payload = {
-      ...announcement,
-      target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
-    };
-    delete payload.target_church_ids;
-    
-    const response = await api.put(getApiUrl(`/system-announcements/${id}`), payload);
-    return response.data;
+    try {
+      const payload = {
+        ...announcement,
+        target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
+      };
+      delete payload.target_church_ids;
+
+      // Use Supabase API
+      const response = await supabaseApiService.systemAnnouncements.update(id, payload);
+      return response.data;
+    } catch (error) {
+      console.error('시스템 공지사항 수정 실패:', error);
+      throw error;
+    }
   },
 
   // 시스템 공지사항 삭제 (시스템 관리자용)
   deleteSystemAnnouncement: async (id: number): Promise<void> => {
-    await api.delete(getApiUrl(`/system-announcements/${id}`));
+    try {
+      // Use Supabase API
+      await supabaseApiService.systemAnnouncements.delete(id);
+    } catch (error) {
+      console.error('시스템 공지사항 삭제 실패:', error);
+      throw error;
+    }
   },
 
   // 시스템 공지사항 읽음 처리

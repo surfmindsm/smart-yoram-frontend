@@ -10,7 +10,6 @@ import axios from 'axios';
 import {
   Search,
   Plus,
-  RefreshCw,
   Camera,
   QrCode,
   ChevronUp,
@@ -47,6 +46,7 @@ import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "./ui";
 import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
+import { PageContainer, PageHeader, FilterBar } from "./ui";
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
@@ -1258,150 +1258,143 @@ const MemberManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">교인 관리</h2>
-          {selectedMembers.size > 0 && (
-            <Badge variant="default" className="text-sm px-3 py-1">
-              {selectedMembers.size}명 선택됨
-            </Badge>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {selectedMembers.size > 0 && (
+    <PageContainer>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-4">
+            <span>교인 관리</span>
+            {selectedMembers.size > 0 && (
+              <Badge variant="default" className="text-sm px-3 py-1">
+                {selectedMembers.size}명 선택됨
+              </Badge>
+            )}
+          </div>
+        }
+        description="교회 교인 정보를 관리합니다."
+        actions={
+          <>
+            {selectedMembers.size > 0 && (
+              <Button
+                onClick={handleBulkInvitation}
+                disabled={isBulkInviting}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              >
+                {isBulkInviting ? (
+                  <Spinner size="sm" variant="white" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                선택한 교인 초대 ({selectedMembers.size}명)
+              </Button>
+            )}
             <Button
-              onClick={handleBulkInvitation}
-              disabled={isBulkInviting}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              onClick={downloadMembersExcel}
+              variant="outline"
+              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
             >
-              {isBulkInviting ? (
-                <Spinner size="sm" variant="white" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              선택한 교인 초대 ({selectedMembers.size}명)
+              <Download className="w-4 h-4" />
+              교인 데이터 다운로드
             </Button>
-          )}
-          <Button
-            onClick={downloadMembersExcel}
-            variant="outline"
-            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
-          >
-            <Download className="w-4 h-4" />
-            교인 데이터 다운로드
-          </Button>
-          <Button
-            onClick={downloadExcelTemplate}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            엑셀 템플릿 다운로드
-          </Button>
-          <Button
-            onClick={() => setShowExcelImportModal(true)}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            엑셀 일괄 등록
-          </Button>
-          <Button
-            onClick={() => setShowAddMemberModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            교인 추가
-          </Button>
-        </div>
-      </div>
+            <Button
+              onClick={downloadExcelTemplate}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              엑셀 템플릿 다운로드
+            </Button>
+            <Button
+              onClick={() => setShowExcelImportModal(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              엑셀 일괄 등록
+            </Button>
+            <Button
+              onClick={() => setShowAddMemberModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              교인 추가
+            </Button>
+          </>
+        }
+      />
 
 
       {/* Search and Filter */}
-      <Card className="border-muted">
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-foreground mb-1">검색</label>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="이름 또는 전화번호 (초성 검색 가능: ㄱㅊㅅ)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="flex-1"
-                />
+      <div className="mb-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-gray-900 mb-1">검색</label>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="이름 또는 전화번호 (초성 검색 가능: ㄱㅊㅅ)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSearch}
+                className="flex items-center gap-2"
+              >
+                <Search className="w-4 h-4" />
+                검색
+              </Button>
+              {appliedSearchTerm && (
                 <Button
-                  onClick={handleSearch}
-                  className="flex items-center gap-2"
-                >
-                  <Search className="w-4 h-4" />
-                  검색
-                </Button>
-                {appliedSearchTerm && (
-                  <Button
-                    onClick={handleClearSearch}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    전체보기
-                  </Button>
-                )}
-                <Button
-                  onClick={() => setShowAdvancedSearch(true)}
+                  onClick={handleClearSearch}
                   variant="outline"
                   className="flex items-center gap-2"
                 >
-                  <Settings className="w-4 h-4" />
-                  상세검색
+                  <X className="w-4 h-4" />
+                  전체보기
                 </Button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">상태</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체</SelectItem>
-                  <SelectItem value="active">활동</SelectItem>
-                  <SelectItem value="inactive">비활동</SelectItem>
-                  <SelectItem value="transferred">이전</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
+              )}
               <Button
-                onClick={fetchMembers}
-                variant="secondary"
+                onClick={() => setShowAdvancedSearch(true)}
+                variant="outline"
                 className="flex items-center gap-2"
               >
-                <RefreshCw className="w-4 h-4" />
-                새로고침
+                <Settings className="w-4 h-4" />
+                상세검색
               </Button>
             </div>
           </div>
-          
-          {/* Total Count Display */}
-          <div className="flex justify-end items-center border-t border-border pt-4">
-            <div className="text-sm text-muted-foreground">
-              전체 {pagination.total_count}명
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                <SelectItem value="active">활동</SelectItem>
+                <SelectItem value="inactive">비활동</SelectItem>
+                <SelectItem value="transferred">이전</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+          
+        {/* Total Count Display */}
+        <div className="flex justify-end items-center border-t border-gray-200 pt-4">
+          <div className="text-sm text-gray-600">
+            전체 {pagination.total_count}명
+          </div>
+        </div>
+      </div>
 
       {/* Members Display */}
-      <Card className="border-muted overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-muted/50">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   <input
                     type="checkbox"
                     checked={selectedMembers.size === members.length && members.length > 0}
@@ -1410,7 +1403,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('name')}
                 >
                   <span className="flex items-center gap-1">
@@ -1420,8 +1413,8 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('gender')}
                 >
                   <span className="flex items-center gap-1">
@@ -1431,8 +1424,8 @@ const MemberManagement: React.FC = () => {
                     )}
                   </span>
                 </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('phone')}
                 >
                   <span className="flex items-center gap-1">
@@ -1443,7 +1436,7 @@ const MemberManagement: React.FC = () => {
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('position_main')}
                 >
                   <span className="flex items-center gap-1">
@@ -1454,7 +1447,7 @@ const MemberManagement: React.FC = () => {
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('position_detail')}
                 >
                   <span className="flex items-center gap-1">
@@ -1465,7 +1458,7 @@ const MemberManagement: React.FC = () => {
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('organization_name')}
                 >
                   <span className="flex items-center gap-1">
@@ -1476,7 +1469,7 @@ const MemberManagement: React.FC = () => {
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('department')}
                 >
                   <span className="flex items-center gap-1">
@@ -1487,7 +1480,7 @@ const MemberManagement: React.FC = () => {
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('invitation_status')}
                 >
                   <span className="flex items-center gap-1">
@@ -1499,9 +1492,9 @@ const MemberManagement: React.FC = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-background divide-y divide-border">
+            <tbody className="bg-white divide-y divide-gray-200">
               {members.map((member) => (
-                <tr key={member.id} className="hover:bg-muted/30">
+                <tr key={member.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -1533,26 +1526,26 @@ const MemberManagement: React.FC = () => {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-foreground">{member.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{member.name}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {getGenderText(member.gender)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.phone}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {getPositionMainLabel(member.position_main)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {getPositionDetailLabel(member.position_detail) || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.organization_name || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
                     {member.department || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
@@ -1569,7 +1562,7 @@ const MemberManagement: React.FC = () => {
 
       {members.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">등록된 교인이 없습니다.</p>
+          <p className="text-gray-600">등록된 교인이 없습니다.</p>
         </div>
       )}
 
@@ -1602,7 +1595,7 @@ const MemberManagement: React.FC = () => {
           </DialogHeader>
           <form onSubmit={handleAddMember} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">이름 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">이름 *</label>
               <Input
                 type="text"
                 required
@@ -1611,7 +1604,7 @@ const MemberManagement: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">이메일 *</label>
               <Input
                 type="email"
                 required
@@ -1619,10 +1612,10 @@ const MemberManagement: React.FC = () => {
                 value={newMember.email}
                 onChange={(e) => setNewMember({...newMember, email: e.target.value})}
               />
-              <p className="text-xs text-muted-foreground mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
+              <p className="text-xs text-gray-600 mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
               <Select value={newMember.gender} onValueChange={(value) => setNewMember({...newMember, gender: value})}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1634,7 +1627,7 @@ const MemberManagement: React.FC = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
               <Input
                 type="date"
                 value={newMember.birthdate}
@@ -1642,7 +1635,7 @@ const MemberManagement: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">전화번호 *</label>
               <Input
                 type="tel"
                 required
@@ -1652,7 +1645,7 @@ const MemberManagement: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">주소</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">주소</label>
               <Input
                 type="text"
                 value={newMember.address}
@@ -1660,7 +1653,7 @@ const MemberManagement: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
               <Input
                 type="text"
                 placeholder="교역자, 직분자, 평신도 등"
@@ -1720,7 +1713,7 @@ const MemberManagement: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 새 사진 업로드
               </label>
               <Input
@@ -1731,7 +1724,7 @@ const MemberManagement: React.FC = () => {
                   if (file) handlePhotoUpload(file);
                 }}
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 JPG, PNG, GIF, WEBP 파일만 가능 (최대 5MB)
               </p>
             </div>
@@ -1763,18 +1756,18 @@ const MemberManagement: React.FC = () => {
             {passwordInfo && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-foreground">이메일</label>
-                  <p className="mt-1 text-sm text-foreground">{passwordInfo.email}</p>
+                  <label className="block text-sm font-medium text-gray-900">이메일</label>
+                  <p className="mt-1 text-sm text-gray-900">{passwordInfo.email}</p>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">비밀번호</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">비밀번호</label>
                   <div className="flex items-center space-x-2">
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={passwordInfo.password}
                       readOnly
-                      className="flex-1 bg-muted"
+                      className="flex-1 bg-gray-100"
                     />
                     <Button
                       onClick={() => setShowPassword(!showPassword)}
@@ -1923,11 +1916,11 @@ const MemberManagement: React.FC = () => {
                     <img
                       src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                       alt={selectedMember.name}
-                      className="h-32 w-32 rounded-full object-cover mx-auto border-4 border-border"
+                      className="h-32 w-32 rounded-full object-cover mx-auto border-4 border-gray-200"
                     />
                   ) : (
-                    <div className="h-32 w-32 rounded-full bg-muted flex items-center justify-center mx-auto border-4 border-border">
-                      <User className="w-16 h-16 text-muted-foreground" />
+                    <div className="h-32 w-32 rounded-full bg-gray-100 flex items-center justify-center mx-auto border-4 border-gray-200">
+                      <User className="w-16 h-16 text-gray-400" />
                     </div>
                   )}
                   
@@ -1960,7 +1953,7 @@ const MemberManagement: React.FC = () => {
                     {getStatusText(selectedMember.member_status)}
                   </Badge>
                   {selectedMember.registration_date && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-gray-600">
                       등록일: {new Date(selectedMember.registration_date).toLocaleDateString()}
                     </span>
                   )}
@@ -1972,16 +1965,16 @@ const MemberManagement: React.FC = () => {
                 <details open className="border rounded-lg group">
                     <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-muted-foreground" />
+                        <User className="w-5 h-5 text-gray-600" />
                         <h3 className="text-sm font-medium">기본 정보</h3>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                      <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                     </summary>
                     <div className="px-6 pb-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* 이름 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">이름</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">이름</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.name || ''}
@@ -1989,13 +1982,13 @@ const MemberManagement: React.FC = () => {
                             placeholder="홍길동"
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.name}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.name}</p>
                         )}
                       </div>
 
                       {/* 영문명 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">영문명</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">영문명</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.name_eng || ''}
@@ -2003,13 +1996,13 @@ const MemberManagement: React.FC = () => {
                             placeholder="Hong Gil Dong"
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.name_eng || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.name_eng || '-'}</p>
                         )}
                       </div>
 
                       {/* 이메일 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
                         {isEditMode ? (
                           <Input
                             type="email"
@@ -2018,13 +2011,13 @@ const MemberManagement: React.FC = () => {
                             placeholder="example@email.com"
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.email}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.email}</p>
                         )}
                       </div>
 
                       {/* 전화번호 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
                         {isEditMode ? (
                           <Input
                             type="tel"
@@ -2033,13 +2026,13 @@ const MemberManagement: React.FC = () => {
                             placeholder="010-1234-5678"
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.phone}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.phone}</p>
                         )}
                       </div>
 
                       {/* 성별 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
                         {isEditMode ? (
                           <Select value={editedMember.gender || ''} onValueChange={(value) => setEditedMember({...editedMember, gender: value})}>
                             <SelectTrigger>
@@ -2051,13 +2044,13 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.gender}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.gender}</p>
                         )}
                       </div>
 
                       {/* 생년월일 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
                         {isEditMode ? (
                           <Input
                             type="date"
@@ -2065,7 +2058,7 @@ const MemberManagement: React.FC = () => {
                             onChange={(e) => setEditedMember({...editedMember, birthdate: e.target.value})}
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.birthdate || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.birthdate || '-'}</p>
                         )}
                       </div>
                       </div>
@@ -2076,16 +2069,16 @@ const MemberManagement: React.FC = () => {
                 <details open className="border rounded-lg group">
                     <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <UserCheck className="w-5 h-5 text-muted-foreground" />
+                        <UserCheck className="w-5 h-5 text-gray-600" />
                         <h3 className="text-sm font-medium">교회 정보</h3>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                      <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                     </summary>
                     <div className="px-6 pb-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* 직분 대분류 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
                         {isEditMode ? (
                           <Select
                             value={editedMember.position_main || 'none'}
@@ -2110,7 +2103,7 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-600">
                             {ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main)?.mainLabel || '-'}
                           </p>
                         )}
@@ -2123,7 +2116,7 @@ const MemberManagement: React.FC = () => {
 
                         return (
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">세부 직분</label>
+                            <label className="block text-sm font-medium text-gray-900 mb-1">세부 직분</label>
                             {isEditMode ? (
                               <Select
                                 value={editedMember.position_detail || 'none'}
@@ -2142,7 +2135,7 @@ const MemberManagement: React.FC = () => {
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-gray-600">
                                 {(() => {
                                   const selectedOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main);
                                   if (!selectedOption || selectedOption.details.length === 0) return '-';
@@ -2157,7 +2150,7 @@ const MemberManagement: React.FC = () => {
 
                       {/* 조직 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">조직</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">조직</label>
                         {isEditMode ? (
                           <Select
                             value={editedMember.organization_id || 'none'}
@@ -2176,13 +2169,13 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.organization_name || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.organization_name || '-'}</p>
                         )}
                       </div>
 
                       {/* 부서 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">부서</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">부서</label>
                         {isEditMode ? (
                           <Select value={editedMember.department || 'none'} onValueChange={(value) => setEditedMember({...editedMember, department: value === 'none' ? undefined : value})}>
                             <SelectTrigger>
@@ -2196,13 +2189,13 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.department || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.department || '-'}</p>
                         )}
                       </div>
 
                       {/* 직분 코드 - DB에 해당 컬럼 없음, 주석 처리 */}
                       {/* <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">직분 분류</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">직분 분류</label>
                         {isEditMode ? (
                           <Select value={editedMember.position_code || ''} onValueChange={(value) => setEditedMember({...editedMember, position_code: value})}>
                             <SelectTrigger>
@@ -2217,7 +2210,7 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-600">
                             {selectedMember.position_code ?
                               ({'PASTOR': '목사', 'ELDER': '장로', 'DEACON': '집사', 'TEACHER': '교사', 'LEADER': '부장/회장'}[selectedMember.position_code] || selectedMember.position_code)
                               : '-'
@@ -2228,7 +2221,7 @@ const MemberManagement: React.FC = () => {
 
                       {/* 임명일 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">임명일</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">임명일</label>
                         {isEditMode ? (
                           <Input
                             type="date"
@@ -2236,13 +2229,13 @@ const MemberManagement: React.FC = () => {
                             onChange={(e) => setEditedMember({...editedMember, appointed_on: e.target.value})}
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.appointed_on || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.appointed_on || '-'}</p>
                         )}
                       </div>
 
                       {/* 안수교회 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">안수교회</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">안수교회</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.ordination_church || ''}
@@ -2250,13 +2243,13 @@ const MemberManagement: React.FC = () => {
                             placeholder="중앙교회"
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{selectedMember.ordination_church || '-'}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.ordination_church || '-'}</p>
                         )}
                       </div>
 
                       {/* 상태 */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">상태</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
                         {isEditMode ? (
                           <Select value={editedMember.member_status || ''} onValueChange={(value) => setEditedMember({...editedMember, member_status: value})}>
                             <SelectTrigger>
@@ -2269,7 +2262,7 @@ const MemberManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-muted-foreground">{getStatusText(selectedMember.member_status)}</p>
+                          <p className="text-sm text-gray-600">{getStatusText(selectedMember.member_status)}</p>
                         )}
                       </div>
                       </div>
@@ -2280,16 +2273,16 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    <Briefcase className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">사역 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 사역 시작일 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">사역 시작일</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">사역 시작일</label>
                     {isEditMode ? (
                       <Input
                         type="date"
@@ -2297,13 +2290,13 @@ const MemberManagement: React.FC = () => {
                         onChange={(e) => setEditedMember({...editedMember, ministry_start_date: e.target.value})}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.ministry_start_date || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.ministry_start_date || '-'}</p>
                     )}
                   </div>
 
                   {/* 이웃교회 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">이웃교회</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">이웃교회</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.neighboring_church || ''}
@@ -2311,13 +2304,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="협력하는 인근 교회"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.neighboring_church || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.neighboring_church || '-'}</p>
                     )}
                   </div>
 
                   {/* 직책 결정 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직책 결정</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직책 결정</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.position_decision || ''}
@@ -2325,28 +2318,28 @@ const MemberManagement: React.FC = () => {
                         placeholder="직책 결정 내용"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.position_decision || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.position_decision || '-'}</p>
                     )}
                   </div>
 
                   {/* 인도자 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">인도자</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">인도자</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.inviter_name || ''}
                         disabled
                         placeholder="수정 불가 (교인 추가 시에만 설정)"
-                        className="bg-muted"
+                        className="bg-gray-100"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.inviter_name || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.inviter_name || '-'}</p>
                     )}
                   </div>
 
                   {/* 일일 활동 */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-foreground mb-1">일일 활동</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">일일 활동</label>
                     {isEditMode ? (
                       <Textarea
                         value={editedMember.daily_activity || ''}
@@ -2355,7 +2348,7 @@ const MemberManagement: React.FC = () => {
                         rows={3}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
                     )}
                   </div>
                   </div>
@@ -2366,16 +2359,16 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    <Briefcase className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">직업 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 직업 분류 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직업 분류</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직업 분류</label>
                     {isEditMode ? (
                       <Select value={editedMember.job_category || ''} onValueChange={(value) => setEditedMember({...editedMember, job_category: value})}>
                         <SelectTrigger>
@@ -2393,13 +2386,13 @@ const MemberManagement: React.FC = () => {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.job_category || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.job_category || '-'}</p>
                     )}
                   </div>
 
                   {/* 직업 상세 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직업 상세</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직업 상세</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_detail || ''}
@@ -2407,13 +2400,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="개발자, 디자이너 등"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.job_detail || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.job_detail || '-'}</p>
                     )}
                   </div>
 
                   {/* 직급/직위 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직급/직위</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직급/직위</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_position || ''}
@@ -2421,13 +2414,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="과장, 부장 등"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.job_position || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.job_position || '-'}</p>
                     )}
                   </div>
 
                   {/* 직업 (기존 필드) */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직업명</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직업명</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_title || ''}
@@ -2435,13 +2428,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="회사원, 교사 등"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.job_title || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.job_title || '-'}</p>
                     )}
                   </div>
 
                   {/* 직장명 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직장명</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직장명</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.workplace || ''}
@@ -2449,13 +2442,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="삼성전자"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.workplace || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.workplace || '-'}</p>
                     )}
                   </div>
 
                   {/* 직장 전화번호 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">직장 전화번호</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">직장 전화번호</label>
                     {isEditMode ? (
                       <Input
                         type="tel"
@@ -2464,7 +2457,7 @@ const MemberManagement: React.FC = () => {
                         placeholder="02-1234-5678"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.workplace_phone || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.workplace_phone || '-'}</p>
                     )}
                   </div>
                   </div>
@@ -2475,16 +2468,16 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Heart className="w-5 h-5 text-muted-foreground" />
+                    <Heart className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">개인 및 가족 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 교인 분류 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">교인 분류</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">교인 분류</label>
                     {isEditMode ? (
                       <Select value={editedMember.member_type || ''} onValueChange={(value) => setEditedMember({...editedMember, member_type: value})}>
                         <SelectTrigger>
@@ -2500,13 +2493,13 @@ const MemberManagement: React.FC = () => {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.member_type || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.member_type || '-'}</p>
                     )}
                   </div>
 
                   {/* 연령대 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">연령대</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">연령대</label>
                     {isEditMode ? (
                       <Select value={editedMember.age_group || ''} onValueChange={(value) => setEditedMember({...editedMember, age_group: value})}>
                         <SelectTrigger>
@@ -2525,13 +2518,13 @@ const MemberManagement: React.FC = () => {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.age_group || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.age_group || '-'}</p>
                     )}
                   </div>
 
                   {/* 신앙 등급 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">신앙 등급</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">신앙 등급</label>
                     {isEditMode ? (
                       <Select value={editedMember.spiritual_grade || ''} onValueChange={(value) => setEditedMember({...editedMember, spiritual_grade: value})}>
                         <SelectTrigger>
@@ -2546,13 +2539,13 @@ const MemberManagement: React.FC = () => {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.spiritual_grade || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.spiritual_grade || '-'}</p>
                     )}
                   </div>
 
                   {/* 결혼 상태 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">결혼 상태</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">결혼 상태</label>
                     {isEditMode ? (
                       <Select value={editedMember.marital_status || ''} onValueChange={(value) => setEditedMember({...editedMember, marital_status: value})}>
                         <SelectTrigger>
@@ -2566,13 +2559,13 @@ const MemberManagement: React.FC = () => {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.marital_status || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.marital_status || '-'}</p>
                     )}
                   </div>
 
                   {/* 배우자 이름 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">배우자 이름</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">배우자 이름</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.spouse_name || ''}
@@ -2580,13 +2573,13 @@ const MemberManagement: React.FC = () => {
                         placeholder="배우자 이름"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.spouse_name || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.spouse_name || '-'}</p>
                     )}
                   </div>
 
                   {/* 결혼일 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">결혼일</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">결혼일</label>
                     {isEditMode ? (
                       <Input
                         type="date"
@@ -2594,7 +2587,7 @@ const MemberManagement: React.FC = () => {
                         onChange={(e) => setEditedMember({...editedMember, married_on: e.target.value})}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.married_on || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.married_on || '-'}</p>
                     )}
                   </div>
                   </div>
@@ -2605,16 +2598,16 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-muted-foreground" />
+                    <MapPin className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">주소 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
                 <div className="space-y-4">
                   {/* 우편번호 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">우편번호</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">우편번호</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.postal_code || ''}
@@ -2622,14 +2615,14 @@ const MemberManagement: React.FC = () => {
                         placeholder="12345"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{selectedMember.postal_code || '-'}</p>
+                      <p className="text-sm text-gray-600">{selectedMember.postal_code || '-'}</p>
                     )}
                   </div>
 
                   {/* 지역 정보 */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">시/도</label>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">시/도</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_1 || ''}
@@ -2637,11 +2630,11 @@ const MemberManagement: React.FC = () => {
                           placeholder="서울특별시"
                         />
                       ) : (
-                        <p className="text-sm text-muted-foreground">{selectedMember.region_1 || '-'}</p>
+                        <p className="text-sm text-gray-600">{selectedMember.region_1 || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">시/군/구</label>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">시/군/구</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_2 || ''}
@@ -2649,11 +2642,11 @@ const MemberManagement: React.FC = () => {
                           placeholder="강남구"
                         />
                       ) : (
-                        <p className="text-sm text-muted-foreground">{selectedMember.region_2 || '-'}</p>
+                        <p className="text-sm text-gray-600">{selectedMember.region_2 || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">동/읍/면</label>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">동/읍/면</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_3 || ''}
@@ -2661,14 +2654,14 @@ const MemberManagement: React.FC = () => {
                           placeholder="역삼동"
                         />
                       ) : (
-                        <p className="text-sm text-muted-foreground">{selectedMember.region_3 || '-'}</p>
+                        <p className="text-sm text-gray-600">{selectedMember.region_3 || '-'}</p>
                       )}
                     </div>
                   </div>
 
                   {/* 상세 주소 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">상세 주소</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">상세 주소</label>
                     {isEditMode ? (
                       <Textarea
                         value={editedMember.address || ''}
@@ -2677,7 +2670,7 @@ const MemberManagement: React.FC = () => {
                         rows={3}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">
                         {selectedMember.address || '-'}
                       </p>
                     )}
@@ -2690,10 +2683,10 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-muted-foreground" />
+                    <Settings className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">자유 필드 (커스텀 정보)</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2708,7 +2701,7 @@ const MemberManagement: React.FC = () => {
 
                     return (
                       <div key={num}>
-                        <label className="block text-sm font-medium text-foreground mb-1">
+                        <label className="block text-sm font-medium text-gray-900 mb-1">
                           자유필드 {num}
                         </label>
                         {isEditMode ? (
@@ -2718,7 +2711,7 @@ const MemberManagement: React.FC = () => {
                             placeholder={`추가 정보 ${num}`}
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">{value as string || '-'}</p>
+                          <p className="text-sm text-gray-600">{value as string || '-'}</p>
                         )}
                       </div>
                     );
@@ -2727,7 +2720,7 @@ const MemberManagement: React.FC = () => {
                   {!isEditMode && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].some(num =>
                     selectedMember[`custom_field_${num}` as keyof Member]
                   ) && (
-                    <p className="text-sm text-muted-foreground px-6 pb-6">등록된 추가 정보가 없습니다.</p>
+                    <p className="text-sm text-gray-600 px-6 pb-6">등록된 추가 정보가 없습니다.</p>
                   )}
                 </div>
               </details>
@@ -2736,13 +2729,13 @@ const MemberManagement: React.FC = () => {
               <details className="border rounded-lg group">
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                    <MessageSquare className="w-5 h-5 text-gray-600" />
                     <h3 className="text-sm font-medium">특별 사항</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-6 pb-6">
-                  <label className="block text-sm font-medium text-foreground mb-1">특이사항 및 메모</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">특이사항 및 메모</label>
                   {isEditMode ? (
                     <Textarea
                       value={editedMember.special_notes || ''}
@@ -2751,7 +2744,7 @@ const MemberManagement: React.FC = () => {
                       rows={4}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
                       {selectedMember.special_notes || '-'}
                     </p>
                   )}
@@ -2776,7 +2769,7 @@ const MemberManagement: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-gray-900">
               <strong>{selectedMember?.name}님</strong>의 정보를 정말로 삭제하시겠습니까?
             </p>
             <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
@@ -2824,7 +2817,7 @@ const MemberManagement: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 엑셀 파일 선택
               </label>
               <Input
@@ -2835,7 +2828,7 @@ const MemberManagement: React.FC = () => {
                   if (file) setExcelFile(file);
                 }}
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 CSV, XLSX, XLS 파일만 가능
               </p>
             </div>
@@ -2900,7 +2893,7 @@ const MemberManagement: React.FC = () => {
               <h3 className="text-lg font-semibold">기본 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">이름</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">이름</label>
                   <Input
                     value={advancedSearchData.name}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, name: e.target.value }))}
@@ -2908,7 +2901,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
                   <Input
                     value={advancedSearchData.email}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, email: e.target.value }))}
@@ -2916,7 +2909,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
                   <Input
                     value={advancedSearchData.phone}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, phone: e.target.value }))}
@@ -2924,7 +2917,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
                   <Select value={advancedSearchData.gender} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, gender: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -2944,7 +2937,7 @@ const MemberManagement: React.FC = () => {
               <h3 className="text-lg font-semibold">교회 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">직분 대분류</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
                   <Input
                     value={advancedSearchData.position_main}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position_main: e.target.value }))}
@@ -2952,7 +2945,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">교인구분</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">교인구분</label>
                   <Select value={advancedSearchData.member_type} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, member_type: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -2967,7 +2960,7 @@ const MemberManagement: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">신급</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">신급</label>
                   <Select value={advancedSearchData.spiritual_grade} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, spiritual_grade: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -2989,7 +2982,7 @@ const MemberManagement: React.FC = () => {
               <h3 className="text-lg font-semibold">나이 범위</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">최소 나이</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">최소 나이</label>
                   <Input
                     type="number"
                     value={advancedSearchData.ageFrom}
@@ -3000,7 +2993,7 @@ const MemberManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">최대 나이</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">최대 나이</label>
                   <Input
                     type="number"
                     value={advancedSearchData.ageTo}
@@ -3113,7 +3106,7 @@ const MemberManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

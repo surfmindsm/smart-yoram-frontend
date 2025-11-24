@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
         business_number,
         address,
         service_area,
-        website
+        website,
+        attachments
       } = body
 
       // 필수 필드 검증
@@ -89,6 +90,11 @@ Deno.serve(async (req) => {
       if (address) insertData.address = address
       if (service_area) insertData.service_area = service_area
       if (website) insertData.website = website
+
+      // 첨부파일 정보 추가 (JSONB 형식)
+      if (attachments && Array.isArray(attachments)) {
+        insertData.attachments = JSON.stringify(attachments)
+      }
 
       console.log('📝 커뮤니티 신청서 저장 중:', insertData)
 

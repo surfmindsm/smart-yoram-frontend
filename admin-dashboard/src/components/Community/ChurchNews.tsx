@@ -13,6 +13,7 @@ import {
   Star
 } from 'lucide-react';
 import { Button } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { Spinner } from "../ui/spinner";
 import { formatCreatedAt, formatEventDate } from '../../utils/dateUtils';
 import { ChurchNews as ChurchNewsType, communityService } from '../../services/communityService';
@@ -247,39 +248,32 @@ const ChurchNews: React.FC = () => {
   }, [selectedCategory, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-end pr-6 mb-4">
-        <div className="flex-1 max-w-md">
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">행사 소식</h1>
-          <p className="text-sm text-gray-600">교회의 중요한 소식과 공지사항을 확인하세요</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* 검색바 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
+    <PageContainer>
+      <PageHeader
+        title="행사 소식"
+        description="교회의 중요한 소식과 공지사항을 확인하세요"
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <Button
+              onClick={() => navigate('/community/church-news/create')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
           </div>
-
-
-
-          {/* New 버튼 */}
-          <Button
-            onClick={() => navigate('/community/church-news/create')}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
@@ -416,7 +410,7 @@ const ChurchNews: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

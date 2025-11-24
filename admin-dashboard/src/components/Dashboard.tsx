@@ -11,11 +11,17 @@ import {
   FileSpreadsheet,
   CheckSquare,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Heart,
+  Calculator,
+  HandCoins,
+  FileText,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
 import { Button } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import type { ChartConfig } from "./ui/chart";
 import {
   LineChart,
@@ -104,6 +110,12 @@ const Dashboard = React.memo(() => {
       const functionsUrl = `${supabaseUrl}/functions/v1/statistics/members/demographics`;
 
       const token = await supabaseAuthService.getToken();
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      console.log('👤 현재 사용자 정보:', {
+        userId: currentUser?.user?.id,
+        churchId: currentUser?.user?.church_id,
+        token: token
+      });
 
       const response = await fetch(functionsUrl, {
         method: 'GET',
@@ -117,6 +129,7 @@ const Dashboard = React.memo(() => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
+      console.log('📊 Demographics API 응답:', data);
       setDemographics(data);
     } catch (error) {
       console.error('인구통계 조회 실패:', error);
@@ -265,49 +278,54 @@ const Dashboard = React.memo(() => {
   // quickActions를 useMemo로 최적화 (정적 데이터이므로)
   const quickActions = useMemo(() => [
     {
-      title: '교인 등록',
-      description: '새로운 교인을 등록합니다',
-      Icon: UserPlus,
+      title: '교인관리',
+      description: '교인 정보를 조회하고 관리합니다',
+      Icon: Users,
       link: '/member-management',
       color: 'bg-blue-500'
     },
     {
-      title: 'SMS 발송',
-      description: '교인들에게 단체 메시지를 발송합니다',
-      Icon: MessageSquare,
-      link: '/sms',
+      title: '심방관리',
+      description: '심방 일정과 기록을 관리합니다',
+      Icon: Heart,
+      link: '/pastoral-care',
+      color: 'bg-pink-500'
+    },
+    {
+      title: '회계관리',
+      description: '교회 회계 내역을 관리합니다',
+      Icon: Calculator,
+      link: '/accounting',
       color: 'bg-green-500'
     },
     {
-      title: 'QR 코드 생성',
-      description: '출석체크용 QR 코드를 생성합니다',
-      Icon: QrCode,
-      link: '/qr-codes',
-      color: 'bg-purple-500'
+      title: '헌금관리',
+      description: '헌금 내역을 조회하고 관리합니다',
+      Icon: HandCoins,
+      link: '/donations',
+      color: 'bg-yellow-500'
     },
     {
-      title: '엑셀 관리',
-      description: '교인 명단을 업로드/다운로드합니다',
-      Icon: FileSpreadsheet,
-      link: '/excel',
+      title: '주보관리',
+      description: '주보를 작성하고 관리합니다',
+      Icon: FileText,
+      link: '/bulletins',
       color: 'bg-indigo-500'
     },
     {
-      title: '출석 관리',
-      description: '출석 기록을 관리합니다',
-      Icon: CheckSquare,
-      link: '/attendance',
-      color: 'bg-red-500'
+      title: '공지사항',
+      description: '교회 공지사항을 관리합니다',
+      Icon: Bell,
+      link: '/announcements',
+      color: 'bg-purple-500'
     }
   ], []);
 
   // 에러가 있으면 에러 메시지 표시
   if (error) {
     return (
-      <div>
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">대시보드</h2>
-        </div>
+      <PageContainer>
+        <PageHeader title="대시보드" />
         <Card className="border-destructive">
           <CardContent className="p-6">
             <div className="text-center">
@@ -321,18 +339,16 @@ const Dashboard = React.memo(() => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">대시보드</h2>
-      </div>
-      
-      {/* Stats Grid - 3개 카드로 더 넓게 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <PageContainer>
+      <PageHeader title="대시보드" />
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat, index) => (
           <StatCard
             key={`stat-${index}`}
@@ -385,44 +401,55 @@ const Dashboard = React.memo(() => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={genderChartConfig}
-                  className="mx-auto aspect-square max-h-[300px]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent hideLabel />}
-                    />
-                    <Pie
-                      data={demographics.gender_distribution.filter(item => item.count > 0)}
-                      dataKey="count"
-                      nameKey="gender"
-                      innerRadius={60}
-                      strokeWidth={5}
+                {demographics.total_members > 0 ? (
+                  <>
+                    <ChartContainer
+                      config={genderChartConfig}
+                      className="mx-auto aspect-square max-h-[200px]"
                     >
-                      <Cell fill="var(--color-남성)" />
-                      <Cell fill="var(--color-여성)" />
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  {demographics.gender_distribution.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: index === 0 ? 'hsl(var(--chart-1))' : 'hsl(var(--chart-2))' }}
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
                         />
-                        <span className="text-sm font-medium">{item.gender}</span>
+                        <Pie
+                          data={demographics.gender_distribution.filter(item => item.count > 0)}
+                          dataKey="count"
+                          nameKey="gender"
+                          innerRadius={40}
+                          strokeWidth={4}
+                        >
+                          <Cell fill="var(--color-남성)" />
+                          <Cell fill="var(--color-여성)" />
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                    <Users className="h-12 w-12 mb-2 opacity-20" />
+                    <p className="text-sm">등록된 교인이 없습니다</p>
+                  </div>
+                )}
+                {demographics.total_members > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {demographics.gender_distribution.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: index === 0 ? 'hsl(var(--chart-1))' : 'hsl(var(--chart-2))' }}
+                          />
+                          <span className="text-xs font-medium">{item.gender}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-bold">{item.count}명</div>
+                          <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold">{item.count}명</div>
-                        <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -437,46 +464,57 @@ const Dashboard = React.memo(() => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={ageChartConfig}>
-                  <BarChart
-                    data={demographics.age_distribution.filter(item => item.count > 0)}
-                    margin={{
-                      left: 12,
-                      right: 12,
-                      top: 12,
-                      bottom: 12,
-                    }}
-                  >
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="age_group"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      tickFormatter={(value) => value}
-                    />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent />}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="var(--color-count)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                  {demographics.age_distribution.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/30">
-                      <span className="text-muted-foreground text-xs">{item.age_group}</span>
-                      <div className="text-right">
-                        <div className="font-medium">{item.count}명</div>
-                        <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                {demographics.total_members > 0 ? (
+                  <>
+                    <ChartContainer config={ageChartConfig} className="h-[200px]">
+                      <BarChart
+                        data={demographics.age_distribution.filter(item => item.count > 0)}
+                        margin={{
+                          left: 8,
+                          right: 8,
+                          top: 8,
+                          bottom: 8,
+                        }}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="age_group"
+                          tickLine={false}
+                          tickMargin={8}
+                          axisLine={false}
+                          tickFormatter={(value) => value}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent />}
+                        />
+                        <Bar
+                          dataKey="count"
+                          fill="var(--color-count)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                    <BarChart3 className="h-12 w-12 mb-2 opacity-20" />
+                    <p className="text-sm">등록된 교인이 없습니다</p>
+                  </div>
+                )}
+                {demographics.total_members > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {demographics.age_distribution.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-1.5 rounded bg-muted/30">
+                        <span className="text-muted-foreground text-xs">{item.age_group}</span>
+                        <div className="text-right">
+                          <div className="text-xs font-medium">{item.count}명</div>
+                          <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -506,15 +544,15 @@ const Dashboard = React.memo(() => {
             <CardContent>
               <ChartContainer
                 config={memberGrowthConfig}
-                className="min-h-[300px] w-full"
+                className="h-[200px] w-full"
               >
                 <ComposedChart
                   data={memberGrowth.growth_data.slice(-12)}
                   margin={{
-                    left: 12,
-                    right: 12,
-                    top: 12,
-                    bottom: 12,
+                    left: 8,
+                    right: 8,
+                    top: 8,
+                    bottom: 8,
                   }}
                 >
                   <CartesianGrid vertical={false} />
@@ -551,24 +589,24 @@ const Dashboard = React.memo(() => {
               </ChartContainer>
 
               {/* 요약 통계 */}
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                <div className="text-center p-4 rounded-lg bg-green-50 border border-green-200">
-                  <div className="text-2xl font-bold text-green-600">
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                  <div className="text-xl font-bold text-green-600">
                     +{memberGrowth.growth_data.reduce((sum, item) => sum + item.new_members, 0)}
                   </div>
-                  <div className="text-sm text-green-700">총 신규 교인</div>
+                  <div className="text-xs text-green-700">총 신규 교인</div>
                 </div>
-                <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">
+                <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="text-xl font-bold text-blue-600">
                     {memberGrowth.total_current_members}명
                   </div>
-                  <div className="text-sm text-blue-700">현재 총 교인</div>
+                  <div className="text-xs text-blue-700">현재 총 교인</div>
                 </div>
-                <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-200">
-                  <div className="text-2xl font-bold text-purple-600">
+                <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
+                  <div className="text-xl font-bold text-purple-600">
                     {memberGrowth.growth_data.slice(-3).reduce((sum, item) => sum + item.new_members, 0)}
                   </div>
-                  <div className="text-sm text-purple-700">최근 3개월 신규</div>
+                  <div className="text-xs text-purple-700">최근 3개월 신규</div>
                 </div>
               </div>
             </CardContent>
@@ -583,7 +621,7 @@ const Dashboard = React.memo(() => {
         onSuccess={handlePasswordChangeSuccess}
         isTemporaryPassword={isTemporaryPassword}
       />
-    </div>
+    </PageContainer>
   );
 });
 

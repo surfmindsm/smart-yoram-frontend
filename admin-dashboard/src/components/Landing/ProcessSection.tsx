@@ -1,6 +1,8 @@
 import React from 'react';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function ProcessSection() {
+  const [sectionRef, isVisible] = useIntersectionObserver({ threshold: 0.1 });
 
   const steps = [
     {
@@ -34,10 +36,10 @@ export function ProcessSection() {
   ];
 
   return (
-    <section id="process" className="relative py-32 px-6 bg-gray-50">
+    <section id="process" className="relative py-32 px-6 bg-gray-50" ref={sectionRef}>
       <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 */}
-        <div className="mb-24">
+        <div className={`mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">PROCESS</p>
           <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
             도입 절차
@@ -52,7 +54,10 @@ export function ProcessSection() {
           {steps.map((step, index) => (
             <div
               key={index}
-              className="group relative pl-12 pb-16 last:pb-0"
+              className={`group relative pl-12 pb-16 last:pb-0 transition-all duration-700 ${
+                isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
+              }`}
+              style={{ transitionDelay: `${index * 150 + 300}ms` }}
             >
               {/* 타임라인 도트 */}
               <div className="absolute -left-3 top-0 w-5 h-5 bg-gray-900 rounded-full group-hover:scale-125 transition-transform"></div>

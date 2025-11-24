@@ -183,3 +183,14 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tool
 export { useToast, toast } from '../../hooks/use-toast'
 export { SimpleTabs } from '../ui_old/simple-tabs'
 export { Combobox } from '../ui_old/combobox'
+
+// Page Layout Components
+export {
+  PageContainer,
+  PageHeader,
+  StatCard,
+  StatsGrid,
+  FilterBar,
+  SectionTitle,
+  TableContainer
+} from './PageContainer'

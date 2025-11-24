@@ -411,6 +411,58 @@ export const supabaseApiService = {
         console.error('Failed to create announcement:', error);
         throw error;
       }
+    },
+
+    update: async (id: number, announcementData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        // Use Supabase client directly for update
+        const { data, error } = await supabase
+          .from('system_announcements')
+          .update(announcementData)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Announcement update error:', error);
+          throw error;
+        }
+
+        return { data };
+      } catch (error) {
+        console.error('Failed to update announcement:', error);
+        throw error;
+      }
+    },
+
+    delete: async (id: number) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        // Use Supabase client directly for delete
+        const { error } = await supabase
+          .from('system_announcements')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Announcement deletion error:', error);
+          throw error;
+        }
+
+        return { data: { message: 'Announcement deleted successfully' } };
+      } catch (error) {
+        console.error('Failed to delete announcement:', error);
+        throw error;
+      }
     }
   },
 
@@ -546,10 +598,8 @@ export const supabaseApiService = {
         const queryString = params.toString();
         const url = queryString ? `?${queryString}` : '';
 
-        // console.log('🚀 [심방신청 API] Edge Function 호출 시작:', `pastoral-care/admin/requests${url}`);
-        // console.log('🚀 [심방신청 API] 필터 파라미터:', filters);
-
-        const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests${url}`, {
+        // Use fetch directly for GET request
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/pastoral-care/admin/requests${url}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -558,14 +608,19 @@ export const supabaseApiService = {
           },
         });
 
-        // console.log('🚀 [심방신청 API] Edge Function 응답 전체:', { data, error });
-
-        if (error) {
-          console.error('❌ [심방신청 API] Edge Function 오류:', error);
-          throw error;
+        const responseText = await response.text();
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: responseText };
+          }
+          console.error('❌ [심방신청 API] Edge Function 오류:', errorData);
+          throw new Error(errorData.error || 'Failed to fetch pastoral care requests');
         }
 
-        // console.log('✅ [심방신청 API] Edge Function 성공, 데이터 반환:', data);
+        const data = JSON.parse(responseText);
         return { data: data.data || data };
       } catch (error) {
         console.error('Failed to fetch pastoral care requests:', error);
@@ -625,7 +680,8 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke('pastoral-care/admin/stats', {
+        // Use fetch directly for GET request
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/pastoral-care/admin/stats`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -634,11 +690,19 @@ export const supabaseApiService = {
           },
         });
 
-        if (error) {
-          console.error('Pastoral care stats error:', error);
-          throw error;
+        const responseText = await response.text();
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: responseText };
+          }
+          console.error('Pastoral care stats error:', errorData);
+          throw new Error(errorData.error || 'Failed to fetch stats');
         }
 
+        const data = JSON.parse(responseText);
         return { data };
       } catch (error) {
         console.error('Failed to fetch pastoral care stats:', error);
@@ -671,7 +735,8 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests/${id}`, {
+        // Use fetch directly for GET request
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/pastoral-care/admin/requests/${id}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -680,11 +745,19 @@ export const supabaseApiService = {
           },
         });
 
-        if (error) {
-          console.error('Pastoral care request fetch error:', error);
-          throw error;
+        const responseText = await response.text();
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: responseText };
+          }
+          console.error('Pastoral care request fetch error:', errorData);
+          throw new Error(errorData.error || 'Failed to fetch request');
         }
 
+        const data = JSON.parse(responseText);
         return { data };
       } catch (error) {
         console.error('Failed to fetch pastoral care request:', error);
@@ -699,21 +772,35 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke('pastoral-care/admin/requests', {
+        console.log('Sending pastoral care request:', requestData);
+
+        // Use fetch directly to get better error details
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/pastoral-care/admin/requests`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: requestData
+          body: JSON.stringify(requestData)
         });
 
-        if (error) {
-          console.error('Pastoral care creation error:', error);
-          throw error;
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = { error: responseText };
+          }
+          console.error('Server error:', errorData);
+          throw new Error(errorData.error || errorData.details || 'Failed to create pastoral care request');
         }
 
+        const data = JSON.parse(responseText);
         return { data };
       } catch (error) {
         console.error('Failed to create pastoral care request:', error);
@@ -723,26 +810,22 @@ export const supabaseApiService = {
 
     update: async (id: any, requestData: any) => {
       try {
-        const token = await supabaseAuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token available');
-        }
+        console.log('Updating pastoral care request:', id, requestData);
 
-        const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: requestData
-        });
+        // Use Supabase client directly instead of Edge Function
+        const { data, error } = await supabase
+          .from('pastoral_care_requests')
+          .update(requestData)
+          .eq('id', id)
+          .select()
+          .single();
 
         if (error) {
-          console.error('Pastoral care update error:', error);
-          throw error;
+          console.error('Database update error:', error);
+          throw new Error(error.message || 'Failed to update pastoral care request');
         }
 
+        console.log('Update success:', data);
         return { data };
       } catch (error) {
         console.error('Failed to update pastoral care request:', error);
@@ -752,24 +835,23 @@ export const supabaseApiService = {
 
     complete: async (id: any, completionData: any) => {
       try {
-        const token = await supabaseAuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token available');
-        }
+        // Use Supabase client directly instead of Edge Function
+        const updateData = {
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          ...completionData
+        };
 
-        const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests/${id}/complete`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: completionData
-        });
+        const { data, error } = await supabase
+          .from('pastoral_care_requests')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .single();
 
         if (error) {
-          console.error('Pastoral care completion error:', error);
-          throw error;
+          console.error('Database update error:', error);
+          throw new Error(error.message || 'Failed to complete pastoral care request');
         }
 
         return { data };
@@ -781,24 +863,20 @@ export const supabaseApiService = {
 
     assignPastor: async (id: any, pastorId: any) => {
       try {
-        const token = await supabaseAuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token available');
-        }
-
-        const { data, error } = await supabase.functions.invoke(`pastoral-care/admin/requests/${id}/assign`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: { assigned_pastor_id: pastorId }
-        });
+        // Use Supabase client directly instead of Edge Function
+        const { data, error } = await supabase
+          .from('pastoral_care_requests')
+          .update({
+            assigned_pastor_id: pastorId,
+            status: 'in_progress'
+          })
+          .eq('id', id)
+          .select()
+          .single();
 
         if (error) {
-          console.error('Pastor assignment error:', error);
-          throw error;
+          console.error('Database update error:', error);
+          throw new Error(error.message || 'Failed to assign pastor');
         }
 
         return { data };
@@ -926,20 +1004,30 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke('prayer-requests/admin/requests', {
+        console.log('🙏 [기도요청 생성] 전송 데이터:', requestData);
+
+        // 직접 fetch 사용
+        const functionUrl = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/prayer-requests`;
+        const response = await fetch(functionUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: requestData
+          body: JSON.stringify({ ...requestData, action: 'create' })
         });
 
-        if (error) {
-          console.error('Prayer request creation error:', error);
-          throw error;
+        console.log('🙏 [기도요청 생성] 응답 status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🙏 [기도요청 생성] 응답 오류:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
         }
+
+        const data = await response.json();
+        console.log('🙏 [기도요청 생성] 응답 data:', data);
 
         return data;
       } catch (error) {
@@ -955,14 +1043,13 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`prayer-requests/admin/requests/${id}`, {
-          method: 'PUT',
+        const { data, error } = await supabase.functions.invoke('prayer-requests', {
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: updateData
+          body: { ...updateData, requestId: id }
         });
 
         if (error) {
@@ -984,14 +1071,13 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`prayer-requests/admin/requests/${id}/answer`, {
-          method: 'POST',
+        const { data, error } = await supabase.functions.invoke('prayer-requests', {
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: answeredData
+          body: { ...answeredData, requestId: id, action: 'answer' }
         });
 
         if (error) {
@@ -1013,13 +1099,13 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`prayer-requests/admin/requests/${id}/pray`, {
-          method: 'POST',
+        const { data, error } = await supabase.functions.invoke('prayer-requests', {
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
+          body: { requestId: id, action: 'pray' }
         });
 
         if (error) {
@@ -1041,13 +1127,13 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`prayer-requests/admin/requests/${id}`, {
-          method: 'DELETE',
+        const { data, error } = await supabase.functions.invoke('prayer-requests', {
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
+          body: { requestId: id }
         });
 
         if (error) {
@@ -1215,21 +1301,29 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke('offerings/admin/offerings', {
+        console.log('📤 Sending offering data:', offeringData);
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/offerings/admin/offerings`;
+
+        const response = await fetch(functionsUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: offeringData
+          body: JSON.stringify(offeringData)
         });
 
-        if (error) {
-          console.error('Offering creation error:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Offering creation error:', errorText);
+          throw new Error(`Failed to create offering: ${response.statusText}`);
         }
 
+        const data = await response.json();
+        console.log('✅ Offering created:', data);
         return data;
       } catch (error) {
         console.error('Failed to create offering:', error);
@@ -1244,21 +1338,26 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`offerings/admin/offerings/${id}`, {
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/offerings/admin/offerings/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: updateData
+          body: JSON.stringify(updateData)
         });
 
-        if (error) {
-          console.error('Offering update error:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Offering update error:', errorText);
+          throw new Error(`Failed to update offering: ${response.statusText}`);
         }
 
+        const data = await response.json();
         return data;
       } catch (error) {
         console.error('Failed to update offering:', error);
@@ -1273,7 +1372,10 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke(`offerings/admin/offerings/${id}`, {
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/offerings/admin/offerings/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -1282,14 +1384,165 @@ export const supabaseApiService = {
           },
         });
 
-        if (error) {
-          console.error('Offering deletion error:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Offering deletion error:', errorText);
+          throw new Error(`Failed to delete offering: ${response.statusText}`);
         }
 
+        const data = await response.json();
         return data;
       } catch (error) {
         console.error('Failed to delete offering:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Receipts API
+  receipts: {
+    getAll: async (filters: any = {}) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const params = new URLSearchParams();
+        if (filters.member_id) params.append('member_id', filters.member_id.toString());
+        if (filters.tax_year) params.append('tax_year', filters.tax_year.toString());
+        if (filters.church_id) params.append('church_id', filters.church_id.toString());
+        if (filters.page) params.append('page', filters.page.toString());
+        if (filters.limit) params.append('limit', filters.limit.toString());
+
+        const queryString = params.toString();
+        const url = queryString ? `?${queryString}` : '';
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/receipts${url}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch receipts:', error);
+        throw error;
+      }
+    },
+
+    create: async (receiptData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        console.log('📤 Sending receipt data:', receiptData);
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/receipts`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(receiptData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Receipt creation error:', errorText);
+          throw new Error(`Failed to create receipt: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Receipt created:', data);
+        return data;
+      } catch (error) {
+        console.error('Failed to create receipt:', error);
+        throw error;
+      }
+    },
+
+    update: async (id: string, updateData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/receipts/${id}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Receipt update error:', errorText);
+          throw new Error(`Failed to update receipt: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Failed to update receipt:', error);
+        throw error;
+      }
+    },
+
+    delete: async (id: string) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/receipts/${id}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Receipt deletion error:', errorText);
+          throw new Error(`Failed to delete receipt: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Failed to delete receipt:', error);
         throw error;
       }
     }
@@ -1305,20 +1558,26 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📖 [오늘의 말씀 API] 조회 시작');
+        // Use direct fetch for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/today`;
 
-        const { data, error } = await supabase.functions.invoke('daily-verses/today', {
+        const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('📖 [오늘의 말씀 API] 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
 
         // console.log('✅ [오늘의 말씀 API] 조회 성공:', data);
         return data;
@@ -1344,30 +1603,52 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📋 [말씀 목록 API] 조회 시작:', filters);
-
         const params = new URLSearchParams();
         if (filters.is_active !== undefined) params.append('is_active', filters.is_active.toString());
         if (filters.page) params.append('page', filters.page.toString());
         if (filters.limit) params.append('limit', filters.limit.toString());
 
         const queryString = params.toString();
-        const url = queryString ? `?${queryString}` : '';
 
-        const { data, error } = await supabase.functions.invoke(`daily-verses/admin/verses${url}`, {
+        // Use direct fetch for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses${queryString ? `?${queryString}` : ''}`;
+
+        console.log('📋 [말씀 목록 API] 요청 정보:', {
+          url: functionsUrl,
+          token: token.substring(0, 30) + '...',
+          headers: {
+            'X-Custom-Auth': token.substring(0, 30) + '...',
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey || '',
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('📋 [말씀 목록 API] 오류:', error);
-          throw error;
+        console.log('📋 [말씀 목록 API] 응답 상태:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📋 [말씀 목록 API] 오류 응답:', errorText);
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText };
+          }
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        // console.log('✅ [말씀 목록 API] 조회 성공:', data);
+        const data = await response.json();
         return data;
       } catch (error) {
         console.error('📋 [말씀 목록 API] 조회 실패:', error);
@@ -1383,23 +1664,28 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📝 [말씀 생성 API] 시작:', verseData);
+        // Use direct fetch for POST requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses`;
 
-        const { data, error } = await supabase.functions.invoke('daily-verses/admin/verses', {
+        const response = await fetch(functionsUrl, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey || '',
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: verseData
+          body: JSON.stringify(verseData)
         });
 
-        if (error) {
-          console.error('📝 [말씀 생성 API] 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        // console.log('✅ [말씀 생성 API] 성공:', data);
+        const data = await response.json();
         return data;
       } catch (error) {
         console.error('📝 [말씀 생성 API] 실패:', error);
@@ -1414,20 +1700,29 @@ export const supabaseApiService = {
         if (!token) {
           throw new Error('No authentication token available');
         }
-        // console.log('✏️ [말씀 수정 API] 시작:', id, verseData);
-        const { data, error } = await supabase.functions.invoke(`daily-verses/admin/verses/${id}`, {
+
+        // Use direct fetch for PUT requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'PUT',
           headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey || '',
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: verseData
+          body: JSON.stringify(verseData)
         });
-        if (error) {
-          console.error('✏️ [말씀 수정 API] 오류:', error);
-          throw error;
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-        // console.log('✅ [말씀 수정 API] 성공:', data);
+
+        const data = await response.json();
         return data;
       } catch (error) {
         console.error('✏️ [말씀 수정 API] 실패:', error);
@@ -1442,19 +1737,45 @@ export const supabaseApiService = {
         if (!token) {
           throw new Error('No authentication token available');
         }
-        // console.log('🗑️ [말씀 삭제 API] 시작:', id);
-        const { data, error } = await supabase.functions.invoke(`daily-verses/admin/verses/${id}`, {
+
+        // Use direct fetch for DELETE requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses/${id}`;
+
+        console.log('🗑️ [말씀 삭제 API] 요청:', {
+          url: functionsUrl,
+          id,
+          token: token.substring(0, 30) + '...',
+          anonKey: supabaseAnonKey?.substring(0, 30) + '...'
+        });
+
+        const response = await fetch(functionsUrl, {
           method: 'DELETE',
           headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey || '',
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
-        if (error) {
-          console.error('🗑️ [말씀 삭제 API] 오류:', error);
-          throw error;
+
+        console.log('🗑️ [말씀 삭제 API] 응답 상태:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🗑️ [말씀 삭제 API] 오류 응답:', errorText);
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText };
+          }
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-        // console.log('✅ [말씀 삭제 API] 성공:', data);
+
+        const data = await response.json();
+        console.log('✅ [말씀 삭제 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('🗑️ [말씀 삭제 API] 실패:', error);
@@ -1486,22 +1807,26 @@ export const supabaseApiService = {
         if (filters.page) params.append('page', filters.page.toString());
         if (filters.limit) params.append('limit', filters.limit.toString());
 
-        const queryString = params.toString();
-        const url = queryString ? `?${queryString}` : '';
+        // Use direct fetch instead of supabase.functions.invoke for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services?${params.toString()}`;
 
-        const { data, error } = await supabase.functions.invoke(`worship-services/admin/services${url}`, {
+        const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 목록 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 목록 조회 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [예배 서비스 API] 목록 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1520,19 +1845,26 @@ export const supabaseApiService = {
 
         // console.log('⛪ [예배 서비스 API] 단일 조회 시작:', id);
 
-        const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
+        // Use direct fetch instead of supabase.functions.invoke for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 단일 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 단일 조회 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [예배 서비스 API] 단일 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1551,19 +1883,26 @@ export const supabaseApiService = {
 
         // console.log('⛪ [예배 서비스 API] 교회별 조회 시작:', churchId);
 
-        const { data, error } = await supabase.functions.invoke(`worship-services/church/${churchId}`, {
+        // Use direct fetch instead of supabase.functions.invoke for GET requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/church/${churchId}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 교회별 조회 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 교회별 조회 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
+        const data = await response.json();
         // console.log('✅ [예배 서비스 API] 교회별 조회 성공:', data);
         return data;
       } catch (error) {
@@ -1592,25 +1931,32 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('⛪ [예배 서비스 API] 생성 시작:', serviceData);
+        console.log('⛪ [예배 서비스 API] 생성 시작:', serviceData);
 
-        const { data, error } = await supabase.functions.invoke('worship-services/admin/services', {
+        // Use direct fetch instead of supabase.functions.invoke for POST requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services`;
+
+        const response = await fetch(functionsUrl, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: serviceData
+          body: JSON.stringify(serviceData)
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 생성 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 생성 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        // console.log('✅ [예배 서비스 API] 생성 성공:', data);
+        const data = await response.json();
+        console.log('✅ [예배 서비스 API] 생성 성공:', data);
         return data;
-      } catch (error) {
+      } catch (error: any) {
         console.error('⛪ [예배 서비스 API] 생성 실패:', error);
         throw error;
       }
@@ -1635,23 +1981,30 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('⛪ [예배 서비스 API] 수정 시작:', id, serviceData);
+        console.log('⛪ [예배 서비스 API] 수정 시작:', id, serviceData);
 
-        const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
+        // Use direct fetch instead of supabase.functions.invoke for PUT requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'PUT',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: serviceData
+          body: JSON.stringify(serviceData)
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 수정 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 수정 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        // console.log('✅ [예배 서비스 API] 수정 성공:', data);
+        const data = await response.json();
+        console.log('✅ [예배 서비스 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 수정 실패:', error);
@@ -1667,26 +2020,186 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('⛪ [예배 서비스 API] 삭제 시작:', id);
+        console.log('⛪ [예배 서비스 API] 삭제 시작:', id);
 
-        const { data, error } = await supabase.functions.invoke(`worship-services/admin/services/${id}`, {
+        // Use direct fetch instead of supabase.functions.invoke for DELETE requests
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services/${id}`;
+
+        const response = await fetch(functionsUrl, {
           method: 'DELETE',
           headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
         });
 
-        if (error) {
-          console.error('⛪ [예배 서비스 API] 삭제 오류:', error);
-          throw error;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('⛪ [예배 서비스 API] 삭제 오류:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        // console.log('✅ [예배 서비스 API] 삭제 성공:', data);
+        const data = await response.json();
+        console.log('✅ [예배 서비스 API] 삭제 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 삭제 실패:', error);
         throw error;
+      }
+    },
+
+    // 카테고리 관리
+    categories: {
+      // 카테고리 목록 조회
+      getAll: async (churchId: number) => {
+        try {
+          const token = await supabaseAuthService.getToken();
+          if (!token) {
+            throw new Error('No authentication token available');
+          }
+
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+          const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/categories?church_id=${churchId}`;
+
+          const response = await fetch(functionsUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'X-Custom-Auth': token,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('📂 [카테고리 API] 목록 조회 오류:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const result = await response.json();
+          return result.data || [];
+        } catch (error) {
+          console.error('📂 [카테고리 API] 목록 조회 실패:', error);
+          throw error;
+        }
+      },
+
+      // 카테고리 생성
+      create: async (categoryData: {
+        church_id: number;
+        name: string;
+        description?: string;
+        order_index?: number;
+      }) => {
+        try {
+          const token = await supabaseAuthService.getToken();
+          if (!token) {
+            throw new Error('No authentication token available');
+          }
+
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+          const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/categories`;
+
+          const response = await fetch(functionsUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'X-Custom-Auth': token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(categoryData)
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('📂 [카테고리 API] 생성 오류:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log('✅ [카테고리 API] 생성 성공:', data);
+          return data;
+        } catch (error) {
+          console.error('📂 [카테고리 API] 생성 실패:', error);
+          throw error;
+        }
+      },
+
+      // 카테고리 수정
+      update: async (id: number, categoryData: {
+        name?: string;
+        description?: string;
+        order_index?: number;
+      }) => {
+        try {
+          const token = await supabaseAuthService.getToken();
+          if (!token) {
+            throw new Error('No authentication token available');
+          }
+
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+          const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/categories/${id}`;
+
+          const response = await fetch(functionsUrl, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'X-Custom-Auth': token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(categoryData)
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('📂 [카테고리 API] 수정 오류:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log('✅ [카테고리 API] 수정 성공:', data);
+          return data;
+        } catch (error) {
+          console.error('📂 [카테고리 API] 수정 실패:', error);
+          throw error;
+        }
+      },
+
+      // 카테고리 삭제
+      delete: async (id: number) => {
+        try {
+          const token = await supabaseAuthService.getToken();
+          if (!token) {
+            throw new Error('No authentication token available');
+          }
+
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+          const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/categories/${id}`;
+
+          const response = await fetch(functionsUrl, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'X-Custom-Auth': token,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('📂 [카테고리 API] 삭제 오류:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log('✅ [카테고리 API] 삭제 성공:', data);
+          return data;
+        } catch (error) {
+          console.error('📂 [카테고리 API] 삭제 실패:', error);
+          throw error;
+        }
       }
     }
   },
@@ -4845,6 +5358,332 @@ export const supabaseApiService = {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
       }
     }
+  },
+
+  // Accounting API
+  accounting: {
+    // Categories
+    getCategories: async (type?: 'income' | 'expense') => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const params = new URLSearchParams();
+        if (type) params.append('type', type);
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories?${params.toString()}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('계정과목 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    createCategory: async (categoryData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(categoryData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('계정과목 생성 실패:', error);
+        throw error;
+      }
+    },
+
+    updateCategory: async (categoryId: number, categoryData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories/${categoryId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(categoryData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('계정과목 수정 실패:', error);
+        throw error;
+      }
+    },
+
+    deleteCategory: async (categoryId: number) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories/${categoryId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('계정과목 삭제 실패:', error);
+        throw error;
+      }
+    },
+
+    // Transactions
+    getTransactions: async (filters: {
+      page?: number;
+      limit?: number;
+      start_date?: string;
+      end_date?: string;
+      type?: 'income' | 'expense';
+      category_id?: number;
+      keyword?: string;
+    } = {}) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const params = new URLSearchParams();
+        if (filters.page) params.append('page', filters.page.toString());
+        if (filters.limit) params.append('limit', filters.limit.toString());
+        if (filters.start_date) params.append('start_date', filters.start_date);
+        if (filters.end_date) params.append('end_date', filters.end_date);
+        if (filters.type) params.append('type', filters.type);
+        if (filters.category_id) params.append('category_id', filters.category_id.toString());
+        if (filters.keyword) params.append('keyword', filters.keyword);
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions?${params.toString()}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('거래 내역 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    getSummary: async (filters: {
+      start_date?: string;
+      end_date?: string;
+      type?: 'income' | 'expense';
+    } = {}) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const params = new URLSearchParams();
+        if (filters.start_date) params.append('start_date', filters.start_date);
+        if (filters.end_date) params.append('end_date', filters.end_date);
+        if (filters.type) params.append('type', filters.type);
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions/summary?${params.toString()}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('통계 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    createTransaction: async (transactionData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(transactionData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('거래 생성 실패:', error);
+        throw error;
+      }
+    },
+
+    updateTransaction: async (transactionId: number, transactionData: any) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions/${transactionId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(transactionData)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('거래 수정 실패:', error);
+        throw error;
+      }
+    },
+
+    deleteTransaction: async (transactionId: number) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions/${transactionId}`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('거래 삭제 실패:', error);
+        throw error;
+      }
+    },
   }
 
 };

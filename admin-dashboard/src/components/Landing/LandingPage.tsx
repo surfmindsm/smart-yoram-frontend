@@ -5,6 +5,7 @@ import { FeaturesSection } from './FeaturesSection';
 import { CommunitySection } from './CommunitySection';
 import { ProcessSection } from './ProcessSection';
 import { FaqSection } from './FaqSection';
+import { AppDownloadSection } from './AppDownloadSection';
 import { Footer } from './Footer';
 
 const LandingPage: React.FC = () => {
@@ -17,6 +18,7 @@ const LandingPage: React.FC = () => {
         <CommunitySection />
         <ProcessSection />
         <FaqSection />
+        <AppDownloadSection />
       </main>
       <Footer />
     </div>

@@ -50,7 +50,9 @@ import {
   User,
   Key,
   UserCog,
-  Building2
+  Building2,
+  Calculator,
+  Video
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -268,6 +270,7 @@ const Layout: React.FC = () => {
     {
       title: '재정 관리',
       items: [
+        { path: '/accounting', name: '회계 관리', Icon: Calculator },
         { path: '/donations', name: '헌금 관리', Icon: DollarSign },
       ],
     },
@@ -285,9 +288,9 @@ const Layout: React.FC = () => {
       title: '교회 운영 & 설정',
       items: [
         { path: '/church', name: '교회 정보', Icon: Church },
-        { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
-        { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
-        { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
+        // { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
+        // { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
+        // { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
       ],
     },
     // GPT 권한이 있는 경우에만 AI 기능 메뉴 표시
@@ -321,6 +324,7 @@ const Layout: React.FC = () => {
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
         ...(isSystemAdmin ? [
           { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+          { path: '/sermons', name: '명설교 관리', Icon: Video },
           { path: '/church-applications', name: '교회 가입 신청 관리', Icon: Church },
           { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 },
           { path: '/church-management', name: '교회 관리', Icon: Church },

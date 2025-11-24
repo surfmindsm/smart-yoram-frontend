@@ -4,6 +4,7 @@ import { communityService, MusicSeeker } from '../../services/communityService';
 import { formatCreatedAt } from '../../utils/dateUtils';
 import { mapToStandardStatus, getStatusLabel, getStatusClass } from '../../utils/status-mapping';
 import { Button } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import { getCities, getDistricts } from '../../data/koreaLocations';
 import {
@@ -231,37 +232,32 @@ const MusicTeamSeeking: React.FC = () => {
   }, [selectedInstrument, selectedDay, selectedTime, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-end pr-6 mb-4">
-        <div className="flex-1 max-w-md">
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">행사팀 지원</h1>
-          <p className="text-sm text-gray-600">교회 행사팀 지원서를 확인하고 관리하세요</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* 검색바 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
+    <PageContainer>
+      <PageHeader
+        title="행사팀 지원"
+        description="교회 행사팀 지원서를 확인하고 관리하세요"
+        actions={
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <Button
+              onClick={() => navigate('/community/music-team-seeking/create')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
           </div>
-
-          {/* New 버튼 */}
-          <Button
-            onClick={() => navigate('/community/music-team-seeking/create')}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 추가 필터들 - 별도 필터 */}
       <div className="mb-4 flex gap-4">
@@ -322,7 +318,7 @@ const MusicTeamSeeking: React.FC = () => {
         emptyIcon={<Users className="w-12 h-12 text-gray-400" />}
         selectable={false}
       />
-    </div>
+    </PageContainer>
   );
 };
 

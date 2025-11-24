@@ -14,16 +14,16 @@ interface StatCardProps {
 const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading = false }) => {
   return (
     <Card className="border-muted">
-      <CardContent className="p-6">
+      <CardContent className="p-4">
         <div className="flex items-center">
-          <div className={cn("p-3 rounded-lg", color.replace('bg-', 'bg-') + '/10')}>
-            <Icon className={cn("h-6 w-6", color.replace('bg-', 'text-'))} />
+          <div className={cn("p-2 rounded-lg", color.replace('bg-', 'bg-') + '/10')}>
+            <Icon className={cn("h-5 w-5", color.replace('bg-', 'text-'))} />
           </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="text-3xl font-bold text-foreground mt-1">
+          <div className="ml-3">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <div className="text-2xl font-bold text-foreground mt-0.5">
               {loading ? (
-                <div className="w-14 h-8 bg-muted animate-pulse rounded"></div>
+                <div className="w-12 h-7 bg-muted animate-pulse rounded"></div>
               ) : (
                 value
               )}

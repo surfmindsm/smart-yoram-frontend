@@ -4,9 +4,10 @@ import { Button } from "./ui";
 import { Input } from "./ui";
 import { Textarea } from "./ui";
 import { Badge } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { supabaseApiService } from '../services/supabaseApiService';
-import { BookOpen, Plus, Edit, Trash2, Save, X, Calendar } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface DailyVerse {
   id: number;
@@ -140,35 +141,29 @@ const DailyVerse: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <PageContainer>
         <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
             <Spinner size="default" className="mx-auto mb-4" />
             <p className="text-gray-500">오늘의 말씀을 불러오는 중...</p>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* 페이지 헤더 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <BookOpen className="h-8 w-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">오늘의 말씀</h1>
-            <p className="text-gray-500">매일의 은혜로운 말씀을 나누어요</p>
-          </div>
-        </div>
-        <Button
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          새 말씀 추가
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="오늘의 말씀"
+        description="매일의 은혜로운 말씀을 나누어요"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            새 말씀 추가
+          </Button>
+        }
+      />
 
       {/* 오류 메시지 */}
       {error && (
@@ -179,21 +174,16 @@ const DailyVerse: React.FC = () => {
 
       {/* 오늘의 말씀 카드 */}
       {todayVerse && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-blue-800">
-              <Calendar className="h-5 w-5" />
-              <span>오늘의 말씀</span>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {formatDate(todayVerse.created_at)}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <blockquote className="text-lg text-gray-800 font-medium leading-relaxed mb-3">
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">오늘의 말씀</h3>
+            </div>
+            <blockquote className="text-lg text-gray-900 italic mb-3 pl-4 border-l-4 border-blue-600 leading-relaxed">
               "{todayVerse.verse}"
             </blockquote>
-            <cite className="text-blue-600 font-semibold">
+            <cite className="text-blue-600 font-medium">
               - {todayVerse.reference}
             </cite>
           </CardContent>
@@ -202,14 +192,11 @@ const DailyVerse: React.FC = () => {
 
       {/* 말씀 입력/수정 폼 */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Edit className="h-5 w-5" />
-              <span>{editingId ? '말씀 수정' : '새 말씀 추가'}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {editingId ? '말씀 수정' : '새 말씀 추가'}
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -251,13 +238,11 @@ const DailyVerse: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex gap-2 pt-4">
                 <Button type="submit">
-                  <Save className="h-4 w-4 mr-2" />
                   {editingId ? '수정' : '저장'}
                 </Button>
                 <Button type="button" variant="outline" onClick={cancelForm}>
-                  <X className="h-4 w-4 mr-2" />
                   취소
                 </Button>
               </div>
@@ -268,10 +253,7 @@ const DailyVerse: React.FC = () => {
 
       {/* 말씀 목록 */}
       <Card>
-        <CardHeader>
-          <CardTitle>등록된 말씀 목록</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {verses.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -279,24 +261,23 @@ const DailyVerse: React.FC = () => {
               <p className="text-sm">첫 번째 말씀을 추가해보세요.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y">
               {verses.map((verse) => (
                 <div
                   key={verse.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="py-4 first:pt-0 last:pb-0 group hover:bg-gray-50"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <blockquote className="text-gray-800 mb-2 leading-relaxed">
+                      <blockquote className="text-gray-900 mb-2 leading-relaxed">
                         "{verse.verse}"
                       </blockquote>
-                      <div className="flex items-center space-x-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
                         <cite className="font-medium text-blue-600">
                           - {verse.reference}
                         </cite>
                         <Badge
-                          variant={verse.is_active ? "default" : "secondary"}
-                          className={verse.is_active ? "bg-green-100 text-green-800" : ""}
+                          variant={verse.is_active ? "success" : "secondary"}
                         >
                           {verse.is_active ? '활성' : '비활성'}
                         </Badge>
@@ -305,18 +286,18 @@ const DailyVerse: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex space-x-2 ml-4">
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => startEdit(verse)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-700"
                         onClick={() => handleDelete(verse.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -329,7 +310,7 @@ const DailyVerse: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 };
 

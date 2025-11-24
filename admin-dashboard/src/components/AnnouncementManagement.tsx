@@ -4,6 +4,7 @@ import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
 import { useToast } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { PageContainer, PageHeader } from "./ui";
 import { Badge } from "./ui";
 import { Input } from "./ui";
 import { Label } from "./ui";
@@ -262,14 +263,17 @@ const AnnouncementManagement: React.FC = () => {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-slate-900">공지사항 관리</h2>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="w-4 h-4" />
-          새 공지사항
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="공지사항 관리"
+        description="교회 공지사항을 작성하고 관리합니다."
+        actions={
+          <Button onClick={handleCreate}>
+            <Plus className="w-4 h-4 mr-2" />
+            새 공지사항
+          </Button>
+        }
+      />
 
       {/* Filter Buttons */}
       <div className="mb-6 flex gap-2">
@@ -299,14 +303,14 @@ const AnnouncementManagement: React.FC = () => {
       {/* Announcements List */}
       <div className="space-y-4">
         {filteredAnnouncements.map((announcement) => (
-          <Card 
-            key={announcement.id} 
-            className={`${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+          <Card
+            key={announcement.id}
+            className={`group ${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/30' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
           >
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2 text-gray-900">
                     {announcement.is_pinned && (
                       <Pin className="w-4 h-4 text-yellow-600 fill-current" />
                     )}
@@ -315,16 +319,18 @@ const AnnouncementManagement: React.FC = () => {
                       <Badge variant="secondary">비활성</Badge>
                     )}
                   </CardTitle>
-                  <CardDescription>
-                    <Badge className="bg-blue-100 text-blue-800">
+                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                       {getCategoryLabel(announcement.category)}
-                    </Badge> | 
-                    작성자: {announcement.author_name || '관리자'} | 
-                    작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} | 
-                    대상: {getTargetAudienceText(announcement.target_audience || 'all')}
-                  </CardDescription>
+                    </Badge>
+                    <span>작성자: {announcement.author_name || '관리자'}</span>
+                    <span>·</span>
+                    <span>{new Date(announcement.created_at).toLocaleDateString('ko-KR')}</span>
+                    <span>·</span>
+                    <span>대상: {getTargetAudienceText(announcement.target_audience || 'all')}</span>
+                  </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -343,15 +349,15 @@ const AnnouncementManagement: React.FC = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(announcement.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-slate-600 whitespace-pre-wrap">{announcement.content}</p>
+            <CardContent className="pt-0">
+              <p className="text-gray-700 whitespace-pre-wrap">{announcement.content}</p>
             </CardContent>
           </Card>
         ))}
@@ -360,7 +366,7 @@ const AnnouncementManagement: React.FC = () => {
       {filteredAnnouncements.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
-            <p className="text-slate-500">공지사항이 없습니다.</p>
+            <p className="text-gray-600">공지사항이 없습니다.</p>
           </CardContent>
         </Card>
       )}
@@ -469,7 +475,7 @@ const AnnouncementManagement: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -8,6 +8,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { Button } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { CommunityTable, TableColumn, TableRenderers } from '../common/CommunityTable';
 import CustomSelect, { SelectOption } from '../common/CustomSelect';
 import { communityService, OfferItem } from '../../services/communityService';
@@ -226,38 +227,35 @@ const SharingOffer: React.FC = () => {
   }, [selectedCategory, selectedStatus, searchTerm, selectedLocationCity, selectedLocationDistrict]);
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-end pr-6 mb-4">
-        <div className="flex-1 max-w-md">
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">물품 판매</h1>
-          <p className="text-sm text-gray-600">다른 교회와 물품을 거래해보세요</p>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title="물품 판매"
+        description="다른 교회와 물품을 거래해보세요"
+        actions={
+          <div className="flex items-center gap-3">
+            {/* 검색바 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
 
-        <div className="flex items-center gap-3">
-          {/* 검색바 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
+            {/* New 버튼 */}
+            <Button
+              onClick={() => navigate(getCreatePagePath('item-sale'))}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
           </div>
-
-
-          {/* New 버튼 */}
-          <Button
-            onClick={() => navigate(getCreatePagePath('item-sale'))}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 필터들 */}
       <div className="mb-4 flex gap-4">
@@ -313,8 +311,7 @@ const SharingOffer: React.FC = () => {
         emptyIcon={<Share2 className="h-12 w-12 text-gray-400" />}
         selectable={false}
       />
-
-    </div>
+    </PageContainer>
   );
 };
 

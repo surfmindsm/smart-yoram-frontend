@@ -33,6 +33,7 @@ const PastoralCareManagement = lazy(() => import('./components/PastoralCareManag
 const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
 const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
+const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const OrganizationManagement = lazy(() => import('./components/OrganizationManagement'));
@@ -106,6 +107,12 @@ const ChurchGptLicenseAssignment = lazy(() => import('./components/ChurchGptLice
 // Landing Page
 const LandingPage = lazy(() => import('./components/Landing/LandingPage'));
 
+// Download Redirect Page
+const DownloadRedirect = lazy(() => import('./pages/DownloadRedirect'));
+
+// Sermon Management
+const SermonManagement = lazy(() => import('./components/SermonManagement'));
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -126,6 +133,13 @@ function App() {
         <Route path="/landing" element={
           <Suspense fallback={<LoadingSpinner />}>
             <LandingPage />
+          </Suspense>
+        } />
+
+        {/* Download Redirect - Universal App Download Link */}
+        <Route path="/download" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <DownloadRedirect />
           </Suspense>
         } />
 
@@ -192,6 +206,11 @@ function App() {
               <DonationManagement />
             </Suspense>
           } />
+          <Route path="accounting" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AccountingManagement />
+            </Suspense>
+          } />
           <Route path="system-announcements" element={
             <Suspense fallback={<LoadingSpinner />}>
               <SystemAnnouncementManagement />
@@ -200,6 +219,11 @@ function App() {
           <Route path="announcements" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AnnouncementManagement />
+            </Suspense>
+          } />
+          <Route path="sermons" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SermonManagement />
             </Suspense>
           } />
           <Route path="ai-chat" element={

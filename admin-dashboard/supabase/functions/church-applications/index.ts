@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
         youtube_channel,
         established_year,
         denomination,
-        member_count
+        member_count,
+        attachments
       } = body
 
       // 필수 필드 검증 (빈 문자열도 허용하지 않음)
@@ -97,6 +98,11 @@ Deno.serve(async (req) => {
       if (established_year) insertData.established_year = established_year
       if (denomination) insertData.denomination = denomination
       if (member_count) insertData.member_count = member_count
+
+      // 첨부파일 정보 추가 (JSONB 형식)
+      if (attachments && Array.isArray(attachments)) {
+        insertData.attachments = JSON.stringify(attachments)
+      }
 
       console.log('📝 교회 신청서 저장 중:', insertData)
 

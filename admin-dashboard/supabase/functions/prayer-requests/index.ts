@@ -139,9 +139,44 @@ Deno.serve(async (req) => {
 
         console.log('Query successful, found prayer requests:', count)
 
+        // Enrich data with member information
+        const enrichedData = await Promise.all((data || []).map(async (request: any) => {
+          let enrichedRequest = { ...request }
+
+          // Get member information if member_id exists
+          if (request.member_id) {
+            const { data: memberData } = await supabaseClient
+              .from('members')
+              .select('name, phone, profile_photo_url, department, organization_id')
+              .eq('id', request.member_id)
+              .single()
+
+            if (memberData) {
+              // Override requester info with member info for consistency
+              enrichedRequest.requester_name = memberData.name
+              enrichedRequest.requester_phone = memberData.phone
+              enrichedRequest.profile_photo_url = memberData.profile_photo_url
+              enrichedRequest.department = memberData.department
+
+              // Get organization name if organization_id exists
+              if (memberData.organization_id) {
+                const { data: orgData } = await supabaseClient
+                  .from('church_organizations')
+                  .select('name')
+                  .eq('id', memberData.organization_id)
+                  .single()
+
+                enrichedRequest.organization_name = orgData?.name || null
+              }
+            }
+          }
+
+          return enrichedRequest
+        }))
+
         return new Response(
           JSON.stringify({
-            data: data || [],
+            data: enrichedData || [],
             count: count || 0,
             page,
             limit,
@@ -224,8 +259,35 @@ Deno.serve(async (req) => {
           )
         }
 
+        // Enrich with member information if member_id exists
+        let enrichedRequest = { ...data }
+        if (data.member_id) {
+          const { data: memberData } = await supabaseClient
+            .from('members')
+            .select('name, phone, profile_photo_url, department, organization_id')
+            .eq('id', data.member_id)
+            .single()
+
+          if (memberData) {
+            enrichedRequest.requester_name = memberData.name
+            enrichedRequest.requester_phone = memberData.phone
+            enrichedRequest.profile_photo_url = memberData.profile_photo_url
+            enrichedRequest.department = memberData.department
+
+            if (memberData.organization_id) {
+              const { data: orgData } = await supabaseClient
+                .from('church_organizations')
+                .select('name')
+                .eq('id', memberData.organization_id)
+                .single()
+
+              enrichedRequest.organization_name = orgData?.name || null
+            }
+          }
+        }
+
         return new Response(
-          JSON.stringify(data),
+          JSON.stringify(enrichedRequest),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
@@ -235,12 +297,19 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
+      console.log('🙏 [Edge Function] URL pathname:', url.pathname)
+      console.log('🙏 [Edge Function] pathParts:', pathParts)
+      console.log('🙏 [Edge Function] 받은 body:', body)
 
-      // POST /prayer-requests/admin/requests - Create new prayer request
-      if (pathParts.includes('admin') && pathParts.includes('requests')) {
+      // POST - Create new prayer request (check action from body or path)
+      const action = body.action || (pathParts.includes('answer') ? 'answer' : pathParts.includes('pray') ? 'pray' : 'create')
+
+      if (action === 'create') {
+        console.log('🙏 [Edge Function] Creating prayer request')
+
         const insertData = {
           church_id: body.church_id || body.churchId || 9998,
-          member_id: body.member_id || body.memberId,
+          member_id: body.member_id || body.memberId || null,
           requester_name: body.requester_name || body.requesterName,
           requester_phone: body.requester_phone || body.requesterPhone,
           prayer_type: body.prayer_type || body.prayerType || 'general',
@@ -252,6 +321,8 @@ Deno.serve(async (req) => {
           expires_at: body.expires_at || body.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
         }
 
+        console.log('🙏 [Edge Function] 삽입할 데이터:', insertData)
+
         const { data, error } = await supabaseClient
           .from('prayer_requests')
           .insert([insertData])
@@ -259,15 +330,18 @@ Deno.serve(async (req) => {
           .single()
 
         if (error) {
-          console.error('Database insert error:', error)
+          console.error('🚨 [Edge Function] Database insert error:', error)
+          console.error('🚨 [Edge Function] Error details:', JSON.stringify(error, null, 2))
           return new Response(
-            JSON.stringify({ error: 'Failed to create prayer request', details: error.message }),
+            JSON.stringify({ error: 'Failed to create prayer request', details: error.message, code: error.code }),
             {
               status: 500,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             }
           )
         }
+
+        console.log('✅ [Edge Function] 삽입 성공:', data)
 
         return new Response(
           JSON.stringify(data),
@@ -278,9 +352,41 @@ Deno.serve(async (req) => {
         )
       }
 
-      // POST /prayer-requests/admin/requests/{id}/answer - Mark as answered
-      if (pathParts.includes('answer')) {
-        const requestId = pathParts[pathParts.length - 2] // requests/{id}/answer
+      // POST - Increment prayer count
+      if (action === 'pray') {
+        const requestId = body.requestId || body.request_id
+
+        const { data, error } = await supabaseClient
+          .from('prayer_requests')
+          .update({
+            prayer_count: supabaseClient.rpc('increment_prayer_count', { request_id: requestId })
+          })
+          .eq('id', requestId)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Database update error:', error)
+          return new Response(
+            JSON.stringify({ error: 'Failed to increment prayer count', details: error.message }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        return new Response(
+          JSON.stringify(data),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      // POST - Mark as answered
+      if (action === 'answer') {
+        const requestId = body.requestId || body.request_id
 
         const updateData = {
           status: 'answered',
@@ -351,86 +457,83 @@ Deno.serve(async (req) => {
     if (req.method === 'PUT') {
       const body = await req.json()
 
-      // PUT /prayer-requests/admin/requests/{id} - Update request
-      if (pathParts.includes('admin') && pathParts.includes('requests')) {
-        const requestId = pathParts[pathParts.length - 1]
+      // PUT - Update request
+      const requestId = body.requestId || body.request_id || body.id
 
-        const updateData = {
-          requester_name: body.requester_name || body.requesterName,
-          requester_phone: body.requester_phone || body.requesterPhone,
-          prayer_type: body.prayer_type || body.prayerType,
-          prayer_content: body.prayer_content || body.prayerContent,
-          is_anonymous: body.is_anonymous !== undefined ? body.is_anonymous : body.isAnonymous,
-          is_urgent: body.is_urgent !== undefined ? body.is_urgent : body.isUrgent,
-          is_public: body.is_public !== undefined ? body.is_public : body.isPublic,
-          status: body.status,
-          admin_notes: body.admin_notes || body.adminNotes,
-          answered_testimony: body.answered_testimony || body.answeredTestimony,
-          updated_at: new Date().toISOString()
+      const updateData = {
+        member_id: body.member_id || body.memberId,
+        requester_name: body.requester_name || body.requesterName,
+        requester_phone: body.requester_phone || body.requesterPhone,
+        prayer_type: body.prayer_type || body.prayerType,
+        prayer_content: body.prayer_content || body.prayerContent,
+        is_anonymous: body.is_anonymous !== undefined ? body.is_anonymous : body.isAnonymous,
+        is_urgent: body.is_urgent !== undefined ? body.is_urgent : body.isUrgent,
+        is_public: body.is_public !== undefined ? body.is_public : body.isPublic,
+        status: body.status,
+        admin_notes: body.admin_notes || body.adminNotes,
+        answered_testimony: body.answered_testimony || body.answeredTestimony,
+        updated_at: new Date().toISOString()
+      }
+
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key]
         }
+      })
 
-        // Remove undefined values
-        Object.keys(updateData).forEach(key => {
-          if (updateData[key] === undefined) {
-            delete updateData[key]
-          }
-        })
+      const { data, error } = await supabaseClient
+        .from('prayer_requests')
+        .update(updateData)
+        .eq('id', requestId)
+        .select()
+        .single()
 
-        const { data, error } = await supabaseClient
-          .from('prayer_requests')
-          .update(updateData)
-          .eq('id', requestId)
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Database update error:', error)
-          return new Response(
-            JSON.stringify({ error: 'Failed to update request', details: error.message }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          )
-        }
-
+      if (error) {
+        console.error('Database update error:', error)
         return new Response(
-          JSON.stringify(data),
+          JSON.stringify({ error: 'Failed to update request', details: error.message }),
           {
+            status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
+
+      return new Response(
+        JSON.stringify(data),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     if (req.method === 'DELETE') {
-      // DELETE /prayer-requests/admin/requests/{id} - Delete request
-      if (pathParts.includes('admin') && pathParts.includes('requests')) {
-        const requestId = pathParts[pathParts.length - 1]
+      const body = await req.json()
+      const requestId = body.requestId || body.request_id || body.id
 
-        const { error } = await supabaseClient
-          .from('prayer_requests')
-          .delete()
-          .eq('id', requestId)
+      const { error } = await supabaseClient
+        .from('prayer_requests')
+        .delete()
+        .eq('id', requestId)
 
-        if (error) {
-          console.error('Database delete error:', error)
-          return new Response(
-            JSON.stringify({ error: 'Failed to delete request', details: error.message }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          )
-        }
-
+      if (error) {
+        console.error('Database delete error:', error)
         return new Response(
-          JSON.stringify({ message: 'Prayer request deleted successfully' }),
+          JSON.stringify({ error: 'Failed to delete request', details: error.message }),
           {
+            status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
+
+      return new Response(
+        JSON.stringify({ message: 'Prayer request deleted successfully' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
     }
 
     return new Response(

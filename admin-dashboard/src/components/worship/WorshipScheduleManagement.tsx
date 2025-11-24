@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "../ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
+import { PageContainer, PageHeader } from "../ui";
 import { toast } from "../ui";
 import { TimePicker } from "../ui/time-picker";
 import { supabaseApiService } from '../../services/supabaseApiService';
@@ -48,14 +49,6 @@ const DAY_OF_WEEK_MAPPING = {
   5: '토요일',
   6: '일요일'
 };
-
-const SERVICE_TYPES = [
-  { value: 'sunday_worship', label: '주일예배' },
-  { value: 'wednesday_worship', label: '수요예배' },
-  { value: 'dawn_prayer', label: '새벽기도회' },
-  { value: 'friday_worship', label: '금요철야예배' },
-  { value: 'special', label: '특별예배' },
-];
 
 const TARGET_GROUPS = [
   { value: 'all', label: '전체' },
@@ -128,7 +121,7 @@ export default function WorshipScheduleManagement() {
 
   useEffect(() => {
     fetchWorshipSchedule();
-    // fetchCategories(); // Disable categories for now
+    fetchCategories();
   }, []);
 
   const fetchWorshipSchedule = async () => {
@@ -157,23 +150,160 @@ export default function WorshipScheduleManagement() {
 
   const fetchCategories = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.surfmind-team.com/api/v1';
-      const response = await fetch(`${API_BASE_URL}/worship/categories`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
+      console.log('📂 카테고리 목록 조회 시작, church_id:', churchId);
+      const data = await supabaseApiService.worshipServices.categories.getAll(churchId);
+      console.log('📂 카테고리 조회 성공:', data.length, '개');
+
+      // 카테고리가 없으면 기본 카테고리 생성
+      if (data.length === 0) {
+        console.log('📂 기본 카테고리 생성 시작');
+        const defaultCategories = [
+          { name: '주일예배', description: '주일 정기 예배', order_index: 0 },
+          { name: '주중예배', description: '주중 정기 예배', order_index: 1 },
+          { name: '수요예배', description: '수요일 정기 예배', order_index: 2 },
+          { name: '새벽기도회', description: '새벽 기도 모임', order_index: 3 },
+          { name: '금요철야예배', description: '금요일 철야 예배', order_index: 4 },
+          { name: '특별예배', description: '특별 행사 예배', order_index: 5 },
+        ];
+
+        for (const category of defaultCategories) {
+          try {
+            await supabaseApiService.worshipServices.categories.create({
+              church_id: churchId,
+              ...category
+            });
+          } catch (err) {
+            console.error('📂 기본 카테고리 생성 실패:', category.name, err);
+          }
+        }
+
+        // 다시 조회
+        const updatedData = await supabaseApiService.worshipServices.categories.getAll(churchId);
+        setCategories(updatedData);
+        console.log('✅ 기본 카테고리 생성 완료:', updatedData.length, '개');
+      } else {
         setCategories(data);
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
+      console.error('📂 카테고리 조회 실패:', error);
+      toast({
+        title: '오류',
+        description: '카테고리를 불러오는데 실패했습니다.',
+        variant: 'destructive',
+      });
     }
+  };
+
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const categoryData = {
+        church_id: churchId,
+        name: categoryFormData.name,
+        description: categoryFormData.description || undefined,
+        order_index: categoryFormData.order_index
+      };
+
+      console.log('📂 카테고리 저장 시작:', editingCategory ? '수정' : '생성', categoryData);
+
+      if (editingCategory) {
+        // 수정
+        await supabaseApiService.worshipServices.categories.update(editingCategory.id, categoryData);
+        console.log('✅ 카테고리 수정 성공');
+      } else {
+        // 생성
+        await supabaseApiService.worshipServices.categories.create(categoryData as any);
+        console.log('✅ 카테고리 생성 성공');
+      }
+
+      toast({
+        title: '성공',
+        description: editingCategory ? '카테고리가 수정되었습니다.' : '카테고리가 추가되었습니다.',
+      });
+
+      setIsCategoryDialogOpen(false);
+      resetCategoryForm();
+      await fetchCategories();
+
+    } catch (error) {
+      console.error('📂 카테고리 저장 실패:', error);
+      toast({
+        title: '오류',
+        description: '카테고리 저장에 실패했습니다.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCategoryDelete = async (id: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+
+    try {
+      console.log('📂 카테고리 삭제 시작:', id);
+
+      // Try using Supabase client directly as a fallback
+      const { error } = await supabaseApiService.supabase
+        .from('worship_service_categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('📂 Supabase 직접 삭제 오류:', error);
+        // Fallback to API service
+        await supabaseApiService.worshipServices.categories.delete(id);
+      }
+
+      console.log('✅ 카테고리 삭제 성공');
+
+      toast({
+        title: '성공',
+        description: '카테고리가 삭제되었습니다.',
+      });
+
+      await fetchCategories();
+
+    } catch (error) {
+      console.error('📂 카테고리 삭제 실패:', error);
+      toast({
+        title: '오류',
+        description: '카테고리 삭제에 실패했습니다.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCategoryEdit = (category: WorshipCategory) => {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      description: category.description || '',
+      order_index: category.order_index,
+    });
+    setIsCategoryDialogOpen(true);
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategory(null);
+    setCategoryFormData({
+      name: '',
+      description: '',
+      order_index: 0,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate start_time
+    if (!formData.start_time || formData.start_time.trim() === '') {
+      toast({
+        title: '오류',
+        description: '시작 시간을 입력해주세요.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const serviceData = {
@@ -293,27 +423,30 @@ export default function WorshipScheduleManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">예배 시간 관리</h2>
-        <div className="space-x-2">
-          <Button onClick={() => setIsCategoryDialogOpen(true)} variant="outline">
-            <Plus className="mr-2 h-4 w-4" />
-            카테고리 관리
-          </Button>
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            예배 추가
-          </Button>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="예배 시간 관리"
+        description="교회의 정기 예배 일정을 관리합니다."
+        actions={
+          <div className="flex gap-2">
+            <Button onClick={() => setIsCategoryDialogOpen(true)} variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              카테고리 관리
+            </Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              예배 추가
+            </Button>
+          </div>
+        }
+      />
 
       {services.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">등록된 예배가 없습니다</h3>
-            <p className="text-muted-foreground mb-4">
+            <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">등록된 예배가 없습니다</h3>
+            <p className="text-gray-600 mb-4">
               아직 등록된 예배 일정이 없습니다.<br />
               새로운 예배 일정을 추가해보세요.
             </p>
@@ -334,11 +467,11 @@ export default function WorshipScheduleManagement() {
 
           <TabsContent value="all" className="space-y-4">
             {Object.entries(groupServicesByType()).map(([type, typeServices]) => (
-              <div key={type} className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">{SERVICE_TYPES.find(t => t.value === type)?.label || '기타'}</h3>
+              <div key={type} className="space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">{type || '미분류'}</h3>
                 <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
+                  <CardContent className="p-0">
+                    <div className="divide-y">
                       {typeServices.map(service => (
                         <ServiceCard
                           key={service.id}
@@ -356,10 +489,10 @@ export default function WorshipScheduleManagement() {
 
           <TabsContent value="sunday" className="space-y-4">
             <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent className="p-0">
+                <div className="divide-y">
                   {services
-                    .filter(s => s.service_type === 'sunday_worship')
+                    .filter(s => s.service_type === '주일예배')
                     .map(service => (
                       <ServiceCard
                         key={service.id}
@@ -368,8 +501,8 @@ export default function WorshipScheduleManagement() {
                         onDelete={handleDelete}
                       />
                     ))}
-                  {services.filter(s => s.service_type === 'sunday_worship').length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">주일예배가 등록되지 않았습니다.</p>
+                  {services.filter(s => s.service_type === '주일예배').length === 0 && (
+                    <p className="text-center text-gray-500 py-8">주일예배가 등록되지 않았습니다.</p>
                   )}
                 </div>
               </CardContent>
@@ -378,10 +511,10 @@ export default function WorshipScheduleManagement() {
 
           <TabsContent value="weekday" className="space-y-4">
             <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent className="p-0">
+                <div className="divide-y">
                   {services
-                    .filter(s => s.service_type !== 'sunday_worship')
+                    .filter(s => s.service_type !== '주일예배' && s.service_type)
                     .map(service => (
                       <ServiceCard
                         key={service.id}
@@ -390,8 +523,8 @@ export default function WorshipScheduleManagement() {
                         onDelete={handleDelete}
                       />
                     ))}
-                  {services.filter(s => s.service_type !== 'sunday_worship').length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">주중예배가 등록되지 않았습니다.</p>
+                  {services.filter(s => s.service_type !== '주일예배' && s.service_type).length === 0 && (
+                    <p className="text-center text-gray-500 py-8">주중예배가 등록되지 않았습니다.</p>
                   )}
                 </div>
               </CardContent>
@@ -400,8 +533,8 @@ export default function WorshipScheduleManagement() {
 
           <TabsContent value="online" className="space-y-4">
             <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent className="p-0">
+                <div className="divide-y">
                   {services
                     .filter(s => s.is_online)
                     .map(service => (
@@ -413,7 +546,7 @@ export default function WorshipScheduleManagement() {
                       />
                     ))}
                   {services.filter(s => s.is_online).length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">온라인 예배가 등록되지 않았습니다.</p>
+                    <p className="text-center text-gray-500 py-8">온라인 예배가 등록되지 않았습니다.</p>
                   )}
                 </div>
               </CardContent>
@@ -448,13 +581,19 @@ export default function WorshipScheduleManagement() {
                   <SelectValue placeholder="예배 유형 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SERVICE_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
                     </SelectItem>
                   ))}
+                  {categories.length === 0 && (
+                    <SelectItem value="" disabled>
+                      카테고리가 없습니다
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-gray-500 mt-1">카테고리 관리에서 예배 유형을 추가/수정할 수 있습니다</p>
             </div>
 
             <div>
@@ -486,7 +625,7 @@ export default function WorshipScheduleManagement() {
             </div>
 
             <div>
-              <Label htmlFor="start_time">시작 시간</Label>
+              <Label htmlFor="start_time">시작 시간 <span className="text-red-500">*</span></Label>
               <TimePicker
                 value={formData.start_time}
                 onChange={(value) => setFormData({ ...formData, start_time: value })}
@@ -541,7 +680,97 @@ export default function WorshipScheduleManagement() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* 카테고리 관리 다이얼로그 */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={(open) => {
+        setIsCategoryDialogOpen(open);
+        if (!open) resetCategoryForm();
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>카테고리 관리</DialogTitle>
+          </DialogHeader>
+
+          {/* 카테고리 목록 */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">등록된 카테고리</h3>
+            {categories.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4 text-center">등록된 카테고리가 없습니다.</p>
+            ) : (
+              <div className="space-y-2">
+                {categories.map(category => (
+                  <div key={category.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                    <div>
+                      <div className="font-medium">{category.name}</div>
+                      {category.description && (
+                        <div className="text-sm text-gray-600">{category.description}</div>
+                      )}
+                      <div className="text-xs text-gray-500">순서: {category.order_index}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => handleCategoryEdit(category)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleCategoryDelete(category.id)} className="text-red-600 hover:text-red-700">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 카테고리 추가/수정 폼 */}
+          <form onSubmit={handleCategorySubmit} className="space-y-4 border-t pt-4">
+            <h3 className="font-semibold">{editingCategory ? '카테고리 수정' : '새 카테고리 추가'}</h3>
+
+            <div>
+              <Label htmlFor="category_name">카테고리 이름 <span className="text-red-500">*</span></Label>
+              <Input
+                id="category_name"
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                required
+                placeholder="예: 주일예배, 수요예배"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category_description">설명</Label>
+              <Input
+                id="category_description"
+                value={categoryFormData.description}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                placeholder="카테고리 설명 (선택사항)"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category_order">정렬 순서</Label>
+              <Input
+                id="category_order"
+                type="number"
+                value={categoryFormData.order_index}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, order_index: parseInt(e.target.value) || 0 })}
+                min="0"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => {
+                resetCategoryForm();
+              }}>
+                {editingCategory ? '취소' : '초기화'}
+              </Button>
+              <Button type="submit">
+                {editingCategory ? '수정' : '추가'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </PageContainer>
   );
 }
 
@@ -555,14 +784,14 @@ function ServiceCard({
   onDelete: (id: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 border border-muted rounded-lg">
+    <div className="flex items-center justify-between p-4 hover:bg-gray-50 group">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-foreground">{service.name}</h4>
-          {service.is_online && <Monitor className="h-4 w-4 text-blue-500" />}
-          {!service.is_active && <span className="text-xs text-muted-foreground">(비활성)</span>}
+          <h4 className="font-semibold text-gray-900">{service.name}</h4>
+          {service.is_online && <Monitor className="h-4 w-4 text-blue-600" />}
+          {!service.is_active && <span className="text-xs text-gray-500">(비활성)</span>}
         </div>
-        <div className="mt-1 space-y-1 text-sm text-muted-foreground">
+        <div className="mt-1 space-y-1 text-sm text-gray-600">
           <div className="flex items-center gap-4">
             {service.day_of_week !== undefined && (
               <span>{DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week]}</span>
@@ -589,11 +818,11 @@ function ServiceCard({
           </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button size="sm" variant="ghost" onClick={() => onEdit(service)}>
           <Edit2 className="h-4 w-4" />
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => onDelete(service.id)}>
+        <Button size="sm" variant="ghost" onClick={() => onDelete(service.id)} className="text-red-600 hover:text-red-700">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>

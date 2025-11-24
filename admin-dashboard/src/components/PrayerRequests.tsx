@@ -23,8 +23,20 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Card, CardContent } from "./ui";
-import { Button } from "./ui";
+import { Button, Combobox } from "./ui";
 import { Spinner } from "./ui/spinner";
+
+interface Member {
+  id: number;
+  church_id?: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+  organization_name?: string;
+  department?: string;
+  profile_photo_url?: string;
+}
 
 interface PrayerRequest {
   id: string;
@@ -32,6 +44,9 @@ interface PrayerRequest {
   memberId?: number;
   requesterName: string;
   requesterPhone?: string;
+  organizationName?: string;
+  department?: string;
+  profilePhotoUrl?: string;
   prayerType: string;
   prayerContent: string;
   isAnonymous: boolean;
@@ -72,28 +87,26 @@ const PrayerRequests: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [urgentFilter, setUrgentFilter] = useState('all');
   const [publicFilter, setPublicFilter] = useState('all');
+  const [members, setMembers] = useState<Member[]>([]);
 
   // 모달 상태
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PrayerRequest | null>(null);
 
   // 새 기도요청 폼 데이터
   const [newRequest, setNewRequest] = useState({
+    memberId: '',
     requesterName: '',
     requesterPhone: '',
+    organizationName: '',
+    department: '',
+    profilePhotoUrl: '',
     prayerType: 'general',
     prayerContent: '',
     isAnonymous: false,
     isUrgent: false,
     isPublic: true
-  });
-
-  // 응답 폼 데이터
-  const [answerData, setAnswerData] = useState({
-    answeredTestimony: '',
-    adminNotes: ''
   });
 
   const formatDate = (dateString: string) => {
@@ -137,6 +150,42 @@ const PrayerRequests: React.FC = () => {
     };
     loadAllData();
   }, [statusFilter, typeFilter, urgentFilter, publicFilter]);
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        console.log('🔍 [기도요청] 교인 목록 로딩 시작...');
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        const userChurchId = currentUser?.user?.church_id || 9998;
+        console.log('🏛️ [기도요청] Church ID:', userChurchId);
+
+        const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
+        console.log('📡 [기도요청] API 응답:', response);
+
+        const membersData = response?.data || response || [];
+        console.log('📋 [기도요청] 교인 데이터 개수:', membersData.length);
+
+        if (membersData.length > 0) {
+          console.log('📝 [기도요청] 첫 번째 교인 샘플:', {
+            id: membersData[0].id,
+            name: membersData[0].name,
+            church_id: membersData[0].church_id,
+            organization_name: membersData[0].organization_name,
+            department: membersData[0].department,
+            profile_photo_url: membersData[0].profile_photo_url
+          });
+        }
+
+        setMembers(membersData);
+        console.log('✅ [기도요청] 교인 목록 설정 완료');
+      } catch (error) {
+        console.error('❌ [기도요청] Failed to load members:', error);
+        setMembers([]);
+      }
+    };
+
+    loadMembers();
+  }, []);
 
   const loadPrayerRequests = async () => {
     try {
@@ -182,6 +231,9 @@ const PrayerRequests: React.FC = () => {
         memberId: item.member_id,
         requesterName: item.requester_name,
         requesterPhone: item.requester_phone,
+        organizationName: item.organization_name,
+        department: item.department,
+        profilePhotoUrl: item.profile_photo_url,
         prayerType: item.prayer_type,
         prayerContent: item.prayer_content,
         isAnonymous: item.is_anonymous || false,
@@ -230,8 +282,9 @@ const PrayerRequests: React.FC = () => {
       const currentUser = await supabaseAuthService.getCurrentUser();
       const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
 
-      const requestData = {
+      const requestData: any = {
         church_id: userChurchId,
+        member_id: newRequest.memberId ? parseInt(newRequest.memberId) : null,
         requester_name: newRequest.requesterName,
         requester_phone: newRequest.requesterPhone,
         prayer_type: newRequest.prayerType,
@@ -241,6 +294,8 @@ const PrayerRequests: React.FC = () => {
         is_public: newRequest.isPublic
       };
 
+      // member_id를 저장하면 조회 시 members 테이블과 조인해서 organization, department, profile_photo_url을 가져옴
+
       await supabaseApiService.prayerRequests.create(requestData);
 
       await loadPrayerRequests();
@@ -248,8 +303,12 @@ const PrayerRequests: React.FC = () => {
 
       setShowCreateModal(false);
       setNewRequest({
+        memberId: '',
         requesterName: '',
         requesterPhone: '',
+        organizationName: '',
+        department: '',
+        profilePhotoUrl: '',
         prayerType: 'general',
         prayerContent: '',
         isAnonymous: false,
@@ -261,48 +320,6 @@ const PrayerRequests: React.FC = () => {
     } catch (error) {
       console.error('Failed to create prayer request:', error);
       alert('기도요청 등록에 실패했습니다.');
-    }
-  };
-
-  const handleMarkAsAnswered = async () => {
-    if (!selectedRequest || !answerData.answeredTestimony) {
-      alert('응답 내용을 입력해주세요.');
-      return;
-    }
-
-    try {
-      await supabaseApiService.prayerRequests.markAsAnswered(selectedRequest.id, {
-        answered_testimony: answerData.answeredTestimony,
-        admin_notes: answerData.adminNotes
-      });
-
-      await loadPrayerRequests();
-      await loadStats();
-
-      setShowAnswerModal(false);
-      setAnswerData({ answeredTestimony: '', adminNotes: '' });
-      alert('기도응답으로 처리되었습니다.');
-    } catch (error) {
-      console.error('Failed to mark as answered:', error);
-      alert('기도응답 처리에 실패했습니다.');
-    }
-  };
-
-  const handlePray = async (request: PrayerRequest) => {
-    try {
-      await supabaseApiService.prayerRequests.incrementPrayerCount(request.id);
-
-      // 로컬 상태 업데이트
-      setRequests(prev => prev.map(r =>
-        r.id === request.id
-          ? { ...r, prayerCount: r.prayerCount + 1 }
-          : r
-      ));
-
-      alert('기도했습니다! 🙏');
-    } catch (error) {
-      console.error('Failed to increment prayer count:', error);
-      alert('기도 카운트 업데이트에 실패했습니다.');
     }
   };
 
@@ -522,45 +539,62 @@ const PrayerRequests: React.FC = () => {
                     요청자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    조직
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    부서
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     기도 내용
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     유형
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    기도수
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     생성일
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     작업
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRequests.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50">
+                  <tr
+                    key={request.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowDetailModal(true);
+                    }}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
-                          <User className="h-6 w-6 text-gray-400" />
+                          {request.profilePhotoUrl ? (
+                            <img
+                              src={request.profilePhotoUrl}
+                              alt={request.requesterName}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <User className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
                         </div>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">
                             {request.isAnonymous ? '익명' : request.requesterName}
                           </div>
-                          {request.requesterPhone && !request.isAnonymous && (
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {request.requesterPhone}
-                            </div>
-                          )}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.organizationName || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.department || '-'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs truncate">
@@ -568,15 +602,10 @@ const PrayerRequests: React.FC = () => {
                       </div>
                       <div className="flex items-center mt-1">
                         {request.isUrgent && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             긴급
                           </span>
-                        )}
-                        {request.isPublic ? (
-                          <Eye className="h-4 w-4 text-gray-400" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-gray-400" />
                         )}
                       </div>
                     </td>
@@ -585,68 +614,22 @@ const PrayerRequests: React.FC = () => {
                         {getTypeText(request.prayerType)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(request.status))}>
-                        {getStatusText(request.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center">
-                        <Heart className="h-4 w-4 text-red-500 mr-1" />
-                        {request.prayerCount}
-                      </div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>{formatDate(request.createdAt)}</div>
-                      <div className="text-xs text-gray-400">{formatTimeAgo(request.createdAt)}</div>
+                      {formatDate(request.createdAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          onClick={() => handlePray(request)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
-                          title="기도하기"
-                        >
-                          <Heart className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setShowDetailModal(true);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-900 h-8 w-8 p-0"
-                          title="상세보기"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {request.status === 'active' && (
-                          <Button
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setShowAnswerModal(true);
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            className="text-green-600 hover:text-green-900 h-8 w-8 p-0"
-                            title="응답처리"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => handleDeleteRequest(request)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRequest(request);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -673,15 +656,61 @@ const PrayerRequests: React.FC = () => {
             </div>
 
             <div className="space-y-4">
+              {/* 교인 선택 (선택사항) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  교인 선택 (선택사항)
+                </label>
+                <Combobox
+                  options={members.map(member => ({
+                    value: member.id.toString(),
+                    label: member.name,
+                    description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
+                  }))}
+                  value={newRequest.memberId}
+                  onChange={(value) => {
+                    const selectedMember = members.find(m => m.id.toString() === value);
+                    if (selectedMember) {
+                      setNewRequest({
+                        ...newRequest,
+                        memberId: value,
+                        requesterName: selectedMember.name,
+                        requesterPhone: selectedMember.phone || '',
+                        organizationName: selectedMember.organization_name || '',
+                        department: selectedMember.department || '',
+                        profilePhotoUrl: selectedMember.profile_photo_url || ''
+                      });
+                    } else {
+                      setNewRequest({
+                        ...newRequest,
+                        memberId: '',
+                        requesterName: '',
+                        requesterPhone: '',
+                        organizationName: '',
+                        department: '',
+                        profilePhotoUrl: ''
+                      });
+                    }
+                  }}
+                  placeholder="교인 검색 (이름, 전화번호) - 선택 안 하면 직접 입력"
+                  emptyMessage="검색 결과가 없습니다"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   요청자 이름 *
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={cn(
+                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    newRequest.memberId && "bg-gray-50 text-gray-600"
+                  )}
                   value={newRequest.requesterName}
                   onChange={(e) => setNewRequest({ ...newRequest, requesterName: e.target.value })}
+                  readOnly={!!newRequest.memberId}
+                  placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "요청자 이름 직접 입력"}
                 />
               </div>
 
@@ -691,9 +720,14 @@ const PrayerRequests: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={cn(
+                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    newRequest.memberId && "bg-gray-50 text-gray-600"
+                  )}
                   value={newRequest.requesterPhone}
                   onChange={(e) => setNewRequest({ ...newRequest, requesterPhone: e.target.value })}
+                  readOnly={!!newRequest.memberId}
+                  placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "010-0000-0000"}
                 />
               </div>
 
@@ -806,17 +840,9 @@ const PrayerRequests: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">기도 유형</label>
-                  <p className="text-gray-900">{getTypeText(selectedRequest.prayerType)}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">상태</label>
-                  <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(selectedRequest.status))}>
-                    {getStatusText(selectedRequest.status)}
-                  </span>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">기도 유형</label>
+                <p className="text-gray-900">{getTypeText(selectedRequest.prayerType)}</p>
               </div>
 
               <div>
@@ -824,14 +850,7 @@ const PrayerRequests: React.FC = () => {
                 <p className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-md">{selectedRequest.prayerContent}</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">기도수</label>
-                  <p className="text-gray-900 flex items-center">
-                    <Heart className="h-4 w-4 text-red-500 mr-1" />
-                    {selectedRequest.prayerCount}
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">생성일</label>
                   <p className="text-gray-900">{formatDate(selectedRequest.createdAt)}</p>
@@ -883,28 +902,7 @@ const PrayerRequests: React.FC = () => {
               )}
             </div>
 
-            <div className="flex space-x-3 mt-6">
-              <Button
-                onClick={() => handlePray(selectedRequest)}
-                className="flex items-center bg-red-600 text-white hover:bg-red-700 border-red-600 hover:border-red-700"
-                variant="outline"
-              >
-                <Heart className="h-4 w-4 mr-2" />
-                기도하기
-              </Button>
-              {selectedRequest.status === 'active' && (
-                <Button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    setShowAnswerModal(true);
-                  }}
-                  className="flex items-center bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
-                  variant="outline"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  응답처리
-                </Button>
-              )}
+            <div className="flex justify-end mt-6">
               <Button
                 variant="outline"
                 onClick={() => setShowDetailModal(false)}
@@ -916,68 +914,6 @@ const PrayerRequests: React.FC = () => {
         </div>
       )}
 
-      {/* 기도응답 처리 모달 */}
-      {showAnswerModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">기도응답 처리</h2>
-              <Button
-                onClick={() => setShowAnswerModal(false)}
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-gray-600 h-8 w-8 p-0"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  응답 간증 *
-                </label>
-                <textarea
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="어떻게 기도응답을 받으셨는지 간증을 적어주세요..."
-                  value={answerData.answeredTestimony}
-                  onChange={(e) => setAnswerData({ ...answerData, answeredTestimony: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  관리자 메모
-                </label>
-                <textarea
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="내부 관리용 메모..."
-                  value={answerData.adminNotes}
-                  onChange={(e) => setAnswerData({ ...answerData, adminNotes: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <Button
-                onClick={() => setShowAnswerModal(false)}
-                variant="outline"
-                className="flex-1"
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleMarkAsAnswered}
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
-                응답처리
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

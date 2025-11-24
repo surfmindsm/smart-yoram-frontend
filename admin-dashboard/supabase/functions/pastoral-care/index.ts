@@ -134,9 +134,47 @@ Deno.serve(async (req) => {
 
         console.log('Query successful, found pastoral care requests:', count)
 
+        // Enrich data with member information
+        const enrichedData = await Promise.all((data || []).map(async (request: any) => {
+          let enrichedRequest = { ...request }
+
+          // Get member information if member_id exists
+          if (request.member_id) {
+            const { data: memberData } = await supabaseClient
+              .from('members')
+              .select('name, phone, profile_photo_url, department, organization_id, address')
+              .eq('id', request.member_id)
+              .single()
+
+            if (memberData) {
+              // Override requester info with member info for consistency
+              enrichedRequest.requester_name = memberData.name
+              enrichedRequest.requester_phone = memberData.phone
+              enrichedRequest.profile_photo_url = memberData.profile_photo_url
+              enrichedRequest.department = memberData.department
+              if (!enrichedRequest.address) {
+                enrichedRequest.address = memberData.address
+              }
+
+              // Get organization name if organization_id exists
+              if (memberData.organization_id) {
+                const { data: orgData } = await supabaseClient
+                  .from('church_organizations')
+                  .select('name')
+                  .eq('id', memberData.organization_id)
+                  .single()
+
+                enrichedRequest.organization_name = orgData?.name || null
+              }
+            }
+          }
+
+          return enrichedRequest
+        }))
+
         return new Response(
           JSON.stringify({
-            data: data || [],
+            data: enrichedData || [],
             count: count || 0,
             page,
             limit,
@@ -211,8 +249,38 @@ Deno.serve(async (req) => {
           )
         }
 
+        // Enrich with member information if member_id exists
+        let enrichedRequest = { ...data }
+        if (data.member_id) {
+          const { data: memberData } = await supabaseClient
+            .from('members')
+            .select('name, phone, profile_photo_url, department, organization_id, address')
+            .eq('id', data.member_id)
+            .single()
+
+          if (memberData) {
+            enrichedRequest.requester_name = memberData.name
+            enrichedRequest.requester_phone = memberData.phone
+            enrichedRequest.profile_photo_url = memberData.profile_photo_url
+            enrichedRequest.department = memberData.department
+            if (!enrichedRequest.address) {
+              enrichedRequest.address = memberData.address
+            }
+
+            if (memberData.organization_id) {
+              const { data: orgData } = await supabaseClient
+                .from('church_organizations')
+                .select('name')
+                .eq('id', memberData.organization_id)
+                .single()
+
+              enrichedRequest.organization_name = orgData?.name || null
+            }
+          }
+        }
+
         return new Response(
-          JSON.stringify(data),
+          JSON.stringify(enrichedRequest),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
@@ -225,19 +293,31 @@ Deno.serve(async (req) => {
 
       // POST /pastoral-care/admin/requests - Create new pastoral care request
       if (pathParts.includes('admin') && pathParts.includes('requests')) {
-        const insertData = {
+        const insertData: any = {
           church_id: body.church_id || body.churchId || 9998,
-          member_id: body.member_id || body.memberId,
           requester_name: body.requester_name || body.requesterName,
           requester_phone: body.requester_phone || body.requesterPhone,
           request_type: body.request_type || body.requestType || 'general',
           request_content: body.request_content || body.requestContent,
-          preferred_date: body.preferred_date || body.preferredDate,
-          preferred_time_start: body.preferred_time_start || body.preferredTimeStart,
-          preferred_time_end: body.preferred_time_end || body.preferredTimeEnd,
+          preferred_date: body.preferred_date || body.preferredDate || null,
+          preferred_time_start: body.preferred_time_start || body.preferredTimeStart || null,
+          preferred_time_end: body.preferred_time_end || body.preferredTimeEnd || null,
           priority: body.priority || 'normal',
-          status: body.status || 'pending'
+          status: body.status || 'pending',
+          address: body.address || null,
+          contact_info: body.contact_info || body.contactInfo || null,
+          is_urgent: body.is_urgent || body.isUrgent || false
         }
+
+        // member_id는 선택 사항 - 값이 있을 때만 추가
+        const memberId = body.member_id || body.memberId;
+        if (memberId) {
+          insertData.member_id = memberId;
+        }
+
+        console.log('📥 [Edge Function] Received body:', body);
+        console.log('📥 [Edge Function] Insert data:', insertData);
+        console.log('📥 [Edge Function] member_id included:', 'member_id' in insertData, insertData.member_id);
 
         const { data, error } = await supabaseClient
           .from('pastoral_care_requests')
