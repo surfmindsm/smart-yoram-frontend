@@ -1,7 +1,7 @@
-// 앱 스토어 링크 (실제 앱이 배포되면 수정 필요)
+// 앱 스토어 링크
 export const APP_STORE_LINKS = {
-  ios: 'https://apps.apple.com/kr/app/your-app-id', // iOS App Store 링크
-  android: 'https://play.google.com/store/apps/details?id=com.yourapp', // Google Play Store 링크
+  ios: 'https://apps.apple.com/app/id6749299505',
+  android: 'https://play.google.com/store/apps/details?id=com.surfmind.yoram',
 };
 
 // 디바이스 타입 감지

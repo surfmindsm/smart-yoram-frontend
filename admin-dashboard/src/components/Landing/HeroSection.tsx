@@ -56,7 +56,7 @@ export function HeroSection() {
               <div className="flex flex-col gap-3">
                 {/* App Store 버튼 */}
                 <a
-                  href="https://apps.apple.com/kr/app/your-app-id"
+                  href="https://apps.apple.com/app/id6749299505"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
@@ -70,7 +70,7 @@ export function HeroSection() {
 
                 {/* Google Play 버튼 */}
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.yourapp"
+                  href="https://play.google.com/store/apps/details?id=com.surfmind.yoram"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 px-6 py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
@@ -86,11 +86,13 @@ export function HeroSection() {
               </div>
 
               {/* QR 코드 - 데스크톱에서만 표시 */}
-              <div className="hidden sm:flex flex-col items-center px-6 py-4 bg-white rounded-lg">
+              <div className="hidden sm:flex flex-col items-center px-4 py-4 bg-white rounded-lg">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/download')}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+                    (process.env.REACT_APP_PRODUCTION_URL || window.location.origin) + '/download'
+                  )}`}
                   alt="QR Code"
-                  className="w-32 h-32"
+                  className="w-24 h-24"
                 />
               </div>
             </div>

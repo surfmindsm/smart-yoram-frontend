@@ -19,7 +19,7 @@ export function AppDownloadSection() {
           <div className="flex flex-col gap-4">
             {/* App Store 버튼 */}
             <a
-              href="https://apps.apple.com/kr/app/your-app-id"
+              href="https://apps.apple.com/app/id6749299505"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-4 px-8 py-4 bg-white text-gray-900 rounded-2xl hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -33,7 +33,7 @@ export function AppDownloadSection() {
 
             {/* Google Play 버튼 */}
             <a
-              href="https://play.google.com/store/apps/details?id=com.yourapp"
+              href="https://play.google.com/store/apps/details?id=com.surfmind.yoram"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-4 px-8 py-4 bg-white text-gray-900 rounded-2xl hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -52,7 +52,9 @@ export function AppDownloadSection() {
           <div className="flex flex-col items-center gap-4">
             <div className="p-6 bg-white rounded-2xl shadow-2xl">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.origin + '/download')}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                  (process.env.REACT_APP_PRODUCTION_URL || window.location.origin) + '/download'
+                )}`}
                 alt="QR Code"
                 className="w-40 h-40"
               />
