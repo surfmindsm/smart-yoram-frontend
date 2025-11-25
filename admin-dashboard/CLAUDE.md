@@ -170,6 +170,29 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Real-time validation and user feedback
 - Collapsible sections for better UX in long forms (see AddMemberModal)
 
+### Landing Page & App Download System
+
+**Landing Page Structure:**
+- Public-facing landing page at `/landing` route
+- Modular component architecture in `/src/components/Landing/`
+- Sections: Header, Hero, Features, Community, Process, FAQ, AppDownload, Footer
+- Scroll animations using Intersection Observer API (`useIntersectionObserver` hook)
+- Responsive design with mobile-first approach
+
+**App Download & Dynamic Links:**
+- `/download` route provides universal app download redirect
+- Device detection via `appDownload.ts` utility (iOS/Android/Desktop)
+- Automatic redirection: iOS → App Store, Android → Google Play
+- QR codes use production URL from `REACT_APP_PRODUCTION_URL` env variable
+- App Store links use short format: `https://apps.apple.com/app/id{APP_ID}`
+- Desktop users see both app store options with manual selection
+- 3-second countdown before automatic redirect on mobile devices
+
+**Environment Variables:**
+- `REACT_APP_PRODUCTION_URL`: Production domain for QR codes (e.g., `https://churchround.com`)
+- Required for QR codes to work properly (not localhost)
+- Must restart dev server after changing env variables
+
 ### Korean Language Support
 - Primary language: Korean
 - Error messages, UI text, and validation in Korean

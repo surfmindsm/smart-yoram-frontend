@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { ContactModal } from './ContactModal';
 
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [contactModal, setContactModal] = useState<{ isOpen: boolean; type: 'email' | 'phone' | null }>({
+    isOpen: false,
+    type: null
+  });
 
   const faqs = [
     {
       question: "정말 모든 기능이 무료인가요?",
-      answer: "네, Church Round의 모든 핵심 기능은 완전 무료입니다. 교적 관리, 헌금 관리, 주보 발행 등 교회 운영에 필요한 모든 기능을 제한 없이 사용하실 수 있습니다."
-    },
-    {
-      question: "기존 교적부 데이터를 이전할 수 있나요?",
-      answer: "네, 전문 매니저가 데이터 손실 없이 100% 안전하게 이전해드립니다. Excel, Access 등 기존 시스템에서 평균 1-2주 내로 완료됩니다."
+      answer: "네, Church Round의 모든 핵심 기능은 완전 무료입니다. 교적 관리, 회계 관리, 헌금 관리, 주보 발행 등 교회 운영에 필요한 모든 기능을 제한 없이 사용하실 수 있습니다."
     },
     {
       question: "소규모 교회도 사용할 수 있나요?",
@@ -19,7 +20,7 @@ export function FaqSection() {
     },
     {
       question: "도입 기간은 얼마나 걸리나요?",
-      answer: "평균 1-2주 내에 모든 설정이 완료됩니다. 상담 신청부터 계정 개설, 데이터 이전, 교육까지 전담 매니저가 안내해드립니다."
+      answer: "평균 1-2시간 내에 모든 설정이 완료됩니다. 상담 신청부터 계정 개설, 교육까지 전담 매니저가 안내해드립니다."
     }
   ];
 
@@ -71,7 +72,7 @@ export function FaqSection() {
         </div>
 
         {/* 추가 문의 CTA - 미니멀 */}
-        <div className="mt-24 pt-24 border-t border-gray-200">
+        <div className="mt-24">
           <div className="grid md:grid-cols-2 gap-16">
             <div>
               <h3 className="text-3xl font-bold text-gray-900 mb-4">
@@ -82,24 +83,31 @@ export function FaqSection() {
               </p>
             </div>
             <div className="flex flex-col gap-4">
-              <a
-                href="mailto:surfmind.sm@gmail.com"
-                className="group flex items-center justify-between p-6 border border-gray-200 hover:border-gray-900 transition-all"
+              <button
+                onClick={() => setContactModal({ isOpen: true, type: 'email' })}
+                className="group flex items-center justify-between p-6 border border-gray-200 rounded-2xl hover:border-gray-900 transition-all"
               >
                 <span className="text-lg font-medium text-gray-900">이메일 문의</span>
                 <span className="text-gray-400 group-hover:translate-x-2 transition-transform">→</span>
-              </a>
-              <a
-                href="tel:010-6617-1875"
-                className="group flex items-center justify-between p-6 bg-gray-900 text-white hover:bg-gray-800 transition-all"
+              </button>
+              <button
+                onClick={() => setContactModal({ isOpen: true, type: 'phone' })}
+                className="group flex items-center justify-between p-6 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all"
               >
                 <span className="text-lg font-medium">전화 상담</span>
                 <span className="group-hover:translate-x-2 transition-transform">→</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={contactModal.isOpen}
+        onClose={() => setContactModal({ isOpen: false, type: null })}
+        type={contactModal.type || 'email'}
+      />
     </section>
   );
 }

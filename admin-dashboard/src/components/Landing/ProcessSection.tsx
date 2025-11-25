@@ -1,4 +1,3 @@
-import React from 'react';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function ProcessSection() {
@@ -21,13 +20,6 @@ export function ProcessSection() {
     },
     {
       number: "③",
-      title: "데이터 이전 지원",
-      description: "기존 교적부 데이터 안전하게 이전",
-      icon: "🔄",
-      bgColor: "bg-pink-50"
-    },
-    {
-      number: "④",
       title: "서비스 시작",
       description: "교적·요람·커뮤니티 즉시 사용 가능",
       icon: "🚀",
@@ -45,7 +37,7 @@ export function ProcessSection() {
             도입 절차
           </h2>
           <p className="text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
-            평균 1-2주 내 모든 설정 완료
+            평균 1-2시간 내 모든 설정 완료
           </p>
         </div>
 
@@ -84,7 +76,7 @@ export function ProcessSection() {
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <span>무료 도입 상담</span>
             <span>·</span>
-            <span>1-2주 빠른 설정</span>
+            <span>1-2시간 빠른 설정</span>
           </div>
         </div>
       </div>

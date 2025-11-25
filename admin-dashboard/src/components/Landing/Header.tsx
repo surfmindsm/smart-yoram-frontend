@@ -64,14 +64,14 @@ export function Header() {
           <div className="hidden lg:flex items-center gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="px-5 py-2.5 text-sm bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium"
+              className="px-5 py-2.5 text-sm bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all font-medium"
             >
               관리자 로그인
             </button>
           </div>
 
           <button
-            className="lg:hidden p-2 hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 rounded-2xl hover:bg-gray-100 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6 text-gray-900" /> : <Menu className="w-6 h-6 text-gray-900" />}
@@ -96,7 +96,7 @@ export function Header() {
                     navigate('/login');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full px-5 py-3 text-sm bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium"
+                  className="w-full px-5 py-3 text-sm bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all font-medium"
                 >
                   관리자 로그인
                 </button>

@@ -5684,6 +5684,42 @@ export const supabaseApiService = {
         throw error;
       }
     },
+  },
+
+  // Contact Management (랜딩 페이지 문의)
+  contact: {
+    sendEmail: async (contactData: {
+      name: string;
+      email: string;
+      phone: string;
+      message: string;
+      type: 'email' | 'phone';
+    }) => {
+      try {
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/send-contact-email`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(contactData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('이메일 전송 실패:', error);
+        throw error;
+      }
+    },
   }
 
 };

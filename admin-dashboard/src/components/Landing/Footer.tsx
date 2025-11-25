@@ -25,7 +25,7 @@ export function Footer() {
             
             <p className="text-lg text-gray-300 leading-relaxed">
               모든 교회와 교인을 연결하는<br />
-              디지털 신앙 네트워크
+              온라인 신앙 네트워크
             </p>
             
             <p className="text-gray-400 text-sm leading-relaxed">
@@ -96,7 +96,7 @@ export function Footer() {
                 <p>평일: 09:00 - 18:00</p>
                 <p>토요일: 09:00 - 13:00</p>
                 <p>일요일 및 공휴일: 휴무</p>
-                <p className="text-[#0078FF] mt-2">📞 24시간 온라인 지원 가능</p>
+                {/* <p className="text-[#0078FF] mt-2">📞 24시간 온라인 지원 가능</p> */}
               </div>
             </div>
           </div>
@@ -106,19 +106,19 @@ export function Footer() {
         <div className="border-t border-gray-700 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-gray-400 text-sm">
-              © 2024 Church Round. All rights reserved.
+              © 2025 Church Round. All rights reserved.
             </div>
             
-            <div className="flex items-center gap-6 text-sm text-gray-400">
+            {/* <div className="flex items-center gap-6 text-sm text-gray-400">
               <span>v2.1.0</span>
               <span>•</span>
               <span>2024.12.14 업데이트</span>
-            </div>
+            </div> */}
           </div>
           
-          <div className="mt-4 text-center text-xs text-gray-500">
+          {/* <div className="mt-4 text-center text-xs text-gray-500">
             전국 1,000+ 교회가 신뢰하는 Church Round와 함께 스마트한 교회 운영을 시작하세요
-          </div>
+          </div> */}
         </div>
       </div>
     </footer>
