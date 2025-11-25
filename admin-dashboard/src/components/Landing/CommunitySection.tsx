@@ -23,15 +23,15 @@ export function CommunitySection() {
   ];
 
   return (
-    <section id="community" className="relative py-32 px-6 bg-white" ref={sectionRef}>
+    <section id="community" className="relative py-16 md:py-24 lg:py-32 px-6 bg-white" ref={sectionRef}>
       <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 */}
-        <div className={`mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">COMMUNITY</p>
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
+        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">COMMUNITY</p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
             교회 커뮤니티
           </h2>
-          <p className="text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
+          <p className="text-base md:text-lg lg:text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
             인증된 교인 간 안전한 거래와 소통
           </p>
         </div>
@@ -41,15 +41,15 @@ export function CommunitySection() {
           {communityFeatures.map((feature, index) => (
             <div
               key={index}
-              className={`group bg-gray-50 p-12 hover:bg-white transition-all duration-700 ${
+              className={`group bg-gray-50 p-6 md:p-8 lg:p-12 hover:bg-white transition-all duration-700 ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               }`}
               style={{ transitionDelay: `${index * 150 + 300}ms` }}
             >
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2 md:mb-3">
                 {feature.title}
               </h3>
-              <p className="text-gray-600 font-light leading-relaxed">
+              <p className="text-sm md:text-base text-gray-600 font-light leading-relaxed">
                 {feature.description}
               </p>
             </div>

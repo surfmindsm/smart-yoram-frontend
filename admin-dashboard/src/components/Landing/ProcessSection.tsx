@@ -28,41 +28,41 @@ export function ProcessSection() {
   ];
 
   return (
-    <section id="process" className="relative py-32 px-6 bg-gray-50" ref={sectionRef}>
+    <section id="process" className="relative py-16 md:py-24 lg:py-32 px-6 bg-gray-50" ref={sectionRef}>
       <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 */}
-        <div className={`mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">PROCESS</p>
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
+        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">PROCESS</p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
             도입 절차
           </h2>
-          <p className="text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
+          <p className="text-base md:text-lg lg:text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
             평균 1-2시간 내 모든 설정 완료
           </p>
         </div>
 
         {/* 세로 타임라인 레이아웃 */}
-        <div className="space-y-0 border-l-2 border-gray-200 ml-8">
+        <div className="space-y-0 border-l-2 border-gray-200 ml-4 md:ml-8">
           {steps.map((step, index) => (
             <div
               key={index}
-              className={`group relative pl-12 pb-16 last:pb-0 transition-all duration-700 ${
+              className={`group relative pl-8 md:pl-12 pb-12 md:pb-16 last:pb-0 transition-all duration-700 ${
                 isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
               }`}
               style={{ transitionDelay: `${index * 150 + 300}ms` }}
             >
               {/* 타임라인 도트 */}
-              <div className="absolute -left-3 top-0 w-5 h-5 bg-gray-900 rounded-full group-hover:scale-125 transition-transform"></div>
+              <div className="absolute -left-2 md:-left-3 top-0 w-4 h-4 md:w-5 md:h-5 bg-gray-900 rounded-full group-hover:scale-125 transition-transform"></div>
 
               {/* 컨텐츠 */}
               <div>
-                <span className="text-sm text-gray-400 font-light mb-4 block">
+                <span className="text-xs md:text-sm text-gray-400 font-light mb-3 md:mb-4 block">
                   STEP {index + 1}
                 </span>
-                <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
                   {step.title}
                 </h3>
-                <p className="text-lg text-gray-600 font-light leading-relaxed max-w-2xl">
+                <p className="text-base md:text-lg text-gray-600 font-light leading-relaxed max-w-2xl">
                   {step.description}
                 </p>
               </div>
@@ -71,9 +71,9 @@ export function ProcessSection() {
         </div>
 
         {/* CTA */}
-        <div className="mt-20 pt-12 border-t border-gray-200">
-          <p className="text-gray-500 font-light mb-2">지금 바로 시작하세요</p>
-          <div className="flex items-center gap-4 text-sm text-gray-400">
+        <div className="mt-12 md:mt-16 lg:mt-20 pt-8 md:pt-12 border-t border-gray-200">
+          <p className="text-sm md:text-base text-gray-500 font-light mb-2">지금 바로 시작하세요</p>
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-400">
             <span>무료 도입 상담</span>
             <span>·</span>
             <span>1-2시간 빠른 설정</span>

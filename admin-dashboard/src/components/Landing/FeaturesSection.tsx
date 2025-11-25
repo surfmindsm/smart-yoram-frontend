@@ -50,15 +50,15 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="relative py-32 px-6 bg-gray-50" ref={sectionRef}>
+    <section id="features" className="relative py-16 md:py-24 lg:py-32 px-6 bg-gray-50" ref={sectionRef}>
       <div className="max-w-7xl mx-auto">
         {/* 섹션 타이틀 - Big Typo */}
-        <div className={`mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-sm text-gray-400 font-light mb-6 tracking-wider">FEATURES</p>
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8">
+        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">FEATURES</p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
             핵심 기능
           </h2>
-          <div className="w-16 h-px bg-gray-900"></div>
+          <div className="w-12 md:w-16 h-px bg-gray-900"></div>
         </div>
 
         {/* 기능 목록 - 아코디언 */}
@@ -73,27 +73,27 @@ export function FeaturesSection() {
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full text-left py-8 px-4 hover:bg-white transition-colors"
+                className="w-full text-left py-6 md:py-8 px-3 md:px-4 hover:bg-white transition-colors"
               >
-                <div className="flex items-start justify-between gap-8">
+                <div className="flex items-start justify-between gap-4 md:gap-8">
                   {/* 왼쪽: 번호와 타이틀 */}
-                  <div className="flex items-start gap-8 flex-1">
-                    <span className="text-sm text-gray-400 font-light min-w-[40px]">
+                  <div className="flex items-start gap-4 md:gap-8 flex-1">
+                    <span className="text-xs md:text-sm text-gray-400 font-light min-w-[30px] md:min-w-[40px]">
                       {feature.number}
                     </span>
                     <div className="flex-1">
-                      <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                      <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2 md:mb-4">
                         {feature.title}
                       </h3>
 
                       {/* 상세 내용 - 아코디언 */}
                       {openIndex === index && (
-                        <div className="mt-6 pt-6 border-t border-gray-200 max-w-3xl">
-                          <ul className="space-y-4">
+                        <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 max-w-3xl">
+                          <ul className="space-y-3 md:space-y-4">
                             {feature.details.map((detail, detailIndex) => (
-                              <li key={detailIndex} className="flex items-start gap-3">
-                                <span className="text-gray-400 mt-1">•</span>
-                                <span className="text-base text-gray-600 font-light leading-relaxed">
+                              <li key={detailIndex} className="flex items-start gap-2 md:gap-3">
+                                <span className="text-gray-400 mt-1 text-sm md:text-base">•</span>
+                                <span className="text-sm md:text-base text-gray-600 font-light leading-relaxed">
                                   {detail}
                                 </span>
                               </li>
@@ -106,7 +106,7 @@ export function FeaturesSection() {
 
                   {/* 오른쪽: 화살표 아이콘 */}
                   <ChevronDown
-                    className={`w-6 h-6 text-gray-400 flex-shrink-0 mt-1 transition-transform duration-300 ${
+                    className={`w-5 h-5 md:w-6 md:h-6 text-gray-400 flex-shrink-0 mt-1 transition-transform duration-300 ${
                       openIndex === index ? 'rotate-180' : ''
                     }`}
                   />
