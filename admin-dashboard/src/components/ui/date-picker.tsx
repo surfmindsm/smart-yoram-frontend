@@ -1,11 +1,12 @@
 import React from 'react';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from './button';
 import { Calendar } from './calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
+import { Input } from './input';
 
 interface DatePickerProps {
   value?: string;
@@ -22,7 +23,7 @@ interface DatePickerProps {
 export const DatePicker: React.FC<DatePickerProps> = ({
   value,
   onChange,
-  placeholder = "날짜를 선택해주세요",
+  placeholder = "예: 1985-01-25 또는 1985.01.25",
   disabled = false,
   className,
   disableFuture = false,
@@ -33,10 +34,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   );
+  const [inputValue, setInputValue] = React.useState<string>(value || '');
+  const [open, setOpen] = React.useState(false);
 
   // value prop이 변경되면 상태 업데이트
   React.useEffect(() => {
     setDate(value ? new Date(value) : undefined);
+    setInputValue(value || '');
   }, [value]);
 
   // 오늘 날짜의 시작 (00:00:00)
@@ -50,9 +54,72 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
-      onChange(`${year}-${month}-${day}`);
+      const formattedDate = `${year}-${month}-${day}`;
+      setInputValue(formattedDate);
+      onChange(formattedDate);
     } else {
+      setInputValue('');
       onChange('');
+    }
+    setOpen(false);
+  };
+
+  // 타이핑 입력 처리
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+
+    // 빈 값 처리
+    if (newValue === '') {
+      setDate(undefined);
+      onChange('');
+      return;
+    }
+
+    // 다양한 날짜 형식 지원
+    let parsedDate: Date | undefined;
+    let formattedDate = '';
+
+    // YYYY-MM-DD (하이픈)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(newValue)) {
+      parsedDate = parse(newValue, 'yyyy-MM-dd', new Date());
+      formattedDate = newValue;
+    }
+    // YYYY.MM.DD (점)
+    else if (/^\d{4}\.\d{2}\.\d{2}$/.test(newValue)) {
+      parsedDate = parse(newValue, 'yyyy.MM.dd', new Date());
+      if (isValid(parsedDate)) {
+        const year = parsedDate.getFullYear();
+        const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(parsedDate.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+    }
+    // YYYY/MM/DD (슬래시)
+    else if (/^\d{4}\/\d{2}\/\d{2}$/.test(newValue)) {
+      parsedDate = parse(newValue, 'yyyy/MM/dd', new Date());
+      if (isValid(parsedDate)) {
+        const year = parsedDate.getFullYear();
+        const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(parsedDate.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+    }
+    // YYYYMMDD (구분자 없음)
+    else if (/^\d{8}$/.test(newValue)) {
+      parsedDate = parse(newValue, 'yyyyMMdd', new Date());
+      if (isValid(parsedDate)) {
+        const year = parsedDate.getFullYear();
+        const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(parsedDate.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+    }
+
+    // 유효한 날짜면 적용
+    if (parsedDate && isValid(parsedDate) && formattedDate) {
+      setDate(parsedDate);
+      onChange(formattedDate);
     }
   };
 
@@ -64,34 +131,39 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal h-10 px-3 py-2",
-            !date && "text-muted-foreground",
-            className
-          )}
-          disabled={disabled}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "yyyy년 MM월 dd일", { locale: ko }) : placeholder}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleSelect}
-          disabled={disableFuture || disablePast ? getDisabledDates : undefined}
-          initialFocus
-          locale={ko}
-          captionLayout="dropdown"
-          fromYear={fromYear}
-          toYear={toYear}
-        />
-      </PopoverContent>
-    </Popover>
+    <div className={cn("flex items-center gap-2", className)}>
+      <Input
+        type="text"
+        value={inputValue}
+        onChange={handleInputChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="flex-1"
+      />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="h-10 px-3"
+            disabled={disabled}
+          >
+            <CalendarIcon className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleSelect}
+            disabled={disableFuture || disablePast ? getDisabledDates : undefined}
+            initialFocus
+            locale={ko}
+            captionLayout="dropdown"
+            fromYear={fromYear}
+            toYear={toYear}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 };

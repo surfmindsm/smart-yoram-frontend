@@ -47,6 +47,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { PageContainer, PageHeader, FilterBar } from "./ui";
+import { DatePicker } from "./ui/date-picker";
 import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
@@ -1628,10 +1629,13 @@ const MemberManagement: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={newMember.birthdate}
-                onChange={(e) => setNewMember({...newMember, birthdate: e.target.value})}
+                onChange={(value) => setNewMember({...newMember, birthdate: value})}
+                placeholder="예: 1985-01-25 또는 1985.01.25"
+                disableFuture={true}
+                fromYear={1920}
+                toYear={new Date().getFullYear()}
               />
             </div>
             <div>
@@ -2052,10 +2056,13 @@ const MemberManagement: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
                         {isEditMode ? (
-                          <Input
-                            type="date"
+                          <DatePicker
                             value={editedMember.birthdate || ''}
-                            onChange={(e) => setEditedMember({...editedMember, birthdate: e.target.value})}
+                            onChange={(value) => setEditedMember({...editedMember, birthdate: value})}
+                            placeholder="예: 1985-01-25 또는 1985.01.25"
+                            disableFuture={true}
+                            fromYear={1920}
+                            toYear={new Date().getFullYear()}
                           />
                         ) : (
                           <p className="text-sm text-gray-600">{selectedMember.birthdate || '-'}</p>
@@ -2223,10 +2230,12 @@ const MemberManagement: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-1">임명일</label>
                         {isEditMode ? (
-                          <Input
-                            type="date"
+                          <DatePicker
                             value={editedMember.appointed_on || ''}
-                            onChange={(e) => setEditedMember({...editedMember, appointed_on: e.target.value})}
+                            onChange={(value) => setEditedMember({...editedMember, appointed_on: value})}
+                            placeholder="예: 2020-01-01"
+                            fromYear={1950}
+                            toYear={new Date().getFullYear() + 5}
                           />
                         ) : (
                           <p className="text-sm text-gray-600">{selectedMember.appointed_on || '-'}</p>
@@ -2284,10 +2293,12 @@ const MemberManagement: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1">사역 시작일</label>
                     {isEditMode ? (
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={editedMember.ministry_start_date || ''}
-                        onChange={(e) => setEditedMember({...editedMember, ministry_start_date: e.target.value})}
+                        onChange={(value) => setEditedMember({...editedMember, ministry_start_date: value})}
+                        placeholder="예: 2020-01-01"
+                        fromYear={1950}
+                        toYear={new Date().getFullYear() + 5}
                       />
                     ) : (
                       <p className="text-sm text-gray-600">{selectedMember.ministry_start_date || '-'}</p>
@@ -2581,10 +2592,12 @@ const MemberManagement: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1">결혼일</label>
                     {isEditMode ? (
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={editedMember.married_on || ''}
-                        onChange={(e) => setEditedMember({...editedMember, married_on: e.target.value})}
+                        onChange={(value) => setEditedMember({...editedMember, married_on: value})}
+                        placeholder="예: 2015-05-20"
+                        fromYear={1950}
+                        toYear={new Date().getFullYear() + 5}
                       />
                     ) : (
                       <p className="text-sm text-gray-600">{selectedMember.married_on || '-'}</p>
