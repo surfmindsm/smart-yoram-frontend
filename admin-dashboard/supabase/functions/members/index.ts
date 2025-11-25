@@ -268,6 +268,9 @@ Deno.serve(async (req) => {
       if (body.member_type !== undefined) insertData.member_type = body.member_type
       if (body.age_group !== undefined) insertData.age_group = body.age_group
       if (body.spiritual_grade !== undefined) insertData.spiritual_grade = body.spiritual_grade
+      if (body.confirmation_date !== undefined) insertData.confirmation_date = body.confirmation_date
+      if (body.sub_district !== undefined) insertData.sub_district = body.sub_district
+      if (body.last_contact_date !== undefined) insertData.last_contact_date = body.last_contact_date
 
       // 자유 필드
       if (body.custom_field_1 !== undefined) insertData.custom_field_1 = body.custom_field_1
@@ -297,7 +300,11 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('Database insert error:', error)
         return new Response(
-          JSON.stringify({ error: 'Failed to create member' }),
+          JSON.stringify({
+            error: 'Failed to create member',
+            details: error.message,
+            code: error.code
+          }),
           {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -400,6 +407,9 @@ Deno.serve(async (req) => {
       if (body.member_type !== undefined) updateData.member_type = body.member_type
       if (body.age_group !== undefined) updateData.age_group = body.age_group
       if (body.spiritual_grade !== undefined) updateData.spiritual_grade = body.spiritual_grade
+      if (body.confirmation_date !== undefined) updateData.confirmation_date = body.confirmation_date
+      if (body.sub_district !== undefined) updateData.sub_district = body.sub_district
+      if (body.last_contact_date !== undefined) updateData.last_contact_date = body.last_contact_date
 
       // 자유 필드
       if (body.custom_field_1 !== undefined) updateData.custom_field_1 = body.custom_field_1
