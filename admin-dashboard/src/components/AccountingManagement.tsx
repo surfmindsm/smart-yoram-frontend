@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent } from "./ui";
@@ -9,6 +9,8 @@ import { PageContainer, PageHeader } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { Spinner } from "./ui/spinner";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface AccountCategory {
   id: number;
@@ -257,6 +259,46 @@ const AccountingManagement: React.FC = () => {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  const exportToExcel = () => {
+    // 엑셀로 내보낼 데이터 준비
+    const excelData = filteredTransactions.map((transaction) => ({
+      '날짜': formatDate(transaction.transaction_date),
+      '구분': transaction.type === 'income' ? '수입' : '지출',
+      '계정과목': transaction.category?.name || '-',
+      '거래처': transaction.vendor_name || '-',
+      '내용': transaction.description || '-',
+      '금액': transaction.amount,
+      '결제수단': transaction.payment_method || '-',
+    }));
+
+    // 요약 정보 추가
+    const summaryData = [
+      { '항목': '총 수입', '금액': summary?.total_income || 0, '건수': summary?.income_count || 0 },
+      { '항목': '총 지출', '금액': summary?.total_expense || 0, '건수': summary?.expense_count || 0 },
+      { '항목': '순 수익', '금액': summary?.net || 0, '건수': '' },
+    ];
+
+    // 워크북 생성
+    const wb = XLSX.utils.book_new();
+
+    // 거래 내역 시트 생성
+    const ws1 = XLSX.utils.json_to_sheet(excelData);
+    XLSX.utils.book_append_sheet(wb, ws1, '거래내역');
+
+    // 요약 시트 생성
+    const ws2 = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws2, '요약');
+
+    // 파일명 생성 (날짜 포함)
+    const today = new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '');
+    const fileName = `회계자료_${today}.xlsx`;
+
+    // 엑셀 파일 생성 및 다운로드
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    saveAs(blob, fileName);
+  };
+
   const filteredTransactions = transactions.filter(t => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -382,6 +424,15 @@ const AccountingManagement: React.FC = () => {
                 className="w-36 h-8"
               />
             </div>
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="whitespace-nowrap"
+              disabled={filteredTransactions.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              엑셀 다운로드
+            </Button>
           </div>
 
           {/* Transactions Table */}

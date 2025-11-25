@@ -88,13 +88,13 @@ const Layout: React.FC = () => {
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
-    '대시보드 & 분석': true, // 대시보드는 기본으로 열어두기
+    '대시보드 & 분석': false,
     '교인 관리': false,
     '재정 관리': false,
     '예배 & 소식': false,
     '교회 운영 & 설정': false,
     'AI 기능 (Premium)': false,
-    '커뮤니티': true, // 커뮤니티 섹션은 기본으로 열어두기
+    '커뮤니티': false,
     '보안 & 시스템': false
   });
   const navigate = useNavigate();
@@ -137,13 +137,38 @@ const Layout: React.FC = () => {
   useEffect(() => {
     const currentPath = location.pathname;
 
-    // 커뮤니티 경로인 경우 커뮤니티 그룹 확장
-    if (currentPath.startsWith('/community')) {
-      setExpandedGroups(prev => ({
-        ...prev,
-        '커뮤니티': true
-      }));
+    // 모든 그룹을 닫은 상태로 시작
+    const newExpandedGroups: {[key: string]: boolean} = {
+      '대시보드 & 분석': false,
+      '교인 관리': false,
+      '재정 관리': false,
+      '예배 & 소식': false,
+      '교회 운영 & 설정': false,
+      'AI 기능 (Premium)': false,
+      '커뮤니티': false,
+      '보안 & 시스템': false
+    };
+
+    // 현재 경로에 해당하는 그룹 찾기 및 펼치기
+    if (currentPath === '/dashboard') {
+      newExpandedGroups['대시보드 & 분석'] = true;
+    } else if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['교인 관리'] = true;
+    } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['재정 관리'] = true;
+    } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements', '/push-notifications'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['예배 & 소식'] = true;
+    } else if (['/church', '/excel', '/sms', '/qr-codes'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['교회 운영 & 설정'] = true;
+    } else if (['/ai-chat', '/ai-agent-management', '/sermon-library', '/ai-tools'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['AI 기능 (Premium)'] = true;
+    } else if (currentPath.startsWith('/community')) {
+      newExpandedGroups['커뮤니티'] = true;
+    } else if (['/security-logs', '/system-announcements', '/sermons', '/church-applications', '/community-applications', '/church-management', '/gpt-license-management', '/church-gpt-license-assignment', '/admin-roles'].some(path => currentPath.startsWith(path))) {
+      newExpandedGroups['보안 & 시스템'] = true;
     }
+
+    setExpandedGroups(newExpandedGroups);
   }, [location.pathname]);
 
   useEffect(() => {

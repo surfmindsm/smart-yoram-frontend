@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui"
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Alert, AlertDescription } from "./ui";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { UserPlus, ArrowLeft, Mail, AlertTriangle } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 
@@ -283,29 +284,45 @@ const Login: React.FC = () => {
                 </div>
 
                 {/* 가입 신청 버튼 - 2열 그리드 */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* 교회 가입 신청 버튼 */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-24 flex flex-col items-center justify-center space-y-2"
-                    onClick={handleChurchSignupClick}
-                  >
-                    <UserPlus className="w-6 h-6" />
-                    <span className="text-sm font-semibold">교회 가입 신청</span>
-                  </Button>
+                <TooltipProvider>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 교회 가입 신청 버튼 */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-24 flex flex-col items-center justify-center space-y-2"
+                          onClick={handleChurchSignupClick}
+                        >
+                          <UserPlus className="w-6 h-6" />
+                          <span className="text-sm font-semibold">교회 가입 신청</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-900 text-white border-gray-800">
+                        <p className="max-w-xs">교회 관리자 계정을 신청합니다.<br />교회 정보 관리 및 교인 관리가 가능합니다.</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {/* 커뮤니티 가입 신청 버튼 */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-24 flex flex-col items-center justify-center space-y-2"
-                    onClick={handleCommunitySignupClick}
-                  >
-                    <UserPlus className="w-6 h-6" />
-                    <span className="text-sm font-semibold">커뮤니티 가입 신청</span>
-                  </Button>
-                </div>
+                    {/* 커뮤니티 가입 신청 버튼 */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-24 flex flex-col items-center justify-center space-y-2"
+                          onClick={handleCommunitySignupClick}
+                        >
+                          <UserPlus className="w-6 h-6" />
+                          <span className="text-sm font-semibold">커뮤니티 가입 신청</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-900 text-white border-gray-800">
+                        <p className="max-w-xs">일반 커뮤니티 회원 계정을 신청합니다.<br />교회 정보 없이 커뮤니티 기능만 이용할 수 있습니다.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
 
                 <p className="text-xs text-muted-foreground pt-2">
                   교회 관리자는 '교회 가입 신청'을 이용해주세요
