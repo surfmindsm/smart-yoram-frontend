@@ -52,11 +52,13 @@ import {
   UserCog,
   Building2,
   Calculator,
-  Video
+  Video,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { Alert, AlertDescription } from "./ui";
 import {
   isCommunityAdmin,
   isSuperAdmin,
@@ -84,6 +86,7 @@ const Layout: React.FC = () => {
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
+  const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
     '대시보드 & 분석': true, // 대시보드는 기본으로 열어두기
     '교인 관리': false,
@@ -112,6 +115,23 @@ const Layout: React.FC = () => {
     }));
   };
 
+
+  // 모바일 환경 체크
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 1024; // 태블릿 포함 1024px 미만을 모바일로 간주
+      setShowMobileWarning(isMobile);
+    };
+
+    // 초기 체크
+    checkMobile();
+
+    // 리사이즈 이벤트 리스너
+    window.addEventListener('resize', checkMobile);
+
+    // 클린업
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 경로 변경 시 관련 메뉴 그룹 자동 확장
   useEffect(() => {
@@ -473,6 +493,18 @@ const Layout: React.FC = () => {
         )}>
           <div className="p-3">
             <div className="max-w-full mx-auto">
+              {/* 모바일 환경 경고 */}
+              {showMobileWarning && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>모바일 환경 감지</strong>
+                    <br />
+                    관리자 화면은 데스크톱 환경에 최적화되어 있습니다. 모바일 기기에서는 레이아웃이 제대로 표시되지 않을 수 있습니다. PC에서 접속하시는 것을 권장합니다.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* 공지사항 모달 */}
               <AnnouncementModal />
 

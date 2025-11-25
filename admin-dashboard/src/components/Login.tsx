@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui"
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Alert, AlertDescription } from "./ui";
-import { UserPlus, ArrowLeft, Mail } from 'lucide-react';
+import { UserPlus, ArrowLeft, Mail, AlertTriangle } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 
 const Login: React.FC = () => {
@@ -19,7 +19,25 @@ const Login: React.FC = () => {
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [step, setStep] = useState<'login' | 'email-verification'>('login');
   const [pendingUserData, setPendingUserData] = useState<any>(null);
+  const [showMobileWarning, setShowMobileWarning] = useState(false);
   const navigate = useNavigate();
+
+  // 모바일 환경 체크
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 1024; // 태블릿 포함 1024px 미만을 모바일로 간주
+      setShowMobileWarning(isMobile);
+    };
+
+    // 초기 체크
+    checkMobile();
+
+    // 리사이즈 이벤트 리스너
+    window.addEventListener('resize', checkMobile);
+
+    // 클린업
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +137,17 @@ const Login: React.FC = () => {
           )}
         </CardHeader>
         <CardContent>
+          {/* 모바일 환경 경고 */}
+          {showMobileWarning && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>모바일 환경 감지</strong>
+                <br />
+                관리자 화면은 데스크톱 환경에 최적화되어 있습니다. 모바일 기기에서는 레이아웃이 제대로 표시되지 않을 수 있습니다. PC에서 접속하시는 것을 권장합니다.
+              </AlertDescription>
+            </Alert>
+          )}
           {step === 'login' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
