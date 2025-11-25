@@ -10,7 +10,13 @@ export default function DownloadRedirect() {
     const detectedDevice = detectDevice();
     setDevice(detectedDevice);
 
-    // 모바일이면 자동으로 리다이렉트
+    // 데스크톱이면 churchround.com으로 리다이렉트
+    if (detectedDevice === 'desktop') {
+      window.location.href = 'https://churchround.com';
+      return;
+    }
+
+    // 모바일이면 자동으로 앱스토어로 리다이렉트
     if (detectedDevice === 'ios' || detectedDevice === 'android') {
       const timer = setInterval(() => {
         setCountdown((prev) => {
