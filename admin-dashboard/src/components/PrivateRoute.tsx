@@ -66,7 +66,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
   // 로그인하지 않은 경우
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   // 로그인은 했지만 관리자 페이지 접근 권한이 없는 경우 (Member)
