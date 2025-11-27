@@ -152,7 +152,7 @@ const Layout: React.FC = () => {
     // 현재 경로에 해당하는 그룹 찾기 및 펼치기
     if (currentPath === '/dashboard') {
       newExpandedGroups['대시보드 & 분석'] = true;
-    } else if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
+    } else if (['/member-management', '/organization-management', '/pastoral-care', '/important-dates', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
     } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
@@ -309,6 +309,7 @@ const Layout: React.FC = () => {
         { path: '/organization-management', name: '조직 관리', Icon: Building2 },
         // { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
+        { path: '/important-dates', name: '중요 일정 관리', Icon: Calendar },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
       ],
     },

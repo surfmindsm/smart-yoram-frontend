@@ -34,6 +34,7 @@ const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestMan
 const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
+const ImportantDatesManagement = lazy(() => import('./components/ImportantDatesManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
 const OrganizationManagement = lazy(() => import('./components/OrganizationManagement'));
@@ -254,6 +255,11 @@ function App() {
           <Route path="pastoral-care" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PastoralCareManagement />
+            </Suspense>
+          } />
+          <Route path="important-dates" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ImportantDatesManagement />
             </Suspense>
           } />
           <Route path="prayer-requests-old" element={

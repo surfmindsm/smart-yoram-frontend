@@ -280,7 +280,6 @@ const MemberManagement: React.FC = () => {
     fetchOrganizationsAndDepartments();
   }, []);
 
-
   const fetchMembers = async () => {
     console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
     try {
