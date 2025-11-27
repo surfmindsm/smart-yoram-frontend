@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { edgeApi } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
@@ -16,13 +17,16 @@ import {
   Calculator,
   HandCoins,
   FileText,
-  Bell
+  Bell,
+  Calendar
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
 import { Button } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui";
 import type { ChartConfig } from "./ui/chart";
+import { getPositionMainLabel, getPositionDetailLabel } from '../constants/memberPositions';
 import {
   LineChart,
   Line,
@@ -39,6 +43,7 @@ import {
 import { Spinner } from './ui/spinner';
 import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
+import TodoList from './dashboard/TodoList';
 import PasswordChangeModal from './PasswordChangeModal';
 import { useToast } from '../contexts/ToastContext';
 
@@ -89,7 +94,16 @@ interface MemberGrowth {
   period_months: number;
 }
 
+interface TodoData {
+  todayBirthdays: any[];
+  upcomingBirthdays: any[];
+  todayPastoralCare: any[];
+  upcomingPastoralCare: any[];
+  upcomingImportantDates: any[];
+}
+
 const Dashboard = React.memo(() => {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({
     totalMembers: 0,
     todayAttendance: 0,
@@ -98,11 +112,47 @@ const Dashboard = React.memo(() => {
   });
   const [demographics, setDemographics] = useState<Demographics | null>(null);
   const [memberGrowth, setMemberGrowth] = useState<MemberGrowth | null>(null);
+  const [todos, setTodos] = useState<TodoData>({
+    todayBirthdays: [],
+    upcomingBirthdays: [],
+    todayPastoralCare: [],
+    upcomingPastoralCare: [],
+    upcomingImportantDates: []
+  });
   const [loading, setLoading] = useState(true);
+  const [todosLoading, setTodosLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isTemporaryPassword, setIsTemporaryPassword] = useState(false);
   const { showToast } = useToast();
+
+  // Todo item 다이얼로그 상태
+  const [showMemberDialog, setShowMemberDialog] = useState(false);
+  const [showPastoralCareDialog, setShowPastoralCareDialog] = useState(false);
+  const [showImportantDateDialog, setShowImportantDateDialog] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedPastoralCare, setSelectedPastoralCare] = useState<any>(null);
+  const [selectedImportantDate, setSelectedImportantDate] = useState<any>(null);
+
+  // Todo item 클릭 핸들러
+  const handleMemberClick = (member: any) => {
+    setSelectedMember(member);
+    setShowMemberDialog(true);
+  };
+
+  const handlePastoralCareClick = (care: any) => {
+    setSelectedPastoralCare(care);
+    setShowPastoralCareDialog(true);
+  };
+
+  const handleImportantDateClick = (event: any) => {
+    setSelectedImportantDate(event);
+    setShowImportantDateDialog(true);
+  };
+
+  const handlePastoralCareNavigate = () => {
+    navigate('/pastoral-care');
+  };
 
   const fetchDemographics = async () => {
     try {
@@ -194,6 +244,42 @@ const Dashboard = React.memo(() => {
     }
   };
 
+  const fetchTodos = useCallback(async () => {
+    try {
+      setTodosLoading(true);
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/dashboard-todos`;
+
+      const token = await supabaseAuthService.getToken();
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      console.log('📋 Todos API 응답:', data);
+
+      setTodos({
+        todayBirthdays: data.todayBirthdays || [],
+        upcomingBirthdays: data.upcomingBirthdays || [],
+        todayPastoralCare: data.todayPastoralCare || [],
+        upcomingPastoralCare: data.upcomingPastoralCare || [],
+        upcomingImportantDates: data.upcomingImportantDates || []
+      });
+    } catch (error) {
+      console.error('Todo 목록 조회 실패:', error);
+    } finally {
+      setTodosLoading(false);
+    }
+  }, []);
+
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null);
@@ -206,7 +292,8 @@ const Dashboard = React.memo(() => {
       const [membersResponse] = await Promise.all([
         edgeApi.get(`/members/${userChurchId ? `?church_id=${userChurchId}` : ''}`).catch(() => ({ data: [] })),
         fetchDemographics(),
-        fetchMemberGrowth()
+        fetchMemberGrowth(),
+        fetchTodos()
       ]);
 
       const totalMembers = membersResponse.data.length || 0;
@@ -223,7 +310,7 @@ const Dashboard = React.memo(() => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchTodos]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -347,18 +434,33 @@ const Dashboard = React.memo(() => {
     <PageContainer>
       <PageHeader title="대시보드" />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {stats.map((stat, index) => (
-          <StatCard
-            key={`stat-${index}`}
-            title={stat.title}
-            value={stat.value}
-            Icon={stat.Icon}
-            color={stat.color}
-            loading={loading}
-          />
-        ))}
+      {/* Todo List */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          {/* <Calendar className="h-5 w-5" /> */}
+          <h3 className="text-lg font-semibold text-foreground">할 일 목록</h3>
+          {(todos.todayBirthdays.length + todos.upcomingBirthdays.length +
+            todos.todayPastoralCare.length + todos.upcomingPastoralCare.length +
+            todos.upcomingImportantDates.length) > 0 && (
+            <Badge variant="default" className="bg-blue-500">
+              {todos.todayBirthdays.length + todos.upcomingBirthdays.length +
+               todos.todayPastoralCare.length + todos.upcomingPastoralCare.length +
+               todos.upcomingImportantDates.length}
+            </Badge>
+          )}
+        </div>
+        <TodoList
+          todayBirthdays={todos.todayBirthdays}
+          upcomingBirthdays={todos.upcomingBirthdays}
+          todayPastoralCare={todos.todayPastoralCare}
+          upcomingPastoralCare={todos.upcomingPastoralCare}
+          upcomingImportantDates={todos.upcomingImportantDates}
+          loading={todosLoading}
+          onMemberClick={handleMemberClick}
+          onPastoralCareClick={handlePastoralCareClick}
+          onImportantDateClick={handleImportantDateClick}
+          onPastoralCareNavigate={handlePastoralCareNavigate}
+        />
       </div>
 
       {/* Quick Actions */}
@@ -373,6 +475,23 @@ const Dashboard = React.memo(() => {
               Icon={action.Icon}
               link={action.link}
               color={action.color}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Stats Grid - 교인 통계 카드 */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4">교인 통계 카드</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {stats.map((stat, index) => (
+            <StatCard
+              key={`stat-${index}`}
+              title={stat.title}
+              value={stat.value}
+              Icon={stat.Icon}
+              color={stat.color}
+              loading={loading}
             />
           ))}
         </div>
@@ -621,6 +740,209 @@ const Dashboard = React.memo(() => {
         onSuccess={handlePasswordChangeSuccess}
         isTemporaryPassword={isTemporaryPassword}
       />
+
+      {/* 교인 상세 다이얼로그 */}
+      <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>교인 정보</DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">이름</p>
+                <p className="font-medium">{selectedMember.name}</p>
+              </div>
+              {selectedMember.phone && (
+                <div>
+                  <p className="text-sm text-muted-foreground">연락처</p>
+                  <p className="font-medium">{selectedMember.phone}</p>
+                </div>
+              )}
+              {selectedMember.birthdate && (
+                <div>
+                  <p className="text-sm text-muted-foreground">생년월일</p>
+                  <p className="font-medium">{selectedMember.birthdate}</p>
+                </div>
+              )}
+              {selectedMember.daysUntil !== undefined && (
+                <div>
+                  <p className="text-sm text-muted-foreground">생일까지</p>
+                  <p className="font-medium">{selectedMember.daysUntil}일 남음</p>
+                </div>
+              )}
+              {(selectedMember.position_main || selectedMember.position_detail) && (
+                <div>
+                  <p className="text-sm text-muted-foreground">직분</p>
+                  <p className="font-medium">
+                    {[
+                      getPositionMainLabel(selectedMember.position_main),
+                      getPositionDetailLabel(selectedMember.position_detail)
+                    ].filter(Boolean).join(' / ')}
+                  </p>
+                </div>
+              )}
+              {selectedMember.department && (
+                <div>
+                  <p className="text-sm text-muted-foreground">부서</p>
+                  <p className="font-medium">{selectedMember.department}</p>
+                </div>
+              )}
+              {selectedMember.church_organizations?.name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">조직</p>
+                  <p className="font-medium">{selectedMember.church_organizations.name}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMemberDialog(false)}>
+              닫기
+            </Button>
+            <Button onClick={() => {
+              setShowMemberDialog(false);
+              navigate('/member-management', { state: { memberId: selectedMember?.id, action: 'view' } });
+            }}>
+              자세히 보기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 심방 상세 다이얼로그 */}
+      <Dialog open={showPastoralCareDialog} onOpenChange={setShowPastoralCareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>심방 정보</DialogTitle>
+          </DialogHeader>
+          {selectedPastoralCare && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">신청자</p>
+                <p className="font-medium">
+                  {selectedPastoralCare.members?.name || selectedPastoralCare.requester_name}
+                </p>
+              </div>
+              {(selectedPastoralCare.members?.phone || selectedPastoralCare.requester_phone) && (
+                <div>
+                  <p className="text-sm text-muted-foreground">연락처</p>
+                  <p className="font-medium">
+                    {selectedPastoralCare.members?.phone || selectedPastoralCare.requester_phone}
+                  </p>
+                </div>
+              )}
+              {(selectedPastoralCare.scheduled_date || selectedPastoralCare.preferred_date) && (
+                <div>
+                  <p className="text-sm text-muted-foreground">일정</p>
+                  <p className="font-medium">
+                    {selectedPastoralCare.scheduled_date || selectedPastoralCare.preferred_date}
+                    {selectedPastoralCare.scheduled_time && ` ${selectedPastoralCare.scheduled_time}`}
+                  </p>
+                </div>
+              )}
+              {(selectedPastoralCare.members?.position_main || selectedPastoralCare.members?.position_detail) && (
+                <div>
+                  <p className="text-sm text-muted-foreground">직분</p>
+                  <p className="font-medium">
+                    {[
+                      getPositionMainLabel(selectedPastoralCare.members?.position_main),
+                      getPositionDetailLabel(selectedPastoralCare.members?.position_detail)
+                    ].filter(Boolean).join(' / ')}
+                  </p>
+                </div>
+              )}
+              {selectedPastoralCare.members?.department && (
+                <div>
+                  <p className="text-sm text-muted-foreground">부서</p>
+                  <p className="font-medium">{selectedPastoralCare.members.department}</p>
+                </div>
+              )}
+              {selectedPastoralCare.members?.church_organizations?.name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">조직</p>
+                  <p className="font-medium">{selectedPastoralCare.members.church_organizations.name}</p>
+                </div>
+              )}
+              {selectedPastoralCare.address && (
+                <div>
+                  <p className="text-sm text-muted-foreground">주소</p>
+                  <p className="font-medium">{selectedPastoralCare.address}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPastoralCareDialog(false)}>
+              닫기
+            </Button>
+            <Button onClick={() => {
+              setShowPastoralCareDialog(false);
+              navigate('/pastoral-care', { state: { requestId: selectedPastoralCare?.id, action: 'edit' } });
+            }}>
+              자세히 보기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 중요 일정 상세 다이얼로그 */}
+      <Dialog open={showImportantDateDialog} onOpenChange={setShowImportantDateDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>중요 일정</DialogTitle>
+          </DialogHeader>
+          {selectedImportantDate && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">제목</p>
+                <p className="font-medium">{selectedImportantDate.title}</p>
+              </div>
+              {selectedImportantDate.event_type && (
+                <div>
+                  <p className="text-sm text-muted-foreground">일정 유형</p>
+                  <p className="font-medium">{selectedImportantDate.event_type}</p>
+                </div>
+              )}
+              {selectedImportantDate.event_date && (
+                <div>
+                  <p className="text-sm text-muted-foreground">일정 날짜</p>
+                  <p className="font-medium">{selectedImportantDate.event_date}</p>
+                </div>
+              )}
+              {selectedImportantDate.daysUntil !== undefined && (
+                <div>
+                  <p className="text-sm text-muted-foreground">D-day</p>
+                  <p className="font-medium">
+                    {selectedImportantDate.daysUntil === 0 ? 'D-Day' : `D-${selectedImportantDate.daysUntil}`}
+                  </p>
+                </div>
+              )}
+              {selectedImportantDate.members?.name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">관련 교인</p>
+                  <p className="font-medium">{selectedImportantDate.members.name}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">메모</p>
+                <p className="font-medium">{selectedImportantDate.notes || '메모 없음'}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportantDateDialog(false)}>
+              닫기
+            </Button>
+            <Button onClick={() => {
+              setShowImportantDateDialog(false);
+              navigate('/important-dates', { state: { dateId: selectedImportantDate?.id, action: 'view' } });
+            }}>
+              자세히 보기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 });
