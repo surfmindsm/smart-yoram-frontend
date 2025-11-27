@@ -53,12 +53,15 @@ import {
   Building2,
   Calculator,
   Video,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  Heart as HeartIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Alert, AlertDescription } from "./ui";
+import { useToast } from '../contexts/ToastContext';
 import {
   isCommunityAdmin,
   isSuperAdmin,
@@ -99,6 +102,7 @@ const Layout: React.FC = () => {
   });
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   // GPT 사용 권한 확인 함수
   const hasGPTAccess = () => {
@@ -246,6 +250,18 @@ const Layout: React.FC = () => {
     } catch (error) {
       console.error('로그아웃 오류:', error);
       navigate('/login'); // 오류가 있어도 로그인 페이지로 이동
+    }
+  };
+
+  // 계좌번호 복사 핸들러
+  const handleCopyAccount = async () => {
+    const accountNumber = '326-252703-02-001';
+    try {
+      await navigator.clipboard.writeText(accountNumber);
+      showToast('계좌번호가 복사되었습니다', 'success');
+    } catch (error) {
+      console.error('복사 실패:', error);
+      showToast('복사에 실패했습니다', 'error');
     }
   };
 
@@ -508,6 +524,44 @@ const Layout: React.FC = () => {
                 )}
               </div>
             ))}
+
+            {/* 도네이션 카드 */}
+            <div className="mt-8 border-t border-slate-200 pt-4">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" />
+                  <h3 className="text-xs font-semibold text-slate-900">후원 계좌</h3>
+                </div>
+                <p className="text-[10px] text-slate-600 mb-2 leading-relaxed">
+                  Church Round의 발전을 위해 소중한 후원 부탁드립니다
+                </p>
+                <div className="bg-white rounded-md p-2 mb-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">은행</span>
+                      <span className="text-xs font-medium text-slate-900">우리은행</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">예금주</span>
+                      <span className="text-xs font-medium text-slate-900">이선민</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">계좌번호</span>
+                      <span className="text-[11px] font-mono font-medium text-slate-900">326-252703-02-001</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyAccount}
+                  className="w-full text-[10px] h-7 bg-white hover:bg-slate-50 border-slate-200"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  계좌번호 복사
+                </Button>
+              </div>
+            </div>
 
           </nav>
         </aside>
