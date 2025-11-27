@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent } from "./ui";
@@ -121,6 +122,7 @@ interface PastoralCareRecord {
 }
 
 const PastoralCareManagement: React.FC = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'requests' | 'records'>('requests');
   const [requests, setRequests] = useState<PastoralCareRequest[]>([]);
   const [completedRecords, setCompletedRecords] = useState<PastoralCareRecord[]>([]);
@@ -175,6 +177,26 @@ const PastoralCareManagement: React.FC = () => {
     contactInfo: '',
     isUrgent: false
   });
+
+  // location.state로 전달된 requestId가 있으면 자동으로 다이얼로그 열기
+  useEffect(() => {
+    const state = location.state as { requestId?: string; action?: string } | null;
+    if (state?.requestId && requests.length > 0) {
+      const targetRequest = requests.find(r => r.id === state.requestId);
+      if (targetRequest) {
+        setSelectedRequest(targetRequest);
+        if (state.action === 'complete') {
+          setShowCompletionModal(true);
+        } else if (state.action === 'edit') {
+          setShowScheduleModal(true);
+        } else {
+          setShowDetailModal(true);
+        }
+        // state 초기화 (뒤로가기 시 재실행 방지)
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [requests, location.state]);
 
   // API에서 심방 신청 데이터 로드
   useEffect(() => {

@@ -45,7 +45,7 @@ import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
 import TodoList from './dashboard/TodoList';
 import PasswordChangeModal from './PasswordChangeModal';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../hooks/use-toast';
 
 // Chart configurations
 const genderChartConfig = {
@@ -124,7 +124,7 @@ const Dashboard = React.memo(() => {
   const [error, setError] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isTemporaryPassword, setIsTemporaryPassword] = useState(false);
-  const { showToast } = useToast();
+  const { toast } = useToast();
 
   // Todo item 다이얼로그 상태
   const [showMemberDialog, setShowMemberDialog] = useState(false);
@@ -345,7 +345,11 @@ const Dashboard = React.memo(() => {
   const handlePasswordChangeSuccess = () => {
     setShowPasswordModal(false);
     setIsTemporaryPassword(false);
-    showToast('비밀번호가 성공적으로 변경되었습니다.', 'success');
+    const toastInstance = toast({
+      title: '비밀번호 변경 완료',
+      description: '비밀번호가 성공적으로 변경되었습니다',
+    });
+    setTimeout(() => toastInstance.dismiss(), 2000);
   };
 
   const handlePasswordModalClose = () => {
@@ -878,7 +882,7 @@ const Dashboard = React.memo(() => {
             </Button>
             <Button onClick={() => {
               setShowPastoralCareDialog(false);
-              navigate('/pastoral-care', { state: { requestId: selectedPastoralCare?.id, action: 'edit' } });
+              navigate('/pastoral-care', { state: { requestId: selectedPastoralCare?.id, action: 'complete' } });
             }}>
               자세히 보기
             </Button>
@@ -890,7 +894,7 @@ const Dashboard = React.memo(() => {
       <Dialog open={showImportantDateDialog} onOpenChange={setShowImportantDateDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>중요 일정</DialogTitle>
+            <DialogTitle>일정</DialogTitle>
           </DialogHeader>
           {selectedImportantDate && (
             <div className="space-y-4">

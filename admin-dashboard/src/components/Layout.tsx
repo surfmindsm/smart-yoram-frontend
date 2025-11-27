@@ -61,7 +61,7 @@ import { cn } from '../lib/utils';
 import { Button } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Alert, AlertDescription } from "./ui";
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../hooks/use-toast';
 import {
   isCommunityAdmin,
   isSuperAdmin,
@@ -102,7 +102,7 @@ const Layout: React.FC = () => {
   });
   const navigate = useNavigate();
   const location = useLocation();
-  const { showToast } = useToast();
+  const { toast } = useToast();
 
   // GPT 사용 권한 확인 함수
   const hasGPTAccess = () => {
@@ -156,13 +156,13 @@ const Layout: React.FC = () => {
     // 현재 경로에 해당하는 그룹 찾기 및 펼치기
     if (currentPath === '/dashboard') {
       newExpandedGroups['대시보드 & 분석'] = true;
-    } else if (['/member-management', '/organization-management', '/pastoral-care', '/important-dates', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
+    } else if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
     } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
     } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements', '/push-notifications'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['예배 & 소식'] = true;
-    } else if (['/church', '/excel', '/sms', '/qr-codes'].some(path => currentPath.startsWith(path))) {
+    } else if (['/church', '/important-dates', '/excel', '/sms', '/qr-codes'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교회 운영 & 설정'] = true;
     } else if (['/ai-chat', '/ai-agent-management', '/sermon-library', '/ai-tools'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['AI 기능 (Premium)'] = true;
@@ -255,13 +255,28 @@ const Layout: React.FC = () => {
 
   // 계좌번호 복사 핸들러
   const handleCopyAccount = async () => {
-    const accountNumber = '326-252703-02-001';
+    const accountNumber = '326-353703-02-001';
     try {
       await navigator.clipboard.writeText(accountNumber);
-      showToast('계좌번호가 복사되었습니다', 'success');
+      const toastInstance = toast({
+        title: '계좌번호가 복사되었습니다',
+        description: accountNumber,
+      });
+      // 2초 후 자동으로 닫기
+      setTimeout(() => {
+        toastInstance.dismiss();
+      }, 2000);
     } catch (error) {
       console.error('복사 실패:', error);
-      showToast('복사에 실패했습니다', 'error');
+      const toastInstance = toast({
+        title: '복사 실패',
+        description: '계좌번호 복사에 실패했습니다',
+        variant: 'destructive',
+      });
+      // 2초 후 자동으로 닫기
+      setTimeout(() => {
+        toastInstance.dismiss();
+      }, 2000);
     }
   };
 
@@ -325,7 +340,6 @@ const Layout: React.FC = () => {
         { path: '/organization-management', name: '조직 관리', Icon: Building2 },
         // { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
-        { path: '/important-dates', name: '중요 일정 관리', Icon: Calendar },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
       ],
     },
@@ -350,6 +364,7 @@ const Layout: React.FC = () => {
       title: '교회 운영 & 설정',
       items: [
         { path: '/church', name: '교회 정보', Icon: Church },
+        { path: '/important-dates', name: '일정 관리', Icon: Calendar },
         // { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
         // { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
         // { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
@@ -547,7 +562,7 @@ const Layout: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                       <span className="text-[10px] text-slate-500">계좌번호</span>
-                      <span className="text-[11px] font-mono font-medium text-slate-900">326-252703-02-001</span>
+                      <span className="text-[11px] font-mono font-medium text-slate-900">326-353703-02-001</span>
                     </div>
                   </div>
                 </div>

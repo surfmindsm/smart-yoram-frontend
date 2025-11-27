@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, Badge, Button } from "../ui";
 import {
   Calendar,
@@ -80,6 +81,7 @@ const TodoList: React.FC<TodoListProps> = ({
   onImportantDateClick,
   onPastoralCareNavigate
 }) => {
+  const navigate = useNavigate();
   const [showAllBirthdays, setShowAllBirthdays] = React.useState(false);
   const [showAllPastoralCare, setShowAllPastoralCare] = React.useState(false);
   const [showAllImportantDates, setShowAllImportantDates] = React.useState(false);
@@ -147,7 +149,7 @@ const TodoList: React.FC<TodoListProps> = ({
             {/* 생일 */}
             {allBirthdays.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors" onClick={() => navigate('/member-management')}>
                   <Cake className="h-4 w-4 text-gray-500" />
                   <h4 className="text-sm font-semibold">생일</h4>
                   <Badge variant="secondary" className="ml-auto bg-gray-100">
@@ -202,7 +204,7 @@ const TodoList: React.FC<TodoListProps> = ({
             {/* 심방 */}
             {allPastoralCare.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors" onClick={() => navigate('/pastoral-care')}>
                   <Heart className="h-4 w-4 text-gray-500" />
                   <h4 className="text-sm font-semibold">심방</h4>
                   <Badge variant="secondary" className="ml-auto bg-gray-100">
@@ -254,9 +256,9 @@ const TodoList: React.FC<TodoListProps> = ({
             {/* 중요 일정 */}
             {upcomingImportantDates.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors" onClick={() => navigate('/important-dates')}>
                   <Bell className="h-4 w-4 text-gray-500" />
-                  <h4 className="text-sm font-semibold">중요 일정</h4>
+                  <h4 className="text-sm font-semibold">일정</h4>
                   <Badge variant="secondary" className="ml-auto bg-gray-100">
                     {upcomingImportantDates.length}건
                   </Badge>

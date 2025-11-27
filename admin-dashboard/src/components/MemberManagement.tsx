@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
@@ -141,6 +141,7 @@ interface Member {
 
 const MemberManagement: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -279,6 +280,19 @@ const MemberManagement: React.FC = () => {
     };
     fetchOrganizationsAndDepartments();
   }, []);
+
+  // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
+  useEffect(() => {
+    const state = location.state as { memberId?: number; action?: string } | null;
+    if (state?.memberId && members.length > 0) {
+      const targetMember = members.find(m => m.id === state.memberId);
+      if (targetMember) {
+        handleMemberClick(targetMember);
+        // state 초기화 (뒤로가기 시 재실행 방지)
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [members, location.state]);
 
   const fetchMembers = async () => {
     console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });

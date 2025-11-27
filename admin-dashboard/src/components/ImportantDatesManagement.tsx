@@ -21,7 +21,7 @@ import {
   Search
 } from 'lucide-react';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../hooks/use-toast';
 import { cn } from '../lib/utils';
 
 interface Member {
@@ -49,7 +49,7 @@ interface ImportantDate {
 }
 
 const ImportantDatesManagement: React.FC = () => {
-  const { showToast } = useToast();
+  const { toast } = useToast();
   const location = useLocation();
   const [dates, setDates] = useState<ImportantDate[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -125,7 +125,11 @@ const ImportantDatesManagement: React.FC = () => {
       setDates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching dates:', error);
-      showToast('일정 목록을 불러오는데 실패했습니다', 'error');
+      toast({
+        title: '일정 목록 조회 실패',
+        description: '일정 목록을 불러오는데 실패했습니다',
+        variant: 'destructive',
+      });
       setDates([]); // 에러 시 빈 배열로 설정
     } finally {
       setLoading(false);
@@ -161,7 +165,11 @@ const ImportantDatesManagement: React.FC = () => {
   const handleSave = async () => {
     try {
       if (!formData.title) {
-        showToast('제목은 필수입니다', 'error');
+        toast({
+          title: '입력 오류',
+          description: '제목은 필수입니다',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -182,6 +190,43 @@ const ImportantDatesManagement: React.FC = () => {
         alert_days_before: parseInt(formData.alert_days_before.toString())
       };
 
+      // 낙관적 업데이트: UI 먼저 업데이트
+      const tempId = editingDate?.id || Date.now();
+      const memberData = formData.member_id ? members.find(m => m.id === parseInt(formData.member_id)) : undefined;
+
+      const optimisticDate: ImportantDate = {
+        id: tempId,
+        church_id: editingDate?.church_id || 0,
+        member_id: formData.member_id ? parseInt(formData.member_id) : undefined,
+        title: formData.title,
+        event_date: formData.event_date,
+        enable_dday_alert: formData.event_date ? formData.enable_dday_alert : false,
+        alert_days_before: parseInt(formData.alert_days_before.toString()),
+        is_active: true,
+        is_completed: editingDate?.is_completed || false,
+        created_at: editingDate?.created_at || new Date().toISOString(),
+        notes: formData.notes,
+        members: memberData
+      };
+
+      if (editingDate) {
+        // 수정: 기존 항목 업데이트
+        setDates(prev => prev.map(d => d.id === editingDate.id ? optimisticDate : d));
+      } else {
+        // 추가: 목록 맨 위에 새 항목 추가
+        setDates(prev => [optimisticDate, ...prev]);
+      }
+
+      setShowModal(false);
+      resetForm();
+
+      const toastInstance = toast({
+        title: editingDate ? '일정 수정 완료' : '일정 등록 완료',
+        description: editingDate ? '일정이 수정되었습니다' : '일정이 등록되었습니다',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+
+      // 백그라운드에서 서버에 저장
       const response = await fetch(url, {
         method,
         headers: {
@@ -198,17 +243,23 @@ const ImportantDatesManagement: React.FC = () => {
         throw new Error(errorData.error || '일정 저장 실패');
       }
 
-      showToast(
-        editingDate ? '일정이 수정되었습니다' : '일정이 등록되었습니다',
-        'success'
-      );
-
-      setShowModal(false);
-      resetForm();
-      fetchDates();
+      // 서버 응답으로 실제 데이터 업데이트
+      const savedData = await response.json();
+      if (editingDate) {
+        setDates(prev => prev.map(d => d.id === editingDate.id ? savedData : d));
+      } else {
+        setDates(prev => prev.map(d => d.id === tempId ? savedData : d));
+      }
     } catch (error) {
       console.error('Error saving date:', error);
-      showToast('일정 저장에 실패했습니다', 'error');
+      const toastInstance = toast({
+        title: '일정 저장 실패',
+        description: '일정 저장에 실패했습니다',
+        variant: 'destructive',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+      // 실패 시 롤백: 데이터 다시 불러오기
+      fetchDates();
     }
   };
 
@@ -216,6 +267,17 @@ const ImportantDatesManagement: React.FC = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
+      // 낙관적 업데이트: UI에서 먼저 제거
+      const prevDates = dates;
+      setDates(prev => prev.filter(d => d.id !== id));
+
+      const toastInstance = toast({
+        title: '일정 삭제 완료',
+        description: '일정이 삭제되었습니다',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+
+      // 백그라운드에서 서버에서 삭제
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const token = await supabaseAuthService.getToken();
 
@@ -229,17 +291,36 @@ const ImportantDatesManagement: React.FC = () => {
       });
 
       if (!response.ok) throw new Error('일정 삭제 실패');
-
-      showToast('일정이 삭제되었습니다', 'success');
-      fetchDates();
     } catch (error) {
       console.error('Error deleting date:', error);
-      showToast('일정 삭제에 실패했습니다', 'error');
+      const toastInstance = toast({
+        title: '일정 삭제 실패',
+        description: '일정 삭제에 실패했습니다',
+        variant: 'destructive',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+      // 실패 시 롤백
+      fetchDates();
     }
   };
 
   const handleComplete = async (date: ImportantDate) => {
     try {
+      // 낙관적 업데이트: UI에서 먼저 상태 변경
+      const newCompletedStatus = !date.is_completed;
+      setDates(prev => prev.map(d =>
+        d.id === date.id
+          ? { ...d, is_completed: newCompletedStatus, completed_at: newCompletedStatus ? new Date().toISOString() : undefined }
+          : d
+      ));
+
+      const toastInstance = toast({
+        title: date.is_completed ? '미완료로 변경' : '완료 처리',
+        description: date.is_completed ? '일정이 미완료로 변경되었습니다' : '일정이 완료되었습니다',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+
+      // 백그라운드에서 서버에 저장
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const token = await supabaseAuthService.getToken();
 
@@ -251,20 +332,25 @@ const ImportantDatesManagement: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          is_completed: !date.is_completed
+          is_completed: newCompletedStatus
         })
       });
 
       if (!response.ok) throw new Error('상태 변경 실패');
 
-      showToast(
-        date.is_completed ? '일정이 미완료로 변경되었습니다' : '일정이 완료되었습니다',
-        'success'
-      );
-      fetchDates();
+      // 서버 응답으로 실제 데이터 업데이트
+      const updatedData = await response.json();
+      setDates(prev => prev.map(d => d.id === date.id ? updatedData : d));
     } catch (error) {
       console.error('Error updating status:', error);
-      showToast('상태 변경에 실패했습니다', 'error');
+      const toastInstance = toast({
+        title: '상태 변경 실패',
+        description: '상태 변경에 실패했습니다',
+        variant: 'destructive',
+      });
+      setTimeout(() => toastInstance.dismiss(), 2000);
+      // 실패 시 롤백
+      fetchDates();
     }
   };
 
@@ -334,7 +420,7 @@ const ImportantDatesManagement: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="중요 일정 관리" />
+      <PageHeader title="일정 관리" />
 
       {/* Add and Search */}
       <div className="mb-6 flex gap-3">
