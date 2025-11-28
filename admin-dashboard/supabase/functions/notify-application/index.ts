@@ -118,6 +118,22 @@ Deno.serve(async (req) => {
 
             <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
 
+            <div style="background-color: #f0f9ff; padding: 25px; border-radius: 4px; margin-bottom: 30px; border-left: 4px solid #333;">
+              <h3 style="color: #333; margin-top: 0; margin-bottom: 15px; font-size: 16px;">📱 모바일 앱 다운로드</h3>
+              <p style="color: #555; line-height: 1.6; margin-bottom: 15px;">
+                Church Round는 교인들을 위한 전용 모바일 앱을 제공합니다.<br>
+                언제 어디서나 편리하게 교회 소식을 확인하고 소통하세요.
+              </p>
+              <div style="text-align: center; margin-top: 20px;">
+                <a href="https://churchround.com/download"
+                   style="display: inline-block; padding: 12px 30px; background-color: #333; color: white; text-decoration: none; border-radius: 4px; font-weight: normal;">
+                  앱 다운로드하기
+                </a>
+              </div>
+            </div>
+
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
+
             <p style="font-size: 13px; color: #999; text-align: center; line-height: 1.6;">
               Church Round<br>
               승인 일시: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}

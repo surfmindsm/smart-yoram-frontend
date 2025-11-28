@@ -1814,7 +1814,7 @@ export const supabaseApiService = {
         const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -1852,7 +1852,7 @@ export const supabaseApiService = {
         const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -1890,7 +1890,7 @@ export const supabaseApiService = {
         const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -1940,7 +1940,7 @@ export const supabaseApiService = {
         const response = await fetch(functionsUrl, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -1990,7 +1990,7 @@ export const supabaseApiService = {
         const response = await fetch(functionsUrl, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -2026,10 +2026,15 @@ export const supabaseApiService = {
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
         const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services/${id}`;
 
+        console.log('🔍 DELETE 요청 URL:', functionsUrl);
+        console.log('🔍 Supabase URL:', supabaseUrl);
+        console.log('🔍 SUPABASE_ANON_KEY exists:', !!SUPABASE_ANON_KEY);
+        console.log('🔍 Token exists:', !!token);
+
         const response = await fetch(functionsUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
@@ -2066,7 +2071,7 @@ export const supabaseApiService = {
           const response = await fetch(functionsUrl, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'X-Custom-Auth': token,
               'Content-Type': 'application/json',
             },
@@ -2105,7 +2110,7 @@ export const supabaseApiService = {
           const response = await fetch(functionsUrl, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'X-Custom-Auth': token,
               'Content-Type': 'application/json',
             },
@@ -2145,7 +2150,7 @@ export const supabaseApiService = {
           const response = await fetch(functionsUrl, {
             method: 'PUT',
             headers: {
-              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'X-Custom-Auth': token,
               'Content-Type': 'application/json',
             },
@@ -2181,7 +2186,7 @@ export const supabaseApiService = {
           const response = await fetch(functionsUrl, {
             method: 'DELETE',
             headers: {
-              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'X-Custom-Auth': token,
               'Content-Type': 'application/json',
             },
@@ -5720,7 +5725,8 @@ export const supabaseApiService = {
         throw error;
       }
     },
-  }
+  },
+
 
 };
 

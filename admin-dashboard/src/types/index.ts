@@ -13,6 +13,7 @@ export * from './job-posts';
 export * from './music-team';
 export * from './church-events';
 export * from './chat';
+export * from './worship-services';
 
 // 커뮤니티 모듈 타입
 export type CommunityModule =
