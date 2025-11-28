@@ -7,9 +7,7 @@ import { Textarea } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui";
 import {
   ChurchOrganization,
-  OrganizationType,
   OrganizationFormData,
-  ORGANIZATION_TYPE_LABELS,
   validateOrganizationForm
 } from '../types/organization';
 import { organizationService } from '../services/organizationService';
@@ -34,7 +32,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
   const [formData, setFormData] = useState<OrganizationFormData>({
     name: '',
     description: '',
-    organization_type: 'cell_group',
+    organization_type: 'custom',
     parent_id: '',
     leader_id: null,
     contact_phone: '',
@@ -63,7 +61,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
       setFormData({
         name: '',
         description: '',
-        organization_type: 'cell_group',
+        organization_type: 'custom',
         parent_id: '',
         leader_id: null,
         contact_phone: '',
@@ -110,7 +108,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
     setFormData({
       name: '',
       description: '',
-      organization_type: 'cell_group',
+      organization_type: 'custom',
       parent_id: '',
       leader_id: null,
       contact_phone: '',
@@ -122,10 +120,28 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
     onClose();
   };
 
+  // Flatten organization tree to get all organizations
+  const flattenOrganizations = (orgs: ChurchOrganization[]): ChurchOrganization[] => {
+    const result: ChurchOrganization[] = [];
+
+    const flatten = (org: ChurchOrganization) => {
+      result.push(org);
+      if (org.children && org.children.length > 0) {
+        org.children.forEach(child => flatten(child));
+      }
+    };
+
+    orgs.forEach(org => flatten(org));
+    return result;
+  };
+
   // Get available parent organizations (exclude current organization and its children)
   const getAvailableParents = () => {
+    // First, flatten the tree structure to get all organizations
+    const allOrganizations = flattenOrganizations(organizations);
+
     if (!organization) {
-      return organizations;
+      return allOrganizations;
     }
 
     // For editing, exclude self and descendants
@@ -142,7 +158,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
 
     collectDescendants(organization);
 
-    return organizations.filter(org => !excludeIds.has(org.id));
+    return allOrganizations.filter(org => !excludeIds.has(org.id));
   };
 
   return (
@@ -153,7 +169,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
             {organization ? '조직 수정' : '새 조직 추가'}
           </DialogTitle>
           <DialogDescription>
-            교회 조직 정보를 입력해주세요. 셀그룹, 사역팀 등을 생성할 수 있습니다.
+            조직명과 상위 조직을 선택하여 계층 구조를 만들 수 있습니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,7 +191,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="예: 청년부, 예배팀"
+              placeholder="예: 2교구, 13구역, 청년부"
               required
             />
           </div>
@@ -209,11 +225,14 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
                 <SelectItem value="none">없음 (최상위 조직)</SelectItem>
                 {getAvailableParents().map((org) => (
                   <SelectItem key={org.id} value={org.id}>
-                    {org.name} ({ORGANIZATION_TYPE_LABELS[org.organization_type]})
+                    {org.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="mt-1 text-xs text-gray-500">
+              상위 조직을 선택하면 계층 구조가 만들어집니다. 예: 2교구 → 13구역
+            </p>
           </div>
 
           {/* Contact Information */}

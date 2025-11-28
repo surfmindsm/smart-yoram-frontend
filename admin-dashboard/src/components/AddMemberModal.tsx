@@ -643,7 +643,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
                       <SelectItem value="none">없음</SelectItem>
                       {organizations.map(org => (
                         <SelectItem key={org.id} value={org.id}>
-                          {'\u00A0'.repeat(org.level * 2)}{org.name}
+                          {org.level > 0 ? '\u00A0'.repeat((org.level - 1) * 2) + '└ ' : ''}{org.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

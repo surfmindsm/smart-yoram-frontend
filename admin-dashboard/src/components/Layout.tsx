@@ -544,7 +544,7 @@ const Layout: React.FC = () => {
             <div className="mt-8 border-t border-slate-200 pt-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" />
+                  {/* <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" /> */}
                   <h3 className="text-xs font-semibold text-slate-900">후원 계좌</h3>
                 </div>
                 <p className="text-[10px] text-slate-600 mb-2 leading-relaxed">
