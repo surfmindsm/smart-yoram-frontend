@@ -19,7 +19,7 @@ import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Badge } from "./ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Spinner } from "./ui/spinner";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
@@ -221,11 +221,18 @@ const OrganizationManagement: React.FC = () => {
     is_active: true
   });
 
-  // Member selection states
+  // Member selection states (for organizations)
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
+
+  // Department member selection states
+  const [showDepartmentMemberModal, setShowDepartmentMemberModal] = useState(false);
+  const [availableDepartmentMembers, setAvailableDepartmentMembers] = useState<any[]>([]);
+  const [selectedDepartmentMemberIds, setSelectedDepartmentMemberIds] = useState<Set<string>>(new Set());
+  const [departmentMemberLoading, setDepartmentMemberLoading] = useState(false);
+  const [departmentMemberSearchTerm, setDepartmentMemberSearchTerm] = useState('');
 
   // Get current user's church_id
   useEffect(() => {
@@ -486,6 +493,149 @@ const OrganizationManagement: React.FC = () => {
   const openDepartmentDeleteModal = (department: Department) => {
     setEditingDepartment(department);
     setShowDepartmentDeleteModal(true);
+  };
+
+  // Department member management handlers
+  const handleAddMemberToDepartment = async (department: Department) => {
+    setSelectedDepartment(department);
+    setShowDepartmentMemberModal(true);
+
+    // Load available members for department
+    await loadAvailableDepartmentMembers(department.name);
+  };
+
+  // Load members that can be added to the department
+  const loadAvailableDepartmentMembers = async (departmentName: string) => {
+    if (!churchId) return;
+
+    try {
+      setDepartmentMemberLoading(true);
+
+      // Get all members with their current department
+      const { data: allMembers, error: membersError } = await supabase
+        .from('members')
+        .select('id, name, birthdate, phone, address, department')
+        .eq('church_id', churchId)
+        .order('name');
+
+      if (membersError) {
+        console.error('교인 목록 로드 오류:', membersError);
+        return;
+      }
+
+      // Map members with their current department info
+      const available = (allMembers || []).map(member => ({
+        ...member,
+        currentDepartment: member.department,
+        isCurrentDepartment: member.department === departmentName
+      }));
+
+      setAvailableDepartmentMembers(available);
+    } catch (error) {
+      console.error('교인 목록 로드 오류:', error);
+    } finally {
+      setDepartmentMemberLoading(false);
+    }
+  };
+
+  // Add selected members to department
+  const handleAddMembersToDepartment = async () => {
+    if (!selectedDepartment || selectedDepartmentMemberIds.size === 0) return;
+
+    try {
+      setDepartmentMemberLoading(true);
+
+      // Calculate counts
+      const selectedMembers = availableDepartmentMembers.filter(m => selectedDepartmentMemberIds.has(m.id));
+      const moveCount = selectedMembers.filter(m => m.currentDepartment && !m.isCurrentDepartment).length;
+      const addCount = selectedMembers.filter(m => !m.currentDepartment).length;
+
+      // Update department for selected members
+      const { error } = await supabase
+        .from('members')
+        .update({ department: selectedDepartment.name })
+        .in('id', Array.from(selectedDepartmentMemberIds));
+
+      if (error) {
+        console.error('교인 추가 오류:', error);
+        alert('교인 추가에 실패했습니다.');
+        return;
+      }
+
+      // Show success message
+      let message = '';
+      if (moveCount > 0 && addCount > 0) {
+        message = `${addCount}명이 추가되고 ${moveCount}명이 이동되었습니다.`;
+      } else if (moveCount > 0) {
+        message = `${moveCount}명이 이동되었습니다.`;
+      } else {
+        message = `${addCount}명이 추가되었습니다.`;
+      }
+
+      alert(message);
+      setShowDepartmentMemberModal(false);
+      setSelectedDepartmentMemberIds(new Set());
+      setDepartmentMemberSearchTerm('');
+      loadDepartments();
+    } catch (error) {
+      console.error('교인 추가 오류:', error);
+      alert('교인 추가에 실패했습니다.');
+    } finally {
+      setDepartmentMemberLoading(false);
+    }
+  };
+
+  // Toggle department member selection
+  const handleToggleDepartmentMember = (memberId: string) => {
+    const newSelection = new Set(selectedDepartmentMemberIds);
+    if (newSelection.has(memberId)) {
+      newSelection.delete(memberId);
+    } else {
+      newSelection.add(memberId);
+    }
+    setSelectedDepartmentMemberIds(newSelection);
+  };
+
+  // Toggle all department members
+  const handleToggleAllDepartmentMembers = () => {
+    const filteredMembers = getFilteredDepartmentMembers();
+    const allSelected = filteredMembers.every(m =>
+      m.isCurrentDepartment || selectedDepartmentMemberIds.has(m.id)
+    );
+
+    if (allSelected) {
+      // Deselect all filtered members
+      const newSelection = new Set(selectedDepartmentMemberIds);
+      filteredMembers.forEach(m => {
+        if (!m.isCurrentDepartment) {
+          newSelection.delete(m.id);
+        }
+      });
+      setSelectedDepartmentMemberIds(newSelection);
+    } else {
+      // Select all available filtered members
+      const newSelection = new Set(selectedDepartmentMemberIds);
+      filteredMembers.forEach(m => {
+        if (!m.isCurrentDepartment) {
+          newSelection.add(m.id);
+        }
+      });
+      setSelectedDepartmentMemberIds(newSelection);
+    }
+  };
+
+  // Filter department members by search term
+  const getFilteredDepartmentMembers = () => {
+    if (!departmentMemberSearchTerm.trim()) {
+      return availableDepartmentMembers;
+    }
+
+    const searchLower = departmentMemberSearchTerm.toLowerCase();
+    return availableDepartmentMembers.filter(member =>
+      member.name.toLowerCase().includes(searchLower) ||
+      member.phone?.toLowerCase().includes(searchLower) ||
+      member.address?.toLowerCase().includes(searchLower)
+    );
   };
 
   // Tree node handlers
@@ -896,6 +1046,17 @@ const OrganizationManagement: React.FC = () => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                handleAddMemberToDepartment(department);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 openDepartmentEditModal(department);
                               }}
                               className="h-8 w-8 p-0"
@@ -1299,6 +1460,196 @@ const OrganizationManagement: React.FC = () => {
                     const selectedMembers = availableMembers.filter(m => selectedMemberIds.has(m.id));
                     const moveCount = selectedMembers.filter(m => m.currentOrganizationId && !m.isCurrentOrganization).length;
                     const addCount = selectedMembers.filter(m => !m.currentOrganizationId).length;
+
+                    if (moveCount > 0 && addCount > 0) {
+                      return `${addCount}명 추가 / ${moveCount}명 이동`;
+                    } else if (moveCount > 0) {
+                      return `${moveCount}명 이동`;
+                    } else {
+                      return `${addCount}명 추가`;
+                    }
+                  })()
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Members to Department Modal */}
+      <Dialog open={showDepartmentMemberModal} onOpenChange={(open) => {
+        setShowDepartmentMemberModal(open);
+        if (!open) {
+          setSelectedDepartmentMemberIds(new Set());
+          setDepartmentMemberSearchTerm('');
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDepartment?.name}에 교인 추가
+            </DialogTitle>
+            <DialogDescription>
+              추가할 교인을 선택하세요. 이미 이 부서에 소속된 교인은 회색으로 표시되며, 다른 부서에 소속된 교인은 선택 시 자동으로 이동됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="이름, 전화번호, 주소로 검색..."
+                  value={departmentMemberSearchTerm}
+                  onChange={(e) => setDepartmentMemberSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleAllDepartmentMembers}
+                disabled={departmentMemberLoading}
+              >
+                전체 선택/해제
+              </Button>
+            </div>
+
+            {/* Selected Count */}
+            <div className="text-sm text-gray-600">
+              선택된 교인: <strong>{selectedDepartmentMemberIds.size}명</strong>
+            </div>
+
+            {/* Member List */}
+            <div className="border rounded-lg overflow-hidden">
+              {departmentMemberLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner />
+                  <span className="ml-2">교인 목록을 불러오는 중...</span>
+                </div>
+              ) : getFilteredDepartmentMembers().length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>검색 결과가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-[400px]">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="w-12 px-4 py-3">
+                          <input
+                            type="checkbox"
+                            onChange={handleToggleAllDepartmentMembers}
+                            checked={
+                              getFilteredDepartmentMembers().length > 0 &&
+                              getFilteredDepartmentMembers().every(m =>
+                                m.isCurrentDepartment || selectedDepartmentMemberIds.has(m.id)
+                              )
+                            }
+                            className="w-4 h-4"
+                          />
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                          이름
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                          생년월일
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                          전화번호
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                          주소
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                          상태
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredDepartmentMembers().map((member) => (
+                        <tr
+                          key={member.id}
+                          className={`hover:bg-gray-50 cursor-pointer ${
+                            member.isCurrentDepartment ? 'bg-gray-100 text-gray-400' : ''
+                          }`}
+                          onClick={() => {
+                            if (!member.isCurrentDepartment) {
+                              handleToggleDepartmentMember(member.id);
+                            }
+                          }}
+                        >
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedDepartmentMemberIds.has(member.id) || member.isCurrentDepartment}
+                              onChange={() => handleToggleDepartmentMember(member.id)}
+                              disabled={member.isCurrentDepartment}
+                              className="w-4 h-4"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {member.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {member.birthdate || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {member.phone || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {member.address || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {member.isCurrentDepartment ? (
+                              <Badge variant="secondary" className="text-xs">
+                                이미 소속됨
+                              </Badge>
+                            ) : member.currentDepartment ? (
+                              <Badge variant="outline" className="text-xs text-orange-600 border-orange-400">
+                                {member.currentDepartment}에서 이동
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                추가 가능
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDepartmentMemberModal(false);
+                  setSelectedDepartmentMemberIds(new Set());
+                  setDepartmentMemberSearchTerm('');
+                }}
+                disabled={departmentMemberLoading}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleAddMembersToDepartment}
+                disabled={departmentMemberLoading || selectedDepartmentMemberIds.size === 0}
+              >
+                {departmentMemberLoading ? (
+                  <Spinner />
+                ) : (
+                  (() => {
+                    const selectedMembers = availableDepartmentMembers.filter(m => selectedDepartmentMemberIds.has(m.id));
+                    const moveCount = selectedMembers.filter(m => m.currentDepartment && !m.isCurrentDepartment).length;
+                    const addCount = selectedMembers.filter(m => !m.currentDepartment).length;
 
                     if (moveCount > 0 && addCount > 0) {
                       return `${addCount}명 추가 / ${moveCount}명 이동`;
