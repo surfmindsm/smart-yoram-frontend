@@ -357,10 +357,10 @@ serve(async (req) => {
       console.log('📈 Fetching member growth:', { months })
 
       // 교인 데이터 조회 (교회 ID 필터 포함)
-      // created_at 컬럼 확인 필요 - 우선 기본 필드로 시도
+      // created_at 필드를 사용하여 등록 날짜 기준으로 집계
       let membersQuery = supabase
         .from('members')
-        .select('id, church_id')
+        .select('id, church_id, created_at')
         .eq('status', 'active')
 
       // 교회 ID 필터 추가 (슈퍼어드민이 아닌 경우에만)
@@ -373,26 +373,53 @@ serve(async (req) => {
       console.log('📈 Growth query result:', {
         count: members?.length || 0,
         error: error?.message,
-        months
+        months,
+        sampleData: members?.slice(0, 3)?.map(m => ({ id: m.id, created_at: m.created_at }))
       })
 
       // 에러가 있어도 빈 배열로 계속 진행
       const membersData = members || []
 
-      // created_at 컬럼이 없으므로 임시로 현재 월에 모든 회원을 배치
+      // 월별 신규 교인 집계 (created_at 기준, 한국 시간대 UTC+9 적용)
       const monthlyGrowth: any = {}
-      const endDate = new Date()
-      const currentMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`
 
-      // 지난 N개월 동안의 데이터 생성
+      // 한국 시간대 (UTC+9) 기준 현재 날짜
+      const now = new Date()
+      const koreaOffset = 9 * 60 // 9시간을 분으로 변환
+      const koreaTime = new Date(now.getTime() + (koreaOffset * 60 * 1000))
+      const endDate = koreaTime
+
+      console.log('🕐 Time zone info:', {
+        utcTime: now.toISOString(),
+        koreaTime: koreaTime.toISOString(),
+        koreaMonth: `${koreaTime.getUTCFullYear()}-${String(koreaTime.getUTCMonth() + 1).padStart(2, '0')}`
+      })
+
+      // 지난 N개월 동안의 데이터 구조 초기화 (한국 시간 기준)
       for (let i = months - 1; i >= 0; i--) {
-        const date = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1)
+        const date = new Date(koreaTime.getUTCFullYear(), koreaTime.getUTCMonth() - i, 1)
         const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
         monthlyGrowth[yearMonth] = 0
       }
 
-      // 현재 월에 모든 활성 회원 배치 (임시)
-      monthlyGrowth[currentMonth] = membersData?.length || 0
+      // created_at을 기준으로 월별로 신규 교인 집계 (한국 시간대로 변환)
+      membersData?.forEach((member: any) => {
+        if (member.created_at) {
+          try {
+            // UTC 시간을 한국 시간으로 변환
+            const createdDateUTC = new Date(member.created_at)
+            const createdDateKorea = new Date(createdDateUTC.getTime() + (koreaOffset * 60 * 1000))
+            const yearMonth = `${createdDateKorea.getUTCFullYear()}-${String(createdDateKorea.getUTCMonth() + 1).padStart(2, '0')}`
+
+            // 해당 월이 조회 범위 내에 있으면 카운트 증가
+            if (monthlyGrowth.hasOwnProperty(yearMonth)) {
+              monthlyGrowth[yearMonth]++
+            }
+          } catch (error) {
+            console.error('created_at 파싱 오류:', error)
+          }
+        }
+      })
 
       // 누적 교인 수 계산
       let cumulativeCount = 0

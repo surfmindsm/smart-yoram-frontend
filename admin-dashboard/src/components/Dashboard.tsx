@@ -698,7 +698,7 @@ const Dashboard = React.memo(() => {
                   />
                   <Line
                     dataKey="total_members"
-                    type="monotone"
+                    type="linear"
                     stroke="var(--color-total_members)"
                     strokeWidth={2}
                     dot={{
