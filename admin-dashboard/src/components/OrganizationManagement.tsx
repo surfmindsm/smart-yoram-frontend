@@ -291,12 +291,22 @@ const OrganizationManagement: React.FC = () => {
         })
       );
 
-      // Apply counts to tree structure recursively
+      // Apply counts to tree structure recursively and sum up children counts
       const applyCount = (org: ChurchOrganization): ChurchOrganization => {
+        // First apply count to all children
+        const childrenWithCount = org.children ? org.children.map(child => applyCount(child)) : [];
+
+        // Get direct member count for this organization
+        const directCount = countMap.get(org.id) || 0;
+
+        // Calculate total count including all descendants
+        const childrenTotal = childrenWithCount.reduce((sum, child) => sum + (child.member_count || 0), 0);
+        const totalCount = directCount + childrenTotal;
+
         return {
           ...org,
-          member_count: countMap.get(org.id) || 0,
-          children: org.children ? org.children.map(child => applyCount(child)) : []
+          member_count: totalCount,
+          children: childrenWithCount
         };
       };
 
