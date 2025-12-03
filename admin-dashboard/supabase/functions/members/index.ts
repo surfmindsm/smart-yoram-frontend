@@ -360,6 +360,21 @@ Deno.serve(async (req) => {
         )
       }
 
+      // 📧 이메일 변경 감지 및 기존 이메일 조회
+      let oldEmail: string | null = null
+      if (body.email !== undefined) {
+        const { data: currentMember } = await supabaseClient
+          .from('members')
+          .select('email, user_id')
+          .eq('id', memberId)
+          .single()
+
+        if (currentMember && currentMember.email !== body.email) {
+          oldEmail = currentMember.email
+          console.log('📧 이메일 변경 감지:', { oldEmail, newEmail: body.email, user_id: currentMember.user_id })
+        }
+      }
+
       // Only include fields that exist in the members table and are being updated
       const updateData: any = {}
 
@@ -456,6 +471,61 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
+      }
+
+      // 📧 이메일 변경 시 auth.users, users 테이블도 동기화
+      if (oldEmail && body.email && data) {
+        console.log('📧 이메일 변경: 관련 테이블 동기화 시작')
+
+        try {
+          // 1. auth.users에서 기존 이메일로 사용자 찾기
+          const { data: authUser } = await supabaseClient.auth.admin.getUserByEmail(oldEmail)
+
+          if (authUser?.user) {
+            console.log('✅ auth.users에서 사용자 찾음:', authUser.user.id)
+
+            // 2. auth.users의 이메일 업데이트
+            const { error: authUpdateError } = await supabaseClient.auth.admin.updateUserById(
+              authUser.user.id,
+              { email: body.email }
+            )
+
+            if (authUpdateError) {
+              console.error('❌ auth.users 이메일 업데이트 실패:', authUpdateError)
+            } else {
+              console.log('✅ auth.users 이메일 업데이트 성공')
+            }
+          } else {
+            console.log('ℹ️ auth.users에 기존 이메일로 등록된 사용자 없음 - 초대 시 새로 생성됨')
+          }
+
+          // 4. users 테이블에서 기존 이메일로 사용자 찾아서 업데이트
+          const { data: usersData, error: findUsersError } = await supabaseClient
+            .from('users')
+            .select('id')
+            .eq('email', oldEmail)
+            .limit(1)
+
+          if (!findUsersError && usersData && usersData.length > 0) {
+            const { error: usersUpdateError } = await supabaseClient
+              .from('users')
+              .update({ email: body.email })
+              .eq('id', usersData[0].id)
+
+            if (usersUpdateError) {
+              console.error('⚠️ users 테이블 업데이트 실패:', usersUpdateError)
+            } else {
+              console.log('✅ users 테이블 이메일 업데이트 성공')
+            }
+          } else {
+            console.log('ℹ️ users 테이블에 기존 이메일로 등록된 사용자 없음')
+          }
+
+          console.log('✅ 이메일 동기화 완료')
+        } catch (syncError) {
+          console.error('❌ 이메일 동기화 중 오류:', syncError)
+          // 이메일 동기화 실패해도 members 업데이트는 성공으로 처리
+        }
       }
 
       return new Response(

@@ -3925,7 +3925,7 @@ export const supabaseApiService = {
           console.error('📱📧 [초대] DB 업데이트 오류:', updateError);
         }
 
-        // users 테이블에 사용자 생성 (기존 createFromMember 로직 활용)
+        // invite-user Edge Function을 통해 auth.users와 users 테이블에 사용자 생성
         try {
           // 먼저 member 정보 조회
           const { data: memberData } = await supabase
@@ -3935,40 +3935,26 @@ export const supabaseApiService = {
             .single();
 
           if (memberData && email) {
-            // console.log('👤 [users 테이블 생성] 시작:', { email, name: memberData.name });
+            console.log('👤 [invite-user Edge Function] 호출 시작:', { email, name: memberData.name });
 
-            // users 테이블에 이미 존재하는지 확인
-            const { data: existingUser } = await supabase
-              .from('users')
-              .select('id')
-              .eq('email', email)
-              .single();
-
-            if (existingUser) {
-              // console.log('ℹ️ [users 테이블] 이미 존재하는 사용자:', email);
-            } else {
-              // users 테이블에 새 사용자 생성
-              const { data: newUser, error: usersError } = await supabase
-                .from('users')
-                .insert({
-                  email: email,
-                  username: email.split('@')[0],
-                  full_name: memberData.name || username,
-                  hashed_password: temporaryPassword,
+            // invite-user Edge Function 호출
+            const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
+              body: {
+                email: email,
+                temporaryPassword: temporaryPassword,
+                memberData: {
+                  name: memberData.name || username,
                   church_id: memberData.church_id || 0,
-                  role: 'member',
-                  is_active: true,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                })
-                .select()
-                .single();
-
-              if (usersError) {
-                console.error('👤 [users 테이블 생성] 실패:', usersError);
-              } else {
-                // console.log('✅ [users 테이블 생성] 성공:', newUser?.email);
+                  member_id: memberId
+                }
               }
+            });
+
+            if (inviteError) {
+              console.error('👤 [invite-user Edge Function] 실패:', inviteError);
+              console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
+            } else {
+              console.log('✅ [invite-user Edge Function] 성공:', inviteData);
             }
           }
         } catch (userCreateError) {

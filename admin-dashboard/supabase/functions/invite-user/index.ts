@@ -33,88 +33,101 @@ serve(async (req) => {
 
     console.log('👤 [초대 Edge Function] 사용자 생성 시작:', { email, memberData })
 
-    // 1. auth.users에 이미 사용자가 있는지 확인
-    const { data: existingUser, error: checkError } = await supabaseAdmin.auth.admin.getUserByEmail(email)
+    // 1. 먼저 users 테이블에 레코드가 있는지 확인
+    const { data: existingUsersRecord, error: findUsersError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, username')
+      .eq('email', email)
+      .maybeSingle()
 
-    if (existingUser.user) {
-      console.log('ℹ️ [초대 Edge Function] 사용자가 이미 존재함:', email)
+    if (existingUsersRecord) {
+      console.log('ℹ️ [초대 Edge Function] users 테이블에 이미 존재 (앱에서 가입했거나 이미 초대받음):', email)
+      console.log('   → 기존 users 레코드를 유지하고 members.user_id만 연결합니다.')
 
-      // 기존 사용자 메타데이터 업데이트
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.user.id, {
-        user_metadata: {
-          full_name: memberData.name,
-          church_id: memberData.church_id,
-          role: 'member',
-          temporary_password: temporaryPassword
+      // members.user_id만 업데이트 (기존 users 레코드는 건드리지 않음)
+      if (memberData.member_id) {
+        const { error: memberUpdateError } = await supabaseAdmin
+          .from('members')
+          .update({ user_id: existingUsersRecord.id.toString() })
+          .eq('id', memberData.member_id)
+
+        if (memberUpdateError) {
+          console.error('⚠️ [초대 Edge Function] members.user_id 업데이트 실패:', memberUpdateError)
+        } else {
+          console.log('✅ [초대 Edge Function] members.user_id 연결 성공:', existingUsersRecord.id)
         }
-      })
-
-      if (updateError) {
-        throw updateError
       }
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: '기존 사용자 정보가 업데이트되었습니다.',
-          user_id: existingUser.user.id
+          message: '기존 사용자 계정과 연결되었습니다.',
+          user_id: existingUsersRecord.id
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // 2. 새 사용자 생성
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: temporaryPassword,
-      email_confirm: true, // 이메일 확인 건너뛰기
-      user_metadata: {
-        full_name: memberData.name,
-        church_id: memberData.church_id,
-        role: 'member'
-      }
-    })
+    console.log('ℹ️ [초대 Edge Function] users 테이블에 없음 → 새로 생성합니다.')
 
-    if (createError) {
-      console.error('❌ [초대 Edge Function] 사용자 생성 실패:', createError)
-      throw createError
+    // 2. users 테이블에 바로 생성 (auth.users는 사용 안 함)
+    const { data: newUsersRecord, error: usersError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        email: email,
+        username: memberData.name, // members의 name을 username으로 사용
+        full_name: memberData.name,
+        hashed_password: temporaryPassword, // 임시 비밀번호 (해시 전)
+        church_id: memberData.church_id,
+        role: 'member',
+        is_active: true
+      })
+      .select()
+      .single()
+
+    if (usersError) {
+      console.error('❌ [초대 Edge Function] users 테이블 생성 실패:', usersError)
+      throw usersError
     }
 
-    console.log('✅ [초대 Edge Function] auth.users에 사용자 생성 성공:', newUser.user?.email)
+    console.log('✅ [초대 Edge Function] users 테이블에 사용자 생성 성공:', newUsersRecord)
 
-    // 3. profiles 테이블에 프로필 생성
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({
-        id: newUser.user!.id,
-        email: email,
-        full_name: memberData.name,
-        church_id: memberData.church_id,
-        role: 'member'
-      })
+    // 3. members 테이블의 user_id 업데이트 (연결)
+    if (newUsersRecord && memberData.member_id) {
+      const { error: memberUpdateError } = await supabaseAdmin
+        .from('members')
+        .update({ user_id: newUsersRecord.id.toString() })
+        .eq('id', memberData.member_id)
 
-    if (profileError) {
-      console.error('⚠️ [초대 Edge Function] 프로필 생성 실패:', profileError)
-      // 프로필 생성 실패는 전체 프로세스를 실패로 처리하지 않음
-    } else {
-      console.log('✅ [초대 Edge Function] profiles 테이블에 프로필 생성 성공')
+      if (memberUpdateError) {
+        console.error('⚠️ [초대 Edge Function] members.user_id 업데이트 실패:', memberUpdateError)
+      } else {
+        console.log('✅ [초대 Edge Function] members.user_id 업데이트 성공:', newUsersRecord.id)
+      }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: '사용자가 성공적으로 생성되었습니다.',
-        user_id: newUser.user!.id
+        user_id: newUsersRecord.id
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
     console.error('❌ [초대 Edge Function] 전체 오류:', error)
+    console.error('❌ [초대 Edge Function] 오류 상세:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    })
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
+        error_name: error.name,
+        error_stack: error.stack?.substring(0, 500),
         message: '사용자 생성에 실패했습니다.'
       }),
       {
