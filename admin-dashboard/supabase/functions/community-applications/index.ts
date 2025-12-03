@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
 
       console.log(`✅ 커뮤니티 신청서 ${status} 처리 완료:`, applicationId)
 
-      // 승인 시 임시 비밀번호 생성 및 이메일 알림 발송
+      // 승인 시 users 테이블 생성 및 이메일 알림 발송
       if (status === 'approved') {
         try {
           console.log('🔑 임시 비밀번호 생성 중...')
@@ -228,6 +228,48 @@ Deno.serve(async (req) => {
 
           const temporaryPassword = generateTempPassword();
           const username = updatedApplication.email; // 이메일을 username으로 사용
+
+          console.log('👤 [커뮤니티 승인] users 테이블에 사용자 생성 시작:', username)
+
+          // 이메일로 기존 사용자 확인
+          const { data: existingUser } = await supabaseClient
+            .from('users')
+            .select('id, email')
+            .eq('email', updatedApplication.email)
+            .maybeSingle()
+
+          if (existingUser) {
+            console.log('ℹ️ [커뮤니티 승인] 이미 존재하는 사용자:', existingUser.email)
+            // 기존 사용자가 있으면 role만 업데이트
+            await supabaseClient
+              .from('users')
+              .update({
+                role: 'member',
+                is_active: true
+              })
+              .eq('id', existingUser.id)
+          } else {
+            // 새로운 사용자 생성
+            const { error: userError } = await supabaseClient
+              .from('users')
+              .insert({
+                username: username,
+                email: updatedApplication.email,
+                full_name: updatedApplication.contact_person,
+                hashed_password: temporaryPassword,
+                church_id: 9998, // 커뮤니티 회원은 교회 없음
+                role: 'member',
+                is_active: true,
+                is_first: true
+              })
+
+            if (userError) {
+              console.error('❌ [커뮤니티 승인] users 테이블 삽입 오류:', userError)
+              throw userError
+            }
+
+            console.log('✅ [커뮤니티 승인] users 테이블에 사용자 생성 완료:', username)
+          }
 
           console.log('📧 승인 이메일 발송 중...')
 
@@ -254,8 +296,8 @@ Deno.serve(async (req) => {
             console.error('❌ 승인 이메일 발송 실패:', await notifyResponse.text())
           }
         } catch (emailError) {
-          console.error('❌ 이메일 발송 오류:', emailError)
-          // 이메일 발송 실패해도 승인은 완료
+          console.error('❌ 이메일/사용자 생성 오류:', emailError)
+          // 오류 발생 시에도 승인은 완료되지만 로그 남김
         }
       }
 

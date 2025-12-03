@@ -80,7 +80,8 @@ serve(async (req) => {
         hashed_password: temporaryPassword, // 임시 비밀번호 (해시 전)
         church_id: memberData.church_id,
         role: 'member',
-        is_active: true
+        is_active: true,
+        is_first: true // 초대를 통해 생성된 사용자
       })
       .select()
       .single()

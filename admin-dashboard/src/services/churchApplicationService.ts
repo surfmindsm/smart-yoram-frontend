@@ -475,7 +475,8 @@ class ChurchApplicationService {
             church_id: churchData.id,
             role: 'church_admin',
             hashed_password: temporaryPassword,
-            is_active: true
+            is_active: true,
+            is_first: true
           });
 
         if (userError) {
