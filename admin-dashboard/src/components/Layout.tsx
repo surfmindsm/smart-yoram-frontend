@@ -380,21 +380,21 @@ const Layout: React.FC = () => {
         { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
       ],
     }] : []),
-    {
-      title: '커뮤니티',
-      items: [
-        { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
-        { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
-        { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
-        { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
-        { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
-        { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
-        { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
-        { path: '/community/my-posts', name: '내 글 관리', Icon: User },
-        { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
-        ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
-      ],
-    },
+    // {
+    //   title: '커뮤니티',
+    //   items: [
+    //     { path: '/community/free-sharing', name: '무료 나눔(드림)', Icon: Gift },
+    //     { path: '/community/item-sale', name: '물품 판매', Icon: ShoppingCart },
+    //     { path: '/community/item-request', name: '물품 요청', Icon: HandHeart },
+    //     { path: '/community/job-posting', name: '사역자 모집', Icon: Briefcase },
+    //     { path: '/community/music-team-recruit', name: '행사팀 모집', Icon: Music },
+    //     { path: '/community/music-team-seeking', name: '행사팀 지원', Icon: Users },
+    //     { path: '/community/church-news', name: '행사 소식', Icon: Calendar },
+    //     { path: '/community/my-posts', name: '내 글 관리', Icon: User },
+    //     { path: '/community/wishlists', name: '내가 찜한 글', Icon: Heart },
+    //     ...(isSystemAdmin ? [{ path: '/community/admin', name: '커뮤니티 관리', Icon: Shield }] : []),
+    //   ],
+    // },
     {
       title: '보안 & 시스템',
       items: [
