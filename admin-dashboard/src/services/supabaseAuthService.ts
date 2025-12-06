@@ -241,10 +241,15 @@ export const supabaseAuthService = {
 
       const user = users[0];
 
-      // 2. 비밀번호 검증은 현재는 skip (실제로는 bcrypt 등으로 해시 비교해야 함)
+      // 2. community_admin 역할 체크 - 웹 로그인 차단
+      if (user.role === 'community_admin') {
+        throw new Error('커뮤니티 회원은 웹 로그인이 불가능합니다. 모바일 앱을 다운로드하여 이용해주세요.');
+      }
+
+      // 3. 비밀번호 검증은 현재는 skip (실제로는 bcrypt 등으로 해시 비교해야 함)
       // TODO: 실제 환경에서는 bcrypt.compare(password, users.hashed_password) 사용
 
-      // 3. 세션 정보 생성 (localStorage에 저장용)
+      // 4. 세션 정보 생성 (localStorage에 저장용)
       console.log('✅ 사용자 찾음, 세션 생성 중...');
       const sessionData = {
         user: {
@@ -260,7 +265,7 @@ export const supabaseAuthService = {
         expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24시간
       };
 
-      // 4. 로컬스토리지에 저장
+      // 5. 로컬스토리지에 저장
       console.log('💾 세션 저장 중...', sessionData.user);
       localStorage.setItem('supabase_session', JSON.stringify(sessionData));
 

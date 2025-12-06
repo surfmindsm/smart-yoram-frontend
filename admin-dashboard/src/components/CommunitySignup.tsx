@@ -172,11 +172,21 @@ const CommunitySignup: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <h4 className="font-medium text-yellow-900 mb-2 flex items-center gap-2">
+                  📱 모바일 앱 전용 서비스
+                </h4>
+                <p className="text-sm text-yellow-800">
+                  커뮤니티 회원은 웹 로그인이 불가능합니다.<br />
+                  승인 후 이메일로 받은 아이디/비밀번호로 <strong>모바일 앱에서만 로그인</strong>하실 수 있습니다.
+                </p>
+              </div>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-medium text-blue-900 mb-2">다음 단계</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• 관리자가 신청 내용을 검토합니다 (1-2일 소요)</li>
                   <li>• 승인 시 로그인 정보를 이메일로 발송합니다</li>
+                  <li>• 이메일을 받으면 모바일 앱을 다운로드하세요</li>
                   <li>• 추가 문의사항이 있으시면 연락주세요</li>
                 </ul>
               </div>
@@ -201,8 +211,8 @@ const CommunitySignup: React.FC = () => {
         <Card className="border-muted">
           <CardHeader>
             <div className="flex items-center gap-4 mb-2">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={handleBackToLogin}
               >
@@ -215,6 +225,14 @@ const CommunitySignup: React.FC = () => {
                 </CardDescription>
               </div>
             </div>
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>📱 모바일 앱 전용 서비스</strong>
+                <br />
+                커뮤니티 회원은 웹 로그인이 불가능합니다. 승인 후 모바일 앱을 다운로드하여 이용해주세요.
+              </AlertDescription>
+            </Alert>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

@@ -318,15 +318,20 @@ const Login: React.FC = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="bg-gray-900 text-white border-gray-800">
-                        <p className="max-w-xs">일반 커뮤니티 회원 계정을 신청합니다.<br />교회 정보 없이 커뮤니티 기능만 이용할 수 있습니다.</p>
+                        <p className="max-w-xs">일반 커뮤니티 회원 계정을 신청합니다.<br />교회 정보 없이 커뮤니티 기능만 이용할 수 있습니다.<br /><strong className="text-yellow-400">📱 모바일 앱 전용</strong> - 웹 로그인 불가</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
                 </TooltipProvider>
 
-                <p className="text-xs text-muted-foreground pt-2">
-                  교회 관리자는 '교회 가입 신청'을 이용해주세요
-                </p>
+                <div className="pt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    교회 관리자는 '교회 가입 신청'을 이용해주세요
+                  </p>
+                  <p className="text-xs text-yellow-600 font-medium">
+                    💡 커뮤니티 회원은 모바일 앱 전용입니다 (웹 로그인 불가)
+                  </p>
+                </div>
               </div>
 
               {/* 서비스 이용약관 및 개인정보처리방침 링크 */}
