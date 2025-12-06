@@ -231,34 +231,50 @@ Deno.serve(async (req) => {
 
           console.log('👤 [커뮤니티 승인] users 테이블에 사용자 생성 시작:', username)
 
-          // 이메일로 기존 사용자 확인
-          const { data: existingUser } = await supabaseClient
+          // 이메일 또는 username으로 기존 사용자 확인
+          const { data: existingUsers } = await supabaseClient
             .from('users')
-            .select('id, email')
-            .eq('email', updatedApplication.email)
-            .maybeSingle()
+            .select('id, email, username')
+            .or(`email.eq.${updatedApplication.email},username.eq.${updatedApplication.email}`)
+
+          const existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null
+
+          let userId: number
 
           if (existingUser) {
             console.log('ℹ️ [커뮤니티 승인] 이미 존재하는 사용자:', existingUser.email)
+            userId = existingUser.id
+
             // 기존 사용자가 있으면 role만 업데이트
             await supabaseClient
               .from('users')
               .update({
-                role: 'member',
+                role: 'community_admin',
                 is_active: true
               })
               .eq('id', existingUser.id)
           } else {
+            // 기존 최대 ID 조회해서 다음 ID 생성
+            const { data: maxIdData } = await supabaseClient
+              .from('users')
+              .select('id')
+              .order('id', { ascending: false })
+              .limit(1)
+
+            const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id : 0
+            userId = maxId + 1
+
             // 새로운 사용자 생성
             const { error: userError } = await supabaseClient
               .from('users')
               .insert({
+                id: userId,
                 username: username,
                 email: updatedApplication.email,
                 full_name: updatedApplication.contact_person,
                 hashed_password: temporaryPassword,
                 church_id: 9998, // 커뮤니티 회원은 교회 없음
-                role: 'member',
+                role: 'community_admin',
                 is_active: true,
                 is_first: true
               })
@@ -269,6 +285,31 @@ Deno.serve(async (req) => {
             }
 
             console.log('✅ [커뮤니티 승인] users 테이블에 사용자 생성 완료:', username)
+          }
+
+          // members 테이블에도 레코드 추가 (커뮤니티 회원도 교인으로 등록)
+          try {
+            const { error: memberError } = await supabaseClient
+              .from('members')
+              .insert({
+                name: updatedApplication.contact_person,
+                email: updatedApplication.email,
+                phone: updatedApplication.phone,
+                address: updatedApplication.address || null,
+                church_id: 9998, // 커뮤니티 회원
+                user_id: userId,
+                status: 'active'
+              })
+
+            if (memberError) {
+              console.error('❌ [커뮤니티 승인] members 테이블 삽입 오류:', memberError)
+              // members 테이블 삽입 실패는 치명적이지 않으므로 경고만 출력
+            } else {
+              console.log('✅ [커뮤니티 승인] members 테이블 데이터 추가 완료')
+            }
+          } catch (memberInsertError) {
+            console.error('❌ [커뮤니티 승인] members 테이블 삽입 중 예외 발생:', memberInsertError)
+            // members 테이블 삽입 실패는 치명적이지 않으므로 경고만 출력
           }
 
           console.log('📧 승인 이메일 발송 중...')

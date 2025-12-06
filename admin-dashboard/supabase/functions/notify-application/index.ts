@@ -73,63 +73,55 @@ Deno.serve(async (req) => {
         subject: emailSubject,
         html: isApprovalEmail ? `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h2 style="color: #333; margin-bottom: 30px;">
-              커뮤니티 가입 신청이 승인되었습니다
+            <h2 style="color: #333; margin-bottom: 30px; text-align: center;">
+              🎉 커뮤니티 가입 신청이 승인되었습니다
             </h2>
 
-            <p style="color: #555; line-height: 1.6; margin-bottom: 30px;">
+            <p style="color: #555; line-height: 1.6; margin-bottom: 30px; text-align: center;">
               ${applicantName}님, 안녕하세요.<br>
               Church Round 커뮤니티 가입 신청이 승인되었습니다.<br>
-              이제 Church Round 플랫폼의 모든 기능을 이용하실 수 있습니다.
+              이제 모바일 앱을 통해 Church Round의 모든 기능을 이용하실 수 있습니다.
             </p>
 
-            <div style="background-color: #f8f9fa; padding: 25px; border-radius: 4px; margin-bottom: 30px;">
-              <h3 style="color: #333; margin-top: 0; margin-bottom: 20px; font-size: 16px;">로그인 정보</h3>
-              <table style="width: 100%; border-collapse: collapse;">
+            <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px;">
+              <h3 style="color: #333; margin-top: 0; margin-bottom: 20px; font-size: 16px; text-align: center;">📱 로그인 정보</h3>
+              <table style="width: 100%; border-collapse: collapse; max-width: 400px; margin: 0 auto;">
                 <tr>
-                  <td style="padding: 10px 0; color: #666; width: 120px;">아이디</td>
-                  <td style="padding: 10px 0; color: #333; font-family: monospace; font-weight: bold;">${username || applicantEmail}</td>
+                  <td style="padding: 12px 0; color: #666; width: 140px;">아이디</td>
+                  <td style="padding: 12px 0; color: #333; font-family: monospace; font-weight: bold;">${username || applicantEmail}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 0; color: #666;">임시 비밀번호</td>
-                  <td style="padding: 10px 0; color: #333; font-family: monospace; font-weight: bold; font-size: 18px;">${temporaryPassword || '(별도 안내 예정)'}</td>
+                  <td style="padding: 12px 0; color: #666;">임시 비밀번호</td>
+                  <td style="padding: 12px 0; color: #333; font-family: monospace; font-weight: bold; font-size: 18px;">${temporaryPassword || '(별도 안내 예정)'}</td>
                 </tr>
               </table>
-              <p style="margin-top: 20px; margin-bottom: 0; font-size: 14px; color: #666;">
-                * 보안을 위해 첫 로그인 후 비밀번호를 변경해주세요.
+              <p style="margin-top: 20px; margin-bottom: 0; font-size: 14px; color: #666; text-align: center;">
+                💡 보안을 위해 첫 로그인 후 비밀번호를 변경해주세요.
               </p>
             </div>
 
-            <div style="margin-bottom: 30px;">
-              <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">다음 단계</h3>
-              <ol style="color: #555; line-height: 1.8; padding-left: 20px;">
-                <li>위의 아이디와 임시 비밀번호로 로그인하세요</li>
-                <li>로그인 후 비밀번호를 변경해주세요</li>
-                <li>프로필을 완성하고 서비스를 시작하세요</li>
+            <div style="background-color: #f0f9ff; padding: 30px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid #007bff;">
+              <h3 style="color: #007bff; margin-top: 0; margin-bottom: 20px; font-size: 18px; text-align: center;">📲 다음 단계</h3>
+              <ol style="color: #555; line-height: 2; padding-left: 20px; font-size: 15px;">
+                <li>아래 버튼을 눌러 Church Round 앱을 다운로드하세요</li>
+                <li>앱을 실행하고 위의 아이디와 임시 비밀번호로 로그인하세요</li>
+                <li>로그인 후 비밀번호를 변경하고 서비스를 시작하세요</li>
               </ol>
             </div>
 
             <div style="text-align: center; margin: 40px 0;">
-              <a href="https://churchround.com/login"
-                 style="display: inline-block; padding: 14px 40px; background-color: #333; color: white; text-decoration: none; border-radius: 4px; font-weight: normal;">
-                로그인하기
+              <a href="https://churchround.com/download"
+                 style="display: inline-block; padding: 16px 50px; background-color: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                📱 앱 다운로드하기
               </a>
             </div>
 
-            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
-
-            <div style="background-color: #f0f9ff; padding: 25px; border-radius: 4px; margin-bottom: 30px; border-left: 4px solid #333;">
-              <h3 style="color: #333; margin-top: 0; margin-bottom: 15px; font-size: 16px;">📱 모바일 앱 다운로드</h3>
-              <p style="color: #555; line-height: 1.6; margin-bottom: 15px;">
-                Church Round는 교인들을 위한 전용 모바일 앱을 제공합니다.<br>
-                언제 어디서나 편리하게 교회 소식을 확인하고 소통하세요.
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-top: 30px; border-left: 4px solid #ffc107;">
+              <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+                <strong>ℹ️ 안내:</strong><br>
+                Church Round는 모바일 전용 서비스입니다.<br>
+                iOS 또는 Android 앱을 다운로드하여 이용해주세요.
               </p>
-              <div style="text-align: center; margin-top: 20px;">
-                <a href="https://churchround.com/download"
-                   style="display: inline-block; padding: 12px 30px; background-color: #333; color: white; text-decoration: none; border-radius: 4px; font-weight: normal;">
-                  앱 다운로드하기
-                </a>
-              </div>
             </div>
 
             <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
