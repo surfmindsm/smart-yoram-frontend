@@ -350,6 +350,7 @@ const ChurchSignup: React.FC = () => {
         church_name: formData.churchName,
         pastor_name: formData.pastorName,
         admin_name: formData.adminName,
+        admin_phone: formData.adminPhone,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,

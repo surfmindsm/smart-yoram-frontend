@@ -8,6 +8,7 @@ export interface ChurchApplicationRequest {
   church_name: string;
   pastor_name: string;
   admin_name: string;
+  admin_phone: string;
   email: string;
   phone: string;
   address: string;
@@ -100,6 +101,7 @@ class ChurchApplicationService {
         church_name: data.church_name,
         pastor_name: data.pastor_name,
         admin_name: data.admin_name,
+        admin_phone: data.admin_phone,
         email: data.email,
         phone: data.phone,
         address: data.address,
@@ -425,12 +427,13 @@ class ChurchApplicationService {
 
       console.log('✅ 새로운 교회 생성 완료:', churchData.id, data.church_name);
 
-      // 이메일로 기존 사용자 확인
-      const { data: existingUser } = await supabase
+      // 이메일 또는 username으로 기존 사용자 확인
+      const { data: existingUsers } = await supabase
         .from('users')
-        .select('id, email')
-        .eq('email', data.email)
-        .single();
+        .select('id, email, username')
+        .or(`email.eq.${data.email},username.eq.${data.email}`);
+
+      const existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
 
       let userId: number;
 
@@ -485,6 +488,33 @@ class ChurchApplicationService {
         }
 
         console.log('✅ [Supabase] users 테이블 데이터 추가 완료, 사용자 ID:', userId);
+      }
+
+      // members 테이블에도 레코드 추가 (교회 관리자를 교인으로 등록)
+      try {
+        const { error: memberError } = await supabase
+          .from('members')
+          .insert({
+            name: data.admin_name,
+            email: data.email,
+            phone: data.admin_phone || data.phone,  // admin_phone이 없으면 교회 대표 번호 사용
+            address: data.address,
+            church_id: churchData.id,
+            user_id: userId,
+            position_main: '교역자',
+            position_detail: '담임목사',
+            status: 'active'
+          });
+
+        if (memberError) {
+          console.error('❌ members 테이블 삽입 오류:', memberError);
+          // members 테이블 삽입 실패는 치명적이지 않으므로 경고만 출력
+        } else {
+          console.log('✅ [Supabase] members 테이블 데이터 추가 완료');
+        }
+      } catch (memberInsertError) {
+        console.error('❌ members 테이블 삽입 중 예외 발생:', memberInsertError);
+        // members 테이블 삽입 실패는 치명적이지 않으므로 경고만 출력
       }
 
       // 임시 비밀번호 이메일 발송
