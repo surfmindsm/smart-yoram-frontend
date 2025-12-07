@@ -4,6 +4,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { loginHistoryService } from '../services/api';
 import AnnouncementModal from './AnnouncementModal';
+import BugReportModal from './BugReportModal';
 import {
   BarChart3,
   ChartLine,
@@ -55,7 +56,8 @@ import {
   Video,
   AlertTriangle,
   Copy,
-  Heart as HeartIcon
+  Heart as HeartIcon,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -90,6 +92,7 @@ const Layout: React.FC = () => {
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
     '대시보드 & 분석': false,
     '교인 관리': false,
@@ -538,8 +541,20 @@ const Layout: React.FC = () => {
               </div>
             ))}
 
-            {/* 도네이션 카드 */}
+            {/* 문의하기 버튼 */}
             <div className="mt-8 border-t border-slate-200 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowBugReportModal(true)}
+                className="w-full flex items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors"
+              >
+                <HelpCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">문의하기</span>
+              </Button>
+            </div>
+
+            {/* 도네이션 카드 */}
+            <div className="mt-4 border-t border-slate-200 pt-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
                 <div className="flex items-center gap-1.5 mb-2">
                   {/* <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" /> */}
@@ -606,6 +621,9 @@ const Layout: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* 문의하기 모달 */}
+      <BugReportModal open={showBugReportModal} onOpenChange={setShowBugReportModal} />
 
       {/* 로그인 기록 모달 */}
       <Dialog open={showLoginHistoryModal} onOpenChange={setShowLoginHistoryModal}>

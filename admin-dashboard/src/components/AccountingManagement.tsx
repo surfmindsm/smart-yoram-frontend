@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent } from "./ui";
 import { SimpleTabs } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
+import { Label } from "./ui";
+import { Textarea } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
@@ -65,6 +68,18 @@ const AccountingManagement: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Add Transaction Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    type: 'expense' as 'income' | 'expense',
+    category_id: '',
+    transaction_date: new Date().toISOString().split('T')[0],
+    amount: '',
+    vendor_name: '',
+    payment_method: '',
+    description: '',
+  });
 
   useEffect(() => {
     if (activeTab === 'transactions') {
@@ -251,6 +266,69 @@ const AccountingManagement: React.FC = () => {
     }
   };
 
+  const addTransaction = async () => {
+    // Validation
+    if (!newTransaction.category_id) {
+      alert('계정과목을 선택해주세요.');
+      return;
+    }
+    if (!newTransaction.amount || parseFloat(newTransaction.amount) <= 0) {
+      alert('금액을 입력해주세요.');
+      return;
+    }
+    if (!newTransaction.transaction_date) {
+      alert('거래 날짜를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/transactions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: newTransaction.type,
+          category_id: parseInt(newTransaction.category_id),
+          transaction_date: newTransaction.transaction_date,
+          amount: parseFloat(newTransaction.amount),
+          vendor_name: newTransaction.vendor_name || null,
+          payment_method: newTransaction.payment_method || null,
+          description: newTransaction.description || null,
+        }),
+      });
+
+      if (response.ok) {
+        alert('거래 내역이 추가되었습니다.');
+        setShowAddModal(false);
+        // Reset form
+        setNewTransaction({
+          type: 'expense',
+          category_id: '',
+          transaction_date: new Date().toISOString().split('T')[0],
+          amount: '',
+          vendor_name: '',
+          payment_method: '',
+          description: '',
+        });
+        await loadTransactions();
+        await loadSummary();
+      } else {
+        const error = await response.json();
+        alert(`거래 내역 추가 실패: ${error.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('거래 내역 추가 실패:', error);
+      alert('거래 내역 추가 중 오류가 발생했습니다.');
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
   };
@@ -387,6 +465,23 @@ const AccountingManagement: React.FC = () => {
       {/* Transactions Tab */}
       {activeTab === 'transactions' && (
         <div className="space-y-4">
+          {/* Action Buttons */}
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => {
+                // 계정과목 목록 미리 로드
+                if (incomeCategories.length === 0 && expenseCategories.length === 0) {
+                  loadCategories();
+                }
+                setShowAddModal(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              거래 내역 추가
+            </Button>
+          </div>
+
           {/* Filters */}
           <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1">
@@ -634,6 +729,146 @@ const AccountingManagement: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* Add Transaction Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>거래 내역 추가</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* 거래 유형 */}
+            <div className="space-y-2">
+              <Label>거래 유형</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="type"
+                    value="income"
+                    checked={newTransaction.type === 'income'}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, type: 'income', category_id: '' })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium text-green-700">수입</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="type"
+                    value="expense"
+                    checked={newTransaction.type === 'expense'}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, type: 'expense', category_id: '' })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium text-red-700">지출</span>
+                </label>
+              </div>
+            </div>
+
+            {/* 계정과목 */}
+            <div className="space-y-2">
+              <Label htmlFor="category_id">계정과목 *</Label>
+              <select
+                id="category_id"
+                value={newTransaction.category_id}
+                onChange={(e) => setNewTransaction({ ...newTransaction, category_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">계정과목 선택</option>
+                {(newTransaction.type === 'income' ? incomeCategories : expenseCategories).map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 거래 날짜 */}
+            <div className="space-y-2">
+              <Label htmlFor="transaction_date">거래 날짜 *</Label>
+              <Input
+                id="transaction_date"
+                type="date"
+                value={newTransaction.transaction_date}
+                onChange={(e) => setNewTransaction({ ...newTransaction, transaction_date: e.target.value })}
+              />
+            </div>
+
+            {/* 금액 */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">금액 (원) *</Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="0"
+                value={newTransaction.amount}
+                onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                min="0"
+                step="1000"
+              />
+            </div>
+
+            {/* 거래처 */}
+            <div className="space-y-2">
+              <Label htmlFor="vendor_name">거래처</Label>
+              <Input
+                id="vendor_name"
+                placeholder="거래처 이름"
+                value={newTransaction.vendor_name}
+                onChange={(e) => setNewTransaction({ ...newTransaction, vendor_name: e.target.value })}
+              />
+            </div>
+
+            {/* 결제수단 */}
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">결제수단</Label>
+              <select
+                id="payment_method"
+                value={newTransaction.payment_method}
+                onChange={(e) => setNewTransaction({ ...newTransaction, payment_method: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">선택</option>
+                <option value="현금">현금</option>
+                <option value="계좌이체">계좌이체</option>
+                <option value="카드">카드</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+
+            {/* 내용 */}
+            <div className="space-y-2">
+              <Label htmlFor="description">내용</Label>
+              <Textarea
+                id="description"
+                placeholder="거래 내용을 입력하세요"
+                value={newTransaction.description}
+                onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                취소
+              </Button>
+              <Button
+                type="button"
+                onClick={addTransaction}
+              >
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 };
