@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // CORS 헤더 설정
@@ -7,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // CORS 처리
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
@@ -31,45 +32,57 @@ serve(async (req) => {
       });
     }
 
-    // TODO: 테이블이 생성되면 주석 해제
-    // // Supabase 클라이언트 생성
-    // const supabaseClient = createClient(
-    //   Deno.env.get('SUPABASE_URL') ?? '',
-    //   Deno.env.get('SERVICE_ROLE_KEY') ?? ''
-    // );
+    // Supabase 클라이언트 생성 (자동 주입되는 환경 변수 사용)
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     if (action === 'send') {
       // 인증 코드 생성 (6자리)
       const code = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log(`✨ 인증 코드 생성: ${code} for ${email}`);
 
-      // TODO: 테이블이 생성되면 주석 해제
-      // // 이전에 저장된 코드가 있다면 삭제
-      // await supabaseClient
-      //   .from('verification_codes')
-      //   .delete()
-      //   .eq('email', email);
+      // 데이터베이스에 저장 시도 (실패해도 계속 진행 - 개발 중)
+      let dbSaved = false;
+      try {
+        // 이전에 저장된 코드가 있다면 삭제
+        await supabaseClient
+          .from('verification_codes')
+          .delete()
+          .eq('email', email);
 
-      // // 새 인증 코드를 데이터베이스에 저장 (15분 유효)
-      // const { error: insertError } = await supabaseClient
-      //   .from('verification_codes')
-      //   .insert({
-      //     email,
-      //     code,
-      //     expires_at: new Date(Date.now() + 15 * 60000).toISOString()
-      //   });
+        // 새 인증 코드를 데이터베이스에 저장 (15분 유효)
+        const { error: insertError } = await supabaseClient
+          .from('verification_codes')
+          .insert({
+            email,
+            code,
+            expires_at: new Date(Date.now() + 15 * 60000).toISOString()
+          });
 
-      // if (insertError) {
-      //   console.error('인증 코드 저장 실패:', insertError);
-      //   throw new Error('인증 코드 저장에 실패했습니다.');
-      // }
+        if (insertError) {
+          console.warn('⚠️ DB 저장 실패:', insertError.message);
+        } else {
+          console.log('✅ 인증 코드 DB 저장 성공');
+          dbSaved = true;
+        }
+      } catch (dbError: any) {
+        console.warn('⚠️ DB 작업 중 예외 발생:', dbError.message);
+      }
 
       // Resend API를 사용하여 이메일 전송
+      let emailSent = false;
+      let emailError = null;
       try {
         const resendApiKey = Deno.env.get('RESEND_API_KEY');
         if (!resendApiKey) {
           throw new Error('Resend API 키가 설정되지 않았습니다');
         }
 
+        // API 키 디버깅 (앞 7자리만)
+        console.log(`🔑 Resend API Key (첫 7자): ${resendApiKey.substring(0, 7)}...`);
+        console.log(`📧 이메일 발송 시작: ${email}`);
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -99,34 +112,36 @@ serve(async (req) => {
 
         const responseData = await response.json();
         if (!response.ok) {
-          console.error('Resend API 응답:', responseData);
+          console.error('❌ Resend API 응답 오류:', responseData);
           throw new Error(`Resend API 오류: ${JSON.stringify(responseData)}`);
         }
 
-        console.log(`인증 코드 ${code}가 ${email}에 성공적으로 전송되었습니다`);
-        return new Response(JSON.stringify({
-          success: true,
-          message: '인증 코드가 이메일로 전송되었습니다.'
-        }), {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        });
-      } catch (emailError: any) {
-        console.error('이메일 전송 오류:', emailError.message);
-        // 이메일 전송 실패 시에도 코드는 저장되었으므로 테스트를 위해 코드 포함
-        return new Response(JSON.stringify({
-          success: true,
-          message: '인증 코드가 생성되었습니다만, 이메일 전송에 실패했습니다: ' + emailError.message,
-          code: code // 테스트용 코드 (실제 운영 시 제거)
-        }), {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        });
+        console.log(`✅ 인증 코드 ${code}가 ${email}에 성공적으로 전송되었습니다`);
+        emailSent = true;
+      } catch (err: any) {
+        console.error('❌ 이메일 전송 오류:', err.message);
+        emailError = err.message;
       }
+
+      // 항상 성공 응답 반환 (status 200)
+      return new Response(JSON.stringify({
+        success: true,
+        message: emailSent
+          ? '인증 코드가 이메일로 전송되었습니다.'
+          : `인증 코드가 생성되었습니다. (이메일 전송 실패: ${emailError})`,
+        code: !emailSent ? code : undefined, // 이메일 실패 시에만 코드 포함
+        debug: {
+          dbSaved,
+          emailSent,
+          emailError
+        }
+      }), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
     } else if (action === 'verify') {
       if (!code) {
         return new Response(JSON.stringify({
@@ -140,41 +155,20 @@ serve(async (req) => {
         });
       }
 
-      // TODO: 테이블이 생성되면 주석 해제하고 아래 임시 로직 제거
-      // // 데이터베이스에서 인증 코드 확인
-      // const { data: verificationData, error: verifyError } = await supabaseClient
-      //   .from('verification_codes')
-      //   .select('*')
-      //   .eq('email', email)
-      //   .eq('code', code)
-      //   .gt('expires_at', new Date().toISOString())
-      //   .single();
+      // 데이터베이스에서 인증 코드 확인
+      const { data: verificationData, error: verifyError } = await supabaseClient
+        .from('verification_codes')
+        .select('*')
+        .eq('email', email)
+        .eq('code', code)
+        .gt('expires_at', new Date().toISOString())
+        .single();
 
-      // if (verifyError || !verificationData) {
-      //   return new Response(JSON.stringify({
-      //     success: false,
-      //     error: '인증 코드가 올바르지 않거나 만료되었습니다.'
-      //   }), {
-      //     status: 400,
-      //     headers: {
-      //       ...corsHeaders,
-      //       "Content-Type": "application/json"
-      //     }
-      //   });
-      // }
-
-      // // 사용된 인증 코드 삭제
-      // await supabaseClient
-      //   .from('verification_codes')
-      //   .delete()
-      //   .eq('email', email)
-      //   .eq('code', code);
-
-      // 임시 로직: 6자리 숫자인지만 확인 (실제 운영 시 제거)
-      if (!/^\d{6}$/.test(code)) {
+      if (verifyError) {
+        console.error('❌ DB 조회 오류:', verifyError);
         return new Response(JSON.stringify({
           success: false,
-          error: '인증 코드는 6자리 숫자여야 합니다.'
+          error: '인증 코드 확인 중 오류가 발생했습니다.'
         }), {
           status: 400,
           headers: {
@@ -184,7 +178,28 @@ serve(async (req) => {
         });
       }
 
-      // 임시로 모든 6자리 숫자 코드를 유효한 것으로 처리
+      if (!verificationData) {
+        console.warn('❌ 유효하지 않은 코드:', code);
+        return new Response(JSON.stringify({
+          success: false,
+          error: '인증 코드가 올바르지 않거나 만료되었습니다.'
+        }), {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      // DB 검증 성공 - 사용된 코드 삭제
+      await supabaseClient
+        .from('verification_codes')
+        .delete()
+        .eq('email', email)
+        .eq('code', code);
+
+      console.log('✅ DB 기반 인증 성공');
       return new Response(JSON.stringify({
         success: true,
         message: '이메일 인증이 완료되었습니다.'
@@ -206,11 +221,13 @@ serve(async (req) => {
       });
     }
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('❌ 전역 에러:', error.message, error.stack);
     return new Response(JSON.stringify({
-      error: error.message
+      error: error.message,
+      stack: error.stack,
+      success: false
     }), {
-      status: 400,
+      status: 500,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json"

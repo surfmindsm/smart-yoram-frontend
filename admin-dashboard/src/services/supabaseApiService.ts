@@ -3726,24 +3726,56 @@ export const supabaseApiService = {
 
     sendCode: async (email: string) => {
       try {
-        // console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
+        console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
 
-        const { data, error } = await supabase.functions.invoke('email-verification', {
+        const response = await supabase.functions.invoke('email-verification', {
           body: {
             email,
             action: 'send'
           }
         });
 
-        if (error) {
-          console.error('📧 [이메일 인증] 오류:', error);
-          throw error;
+        console.log('📧 [이메일 인증] Edge Function 전체 응답:', response);
+        console.log('📧 [이메일 인증] 응답 data:', response.data);
+        console.log('📧 [이메일 인증] 응답 error:', response.error);
+
+        // 에러가 있으면 Response 객체에서 실제 응답 읽기
+        if (response.error) {
+          console.error('📧 [이메일 인증] FunctionsError:', {
+            name: response.error.name,
+            message: response.error.message,
+            context: response.error.context,
+          });
+
+          // Response 객체에서 실제 본문 읽기
+          if (response.error.context && response.error.context instanceof Response) {
+            try {
+              const errorText = await response.error.context.text();
+              console.error('📧 [이메일 인증] 실제 응답 본문:', errorText);
+              try {
+                const errorJson = JSON.parse(errorText);
+                console.error('📧 [이메일 인증] 응답 JSON:', errorJson);
+              } catch (e) {
+                // JSON 파싱 실패
+              }
+            } catch (e) {
+              console.error('📧 [이메일 인증] 응답 본문 읽기 실패:', e);
+            }
+          }
+
+          throw new Error(`Edge Function 오류: ${response.error.message}`);
         }
 
-        // console.log('✅ [이메일 인증] 코드 발송 성공:', data);
-        return { data };
+        // 응답 데이터에 에러가 포함되어 있는지 확인
+        if (response.data?.error) {
+          console.error('📧 [이메일 인증] 데이터 내 오류:', response.data);
+          throw new Error(response.data.error);
+        }
+
+        console.log('✅ [이메일 인증] 코드 발송 성공:', response.data);
+        return { data: response.data };
       } catch (error: any) {
-        console.error('📧 [이메일 인증] 발송 실패:', error);
+        console.error('📧 [이메일 인증] 발송 실패 - 전체 에러:', error);
         throw new Error(error.message || '이메일 인증 코드 발송에 실패했습니다.');
       }
     },

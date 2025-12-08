@@ -356,7 +356,7 @@ const Layout: React.FC = () => {
     {
       title: '예배 & 소식',
       items: [
-        { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
+        // { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
         { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
         { path: '/bulletins', name: '주보 관리', Icon: FileText },
         ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
