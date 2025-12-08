@@ -15,6 +15,7 @@ export { Button, buttonVariants } from './button'
 export { Calendar } from './calendar'
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card'
 export { DatePicker } from './date-picker'
+export { DateRangePicker } from './date-range-picker'
 export {
   ChartContainer,
   ChartTooltip,

@@ -142,8 +142,6 @@ const getLocationInfo = async (): Promise<string> => {
     const response = await fetch('https://ipapi.co/json/');
     const data = await response.json();
 
-    console.log('🌍 위치 정보 조회 결과:', data);
-
     if (data.city && data.country_name) {
       const koreanCity = cityMap[data.city] || data.city;
       const koreanCountry = countryMap[data.country_name] || data.country_name;
@@ -158,8 +156,6 @@ const getLocationInfo = async (): Promise<string> => {
     try {
       const backupResponse = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=free');
       const backupData = await backupResponse.json();
-
-      console.log('🔄 백업 위치 정보 조회 결과:', backupData);
 
       if (backupData.city && backupData.country_name) {
         const koreanCity = cityMap[backupData.city] || backupData.city;
@@ -185,11 +181,7 @@ export const supabaseAuthService = {
   // 기존 users 테이블을 사용한 로그인
   signIn: async (email: string, password: string) => {
     try {
-      console.log('🔑 로그인 시도:', { email, password: '***' });
-
       // 1. users 테이블에서 직접 사용자 찾기 (이메일로 쿼리)
-      console.log('🔍 users 테이블에서 사용자 조회 중...');
-
       let { data: users, error } = await supabase
         .from('users')
         .select('*')
@@ -202,20 +194,15 @@ export const supabaseAuthService = {
         throw new Error(`사용자 조회 실패: ${error.message}`);
       }
 
-      console.log('📊 쿼리 결과:', { users });
-
       if (!users || users.length === 0) {
         console.error('❌ 사용자 조회 실패: 사용자 없음 또는 비활성화');
 
         // users 테이블에 없으면 members 테이블에서 찾아서 생성 시도
-        console.log('🔄 members 테이블에서 사용자 생성 시도...');
         try {
           const { supabaseApiService } = await import('./supabaseApiService');
           const createResult = await supabaseApiService.users.createFromMember(email);
 
           if (createResult.data) {
-            console.log('✅ users 테이블에 사용자 생성 완료, 로그인 재시도...');
-
             // 다시 users 테이블에서 조회
             const { data: newUsers, error: retryError } = await supabase
               .from('users')
@@ -250,7 +237,6 @@ export const supabaseAuthService = {
       // TODO: 실제 환경에서는 bcrypt.compare(password, users.hashed_password) 사용
 
       // 4. 세션 정보 생성 (localStorage에 저장용)
-      console.log('✅ 사용자 찾음, 세션 생성 중...');
       const sessionData = {
         user: {
           id: user.id,
@@ -266,14 +252,10 @@ export const supabaseAuthService = {
       };
 
       // 5. 로컬스토리지에 저장
-      console.log('💾 세션 저장 중...', sessionData.user);
       localStorage.setItem('supabase_session', JSON.stringify(sessionData));
 
       // 기존 PrivateRoute 호환성을 위해 access_token도 별도 저장
       localStorage.setItem('access_token', sessionData.access_token);
-      console.log('🔑 호환성을 위한 access_token 저장 완료');
-
-      console.log('🎉 로그인 성공!');
 
       // 보안 로그 기록
       try {
@@ -288,7 +270,6 @@ export const supabaseAuthService = {
           user_agent: navigator.userAgent,
           location: await getLocationInfo()
         });
-        console.log('✅ 로그인 보안 로그 기록 완료');
       } catch (logError) {
         console.error('⚠️ 로그인 보안 로그 기록 실패:', logError);
         // 로그 기록 실패는 로그인 프로세스를 방해하지 않음
@@ -320,7 +301,6 @@ export const supabaseAuthService = {
             attempted_email: email
           }
         });
-        console.log('✅ 로그인 실패 보안 로그 기록 완료');
       } catch (logError) {
         console.error('⚠️ 로그인 실패 보안 로그 기록 실패:', logError);
       }
@@ -467,8 +447,6 @@ export const supabaseAuthService = {
         throw new Error('비밀번호 변경에 실패했습니다.');
       }
 
-      console.log('✅ 비밀번호 업데이트 성공');
-
       // members 테이블에서 해당 사용자 찾아서 invitation_status를 'active'로 업데이트
       try {
         const { error: memberUpdateError } = await supabase
@@ -482,8 +460,6 @@ export const supabaseAuthService = {
         if (memberUpdateError) {
           console.error('⚠️ members 테이블 invitation_status 업데이트 실패:', memberUpdateError);
           // 이 에러는 비밀번호 변경 자체를 실패시키지 않음
-        } else {
-          console.log('✅ invitation_status를 active로 업데이트 완료');
         }
       } catch (memberError) {
         console.error('⚠️ members 테이블 업데이트 중 에러:', memberError);

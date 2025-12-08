@@ -22,16 +22,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
-  
-  // 설교 자료 API 호출 시에만 토큰 상태 로깅
-  if (config.url?.includes('sermon-materials')) {
-    console.log('🔐 토큰 상태 확인:', {
-      hasToken: !!token,
-      tokenLength: token ? token.length : 0,
-      url: config.url
-    });
-  }
-  
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   } else if (config.url?.includes('sermon-materials')) {
@@ -411,23 +402,7 @@ export const chatService = {
   // 채팅 히스토리 목록 조회
   getChatHistories: async (params?: { include_messages?: boolean; limit?: number; skip?: number }) => {
     try {
-      console.log('🔍 채팅 히스토리 요청 시작:', {
-        url: getApiUrl('/chat/histories'),
-        params,
-        timestamp: new Date().toISOString()
-      });
-      
       const response = await api.get(getApiUrl('/chat/histories'), { params });
-      
-      console.log('✅ 채팅 히스토리 API 응답:', {
-        status: response.status,
-        dataType: typeof response.data,
-        dataStructure: Array.isArray(response.data) ? 'array' : typeof response.data,
-        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
-        sampleData: Array.isArray(response.data) ? response.data.slice(0, 2) : response.data,
-        fullResponse: response.data
-      });
-      
       return response.data;
     } catch (error: any) {
       console.error('❌ 채팅 히스토리 API 실패:', {
@@ -1195,10 +1170,8 @@ export const sermonLibraryService = {
       if (params?.author) queryParams.author = params.author;
       if (params?.file_type) queryParams.file_type = params.file_type;
       if (params?.public_only) queryParams.public_only = params.public_only;
-      
-      console.log('🔍 API 호출 시작:', getApiUrl('/sermon-materials/'), queryParams);
+
       const response = await api.get(getApiUrl('/sermon-materials/'), { params: queryParams });
-      console.log('✅ API 응답 받음:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 설교 자료 조회 실패:', {
@@ -1214,9 +1187,7 @@ export const sermonLibraryService = {
   // 카테고리 조회
   getCategories: async () => {
     try {
-      console.log('🔍 카테고리 API 호출:', getApiUrl('/sermon-materials/categories/'));
       const response = await api.get(getApiUrl('/sermon-materials/categories/'));
-      console.log('✅ 카테고리 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 카테고리 조회 실패:', {
@@ -1231,9 +1202,7 @@ export const sermonLibraryService = {
   // 설교자 목록 조회
   getAuthors: async () => {
     try {
-      console.log('🔍 설교자 API 호출:', getApiUrl('/sermon-materials/authors/'));
       const response = await api.get(getApiUrl('/sermon-materials/authors/'));
-      console.log('✅ 설교자 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 설교자 목록 조회 실패:', {
@@ -1248,9 +1217,7 @@ export const sermonLibraryService = {
   // 태그 목록 조회
   getTags: async () => {
     try {
-      console.log('🔍 태그 API 호출:', getApiUrl('/sermon-materials/tags/'));
       const response = await api.get(getApiUrl('/sermon-materials/tags/'));
-      console.log('✅ 태그 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 태그 목록 조회 실패:', {
@@ -1265,9 +1232,7 @@ export const sermonLibraryService = {
   // 통계 조회
   getStats: async () => {
     try {
-      console.log('🔍 통계 API 호출:', getApiUrl('/sermon-materials/stats/'));
       const response = await api.get(getApiUrl('/sermon-materials/stats/'));
-      console.log('✅ 통계 API 응답:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 통계 조회 실패:', {
@@ -1282,11 +1247,9 @@ export const sermonLibraryService = {
   // 파일 다운로드
   downloadFile: async (fileUrl: string) => {
     try {
-      console.log('🔍 파일 다운로드 API 호출:', getApiUrl(`/sermon-materials/files/${fileUrl}`));
       const response = await api.get(getApiUrl(`/sermon-materials/files/${fileUrl}`), {
         responseType: 'blob'
       });
-      console.log('✅ 파일 다운로드 성공');
       return response;
     } catch (error: any) {
       console.error('❌ 파일 다운로드 실패:', {
@@ -1301,9 +1264,7 @@ export const sermonLibraryService = {
   // 새 자료 등록
   createMaterial: async (materialData: any) => {
     try {
-      console.log('🔍 자료 등록 API 호출:', getApiUrl('/sermon-materials/'), materialData);
       const response = await api.post(getApiUrl('/sermon-materials/'), materialData);
-      console.log('✅ 자료 등록 성공:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 자료 등록 실패:', {
@@ -1318,9 +1279,7 @@ export const sermonLibraryService = {
   // 자료 수정
   updateMaterial: async (materialId: number, materialData: any) => {
     try {
-      console.log('🔍 자료 수정 API 호출:', getApiUrl(`/sermon-materials/${materialId}`), materialData);
       const response = await api.put(getApiUrl(`/sermon-materials/${materialId}`), materialData);
-      console.log('✅ 자료 수정 성공:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 자료 수정 실패:', {
@@ -1335,9 +1294,7 @@ export const sermonLibraryService = {
   // 자료 삭제
   deleteMaterial: async (materialId: number) => {
     try {
-      console.log('🔍 자료 삭제 API 호출:', getApiUrl(`/sermon-materials/${materialId}`));
       const response = await api.delete(getApiUrl(`/sermon-materials/${materialId}`));
-      console.log('✅ 자료 삭제 성공');
       return response.data;
     } catch (error: any) {
       console.error('❌ 자료 삭제 실패:', {
@@ -1352,13 +1309,11 @@ export const sermonLibraryService = {
   // 파일 업로드
   uploadFile: async (formData: FormData) => {
     try {
-      console.log('🔍 파일 업로드 API 호출:', getApiUrl('/sermon-materials/upload'));
       const response = await api.post(getApiUrl('/sermon-materials/upload'), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      console.log('✅ 파일 업로드 성공:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ 파일 업로드 실패:', {

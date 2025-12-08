@@ -433,11 +433,13 @@ const Layout: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <img
-              src="/logo_type4_white.png"
-              alt="Church Round"
-              className="h-8"
-            />
+            <Link to="/dashboard" className="flex items-center">
+              <img
+                src="/logo_type4_white.png"
+                alt="Church Round"
+                className="h-8 cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </Link>
           </div>
           <div className="flex items-center space-x-4">
             {/* 최근 접속 기록 버튼 */}

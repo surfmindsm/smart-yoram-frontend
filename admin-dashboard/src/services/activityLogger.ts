@@ -249,7 +249,6 @@ class ActivityLogger {
       for (const log of logs) {
         await this.saveActivityLogToSupabase(log);
       }
-      console.log(`📋 ${logs.length}개의 활동 로그가 기록되었습니다`);
     } catch (error) {
       console.error('활동 로그 전송 실패:', error);
       // 실패한 로그는 다시 큐에 추가 (재시도)

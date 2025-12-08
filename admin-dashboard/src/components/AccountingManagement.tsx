@@ -9,11 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
+import { DateRangePicker } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { Spinner } from "./ui/spinner";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 
 interface AccountCategory {
   id: number;
@@ -66,8 +69,7 @@ const AccountingManagement: React.FC = () => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Add Transaction Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -88,7 +90,7 @@ const AccountingManagement: React.FC = () => {
     } else {
       loadCategories();
     }
-  }, [activeTab, typeFilter, startDate, endDate]);
+  }, [activeTab, typeFilter, dateRange]);
 
   const loadTransactions = async () => {
     try {
@@ -98,8 +100,8 @@ const AccountingManagement: React.FC = () => {
 
       const params = new URLSearchParams();
       if (typeFilter !== 'all') params.append('type', typeFilter);
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      if (dateRange?.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange?.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions?${params.toString()}`;
@@ -130,8 +132,8 @@ const AccountingManagement: React.FC = () => {
       if (!token) return;
 
       const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      if (dateRange?.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange?.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const functionsUrl = `${supabaseUrl}/functions/v1/accounting/admin/transactions/summary?${params.toString()}`;
@@ -407,6 +409,24 @@ const AccountingManagement: React.FC = () => {
         description="교회 수입/지출 내역을 관리하고 재정 상태를 확인합니다."
       />
 
+      {/* Global Filters */}
+      <div className="flex items-center gap-4 mb-6">
+        <Select value={typeFilter} onValueChange={(value: any) => setTypeFilter(value)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            <SelectItem value="income">수입</SelectItem>
+            <SelectItem value="expense">지출</SelectItem>
+          </SelectContent>
+        </Select>
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+        />
+      </div>
+
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -476,8 +496,26 @@ const AccountingManagement: React.FC = () => {
       {/* Transactions Tab */}
       {activeTab === 'transactions' && (
         <div className="space-y-4">
-          {/* Action Buttons */}
-          <div className="flex justify-end mb-4">
+          {/* Search and Actions */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="거래처, 내용 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="whitespace-nowrap"
+              disabled={filteredTransactions.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              엑셀 다운로드
+            </Button>
             <Button
               onClick={() => {
                 // 계정과목 목록 미리 로드
@@ -490,54 +528,6 @@ const AccountingManagement: React.FC = () => {
             >
               <Plus className="w-4 h-4" />
               거래 내역 추가
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="거래처, 내용 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={typeFilter} onValueChange={(value: any) => setTypeFilter(value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="income">수입</SelectItem>
-                <SelectItem value="expense">지출</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border">
-              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">조회 기간:</span>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-36 h-8"
-              />
-              <span className="text-gray-500">~</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-36 h-8"
-              />
-            </div>
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              className="whitespace-nowrap"
-              disabled={filteredTransactions.length === 0}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              엑셀 다운로드
             </Button>
           </div>
 

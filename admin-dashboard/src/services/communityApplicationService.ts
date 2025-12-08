@@ -108,8 +108,6 @@ class CommunityApplicationService {
         attachments: data.attachments || null, // 파일 정보 포함
       };
 
-      console.log('📤 Supabase Edge Function 전송:', requestData);
-
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
@@ -121,12 +119,6 @@ class CommunityApplicationService {
       });
 
       const result = await response.json();
-
-      console.log('🔍 백엔드 응답:', {
-        status: response.status,
-        ok: response.ok,
-        result: result
-      });
 
       if (!response.ok) {
         const errorMessage = result.error || result.message || '신청서 제출에 실패했습니다.';
@@ -152,7 +144,6 @@ class CommunityApplicationService {
               applicationId: result.data.application_id
             })
           });
-          console.log('✅ 커뮤니티 가입 알림 이메일 발송 완료');
         } catch (emailError) {
           console.error('❌ 알림 이메일 발송 실패:', emailError);
           // 이메일 발송 실패해도 신청은 성공으로 처리
@@ -192,8 +183,6 @@ class CommunityApplicationService {
       const limit = params.limit || 20;
       const offset = (page - 1) * limit;
 
-      console.log('📋 [Supabase] 신청서 목록 조회 중...', params);
-
       // 베이스 쿼리 시작
       let query = supabase
         .from('community_applications')
@@ -226,9 +215,6 @@ class CommunityApplicationService {
         console.error('❌ Supabase 신청서 목록 조회 오류:', error);
         throw new Error('신청서 목록을 불러오는데 실패했습니다.');
       }
-
-      console.log('✅ [Supabase] 신청서 목록 조회 완료:', data?.length || 0, '건');
-      console.log('📋 [Supabase] 조회된 데이터:', data);
 
       // 데이터 변환
       const applications = (data || []).map((item: any) => {
@@ -326,8 +312,6 @@ class CommunityApplicationService {
       // Supabase 클라이언트 동적 import
       const { supabase } = await import('../lib/supabase');
 
-      console.log('📄 [Supabase] 신청서 상세 조회 중...', applicationId);
-
       const { data, error } = await supabase
         .from('community_applications')
         .select('*')
@@ -341,8 +325,6 @@ class CommunityApplicationService {
         console.error('❌ Supabase 신청서 상세 조회 오류:', error);
         throw new Error('신청서 조회에 실패했습니다.');
       }
-
-      console.log('✅ [Supabase] 신청서 상세 조회 완료:', data?.id);
 
       // 데이터 변환
       return {
@@ -387,8 +369,6 @@ class CommunityApplicationService {
       const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
 
-      console.log('✅ [Edge Function] 신청서 승인 처리 중...', applicationId);
-
       const response = await fetch(edgeFunctionUrl, {
         method: 'PUT',
         headers: {
@@ -409,8 +389,6 @@ class CommunityApplicationService {
         console.error('❌ Edge Function 승인 오류:', result);
         throw new Error(result.message || '신청서 승인 처리에 실패했습니다.');
       }
-
-      console.log('✅ [Edge Function] 신청서 승인 완료:', result);
 
       return {
         application_id: applicationId,
@@ -437,8 +415,6 @@ class CommunityApplicationService {
       const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
 
-      console.log('❌ [Edge Function] 신청서 반려 처리 중...', applicationId);
-
       const response = await fetch(edgeFunctionUrl, {
         method: 'PUT',
         headers: {
@@ -461,8 +437,6 @@ class CommunityApplicationService {
         throw new Error(result.message || '신청서 반려 처리에 실패했습니다.');
       }
 
-      console.log('✅ [Edge Function] 신청서 반려 완료:', result);
-
       return {
         application_id: applicationId,
         status: 'rejected',
@@ -482,8 +456,6 @@ class CommunityApplicationService {
     try {
       // Supabase 클라이언트 동적 import
       const { supabase } = await import('../lib/supabase');
-
-      console.log('📥 파일 다운로드 시작:', filename);
 
       // 신청서 정보를 가져와서 attachments에서 해당 파일 찾기
       const { data: application, error: fetchError } = await supabase
@@ -511,8 +483,6 @@ class CommunityApplicationService {
         throw new Error('파일을 찾을 수 없습니다.');
       }
 
-      console.log('📥 파일 정보:', fileInfo);
-
       // Supabase Storage에서 파일 다운로드
       const { data, error } = await supabase.storage
         .from('community-application-files')
@@ -532,8 +502,6 @@ class CommunityApplicationService {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
-      console.log('✅ 파일 다운로드 완료:', filename);
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
       throw error;

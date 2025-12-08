@@ -161,11 +161,6 @@ const Dashboard = React.memo(() => {
 
       const token = await supabaseAuthService.getToken();
       const currentUser = await supabaseAuthService.getCurrentUser();
-      console.log('👤 현재 사용자 정보:', {
-        userId: currentUser?.user?.id,
-        churchId: currentUser?.user?.church_id,
-        token: token
-      });
 
       const response = await fetch(functionsUrl, {
         method: 'GET',
@@ -179,7 +174,6 @@ const Dashboard = React.memo(() => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
-      console.log('📊 Demographics API 응답:', data);
       setDemographics(data);
     } catch (error) {
       console.error('인구통계 조회 실패:', error);
@@ -264,7 +258,6 @@ const Dashboard = React.memo(() => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
-      console.log('📋 Todos API 응답:', data);
 
       setTodos({
         todayBirthdays: data.todayBirthdays || [],

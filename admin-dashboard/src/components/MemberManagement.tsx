@@ -295,7 +295,6 @@ const MemberManagement: React.FC = () => {
   }, [members, location.state]);
 
   const fetchMembers = async () => {
-    console.log('⚡⚡⚡ fetchMembers 함수 시작!', { appliedSearchTerm });
     try {
       setLoading(true);
 
@@ -308,10 +307,6 @@ const MemberManagement: React.FC = () => {
 
       // Use Supabase Edge Function for members data
       const response = await supabaseApiService.members.getAll();
-      console.log('📊 Supabase API 응답:', {
-        dataLength: response.data.length,
-        sampleData: response.data.slice(0, 3).map((m: any) => ({ id: m.id, name: m.name || m.full_name }))
-      });
 
       let filteredData = response.data;
 
@@ -324,7 +319,6 @@ const MemberManagement: React.FC = () => {
           (member.email && member.email.toLowerCase().includes(searchLower)) ||
           (member.phone && member.phone.toLowerCase().includes(searchLower))
         );
-        console.log('🔍 검색 필터 적용 후:', filteredData.length);
       }
 
       // Apply status filter on client side
@@ -494,8 +488,6 @@ const MemberManagement: React.FC = () => {
         throw updateError;
       }
 
-      console.log('✅ Photo upload success:', publicUrl);
-
       // 사진 업로드 로그 기록
       activityLogger.log({
         action: 'update',
@@ -655,9 +647,6 @@ const MemberManagement: React.FC = () => {
         id: selectedMember.id, // Ensure ID is included
         profile_photo_url: selectedMember.profile_photo_url
       };
-
-      console.log('💾 Saving member with preserved photo URL:', memberDataToSave.profile_photo_url);
-      console.log('💾 Member ID:', memberDataToSave.id);
 
       const response = await supabaseApiService.members.update(memberDataToSave);
       
@@ -3058,7 +3047,6 @@ const MemberManagement: React.FC = () => {
               onClick={() => {
                 setShowAdvancedSearch(false);
                 // TODO: 실제 상세 검색 실행 로직 구현
-                console.log('Advanced search with:', advancedSearchData);
               }}
               className="flex items-center gap-2"
             >

@@ -34,8 +34,10 @@ supabase functions deploy <name> # Deploy specific edge function
 ### Notes
 - Primary backend: Supabase (Edge Functions + PostgreSQL)
 - Legacy API proxy: http://localhost:8000 (still used for some features)
-- Source maps are disabled in both development and production
+- Source maps are disabled in both development and production (for performance)
 - Login credentials: admin/changeme
+- Build configuration uses CRACO for webpack customization (see `craco.config.js`)
+- TypeScript path alias: `@/*` maps to `./src/*`
 
 ## Architecture Overview
 
@@ -107,8 +109,16 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 ### Supabase Integration
 
 **Edge Functions:**
-- Located in `/supabase/functions/`
-- Key functions: `community-sharing`, `community-requests`, `members`, `attendances`
+- Located in `admin-dashboard/supabase/functions/`
+- 40+ Edge Functions for various features
+- Key functions:
+  - `community-sharing`, `community-requests`: Community marketplace features
+  - `members`, `attendances`: Member and attendance management
+  - `ai-chat`: AI chatbot integration
+  - `email-verification`, `invite-user`: User management
+  - `accounting`, `offerings`, `receipts`: Financial management
+  - `prayer-requests`, `pastoral-care`: Pastoral features
+  - `sermons`, `daily-verses`, `bulletins`: Content management
 - All use CORS headers for browser compatibility
 - Authentication via custom headers or Supabase Auth
 - Deploy with `supabase functions deploy <name>`
@@ -263,3 +273,88 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
   - `member_vehicles`: Vehicle information (car_type, plate_no)
 - When creating/updating members, handle relation tables separately via Supabase client
 - `members` Edge Function handles only the main `members` table fields
+
+### Build Configuration & Polyfills
+
+**CRACO Configuration:**
+- Custom webpack configuration in `craco.config.js`
+- Node.js polyfills for browser compatibility:
+  - `http`, `https`, `stream`, `buffer`, `crypto`, `url`, `path`, `querystring`
+  - Required for packages like xlsx, docx that use Node.js APIs
+- ProvidePlugin injects `process` and `Buffer` globally
+- File system modules (`fs`, `net`, `tls`, `child_process`) are disabled (not available in browser)
+
+**Source Map Configuration:**
+- Disabled in both development and production (`GENERATE_SOURCEMAP=false`)
+- Reduces build size and improves performance
+- CI environment variable set to `false` to ignore warnings during build
+
+### Testing
+
+**Test Setup:**
+- Jest with React Testing Library
+- Test configuration in `setupTests.ts`
+- Run tests: `npm test`
+- Type checking: `npm run type-check` (separate from tests)
+
+### Key npm Scripts
+- `start`: Development server with CRACO
+- `build`: Production build (CI=false, no source maps)
+- `build:analyze`: Bundle analysis with webpack-bundle-analyzer
+- `test`: Run Jest tests
+- `type-check`: TypeScript type checking without emitting files
+- `lint`: ESLint with max 0 warnings
+- `lint:fix`: Auto-fix linting issues
+
+### Deployment
+
+**Vercel Deployment:**
+- Automatic deployment via Vercel GitHub integration
+- Root directory: `admin-dashboard`
+- Environment variables configured in Vercel dashboard
+- See `DEPLOYMENT_SETUP.md` for detailed setup instructions
+- GitHub Actions handle build verification, Vercel handles deployment
+
+**Environment Variables (for Vercel):**
+- `REACT_APP_SUPABASE_URL`: Supabase project URL
+- `REACT_APP_SUPABASE_ANON_KEY`: Supabase anonymous key
+- `REACT_APP_PRODUCTION_URL`: Production domain for QR codes
+
+### AI Integration
+
+**AI Chatbot Feature:**
+- Located in `src/components/AIChat.tsx` and `src/components/AIAgentManagement.tsx`
+- Uses `ai-chat` Edge Function for OpenAI GPT integration
+- Agents can be configured with church data sources for context-aware responses
+- Data sources: announcements, attendance, members, services
+- See `AI_대화_데이터베이스_연동_백엔드_요청사항.md` for implementation details
+- Conversation history saved for continuity
+- Supports custom agent personalities and instructions
+
+### Common Components
+
+**Layout & Navigation:**
+- `Layout.tsx`: Main application layout with sidebar navigation
+- `PrivateRoute.tsx`: Authentication wrapper for protected routes
+- Sidebar includes all major feature sections (dashboard, members, community, etc.)
+- Responsive design with mobile menu support
+
+**Forms & Modals:**
+- Extensive use of shadcn/ui components (Dialog, Select, Input, etc.)
+- Form validation with react-hook-form + zod
+- Modal patterns for create/edit operations
+- Collapsible sections for complex forms
+
+**Data Display:**
+- Tables with sorting, filtering, pagination
+- Charts with recharts library
+- Date pickers with Korean locale
+- File upload components with progress tracking
+
+### Accounting Management
+
+**AccountingManagement.tsx:**
+- Recently modified component for financial tracking
+- Integrates with `accounting` Edge Function
+- Manages church finances, budgets, and transactions
+- Located at `src/components/AccountingManagement.tsx`
