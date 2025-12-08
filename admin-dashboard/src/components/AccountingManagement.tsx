@@ -337,6 +337,17 @@ const AccountingManagement: React.FC = () => {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  const getPaymentMethodLabel = (method: string | null | undefined) => {
+    if (!method) return '-';
+    const labels: { [key: string]: string } = {
+      'cash': '현금',
+      'transfer': '계좌이체',
+      'card': '카드',
+      'other': '기타',
+    };
+    return labels[method] || method;
+  };
+
   const exportToExcel = () => {
     // 엑셀로 내보낼 데이터 준비
     const excelData = filteredTransactions.map((transaction) => ({
@@ -346,7 +357,7 @@ const AccountingManagement: React.FC = () => {
       '거래처': transaction.vendor_name || '-',
       '내용': transaction.description || '-',
       '금액': transaction.amount,
-      '결제수단': transaction.payment_method || '-',
+      '결제수단': getPaymentMethodLabel(transaction.payment_method),
     }));
 
     // 요약 정보 추가
@@ -581,7 +592,7 @@ const AccountingManagement: React.FC = () => {
                             {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {transaction.payment_method || '-'}
+                            {getPaymentMethodLabel(transaction.payment_method)}
                           </td>
                         </tr>
                       ))}
@@ -831,10 +842,10 @@ const AccountingManagement: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">선택</option>
-                <option value="현금">현금</option>
-                <option value="계좌이체">계좌이체</option>
-                <option value="카드">카드</option>
-                <option value="기타">기타</option>
+                <option value="cash">현금</option>
+                <option value="transfer">계좌이체</option>
+                <option value="card">카드</option>
+                <option value="other">기타</option>
               </select>
             </div>
 
