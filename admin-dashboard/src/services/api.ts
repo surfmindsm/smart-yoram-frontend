@@ -565,11 +565,11 @@ export const chatService = {
       }));
 
       // 새로 배포한 generate-title Edge Function 사용
-      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-title', {
+      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/generate-title`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
           messages: relevantMessages
@@ -880,11 +880,11 @@ export const promptService = {
     detailedDescription: string; 
   }) => {
     try {
-      const response = await fetch('https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/generate-system-prompt', {
+      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/generate-system-prompt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c`,
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify(agentInfo),
       });
