@@ -416,7 +416,6 @@ const AnnouncementManagement: React.FC = () => {
                     <SelectItem value="worship">예배/모임</SelectItem>
                     <SelectItem value="member_news">교우 소식</SelectItem>
                     <SelectItem value="event">행사/공지</SelectItem>
-                    <SelectItem value="general">일반</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
