@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
+import ForgotPassword from './components/ForgotPassword';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import SermonLibrary from './components/SermonLibrary';
@@ -128,6 +129,7 @@ function App() {
         <Router>
         <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/supabase-test" element={<SupabaseTest />} />
 
         {/* Landing Page */}

@@ -169,7 +169,18 @@ const Login: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">비밀번호</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-xs text-muted-foreground hover:text-foreground px-0"
+                  >
+                    비밀번호 찾기
+                  </Button>
+                </div>
                 <Input
                   id="password"
                   name="password"
