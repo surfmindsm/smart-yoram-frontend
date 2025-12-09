@@ -138,7 +138,6 @@ const FUND_TYPES = [
 ];
 
 const DonationManagement: React.FC = () => {
-  console.log('🎯 DonationManagement 컴포넌트가 로드되었습니다!');
   const [activeTab, setActiveTab] = useState<'donations' | 'receipts'>('donations');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
@@ -243,21 +242,13 @@ const DonationManagement: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('🔄 useEffect 실행됨 - 토큰 확인 중...');
     const currentToken = localStorage.getItem('token');
     const accessToken = localStorage.getItem('access_token');
-
-    console.log('🔑 token:', currentToken ? '존재함' : '없음');
-    console.log('🔑 access_token:', accessToken ? '존재함' : '없음');
-    console.log('🔄 loadDataRef.current:', loadDataRef.current);
 
     // 어떤 토큰이든 존재하면 데이터 로드
     if ((currentToken || accessToken) && !loadDataRef.current) {
       loadDataRef.current = true;
-      console.log('✅ 토큰이 확인되어 loadData() 실행');
       loadData();
-    } else {
-      console.log('❌ 토큰이 없거나 이미 로드됨 - loadData() 실행하지 않음');
     }
   }, []);
 
@@ -277,8 +268,6 @@ const DonationManagement: React.FC = () => {
       let supabaseOfferingsResponse: any = { data: [] };
 
       try {
-        console.log('🔄 Supabase API 호출 시작...');
-
         // Supabase API 병렬 호출 (receipts 추가)
         const [offeringsResult, membersResult, receiptsResult] = await Promise.allSettled([
           supabaseApiService.offerings.getAll({ church_id: userChurchId }),
@@ -295,7 +284,6 @@ const DonationManagement: React.FC = () => {
 
         if (membersResult.status === 'fulfilled') {
           membersResponse = membersResult.value.data || membersResult.value; // .data 프로퍼티 접근
-          console.log('✅ 교인 데이터 로드 성공:', membersResponse.length, '명');
         } else {
           console.error('❌ Supabase Members API 오류:', membersResult.reason);
           membersResponse = [];
@@ -303,7 +291,6 @@ const DonationManagement: React.FC = () => {
 
         if (receiptsResult.status === 'fulfilled') {
           receiptsResponse = receiptsResult.value.data || receiptsResult.value; // .data 프로퍼티 접근
-          console.log('✅ 영수증 데이터 로드 성공:', Array.isArray(receiptsResponse) ? receiptsResponse.length : 0, '건');
         } else {
           console.error('❌ Supabase Receipts API 오류:', receiptsResult.reason);
           receiptsResponse = [];
@@ -342,7 +329,6 @@ const DonationManagement: React.FC = () => {
                                             churchInfo.registration_number ||
                                             churchInfo.tax_number || ''
             };
-            console.log('✅ Supabase에서 교회 정보 가져오기 성공:', churchData);
           }
         }
       } catch (error) {
@@ -404,9 +390,6 @@ const DonationManagement: React.FC = () => {
         ? supabaseOfferingsResponse.data
         : [];
 
-      console.log('✅ Supabase Offerings 데이터:', supabaseOfferingsArray.length, '건');
-      console.log('✅ Financial Service Offerings 데이터:', offeringsArray.length, '건');
-
       // 두 헌금 데이터 합치기 (기존 financialService + supabase)
       const allOfferings = [...offeringsArray, ...supabaseOfferingsArray];
 
@@ -419,7 +402,6 @@ const DonationManagement: React.FC = () => {
       if (allOfferings.length > 0) {
         const convertedDonations = convertOfferingsToDonations(allOfferings, membersArray);
         setDonations(convertedDonations);
-        console.log('✅ 총 헌금 내역:', convertedDonations.length, '건 (Financial Service:', offeringsArray.length, '건 + Supabase:', supabaseOfferingsArray.length, '건)');
       } else {
         setDonations([]);
       }
@@ -520,11 +502,8 @@ const DonationManagement: React.FC = () => {
         input_user_id: inputUserId
       };
 
-      console.log('📤 헌금 등록 데이터:', offeringData);
-
       try {
         const result = await supabaseApiService.offerings.create(offeringData);
-        console.log('✅ 헌금 등록 성공:', result);
 
         // 옵티미스틱 UI 업데이트 - 즉시 화면에 반영
         const newDonationItem: Donation = {
@@ -1787,7 +1766,6 @@ const DonationManagement: React.FC = () => {
                     }))}
                     value={newDonation.donorId}
                     onChange={(value) => {
-                      console.log('Donor selected:', value);
                       setNewDonation({ ...newDonation, donorId: value });
                     }}
                     placeholder="기부자 검색..."

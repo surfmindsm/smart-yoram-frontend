@@ -286,7 +286,6 @@ const OrganizationManagement: React.FC = () => {
             console.error('Error counting members for org', org.id, error);
           }
 
-          console.log(`조직 ${org.name} (${org.id}): member_count = ${count}`);
           countMap.set(org.id, count || 0);
         })
       );

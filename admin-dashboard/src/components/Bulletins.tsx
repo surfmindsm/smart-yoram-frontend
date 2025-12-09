@@ -41,7 +41,6 @@ const Bulletins: React.FC = () => {
         const session = JSON.parse(sessionStr);
         const churchId = session?.user?.church_id;
         if (churchId) {
-          console.log('📰 Church ID from supabase_session:', churchId);
           return churchId;
         }
       }
@@ -52,13 +51,11 @@ const Bulletins: React.FC = () => {
         const user = JSON.parse(userStr);
         const churchId = user?.church_id;
         if (churchId) {
-          console.log('📰 Church ID from user:', churchId);
           return churchId;
         }
       }
 
       // Final fallback
-      console.log('📰 No church_id found in localStorage, using fallback: 9998');
       return 9998;
     } catch (error) {
       console.error('📰 Error getting church_id from localStorage:', error);
@@ -74,8 +71,6 @@ const Bulletins: React.FC = () => {
 
   const loadBulletins = async () => {
     try {
-      console.log('📰 주보 목록 조회 시작, church_id:', churchId);
-
       const response = await supabaseApiService.bulletins.getAll({
         church_id: churchId,
         page: 1,
@@ -83,7 +78,6 @@ const Bulletins: React.FC = () => {
       });
 
       const bulletinsData = response?.data || [];
-      console.log('📰 주보 조회 성공:', bulletinsData.length, '개');
       setBulletins(bulletinsData);
 
     } catch (error) {
@@ -118,14 +112,11 @@ const Bulletins: React.FC = () => {
     }
 
     try {
-      console.log('📰 주보 저장 시작:', editingBulletin ? '수정' : '생성', formData);
-
       let fileUrl = formData.file_url;
 
       // 파일이 새로 선택된 경우 업로드
       if (selectedFile) {
         setUploadingFile(true);
-        console.log('📤 파일 업로드 시작:', selectedFile.name);
 
         try {
           // Supabase Storage에 파일 업로드
@@ -151,7 +142,6 @@ const Bulletins: React.FC = () => {
             .getPublicUrl(filePath);
 
           fileUrl = publicUrlData.publicUrl;
-          console.log('✅ 파일 업로드 성공:', fileUrl);
         } catch (uploadError) {
           console.error('파일 업로드 오류:', uploadError);
           toast({
@@ -174,7 +164,6 @@ const Bulletins: React.FC = () => {
           content: formData.content || undefined,
           file_url: fileUrl || undefined
         });
-        console.log('✅ 주보 수정 성공');
       } else {
         // 생성
         await supabaseApiService.bulletins.create({
@@ -184,7 +173,6 @@ const Bulletins: React.FC = () => {
           content: formData.content || undefined,
           file_url: fileUrl || undefined
         });
-        console.log('✅ 주보 생성 성공');
       }
 
       toast({
@@ -219,11 +207,8 @@ const Bulletins: React.FC = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      console.log('📰 주보 삭제 시작:', id);
-
       await supabaseApiService.bulletins.delete(id.toString());
 
-      console.log('✅ 주보 삭제 성공');
       toast({
         title: '성공',
         description: '주보가 삭제되었습니다.',

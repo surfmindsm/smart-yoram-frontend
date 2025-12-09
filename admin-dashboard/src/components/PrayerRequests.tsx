@@ -154,30 +154,14 @@ const PrayerRequests: React.FC = () => {
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        console.log('🔍 [기도요청] 교인 목록 로딩 시작...');
         const currentUser = await supabaseAuthService.getCurrentUser();
         const userChurchId = currentUser?.user?.church_id || 9998;
-        console.log('🏛️ [기도요청] Church ID:', userChurchId);
 
         const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
-        console.log('📡 [기도요청] API 응답:', response);
 
         const membersData = response?.data || response || [];
-        console.log('📋 [기도요청] 교인 데이터 개수:', membersData.length);
-
-        if (membersData.length > 0) {
-          console.log('📝 [기도요청] 첫 번째 교인 샘플:', {
-            id: membersData[0].id,
-            name: membersData[0].name,
-            church_id: membersData[0].church_id,
-            organization_name: membersData[0].organization_name,
-            department: membersData[0].department,
-            profile_photo_url: membersData[0].profile_photo_url
-          });
-        }
 
         setMembers(membersData);
-        console.log('✅ [기도요청] 교인 목록 설정 완료');
       } catch (error) {
         console.error('❌ [기도요청] Failed to load members:', error);
         setMembers([]);
@@ -206,10 +190,6 @@ const PrayerRequests: React.FC = () => {
 
       const response = await supabaseApiService.prayerRequests.getAll(params);
 
-      console.log('🙏 [기도요청] API 응답 전체:', response);
-      console.log('🙏 [기도요청] 응답 타입:', typeof response);
-      console.log('🙏 [기도요청] 응답 키들:', response ? Object.keys(response) : 'null/undefined');
-
       let prayerRequestsData = [];
 
       if (Array.isArray(response)) {
@@ -217,12 +197,8 @@ const PrayerRequests: React.FC = () => {
       } else if (response && Array.isArray(response.data)) {
         prayerRequestsData = response.data;
       } else {
-        console.warn('🚨 [기도요청] 예상치 못한 응답 구조:', response);
         prayerRequestsData = [];
       }
-
-      console.log('🙏 [기도요청] 추출된 원본 데이터 개수:', prayerRequestsData.length);
-      console.log('🙏 [기도요청] 추출된 원본 데이터 첫 번째 항목:', prayerRequestsData[0]);
 
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
       const transformedRequests: PrayerRequest[] = prayerRequestsData.map((item: any) => ({
@@ -249,11 +225,7 @@ const PrayerRequests: React.FC = () => {
         expiresAt: item.expires_at
       }));
 
-      console.log('🙏 [기도요청] 변환된 데이터 개수:', transformedRequests.length);
-      console.log('🙏 [기도요청] 변환된 데이터 첫 번째 항목:', transformedRequests[0]);
-
       setRequests(transformedRequests);
-      console.log('✅ [기도요청] 상태 업데이트 완료, 총', transformedRequests.length, '개의 기도요청 데이터 로드됨');
     } catch (error) {
       console.error('Failed to load prayer requests:', error);
       setRequests([]);

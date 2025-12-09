@@ -1,7 +1,7 @@
 // Organization Management Service
 // Service layer for church organization management APIs
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import {
   ChurchOrganization,
   MemberOrganization,
@@ -15,13 +15,6 @@ import {
   OrganizationFilter,
   MemberFilter
 } from '../types/organization';
-
-// Create a separate Supabase client for organization management
-// This uses service role key to bypass RLS when needed
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 class OrganizationService {
   // ==================== Organization Management ====================

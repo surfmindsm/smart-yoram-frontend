@@ -92,7 +92,6 @@ export default function WorshipScheduleManagement() {
         const session = JSON.parse(sessionStr);
         const churchId = session?.user?.church_id;
         if (churchId) {
-          console.log('⛪ Church ID from supabase_session:', churchId);
           return churchId;
         }
       }
@@ -103,13 +102,11 @@ export default function WorshipScheduleManagement() {
         const user = JSON.parse(userStr);
         const churchId = user?.church_id;
         if (churchId) {
-          console.log('⛪ Church ID from user:', churchId);
           return churchId;
         }
       }
 
       // Final fallback
-      console.log('⛪ No church_id found in localStorage, using fallback: 9998');
       return 9998;
     } catch (error) {
       console.error('⛪ Error getting church_id from localStorage:', error);
@@ -126,8 +123,6 @@ export default function WorshipScheduleManagement() {
 
   const fetchWorshipSchedule = async () => {
     try {
-      console.log('⛪ 예배 서비스 목록 조회 시작, church_id:', churchId);
-
       const response = await supabaseApiService.worshipServices.getAll({
         church_id: churchId,
         page: 1,
@@ -135,7 +130,6 @@ export default function WorshipScheduleManagement() {
       });
 
       const servicesData = response?.data || [];
-      console.log('⛪ 예배 서비스 조회 성공:', servicesData.length, '개');
       setServices(servicesData);
 
     } catch (error) {
@@ -150,13 +144,10 @@ export default function WorshipScheduleManagement() {
 
   const fetchCategories = async () => {
     try {
-      console.log('📂 카테고리 목록 조회 시작, church_id:', churchId);
       const data = await supabaseApiService.worshipServices.categories.getAll(churchId);
-      console.log('📂 카테고리 조회 성공:', data.length, '개');
 
       // 카테고리가 없으면 기본 카테고리 생성
       if (data.length === 0) {
-        console.log('📂 기본 카테고리 생성 시작');
         const defaultCategories = [
           { name: '주일예배', description: '주일 정기 예배', order_index: 0 },
           { name: '주중예배', description: '주중 정기 예배', order_index: 1 },
@@ -180,7 +171,6 @@ export default function WorshipScheduleManagement() {
         // 다시 조회
         const updatedData = await supabaseApiService.worshipServices.categories.getAll(churchId);
         setCategories(updatedData);
-        console.log('✅ 기본 카테고리 생성 완료:', updatedData.length, '개');
       } else {
         setCategories(data);
       }
@@ -205,16 +195,12 @@ export default function WorshipScheduleManagement() {
         order_index: categoryFormData.order_index
       };
 
-      console.log('📂 카테고리 저장 시작:', editingCategory ? '수정' : '생성', categoryData);
-
       if (editingCategory) {
         // 수정
         await supabaseApiService.worshipServices.categories.update(editingCategory.id, categoryData);
-        console.log('✅ 카테고리 수정 성공');
       } else {
         // 생성
         await supabaseApiService.worshipServices.categories.create(categoryData as any);
-        console.log('✅ 카테고리 생성 성공');
       }
 
       toast({
@@ -240,8 +226,6 @@ export default function WorshipScheduleManagement() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      console.log('📂 카테고리 삭제 시작:', id);
-
       // Try using Supabase client directly as a fallback
       const { error } = await supabaseApiService.supabase
         .from('worship_service_categories')
@@ -253,8 +237,6 @@ export default function WorshipScheduleManagement() {
         // Fallback to API service
         await supabaseApiService.worshipServices.categories.delete(id);
       }
-
-      console.log('✅ 카테고리 삭제 성공');
 
       toast({
         title: '성공',
@@ -320,16 +302,12 @@ export default function WorshipScheduleManagement() {
         order_index: formData.order_index
       };
 
-      console.log('⛪ 예배 서비스 저장 시작:', editingService ? '수정' : '생성', serviceData);
-
       if (editingService) {
         // 수정
         await supabaseApiService.worshipServices.update(editingService.id.toString(), serviceData);
-        console.log('✅ 예배 서비스 수정 성공');
       } else {
         // 생성
         await supabaseApiService.worshipServices.create(serviceData as any);
-        console.log('✅ 예배 서비스 생성 성공');
       }
 
       toast({
@@ -355,11 +333,8 @@ export default function WorshipScheduleManagement() {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      console.log('⛪ 예배 서비스 삭제 시작:', id);
-
       await supabaseApiService.worshipServices.delete(id.toString());
 
-      console.log('✅ 예배 서비스 삭제 성공');
       toast({
         title: '성공',
         description: '예배 일정이 삭제되었습니다.',

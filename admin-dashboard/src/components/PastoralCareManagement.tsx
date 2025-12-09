@@ -243,21 +243,6 @@ const PastoralCareManagement: React.FC = () => {
       // 교인 데이터 설정
       if (membersResult.status === 'fulfilled') {
         const membersData = membersResult.value?.data || membersResult.value || [];
-
-        // 교인 데이터의 church_id 확인
-        const churchIds = Array.from(new Set(membersData.map((m: any) => m.church_id)));
-        console.log('✅ 교인 데이터 로드 성공 (요청한 church_id:', userChurchId, ')');
-        console.log('   - 총 교인 수:', membersData.length, '명');
-        console.log('   - church_id 분포:', churchIds);
-
-        if (membersData.length > 0) {
-          console.log('   - 첫 번째 교인 샘플:', {
-            id: membersData[0].id,
-            name: membersData[0].name,
-            church_id: membersData[0].church_id
-          });
-        }
-
         setMembers(membersData);
       } else {
         console.error('❌ 교인 데이터 로드 실패:', membersResult.reason);
@@ -267,13 +252,7 @@ const PastoralCareManagement: React.FC = () => {
       // 심방 신청 데이터 처리
       const finalResponse = response.status === 'fulfilled' ? response.value : { data: [] };
 
-      // 🔍 심방 테이블 데이터 확인 로그
-      console.log('🏥 [심방신청] API 응답 전체:', finalResponse);
-      console.log('🏥 [심방신청] 응답 타입:', typeof finalResponse);
-      console.log('🏥 [심방신청] 응답 키들:', finalResponse ? Object.keys(finalResponse) : 'null/undefined');
-
       // 백엔드 응답 구조 확인 및 데이터 추출
-
       let pastoralCareData = [];
 
       // 다양한 응답 구조에 대응
@@ -286,13 +265,8 @@ const PastoralCareManagement: React.FC = () => {
       } else if (finalResponse && Array.isArray((finalResponse as any).results)) {
         pastoralCareData = (finalResponse as any).results;
       } else {
-        console.warn('🚨 [심방신청] 예상치 못한 응답 구조:', finalResponse);
         pastoralCareData = [];
       }
-
-      // 🔍 추출된 데이터 확인 로그
-      console.log('🏥 [심방신청] 추출된 원본 데이터 개수:', pastoralCareData.length);
-      console.log('🏥 [심방신청] 추출된 원본 데이터 첫 번째 항목:', pastoralCareData[0]);
 
       // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
       const transformedRequests: PastoralCareRequest[] = pastoralCareData.map((item: any) => ({
@@ -333,15 +307,7 @@ const PastoralCareManagement: React.FC = () => {
         distanceKm: item.distance_km  // 위치 검색 결과에서만 사용
       }));
 
-      // 🔍 변환된 데이터 확인 로그
-      console.log('🏥 [심방신청] 변환된 데이터 개수:', transformedRequests.length);
-      console.log('🏥 [심방신청] 변환된 데이터 첫 번째 항목:', transformedRequests[0]);
-      console.log('🏥 [심방신청] 전체 변환된 데이터:', transformedRequests);
-
       setRequests(transformedRequests);
-
-      // 🔍 최종 상태 업데이트 확인
-      console.log('✅ [심방신청] 상태 업데이트 완료, 총', transformedRequests.length, '개의 심방신청 데이터 로드됨');
     } catch (error) {
       console.error('Failed to load pastoral care requests:', error);
       // 에러 발생 시 빈 배열로 설정
