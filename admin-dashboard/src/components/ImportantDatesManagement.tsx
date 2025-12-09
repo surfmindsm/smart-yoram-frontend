@@ -112,8 +112,6 @@ const ImportantDatesManagement: React.FC = () => {
         }
       });
 
-      console.log('📅 Important Dates API 응답 상태:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('📅 Important Dates API 에러:', errorText);
@@ -121,7 +119,6 @@ const ImportantDatesManagement: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log('📅 Important Dates API 응답:', data);
       setDates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching dates:', error);
@@ -152,7 +149,6 @@ const ImportantDatesManagement: React.FC = () => {
       if (!response.ok) throw new Error('교인 목록 조회 실패');
 
       const data = await response.json();
-      console.log('📋 Members API 응답:', data);
       // data.data 배열 추출 또는 빈 배열
       const membersArray = data?.data || data;
       setMembers(Array.isArray(membersArray) ? membersArray : []);

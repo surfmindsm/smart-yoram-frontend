@@ -205,7 +205,6 @@ const SecurityLogs: React.FC = () => {
       const today = now.toISOString().split('T')[0];
       params.start_date = today;
       params.end_date = today;
-      console.log('📅 오늘 날짜 필터:', { start_date: today, end_date: today });
     } else if (dateFilter === 'week') {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       params.start_date = weekAgo.toISOString().split('T')[0];

@@ -347,6 +347,44 @@ export const supabaseAuthService = {
   // 로그아웃
   signOut: async () => {
     try {
+      // 로그아웃 전에 현재 사용자 정보 가져오기 (로그 기록용)
+      const sessionStr = localStorage.getItem('supabase_session');
+      let currentUser = null;
+
+      if (sessionStr) {
+        try {
+          const session = JSON.parse(sessionStr);
+          currentUser = session.user;
+        } catch (e) {
+          console.error('세션 파싱 실패:', e);
+        }
+      }
+
+      // 로그아웃 보안 로그 기록
+      if (currentUser) {
+        try {
+          const { supabaseApiService } = await import('./supabaseApiService');
+          await supabaseApiService.securityLogs.recordLogin({
+            user_id: currentUser.id,
+            user_name: currentUser.full_name || currentUser.username || currentUser.email,
+            user_email: currentUser.email,
+            success: true,
+            church_id: currentUser.church_id,
+            ip_address: await getClientIP(),
+            user_agent: navigator.userAgent,
+            location: await getLocationInfo(),
+            action: 'logout', // 명시적으로 로그아웃 액션 지정
+            details: {
+              logout_time: new Date().toISOString()
+            }
+          });
+        } catch (logError) {
+          console.error('⚠️ 로그아웃 보안 로그 기록 실패:', logError);
+          // 로그 기록 실패는 로그아웃 프로세스를 방해하지 않음
+        }
+      }
+
+      // localStorage에서 세션 정보 제거
       localStorage.removeItem('supabase_session');
       localStorage.removeItem('access_token'); // 호환성을 위한 토큰도 제거
     } catch (error: any) {

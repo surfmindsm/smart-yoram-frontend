@@ -772,8 +772,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('Sending pastoral care request:', requestData);
-
         // Use fetch directly to get better error details
         const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/pastoral-care/admin/requests`, {
           method: 'POST',
@@ -786,8 +784,6 @@ export const supabaseApiService = {
         });
 
         const responseText = await response.text();
-        console.log('Raw response:', responseText);
-        console.log('Response status:', response.status);
 
         if (!response.ok) {
           let errorData;
@@ -810,8 +806,6 @@ export const supabaseApiService = {
 
     update: async (id: any, requestData: any) => {
       try {
-        console.log('Updating pastoral care request:', id, requestData);
-
         // Use Supabase client directly instead of Edge Function
         const { data, error } = await supabase
           .from('pastoral_care_requests')
@@ -825,7 +819,6 @@ export const supabaseApiService = {
           throw new Error(error.message || 'Failed to update pastoral care request');
         }
 
-        console.log('Update success:', data);
         return { data };
       } catch (error) {
         console.error('Failed to update pastoral care request:', error);
@@ -1004,8 +997,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('🙏 [기도요청 생성] 전송 데이터:', requestData);
-
         // 직접 fetch 사용
         const functionUrl = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/prayer-requests`;
         const response = await fetch(functionUrl, {
@@ -1018,8 +1009,6 @@ export const supabaseApiService = {
           body: JSON.stringify({ ...requestData, action: 'create' })
         });
 
-        console.log('🙏 [기도요청 생성] 응답 status:', response.status);
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error('🙏 [기도요청 생성] 응답 오류:', errorText);
@@ -1027,7 +1016,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('🙏 [기도요청 생성] 응답 data:', data);
 
         return data;
       } catch (error) {
@@ -1301,7 +1289,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📤 Sending offering data:', offeringData);
 
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
         const functionsUrl = `${supabaseUrl}/functions/v1/offerings/admin/offerings`;
@@ -1323,7 +1310,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ Offering created:', data);
         return data;
       } catch (error) {
         console.error('Failed to create offering:', error);
@@ -1450,8 +1436,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📤 Sending receipt data:', receiptData);
-
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
         const functionsUrl = `${supabaseUrl}/functions/v1/receipts`;
 
@@ -1472,7 +1456,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ Receipt created:', data);
         return data;
       } catch (error) {
         console.error('Failed to create receipt:', error);
@@ -1615,15 +1598,6 @@ export const supabaseApiService = {
         const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
         const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses${queryString ? `?${queryString}` : ''}`;
 
-        console.log('📋 [말씀 목록 API] 요청 정보:', {
-          url: functionsUrl,
-          token: token.substring(0, 30) + '...',
-          headers: {
-            'X-Custom-Auth': token.substring(0, 30) + '...',
-            'Content-Type': 'application/json',
-          }
-        });
-
         const response = await fetch(functionsUrl, {
           method: 'GET',
           headers: {
@@ -1633,8 +1607,6 @@ export const supabaseApiService = {
             'Content-Type': 'application/json',
           },
         });
-
-        console.log('📋 [말씀 목록 API] 응답 상태:', response.status);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -1743,13 +1715,6 @@ export const supabaseApiService = {
         const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
         const functionsUrl = `${supabaseUrl}/functions/v1/daily-verses/admin/verses/${id}`;
 
-        console.log('🗑️ [말씀 삭제 API] 요청:', {
-          url: functionsUrl,
-          id,
-          token: token.substring(0, 30) + '...',
-          anonKey: supabaseAnonKey?.substring(0, 30) + '...'
-        });
-
         const response = await fetch(functionsUrl, {
           method: 'DELETE',
           headers: {
@@ -1759,8 +1724,6 @@ export const supabaseApiService = {
             'Content-Type': 'application/json',
           },
         });
-
-        console.log('🗑️ [말씀 삭제 API] 응답 상태:', response.status);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -1775,7 +1738,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [말씀 삭제 API] 성공:', data);
         return data;
       } catch (error) {
         console.error('🗑️ [말씀 삭제 API] 실패:', error);
@@ -1931,7 +1893,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 생성 시작:', serviceData);
 
         // Use direct fetch instead of supabase.functions.invoke for POST requests
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -1954,7 +1915,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [예배 서비스 API] 생성 성공:', data);
         return data;
       } catch (error: any) {
         console.error('⛪ [예배 서비스 API] 생성 실패:', error);
@@ -1981,7 +1941,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 수정 시작:', id, serviceData);
 
         // Use direct fetch instead of supabase.functions.invoke for PUT requests
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -2004,7 +1963,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [예배 서비스 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 수정 실패:', error);
@@ -2020,16 +1978,11 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('⛪ [예배 서비스 API] 삭제 시작:', id);
 
         // Use direct fetch instead of supabase.functions.invoke for DELETE requests
         const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
         const functionsUrl = `${supabaseUrl}/functions/v1/worship-services/admin/services/${id}`;
 
-        console.log('🔍 DELETE 요청 URL:', functionsUrl);
-        console.log('🔍 Supabase URL:', supabaseUrl);
-        console.log('🔍 SUPABASE_ANON_KEY exists:', !!SUPABASE_ANON_KEY);
-        console.log('🔍 Token exists:', !!token);
 
         const response = await fetch(functionsUrl, {
           method: 'DELETE',
@@ -2047,7 +2000,6 @@ export const supabaseApiService = {
         }
 
         const data = await response.json();
-        console.log('✅ [예배 서비스 API] 삭제 성공:', data);
         return data;
       } catch (error) {
         console.error('⛪ [예배 서비스 API] 삭제 실패:', error);
@@ -2124,7 +2076,6 @@ export const supabaseApiService = {
           }
 
           const data = await response.json();
-          console.log('✅ [카테고리 API] 생성 성공:', data);
           return data;
         } catch (error) {
           console.error('📂 [카테고리 API] 생성 실패:', error);
@@ -2164,7 +2115,6 @@ export const supabaseApiService = {
           }
 
           const data = await response.json();
-          console.log('✅ [카테고리 API] 수정 성공:', data);
           return data;
         } catch (error) {
           console.error('📂 [카테고리 API] 수정 실패:', error);
@@ -2199,7 +2149,6 @@ export const supabaseApiService = {
           }
 
           const data = await response.json();
-          console.log('✅ [카테고리 API] 삭제 성공:', data);
           return data;
         } catch (error) {
           console.error('📂 [카테고리 API] 삭제 실패:', error);
@@ -2395,7 +2344,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📰 [주보 API] 수정 시작:', id, bulletinData);
 
         // Directly query the database instead of using Edge Function for PUT
         const { data, error } = await supabase
@@ -2416,7 +2364,6 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [주보 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📰 [주보 API] 수정 실패:', error);
@@ -2583,7 +2530,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 생성 시작:', announcementData);
 
         // Filter out fields that don't exist in the announcements table
         // Note: author_id removed due to foreign key constraint with users table
@@ -2599,7 +2545,6 @@ export const supabaseApiService = {
           }
         }
 
-        console.log('📢 [공지사항 API] 필터링된 데이터:', filteredData);
 
         // Directly query the database instead of using Edge Function for POST
         const { data, error } = await supabase
@@ -2613,7 +2558,6 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 생성 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 생성 실패:', error);
@@ -2629,7 +2573,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 수정 시작:', id, announcementData);
 
         // Filter out fields that don't exist in the announcements table
         // Note: author_id removed due to foreign key constraint with users table
@@ -2647,7 +2590,6 @@ export const supabaseApiService = {
 
         filteredData.updated_at = new Date().toISOString();
 
-        console.log('📢 [공지사항 API] 필터링된 데이터:', filteredData);
 
         // Directly query the database instead of using Edge Function for PUT
         const { data, error } = await supabase
@@ -2662,7 +2604,6 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 수정 성공:', data);
         return data;
       } catch (error) {
         console.error('📢 [공지사항 API] 수정 실패:', error);
@@ -2678,7 +2619,6 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        console.log('📢 [공지사항 API] 삭제 시작:', id);
 
         // Directly query the database instead of using Edge Function for DELETE
         const { error } = await supabase
@@ -2691,7 +2631,6 @@ export const supabaseApiService = {
           throw error;
         }
 
-        console.log('✅ [공지사항 API] 삭제 성공');
         return { message: 'Announcement deleted successfully' };
       } catch (error) {
         console.error('📢 [공지사항 API] 삭제 실패:', error);
@@ -3726,18 +3665,12 @@ export const supabaseApiService = {
 
     sendCode: async (email: string) => {
       try {
-        console.log('📧 [이메일 인증] 인증 코드 발송 시작:', email);
-
         const response = await supabase.functions.invoke('email-verification', {
           body: {
             email,
             action: 'send'
           }
         });
-
-        console.log('📧 [이메일 인증] Edge Function 전체 응답:', response);
-        console.log('📧 [이메일 인증] 응답 data:', response.data);
-        console.log('📧 [이메일 인증] 응답 error:', response.error);
 
         // 에러가 있으면 Response 객체에서 실제 응답 읽기
         if (response.error) {
@@ -3772,7 +3705,6 @@ export const supabaseApiService = {
           throw new Error(response.data.error);
         }
 
-        console.log('✅ [이메일 인증] 코드 발송 성공:', response.data);
         return { data: response.data };
       } catch (error: any) {
         console.error('📧 [이메일 인증] 발송 실패 - 전체 에러:', error);
@@ -3967,7 +3899,6 @@ export const supabaseApiService = {
             .single();
 
           if (memberData && email) {
-            console.log('👤 [invite-user Edge Function] 호출 시작:', { email, name: memberData.name });
 
             // invite-user Edge Function 호출
             const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
@@ -3986,7 +3917,6 @@ export const supabaseApiService = {
               console.error('👤 [invite-user Edge Function] 실패:', inviteError);
               console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
             } else {
-              console.log('✅ [invite-user Edge Function] 성공:', inviteData);
             }
           }
         } catch (userCreateError) {
@@ -4279,8 +4209,7 @@ export const supabaseApiService = {
 
         // 권한별 필터링
         if (currentUser.user.role === 'church_super_admin') {
-          // 교회 수퍼어드민: 같은 교회의 church_admin 활동만 조회
-          // users 테이블과 조인하여 role이 church_admin인 사용자만 필터링
+          // 교회 수퍼어드민: 자신의 로그 + 같은 교회의 church_admin 활동 조회
           const { data: churchAdmins } = await supabase
             .from('users')
             .select('id')
@@ -4289,12 +4218,9 @@ export const supabaseApiService = {
 
           const adminIds = churchAdmins?.map(admin => admin.id) || [];
 
-          if (adminIds.length > 0) {
-            query = query.in('user_id', adminIds);
-          } else {
-            // church_admin이 없으면 빈 결과 반환
-            query = query.eq('user_id', -1);
-          }
+          // 자신의 ID도 포함
+          const allowedIds = [currentUser.user.id, ...adminIds];
+          query = query.in('user_id', allowedIds);
         } else if (currentUser.user.role === 'church_admin') {
           // 교회 어드민: 자신의 로그만
           query = query.eq('user_id', currentUser.user.id);
@@ -4376,8 +4302,7 @@ export const supabaseApiService = {
 
         // 권한별 필터링
         if (currentUser.user.role === 'church_super_admin') {
-          // 교회 수퍼어드민: 같은 교회의 church_admin 활동만 조회
-          // users 테이블과 조인하여 role이 church_admin인 사용자만 필터링
+          // 교회 수퍼어드민: 자신의 로그 + 같은 교회의 church_admin 활동 조회
           const { data: churchAdmins } = await supabase
             .from('users')
             .select('id')
@@ -4386,12 +4311,9 @@ export const supabaseApiService = {
 
           const adminIds = churchAdmins?.map(admin => admin.id) || [];
 
-          if (adminIds.length > 0) {
-            query = query.in('user_id', adminIds);
-          } else {
-            // church_admin이 없으면 빈 결과 반환
-            query = query.eq('user_id', -1);
-          }
+          // 자신의 ID도 포함
+          const allowedIds = [currentUser.user.id, ...adminIds];
+          query = query.in('user_id', allowedIds);
         } else if (currentUser.user.role === 'church_admin') {
           // 교회 어드민: 자신의 활동 로그만
           query = query.eq('user_id', currentUser.user.id);
@@ -4602,7 +4524,7 @@ export const supabaseApiService = {
       }
     },
 
-    // 로그인 로그 기록
+    // 로그인/로그아웃 로그 기록
     recordLogin: async (loginData: {
       user_id: string | null;
       user_name: string | null;
@@ -4612,10 +4534,19 @@ export const supabaseApiService = {
       ip_address: string;
       user_agent: string;
       location: string;
+      action?: 'login' | 'logout' | 'failed_login'; // action을 직접 지정 가능
       details?: any;
     }) => {
       try {
-        console.log('📝 [로그인 로그] 기록 시작:', loginData);
+        // action이 details에 있으면 사용, 없으면 success 기반으로 결정
+        let actionType: string;
+        if (loginData.action) {
+          actionType = loginData.action;
+        } else if (loginData.details?.action === 'logout') {
+          actionType = 'logout';
+        } else {
+          actionType = loginData.success ? 'login' : 'failed_login';
+        }
 
         const { data, error } = await supabase
           .from('security_logs')
@@ -4623,7 +4554,7 @@ export const supabaseApiService = {
             user_id: loginData.user_id,
             user_name: loginData.user_name,
             user_email: loginData.user_email,
-            action: loginData.success ? 'login' : 'failed_login',
+            action: actionType,
             success: loginData.success,
             church_id: loginData.church_id,
             ip_address: loginData.ip_address,
@@ -4634,14 +4565,13 @@ export const supabaseApiService = {
           });
 
         if (error) {
-          console.error('📝 [로그인 로그] 기록 오류:', error);
+          console.error('📝 [보안 로그] 기록 오류:', error);
           throw error;
         }
 
-        console.log('✅ [로그인 로그] 기록 성공:', data);
         return { success: true, data };
       } catch (error) {
-        console.error('📝 [로그인 로그] 기록 실패:', error);
+        console.error('📝 [보안 로그] 기록 실패:', error);
         throw error;
       }
     },
