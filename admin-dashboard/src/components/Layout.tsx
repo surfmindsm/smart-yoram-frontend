@@ -116,10 +116,21 @@ const Layout: React.FC = () => {
   };
 
   const toggleGroup = (groupTitle: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupTitle]: !prev[groupTitle]
-    }));
+    setExpandedGroups(prev => {
+      const isCurrentlyExpanded = prev[groupTitle];
+
+      // 모든 그룹을 닫고, 클릭한 그룹이 닫혀있었다면 열기
+      const newExpandedGroups: {[key: string]: boolean} = {};
+      Object.keys(prev).forEach(key => {
+        newExpandedGroups[key] = false;
+      });
+
+      if (!isCurrentlyExpanded) {
+        newExpandedGroups[groupTitle] = true;
+      }
+
+      return newExpandedGroups;
+    });
   };
 
 
@@ -488,37 +499,52 @@ const Layout: React.FC = () => {
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-transform duration-300 overflow-y-auto z-40",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-slate-50 border-r border-slate-200 transition-transform duration-300 z-40 flex flex-col",
           isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
         )}>
-          <nav className="p-4 space-y-4 pb-8">
-            {/* Main Menu Groups */}
+          <nav className="flex-1 overflow-y-auto">
+            {/* Main Menu Groups - 전체를 하나의 아코디언으로 */}
+            <div className="bg-white overflow-hidden">
             {menuGroups.map((group, groupIndex) => (
-              <div key={groupIndex}>
-                {/* Separator line between categories (except for the first one) */}
-                {groupIndex > 0 && (
-                  <div className="border-t border-slate-100 mb-4"></div>
-                )}
-
-                {/* Group Header - 모든 그룹을 접을 수 있도록 수정 */}
+              <div key={groupIndex} className={cn(groupIndex > 0 && "border-t border-slate-200")}>
+                {/* Group Header */}
                 <button
                   onClick={() => toggleGroup(group.title)}
-                  className="w-full flex items-center justify-between mb-2 px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors"
+                  className={cn(
+                    "w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-all",
+                    expandedGroups[group.title]
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "text-slate-600 hover:bg-slate-50"
+                  )}
                 >
-                  <span>{group.title}</span>
+                  <div className="flex items-center gap-3">
+                    {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
+                    {group.items && group.items[0] && (() => {
+                      const IconComponent = group.items[0].Icon;
+                      return <IconComponent className="h-5 w-5" />;
+                    })()}
+                    <span>{group.title}</span>
+                  </div>
                   {expandedGroups[group.title] ? (
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronDown className="h-4 w-4 -rotate-90" />
                   )}
                 </button>
 
                 {/* Collapsed content */}
-                {expandedGroups[group.title] && (
-                  <>
+                <div
+                  className={cn(
+                    "bg-slate-50 grid transition-all duration-300 ease-in-out",
+                    expandedGroups[group.title]
+                      ? "grid-rows-[1fr]"
+                      : "grid-rows-[0fr]"
+                  )}
+                >
+                  <div className="overflow-hidden">
                     {/* Regular Items */}
-                    <div className="space-y-1">
-                      {group.items && group.items.map((item) => {
+                    <div className="divide-y divide-slate-100">
+                      {group.items && group.items.map((item, itemIndex) => {
                         const isActive = location.pathname === item.path;
 
                         return (
@@ -526,25 +552,32 @@ const Layout: React.FC = () => {
                             key={item.path}
                             to={item.path}
                             className={cn(
-                              "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                              "flex items-center gap-3 py-3 text-sm font-normal transition-colors relative",
                               isActive
-                                ? "bg-primary/10 text-primary"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                ? "bg-blue-50 text-blue-700 pl-4 pr-4"
+                                : "text-slate-600 hover:bg-slate-50 pl-4 pr-4"
                             )}
                           >
+                            {isActive && (
+                              <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></span>
+                            )}
+                            <span className={cn(isActive ? "text-blue-700" : "text-slate-400")}>•</span>
                             {item.name}
                           </Link>
                         );
                       })}
                     </div>
-
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             ))}
+            </div>
+          </nav>
 
+          {/* 하단 고정 영역 */}
+          <div className="border-t border-slate-200 bg-white">
             {/* 문의하기 버튼 */}
-            <div className="mt-8 border-t border-slate-200 pt-4">
+            <div className="p-3">
               <Button
                 variant="outline"
                 onClick={() => setShowBugReportModal(true)}
@@ -556,7 +589,7 @@ const Layout: React.FC = () => {
             </div>
 
             {/* 도네이션 카드 */}
-            <div className="mt-4 border-t border-slate-200 pt-4">
+            <div className="p-3 pt-0">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
                 <div className="flex items-center gap-1.5 mb-2">
                   {/* <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" /> */}
@@ -592,8 +625,7 @@ const Layout: React.FC = () => {
                 </Button>
               </div>
             </div>
-
-          </nav>
+          </div>
         </aside>
 
         {/* Main Content */}
