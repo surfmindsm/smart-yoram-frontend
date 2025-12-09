@@ -145,12 +145,12 @@ const MusicTeamRecruitDetail: React.FC = () => {
         return (
           <div>
             <div className="flex items-center mb-2">
-              <Music className="h-4 w-4 mr-2 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">팀 형태</span>
+              <Music className="h-4 w-4 mr-2 text-primary-600" />
+              <span className="text-sm font-medium text-primary-800">팀 형태</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {worshipType ? (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-primary-100 text-primary-800">
                   {getInstrumentIcon(worshipType)}
                   {worshipType}
                   </span>
@@ -214,10 +214,10 @@ const MusicTeamRecruitDetail: React.FC = () => {
       key: 'contact_info',
       type: 'text' as const,
       render: (value: any, post?: PostDetailData) => (
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-primary-50 p-4 rounded-lg">
           <div className="flex items-center mb-3">
-            <Phone className="h-4 w-4 mr-2 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">연락처 정보</span>
+            <Phone className="h-4 w-4 mr-2 text-primary-600" />
+            <span className="text-sm font-medium text-primary-800">연락처 정보</span>
           </div>
           <div className="space-y-2">
             {post?.contact_phone && (

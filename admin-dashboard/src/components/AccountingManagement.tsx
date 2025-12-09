@@ -461,12 +461,12 @@ const AccountingManagement: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">순 수익</p>
-                  <p className={`text-2xl font-bold ${summary.net >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  <p className={`text-2xl font-bold ${summary.net >= 0 ? 'text-primary-600' : 'text-orange-600'}`}>
                     {formatCurrency(summary.net)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">수입 - 지출</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-blue-600" />
+                <DollarSign className="w-8 h-8 text-primary-600" />
               </div>
             </CardContent>
           </Card>
@@ -775,7 +775,7 @@ const AccountingManagement: React.FC = () => {
                 id="category_id"
                 value={newTransaction.category_id}
                 onChange={(e) => setNewTransaction({ ...newTransaction, category_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">계정과목 선택</option>
                 {(newTransaction.type === 'income' ? incomeCategories : expenseCategories).map((category) => (
@@ -829,7 +829,7 @@ const AccountingManagement: React.FC = () => {
                 id="payment_method"
                 value={newTransaction.payment_method}
                 onChange={(e) => setNewTransaction({ ...newTransaction, payment_method: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">선택</option>
                 <option value="cash">현금</option>

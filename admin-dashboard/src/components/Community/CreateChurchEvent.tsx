@@ -94,7 +94,7 @@ const CreateChurchEvent: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="예: 2024 부활절 특별예배"
                 required
               />
@@ -109,7 +109,7 @@ const CreateChurchEvent: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="행사에 대한 상세한 설명을 입력해주세요"
               />
             </div>
@@ -125,7 +125,7 @@ const CreateChurchEvent: React.FC = () => {
                     type="datetime-local"
                     value={formData.eventDate}
                     onChange={(e) => setFormData({...formData, eventDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     min={getTodayDate() + 'T00:00'}
                   />
                   <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -141,7 +141,7 @@ const CreateChurchEvent: React.FC = () => {
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="예: 사랑교회 본당"
                   />
                   <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -159,7 +159,7 @@ const CreateChurchEvent: React.FC = () => {
                   type="number"
                   value={formData.maxParticipants}
                   onChange={(e) => setFormData({...formData, maxParticipants: e.target.value})}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 100"
                   min="1"
                 />
@@ -183,7 +183,7 @@ const CreateChurchEvent: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -197,7 +197,7 @@ const CreateChurchEvent: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>
@@ -206,9 +206,9 @@ const CreateChurchEvent: React.FC = () => {
         </div>
 
         {/* 안내 사항 */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 교회 행사 등록 안내</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-primary-50 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-primary-900 mb-2">💡 교회 행사 등록 안내</h3>
+          <ul className="text-sm text-primary-800 space-y-1">
             <li>• 행사 제목과 설명을 명확하게 작성해주세요.</li>
             <li>• 행사 일시와 장소를 정확히 입력해주세요.</li>
             <li>• 담당자 연락처는 정확히 입력해주세요.</li>

@@ -221,7 +221,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 피아노 반주 가능한 연주자입니다"
                   required
                 />
@@ -235,7 +235,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                   type="text"
                   value={formData.teamName}
                   onChange={(e) => setFormData({...formData, teamName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 찬양팀, 워십팀, 솔로 활동 등"
                 />
               </div>
@@ -264,7 +264,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                 value={formData.experience}
                 onChange={(e) => setFormData({...formData, experience: e.target.value})}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="연주 경력, 교육 이수 내용, 활동 이력 등을 자유롭게 작성해주세요"
               />
             </div>
@@ -333,7 +333,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                     onClick={() => toggleDay(day)}
                     className={`px-3 py-2 text-xs rounded-md border transition-colors ${
                       formData.availableDays.includes(day)
-                        ? 'bg-blue-500 text-white border-blue-500'
+                        ? 'bg-primary-500 text-white border-primary-500'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -344,7 +344,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
               {formData.availableDays.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {formData.availableDays.map(day => (
-                    <span key={day} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                    <span key={day} className="inline-flex items-center px-2 py-1 rounded text-xs bg-primary-100 text-primary-800">
                       {day}
                     </span>
                   ))}
@@ -382,7 +382,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                 type="url"
                 value={formData.portfolio}
                 onChange={(e) => setFormData({...formData, portfolio: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="YouTube 연주 영상 링크를 입력하세요"
               />
             </div>
@@ -423,7 +423,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
               ) : (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
+                    <div className="w-8 h-8 bg-primary-100 rounded flex items-center justify-center mr-3">
                       📁
                     </div>
                     <div>
@@ -461,7 +461,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -475,7 +475,7 @@ const CreateMusicTeamSeeking: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>

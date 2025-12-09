@@ -305,7 +305,7 @@ const ChurchInfo: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-600">교회 홈페이지</h3>
                 <p className="mt-1 text-lg text-gray-900">
                   {church?.homepage_url ? (
-                    <a href={church.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    <a href={church.homepage_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                       {church.homepage_url}
                     </a>
                   ) : '-'}
@@ -315,7 +315,7 @@ const ChurchInfo: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-600">유튜브 채널</h3>
                 <p className="mt-1 text-lg text-gray-900">
                   {church?.youtube_channel ? (
-                    <a href={church.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    <a href={church.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                       {church.youtube_channel}
                     </a>
                   ) : '-'}

@@ -556,7 +556,7 @@ const SermonLibrary: React.FC = () => {
                     <div className="flex items-center space-x-2 mb-2">
                       {getFileIcon(material.file_type)}
                       <h3 
-                        className="font-semibold text-slate-900 line-clamp-1 hover:text-blue-600 cursor-pointer transition-colors"
+                        className="font-semibold text-slate-900 line-clamp-1 hover:text-primary-600 cursor-pointer transition-colors"
                         onClick={() => handleViewDetail(material)}
                       >
                         {material.title}
@@ -668,7 +668,7 @@ const SermonLibrary: React.FC = () => {
                       </td>
                       <td className="p-4">
                         <div 
-                          className="font-medium text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+                          className="font-medium text-slate-900 hover:text-primary-600 cursor-pointer transition-colors"
                           onClick={() => handleViewDetail(material)}
                         >
                           {material.title}
@@ -749,7 +749,7 @@ const SermonLibrary: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b border-slate-200 pb-4">
             <DialogTitle className="flex items-center space-x-2 text-xl">
-              <Plus className="w-5 h-5 text-blue-600" />
+              <Plus className="w-5 h-5 text-primary-600" />
               <span>새 설교 자료 등록</span>
             </DialogTitle>
             <DialogDescription className="text-slate-600 mt-2">
@@ -845,12 +845,12 @@ const SermonLibrary: React.FC = () => {
             <DialogTitle className="flex items-center space-x-2 text-xl">
               {editingMaterial ? (
                 <>
-                  <Edit className="w-5 h-5 text-blue-600" />
+                  <Edit className="w-5 h-5 text-primary-600" />
                   <span>파일 자료 수정</span>
                 </>
               ) : (
                 <>
-                  <Upload className="w-5 h-5 text-blue-600" />
+                  <Upload className="w-5 h-5 text-primary-600" />
                   <span>파일 업로드</span>
                 </>
               )}
@@ -871,18 +871,18 @@ const SermonLibrary: React.FC = () => {
                 
                 {editingMaterial ? (
                   // 편집 모드: 기존 파일 정보 표시
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
                     <div className="flex items-center space-x-2 mb-2">
                       {getFileIcon(editingMaterial.file_type)}
-                      <span className="text-sm font-medium text-blue-800">기존 파일</span>
+                      <span className="text-sm font-medium text-primary-800">기존 파일</span>
                     </div>
-                    <p className="text-blue-700 font-medium">
+                    <p className="text-primary-700 font-medium">
                       {editingMaterial.file_url?.split('/').pop()}
                     </p>
-                    <p className="text-xs text-blue-600 uppercase mt-1">
+                    <p className="text-xs text-primary-600 uppercase mt-1">
                       {editingMaterial.file_type} 파일
                     </p>
-                    <p className="text-xs text-blue-500 mt-2">파일은 변경되지 않으며, 메타데이터만 수정됩니다.</p>
+                    <p className="text-xs text-primary-500 mt-2">파일은 변경되지 않으며, 메타데이터만 수정됩니다.</p>
                   </div>
                 ) : (
                   // 새 업로드 모드: 파일 선택
@@ -1019,7 +1019,7 @@ const SermonLibrary: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b border-slate-200 pb-4">
             <DialogTitle className="flex items-center space-x-2 text-xl">
-              <Edit className="w-5 h-5 text-blue-600" />
+              <Edit className="w-5 h-5 text-primary-600" />
               <span>설교 자료 수정</span>
             </DialogTitle>
             <DialogDescription className="text-slate-600 mt-2">

@@ -90,11 +90,11 @@ const JobPostingDetail: React.FC = () => {
       label: '모집 직책',
       key: 'position',
       type: 'badge' as const,
-      color: 'bg-blue-100 text-blue-800',
+      color: 'bg-primary-100 text-primary-800',
       render: (value: string) => (
         <div className="flex items-center">
           <Briefcase className="h-4 w-4 mr-2" />
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
             {value}
           </span>
         </div>
@@ -154,10 +154,10 @@ const JobPostingDetail: React.FC = () => {
       key: 'churchIntro',
       type: 'text' as const,
       render: (value: string) => (
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-primary-50 p-4 rounded-lg">
           <div className="flex items-center mb-2">
-            <Building className="h-4 w-4 mr-2 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">교회 소개</span>
+            <Building className="h-4 w-4 mr-2 text-primary-600" />
+            <span className="text-sm font-medium text-primary-800">교회 소개</span>
           </div>
           <p className="text-gray-700 text-sm leading-relaxed">{value || '교회 소개가 없습니다.'}</p>
         </div>

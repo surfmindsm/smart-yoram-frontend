@@ -299,8 +299,8 @@ const ExcelManagement: React.FC = () => {
               <Card className="border-muted">
                 <CardContent className="p-6">
                   <div className="flex items-center mb-4">
-                    <div className="p-3 rounded-lg bg-blue-500/10">
-                      <BarChart3 className="h-6 w-6 text-blue-600" />
+                    <div className="p-3 rounded-lg bg-primary-500/10">
+                      <BarChart3 className="h-6 w-6 text-primary-600" />
                     </div>
                     <div className="ml-4">
                       <h4 className="text-base font-semibold text-foreground">출석 기록</h4>
@@ -347,13 +347,13 @@ const ExcelManagement: React.FC = () => {
       {/* Instructions */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground">사용 방법</h3>
-        <Card className="border-muted bg-blue-50/50">
+        <Card className="border-muted bg-primary-50/50">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="h-5 w-5 text-blue-600" />
-              <h4 className="font-medium text-blue-800">업로드 안내</h4>
+              <AlertTriangle className="h-5 w-5 text-primary-600" />
+              <h4 className="font-medium text-primary-800">업로드 안내</h4>
             </div>
-            <ul className="list-disc pl-5 space-y-1 text-blue-700">
+            <ul className="list-disc pl-5 space-y-1 text-primary-700">
               <li><strong>교인 업로드:</strong> 먼저 템플릿을 다운로드하여 양식을 확인하세요.</li>
               <li><strong>필수 필드:</strong> 이름, 성별, 전화번호는 반드시 입력해야 합니다.</li>
               <li><strong>전화번호 형식:</strong> 010-1234-5678 형태로 입력하세요.</li>

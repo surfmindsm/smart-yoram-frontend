@@ -320,7 +320,7 @@ const AnnouncementManagement: React.FC = () => {
                     )}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    <Badge variant="secondary" className="bg-primary-100 text-primary-800">
                       {getCategoryLabel(announcement.category)}
                     </Badge>
                     <span>작성자: {announcement.author_name || '관리자'}</span>

@@ -9,7 +9,7 @@ export function ProcessSection() {
       title: "도입 상담 신청",
       description: "간단한 교회 정보 입력 후 전담 매니저 배정",
       icon: "💬",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-primary-50"
     },
     {
       number: "②",
@@ -23,7 +23,7 @@ export function ProcessSection() {
       title: "서비스 시작",
       description: "교적·요람·커뮤니티 즉시 사용 가능",
       icon: "🚀",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-primary-50"
     }
   ];
 

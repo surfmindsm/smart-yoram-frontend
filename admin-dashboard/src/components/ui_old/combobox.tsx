@@ -149,9 +149,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
         className={`
           w-full flex items-center justify-between px-3 py-2 text-left
           border border-gray-300 rounded-md bg-white
-          hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500
+          hover:border-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500
           focus:outline-none transition-colors
-          ${isOpen ? 'border-blue-500 ring-1 ring-blue-500' : ''}
+          ${isOpen ? 'border-primary-500 ring-1 ring-primary-500' : ''}
         `}
       >
         <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
@@ -197,7 +197,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   setSelectedIndex(-1);
                 }}
                 onKeyDown={handleKeyDown}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
               />
             </div>
           </div>
@@ -220,8 +220,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   }}
                   className={`
                     w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none
-                    ${index === selectedIndex ? 'bg-blue-50 text-blue-700' : ''}
-                    ${option.value === value ? 'bg-blue-100 text-blue-800' : ''}
+                    ${index === selectedIndex ? 'bg-primary-50 text-primary-700' : ''}
+                    ${option.value === value ? 'bg-primary-100 text-primary-800' : ''}
                   `}
                 >
                   <div className="flex flex-col">

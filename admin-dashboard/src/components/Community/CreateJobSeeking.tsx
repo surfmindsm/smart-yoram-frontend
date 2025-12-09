@@ -204,7 +204,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 청년부 사역 경험있는 전도사입니다"
                   required
                 />
@@ -218,7 +218,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="실명을 입력하세요"
                   required
                 />
@@ -245,12 +245,12 @@ const CreateJobSeeking: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.ministryField.map((field, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-primary-100 text-primary-800">
                     {field}
                     <button
                       type="button"
                       onClick={() => removeMinistryField(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      className="ml-1 text-primary-600 hover:text-primary-800"
                     >
                       ×
                     </button>
@@ -270,7 +270,7 @@ const CreateJobSeeking: React.FC = () => {
                     type="text"
                     value={formData.education}
                     onChange={(e) => setFormData({...formData, education: e.target.value})}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="예: 00신학대학교 신학과 졸업"
                   />
                   <GraduationCap className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -285,7 +285,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="text"
                   value={formData.career}
                   onChange={(e) => setFormData({...formData, career: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 3년 (청년부 담당 2년, 교육부 1년)"
                 />
               </div>
@@ -301,7 +301,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="text"
                   value={certificationInput}
                   onChange={(e) => setCertificationInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 목사 안수, 전도사 자격증"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCertification())}
                 />
@@ -335,7 +335,7 @@ const CreateJobSeeking: React.FC = () => {
                     type="text"
                     value={locationInput}
                     onChange={(e) => setLocationInput(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="예: 서울, 경기도"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation())}
                   />
@@ -388,7 +388,7 @@ const CreateJobSeeking: React.FC = () => {
                 value={formData.introduction}
                 onChange={(e) => setFormData({...formData, introduction: e.target.value})}
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="자신의 사역 철학, 경험, 비전 등을 자유롭게 작성해주세요"
               />
             </div>
@@ -465,7 +465,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -479,7 +479,7 @@ const CreateJobSeeking: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>
@@ -488,9 +488,9 @@ const CreateJobSeeking: React.FC = () => {
         </div>
 
         {/* 안내 사항 */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 사역자 지원 안내</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-primary-50 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-primary-900 mb-2">💡 사역자 지원 안내</h3>
+          <ul className="text-sm text-primary-800 space-y-1">
             <li>• 정확한 정보를 기재해주시면 더 적합한 사역지를 찾을 수 있습니다.</li>
             <li>• 사역 분야와 희망 지역을 구체적으로 명시해주세요.</li>
             <li>• 자기소개서를 통해 자신의 사역 철학을 잘 표현해주세요.</li>

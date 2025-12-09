@@ -146,7 +146,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
             {post.comments !== undefined && (
               <button
                 onClick={handleCommentClick}
-                className="flex items-center hover:text-blue-500 transition-colors"
+                className="flex items-center hover:text-primary-500 transition-colors"
               >
                 <MessageCircle className="h-4 w-4 mr-1" />
                 <span>{post.comments || 0}</span>

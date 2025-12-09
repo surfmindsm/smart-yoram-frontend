@@ -169,7 +169,7 @@ const CreateJobPosting: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="예: 청년부 담당 전도사 모집"
                 required
               />
@@ -213,7 +213,7 @@ const CreateJobPosting: React.FC = () => {
                     type="text"
                     value={formData.salary}
                     onChange={(e) => setFormData({...formData, salary: e.target.value})}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="예: 월 300만원, 협의"
                   />
                   <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -282,7 +282,7 @@ const CreateJobPosting: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="담당하게 될 업무와 역할을 자세히 설명해주세요"
               />
             </div>
@@ -297,7 +297,7 @@ const CreateJobPosting: React.FC = () => {
                   type="text"
                   value={qualificationInput}
                   onChange={(e) => setQualificationInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 신학대 졸업, 목사 안수"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
                 />
@@ -305,14 +305,14 @@ const CreateJobPosting: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.qualifications.map((qual, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-primary-100 text-primary-800">
                     {qual}
                     <Button
                       type="button"
                       onClick={() => removeQualification(index)}
                       variant="ghost"
                       size="sm"
-                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
+                      className="ml-1 text-primary-600 hover:text-primary-800 h-4 w-4 p-0"
                     >
                       ×
                     </Button>
@@ -331,7 +331,7 @@ const CreateJobPosting: React.FC = () => {
                   type="text"
                   value={requirementInput}
                   onChange={(e) => setRequirementInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 청년 사역 경험, 찬양 가능"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
                 />
@@ -365,7 +365,7 @@ const CreateJobPosting: React.FC = () => {
                   type="text"
                   value={benefitInput}
                   onChange={(e) => setBenefitInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 4대보험, 연차, 숙소 제공"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
                 />
@@ -405,7 +405,7 @@ const CreateJobPosting: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -419,7 +419,7 @@ const CreateJobPosting: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>
@@ -428,9 +428,9 @@ const CreateJobPosting: React.FC = () => {
         </div>
 
         {/* 안내 사항 */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 사역자 모집 안내</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-primary-50 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-primary-900 mb-2">💡 사역자 모집 안내</h3>
+          <ul className="text-sm text-primary-800 space-y-1">
             <li>• 명확한 업무 내용과 자격 요건을 제시하면 적합한 지원자를 받을 수 있습니다.</li>
             <li>• 급여 조건과 복리후생을 구체적으로 명시해주세요.</li>
             <li>• 교회 소개를 통해 지원자가 교회 분위기를 파악할 수 있도록 해주세요.</li>

@@ -197,7 +197,7 @@ const CreateChurchEvents: React.FC = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="행사 제목을 입력하세요"
                 required
               />
@@ -225,7 +225,7 @@ const CreateChurchEvents: React.FC = () => {
                 name="event_date"
                 value={formData.eventDate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
             </div>
@@ -239,7 +239,7 @@ const CreateChurchEvents: React.FC = () => {
                 name="event_time"
                 value={formData.eventTime}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -252,7 +252,7 @@ const CreateChurchEvents: React.FC = () => {
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="행사 장소를 입력하세요"
               />
             </div>
@@ -267,7 +267,7 @@ const CreateChurchEvents: React.FC = () => {
                 value={formData.fee}
                 onChange={handleInputChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="0"
               />
             </div>
@@ -295,7 +295,7 @@ const CreateChurchEvents: React.FC = () => {
                   name="contactPhone"
                   value={formData.contactPhone}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -309,7 +309,7 @@ const CreateChurchEvents: React.FC = () => {
                   name="contactEmail"
                   value={formData.contactEmail}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="example@email.com"
                 />
               </div>
@@ -324,7 +324,7 @@ const CreateChurchEvents: React.FC = () => {
                 name="registration_required"
                 checked={formData.registration_required}
                 onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 text-primary-600 rounded focus:ring-primary-500"
               />
               <label htmlFor="registration_required" className="text-sm font-medium text-gray-700">
                 사전 신청 필요
@@ -342,7 +342,7 @@ const CreateChurchEvents: React.FC = () => {
                     name="registration_deadline"
                     value={formData.registration_deadline}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     required={formData.registration_required}
                   />
                 </div>
@@ -356,7 +356,7 @@ const CreateChurchEvents: React.FC = () => {
                     value={formData.max_participants || ''}
                     onChange={handleInputChange}
                     min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="제한 없음"
                   />
                 </div>
@@ -373,7 +373,7 @@ const CreateChurchEvents: React.FC = () => {
               value={formData.content}
               onChange={handleInputChange}
               rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="행사에 대한 자세한 내용을 입력하세요"
               required
             />
@@ -388,7 +388,7 @@ const CreateChurchEvents: React.FC = () => {
               value={formData.special_notes}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="준비물, 주의사항 등을 입력하세요"
             />
           </div>
@@ -402,7 +402,7 @@ const CreateChurchEvents: React.FC = () => {
               multiple
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             {formData.images.length > 0 && (
               <div className="mt-2 space-y-1">

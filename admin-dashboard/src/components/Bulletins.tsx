@@ -283,7 +283,7 @@ const Bulletins: React.FC = () => {
                         href={bulletin.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                        className="text-primary-600 hover:underline text-sm flex items-center gap-1"
                       >
                         <FileText className="w-3 h-3" />
                         파일 보기
@@ -374,7 +374,7 @@ const Bulletins: React.FC = () => {
               )}
               {editingBulletin?.file_url && !selectedFile && (
                 <p className="text-sm text-gray-600 mt-1">
-                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">보기</a>
+                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">보기</a>
                 </p>
               )}
             </div>

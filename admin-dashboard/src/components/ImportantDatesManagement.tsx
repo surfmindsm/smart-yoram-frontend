@@ -480,7 +480,7 @@ const ImportantDatesManagement: React.FC = () => {
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="text-lg font-semibold">{date.title}</h3>
                               {date.enable_dday_alert && (
-                                <Bell className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                <Bell className="h-4 w-4 text-primary-500 flex-shrink-0" />
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground space-y-1">

@@ -1293,7 +1293,7 @@ const MemberManagement: React.FC = () => {
             <Button
               onClick={downloadMembersExcel}
               variant="outline"
-              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+              className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
             >
               <Download className="w-4 h-4" />
               교인 데이터 다운로드
@@ -2825,8 +2825,8 @@ const MemberManagement: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-sm text-blue-800">
+            <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
+              <p className="text-sm text-primary-800">
                 <strong>안내:</strong> 엑셀 템플릿을 먼저 다운로드하여 작성한 후 업로드해주세요.
               </p>
             </div>

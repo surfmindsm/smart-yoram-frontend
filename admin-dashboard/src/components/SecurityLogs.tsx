@@ -259,7 +259,7 @@ const SecurityLogs: React.FC = () => {
 
   const getActionBadge = (action: string) => {
     const colors = {
-      view: 'bg-blue-100 text-blue-800',
+      view: 'bg-primary-100 text-primary-800',
       create: 'bg-green-100 text-green-800', 
       update: 'bg-yellow-100 text-yellow-800',
       delete: 'bg-red-100 text-red-800',
@@ -337,7 +337,7 @@ const SecurityLogs: React.FC = () => {
                 <p className="text-sm font-medium text-muted-foreground">전체 로그인</p>
                 <p className="text-2xl font-bold">{stats.totalLogins}</p>
               </div>
-              <Shield className="w-8 h-8 text-blue-600" />
+              <Shield className="w-8 h-8 text-primary-600" />
             </div>
           </CardContent>
         </Card>

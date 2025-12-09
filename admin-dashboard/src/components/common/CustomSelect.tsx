@@ -79,7 +79,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                 onClick={() => handleOptionClick(option.value)}
               >
                 <div className={`flex-1 justify-start text-sm font-medium font-['Pretendard'] leading-none whitespace-nowrap ${
-                  option.value === value ? 'text-blue-600' : 'text-gray-700'
+                  option.value === value ? 'text-primary-600' : 'text-gray-700'
                 }`}>
                   {option.label}
                 </div>

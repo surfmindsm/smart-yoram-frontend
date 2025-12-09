@@ -187,7 +187,7 @@ const PrayerRequestManagement: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
-      case 'answered': return 'bg-blue-100 text-blue-800';
+      case 'answered': return 'bg-primary-100 text-primary-800';
       case 'closed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -217,7 +217,7 @@ const PrayerRequestManagement: React.FC = () => {
   const getPrayerTypeColor = (type: string) => {
     switch (type) {
       case 'healing': return 'text-red-600';
-      case 'family': return 'text-blue-600';
+      case 'family': return 'text-primary-600';
       case 'work': return 'text-green-600';
       case 'spiritual': return 'text-purple-600';
       case 'thanksgiving': return 'text-yellow-600';
@@ -506,7 +506,7 @@ const PrayerRequestManagement: React.FC = () => {
               </div>
             )}
             {requests.filter(r => !r.isPublic).length > 0 && (
-              <div className="flex items-center space-x-2 text-blue-600">
+              <div className="flex items-center space-x-2 text-primary-600">
                 <Lock className="h-3 w-3" />
                 <span>비공개 요청 {requests.filter(r => !r.isPublic).length}건</span>
               </div>
@@ -543,7 +543,7 @@ const PrayerRequestManagement: React.FC = () => {
               <p className="text-slate-600">총 기도수</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-primary-600">
                 {requests.filter(r => r.isPublic).length}
               </p>
               <p className="text-slate-600">공개</p>
@@ -669,12 +669,12 @@ const PrayerRequestManagement: React.FC = () => {
                 </p>
                 
                 {request.answeredTestimony && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                  <div className="bg-primary-50 border border-primary-200 rounded-md p-3 mb-3">
                     <div className="flex items-center mb-2">
-                      <Star className="h-4 w-4 text-blue-600 mr-2" />
-                      <span className="text-sm font-medium text-blue-800">응답 간증</span>
+                      <Star className="h-4 w-4 text-primary-600 mr-2" />
+                      <span className="text-sm font-medium text-primary-800">응답 간증</span>
                     </div>
-                    <p className="text-blue-700 text-sm">{request.answeredTestimony}</p>
+                    <p className="text-primary-700 text-sm">{request.answeredTestimony}</p>
                   </div>
                 )}
                 
@@ -700,7 +700,7 @@ const PrayerRequestManagement: React.FC = () => {
                       "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
                       request.status === 'pending' ? "bg-yellow-100 text-yellow-800" :
                       request.status === 'approved' ? "bg-green-100 text-green-800" :
-                      request.status === 'active' ? "bg-blue-100 text-blue-800" :
+                      request.status === 'active' ? "bg-primary-100 text-primary-800" :
                       request.status === 'answered' ? "bg-purple-100 text-purple-800" :
                       "bg-gray-100 text-gray-800"
                     )}>
@@ -735,7 +735,7 @@ const PrayerRequestManagement: React.FC = () => {
                         }}
                         size="sm"
                         variant="outline"
-                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                        className="border-primary-300 text-primary-600 hover:bg-primary-50"
                       >
                         <FileText className="h-3 w-3 mr-1" />
                         기록
@@ -803,7 +803,7 @@ const PrayerRequestManagement: React.FC = () => {
               {selectedRequest.answeredTestimony && (
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-2">응답 간증</h3>
-                  <p className="text-slate-900 bg-blue-50 p-3 rounded-md">
+                  <p className="text-slate-900 bg-primary-50 p-3 rounded-md">
                     {selectedRequest.answeredTestimony}
                   </p>
                 </div>
@@ -913,12 +913,12 @@ const PrayerRequestManagement: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                <h3 className="text-sm font-medium text-blue-800 mb-2">기도 요청 내용</h3>
-                <p className="text-blue-700 text-sm">
+              <div className="bg-primary-50 border border-primary-200 rounded-md p-4">
+                <h3 className="text-sm font-medium text-primary-800 mb-2">기도 요청 내용</h3>
+                <p className="text-primary-700 text-sm">
                   <span className="font-medium">요청자:</span> {selectedRequest.requesterName}
                 </p>
-                <p className="text-blue-700 text-sm mt-1">{selectedRequest.prayerContent}</p>
+                <p className="text-primary-700 text-sm mt-1">{selectedRequest.prayerContent}</p>
               </div>
 
               <div>
@@ -929,7 +929,7 @@ const PrayerRequestManagement: React.FC = () => {
                   value={prayerRecord}
                   onChange={(e) => setPrayerRecord(e.target.value)}
                   placeholder="이 기도 요청에 대한 기도 내용, 느낀 점, 하나님의 응답 등을 기록해주세요..."
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   rows={6}
                 />
               </div>
@@ -1121,8 +1121,8 @@ const PrayerRequestManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                <p className="text-sm text-blue-800">
+              <div className="bg-primary-50 border border-primary-200 rounded-md p-4">
+                <p className="text-sm text-primary-800">
                   <strong>안내:</strong> 관리자가 등록하는 기도 요청은 승인 없이 바로 활성 상태가 됩니다.
                 </p>
               </div>

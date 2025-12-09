@@ -197,8 +197,8 @@ const Login: React.FC = () => {
               )}
 
               <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-8 h-8 text-primary-600" />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   <strong>{email}</strong>로 인증 코드를 발송했습니다.

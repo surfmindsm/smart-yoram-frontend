@@ -172,7 +172,7 @@ const SystemAnnouncementManagement: React.FC = () => {
       case 'important':
         return <Megaphone className="w-4 h-4 text-orange-500" />;
       default:
-        return <Info className="w-4 h-4 text-blue-500" />;
+        return <Info className="w-4 h-4 text-primary-500" />;
     }
   };
 
@@ -180,7 +180,7 @@ const SystemAnnouncementManagement: React.FC = () => {
     const colors = {
       urgent: 'bg-red-100 text-red-800',
       important: 'bg-orange-100 text-orange-800',
-      normal: 'bg-blue-100 text-blue-800'
+      normal: 'bg-primary-100 text-primary-800'
     };
     const labels = {
       urgent: '긴급',
@@ -207,7 +207,7 @@ const SystemAnnouncementManagement: React.FC = () => {
       case 'specific':
         const count = announcement.target_church_ids?.length || 0;
         return (
-          <Badge className="bg-blue-100 text-blue-800">
+          <Badge className="bg-primary-100 text-primary-800">
             <Users className="w-3 h-3 mr-1" />
             선택 교회 {count}개
           </Badge>

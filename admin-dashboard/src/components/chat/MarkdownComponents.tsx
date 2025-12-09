@@ -43,7 +43,7 @@ export const markdownComponents = {
     <p className="mb-4 leading-relaxed" {...props}>{children}</p>
   ),
   blockquote: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) => (
-    <blockquote className="border-l-4 border-blue-500 pl-4 py-2 mb-4 bg-blue-50 dark:bg-blue-900/20 italic" {...props}>
+    <blockquote className="border-l-4 border-primary-500 pl-4 py-2 mb-4 bg-primary-50 dark:bg-primary-900/20 italic" {...props}>
       {children}
     </blockquote>
   ),

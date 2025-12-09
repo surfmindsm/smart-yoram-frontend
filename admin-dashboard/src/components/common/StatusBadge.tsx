@@ -91,7 +91,7 @@ function getStatusIcon(status: CommunityStatus) {
  */
 function getStatusOutlineClass(status: CommunityStatus): string {
   const classMap: Record<CommunityStatus, string> = {
-    active: 'border border-blue-500 text-blue-700 bg-white',
+    active: 'border border-primary-500 text-primary-700 bg-white',
     completed: 'border border-green-500 text-green-700 bg-white',
     cancelled: 'border border-red-500 text-red-700 bg-white',
     paused: 'border border-yellow-500 text-yellow-700 bg-white'
@@ -105,7 +105,7 @@ function getStatusOutlineClass(status: CommunityStatus): string {
  */
 function getStatusSubtleClass(status: CommunityStatus): string {
   const classMap: Record<CommunityStatus, string> = {
-    active: 'text-blue-800 bg-blue-50',
+    active: 'text-primary-800 bg-primary-50',
     completed: 'text-green-800 bg-green-50',
     cancelled: 'text-red-800 bg-red-50',
     paused: 'text-yellow-800 bg-yellow-50'
@@ -142,7 +142,7 @@ export const StatusFilter: React.FC<{
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as CommunityStatus | 'all')}
-      className={`px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
+      className={`px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${className}`}
     >
       {filterOptions.map(option => (
         <option key={option.value} value={option.value}>

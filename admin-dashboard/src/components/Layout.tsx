@@ -490,7 +490,7 @@ const Layout: React.FC = () => {
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
                     expandedGroups[group.title]
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      ? "bg-primary-500 text-white hover:bg-primary-600"
                       : "text-slate-600 hover:bg-slate-50"
                   )}
                 >
@@ -531,14 +531,14 @@ const Layout: React.FC = () => {
                             className={cn(
                               "flex items-center gap-3 py-3 text-sm font-normal transition-colors relative",
                               isActive
-                                ? "bg-blue-50 text-blue-700 pl-4 pr-4"
+                                ? "bg-primary-50 text-primary-700 pl-4 pr-4"
                                 : "text-slate-600 hover:bg-slate-50 pl-4 pr-4"
                             )}
                           >
                             {isActive && (
-                              <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></span>
+                              <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600"></span>
                             )}
-                            <span className={cn(isActive ? "text-blue-700" : "text-slate-400")}>•</span>
+                            <span className={cn(isActive ? "text-primary-700" : "text-slate-400")}>•</span>
                             {item.name}
                           </Link>
                         );
@@ -555,7 +555,7 @@ const Layout: React.FC = () => {
           <div className="border-t border-slate-200 bg-white">
             {/* 도네이션 카드 */}
             <div className="p-3 border-b border-slate-200">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+              <div className="bg-gradient-to-br from-primary-50 to-indigo-50 rounded-lg p-3 border border-primary-100">
                 <div className="flex items-center gap-1.5 mb-2">
                   {/* <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" /> */}
                   <h3 className="text-xs font-semibold text-slate-900">후원 계좌</h3>
@@ -596,7 +596,7 @@ const Layout: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowBugReportModal(true)}
-                className="w-full flex items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors"
+                className="w-full flex items-center justify-center gap-2 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300 transition-colors"
               >
                 <HelpCircle className="h-4 w-4" />
                 <span className="text-sm font-medium">문의하기</span>
@@ -607,7 +607,7 @@ const Layout: React.FC = () => {
             <div className="p-3 pb-6">
               {userInfo ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                  <div className="flex-shrink-0 w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
                     {userInfo.name?.charAt(0) || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -682,7 +682,7 @@ const Layout: React.FC = () => {
               <>
                 <div className="mb-4">
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold text-blue-600">{loginHistory.length}</span>개의 로그인 기록이 검색되었습니다.
+                    <span className="font-semibold text-primary-600">{loginHistory.length}</span>개의 로그인 기록이 검색되었습니다.
                   </div>
                 </div>
 
@@ -733,12 +733,12 @@ const Layout: React.FC = () => {
               </div>
             )}
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
               <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                <Shield className="w-5 h-5 text-primary-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-blue-900 mb-1">보안 팁</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
+                  <h4 className="font-medium text-primary-900 mb-1">보안 팁</h4>
+                  <ul className="text-sm text-primary-800 space-y-1">
                     <li>• 익숙하지 않은 로그인 기록이 있다면 즉시 비밀번호를 변경하세요</li>
                     <li>• 공용 컴퓨터에서는 로그아웃을 반드시 해주세요</li>
                     <li>• 정기적으로 로그인 기록을 확인하는 것을 권장합니다</li>

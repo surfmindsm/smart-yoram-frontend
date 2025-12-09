@@ -231,7 +231,7 @@ const ChurchManagement: React.FC = () => {
       case 'inactive':
         return <Badge className="bg-gray-100 text-gray-700 border-gray-200">비활성</Badge>;
       case 'trial':
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">체험</Badge>;
+        return <Badge className="bg-primary-100 text-primary-700 border-primary-200">체험</Badge>;
       case 'suspended':
         return <Badge className="bg-red-100 text-red-700 border-red-200">정지</Badge>;
       default:
@@ -245,7 +245,7 @@ const ChurchManagement: React.FC = () => {
     }
     switch (plan) {
       case 'standard':
-        return <Badge className="bg-blue-500 text-white">스탠다드</Badge>;
+        return <Badge className="bg-primary-500 text-white">스탠다드</Badge>;
       case 'premium':
         return <Badge className="bg-purple-500 text-white">프리미엄</Badge>;
       case 'enterprise':
@@ -629,7 +629,7 @@ const ChurchManagement: React.FC = () => {
                   <label className="text-sm font-medium text-muted-foreground">교회 홈페이지</label>
                   <p className="text-foreground">
                     {selectedChurch.homepage_url ? (
-                      <a href={selectedChurch.homepage_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <a href={selectedChurch.homepage_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                         {selectedChurch.homepage_url}
                       </a>
                     ) : '미설정'}
@@ -639,7 +639,7 @@ const ChurchManagement: React.FC = () => {
                   <label className="text-sm font-medium text-muted-foreground">유튜브 채널</label>
                   <p className="text-foreground">
                     {selectedChurch.youtube_channel ? (
-                      <a href={selectedChurch.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <a href={selectedChurch.youtube_channel} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                         {selectedChurch.youtube_channel}
                       </a>
                     ) : '미설정'}

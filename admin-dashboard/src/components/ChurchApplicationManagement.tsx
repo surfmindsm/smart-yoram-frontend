@@ -241,8 +241,8 @@ const ChurchApplicationManagement: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-4 w-4 text-blue-600" />
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <Clock className="h-4 w-4 text-primary-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">검토중</p>
@@ -503,7 +503,7 @@ const ChurchApplicationManagement: React.FC = () => {
                     <div>
                       <Label>웹사이트</Label>
                       <p className="mt-1 text-sm">
-                        <a href={selectedApplication.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <a href={selectedApplication.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
                           {selectedApplication.website}
                         </a>
                       </p>
@@ -585,8 +585,8 @@ const ChurchApplicationManagement: React.FC = () => {
                   {selectedApplication.notes && (
                     <div className="mt-4">
                       <Label>검토 메모</Label>
-                      <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">{selectedApplication.notes}</p>
+                      <div className="mt-1 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                        <p className="text-sm text-primary-800">{selectedApplication.notes}</p>
                       </div>
                     </div>
                   )}

@@ -678,8 +678,8 @@ const DonationManagement: React.FC = () => {
       return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     }
     return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="w-4 h-4 text-blue-600" />
-      : <ArrowDown className="w-4 h-4 text-blue-600" />;
+      ? <ArrowUp className="w-4 h-4 text-primary-600" />
+      : <ArrowDown className="w-4 h-4 text-primary-600" />;
   };
 
   // 헌금 수정 함수
@@ -1301,8 +1301,8 @@ const DonationManagement: React.FC = () => {
                 <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-blue-500/10">
-                        <Receipt className="h-6 w-6 text-blue-500" />
+                      <div className="p-3 rounded-lg bg-primary-500/10">
+                        <Receipt className="h-6 w-6 text-primary-500" />
                       </div>
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">헌금 건수</p>

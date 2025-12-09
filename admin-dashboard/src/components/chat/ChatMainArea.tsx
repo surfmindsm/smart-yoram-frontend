@@ -200,7 +200,7 @@ const ChatMainArea: React.FC<ChatMainAreaProps> = ({
                       <p className="text-sm text-primary mb-2">
                         {agent.category}
                         {agent.category === 'secretary' && (
-                          <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                          <span className="ml-2 px-2 py-0.5 text-xs bg-primary-100 text-primary-700 rounded-full">
                             실시간 데이터 조회
                           </span>
                         )}

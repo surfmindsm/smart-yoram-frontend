@@ -44,7 +44,7 @@ const PrayerRequests: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'requesting':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary-100 text-primary-800';
       case 'ongoing':
         return 'bg-yellow-100 text-yellow-800';
       case 'answered':
@@ -74,7 +74,7 @@ const PrayerRequests: React.FC = () => {
       case 'family':
         return 'bg-pink-100 text-pink-800';
       case 'job':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary-100 text-primary-800';
       case 'church':
         return 'bg-purple-100 text-purple-800';
       default:
@@ -223,7 +223,7 @@ const PrayerRequests: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-3">
-                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-500">
+                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-primary-500">
                   <MessageCircle className="h-4 w-4 mr-1" />
                   조회 {request.view_count}
                 </Button>

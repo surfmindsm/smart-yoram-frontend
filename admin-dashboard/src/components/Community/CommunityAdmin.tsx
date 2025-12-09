@@ -155,7 +155,7 @@ const CommunityAdmin: React.FC = () => {
       case 'free-sharing':
         return { icon: Gift, color: 'text-green-600', bg: 'bg-green-50', label: '무료 나눔' };
       case 'item-request':
-        return { icon: HandHeart, color: 'text-blue-600', bg: 'bg-blue-50', label: '물품 요청' };
+        return { icon: HandHeart, color: 'text-primary-600', bg: 'bg-primary-50', label: '물품 요청' };
       case 'sharing-offer':
         return { icon: Share2, color: 'text-purple-600', bg: 'bg-purple-50', label: '나눔 제공' };
       case 'job-posting':
@@ -188,7 +188,7 @@ const CommunityAdmin: React.FC = () => {
       case 'blocked':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary-100 text-primary-800';
     }
   };
 
@@ -222,7 +222,7 @@ const CommunityAdmin: React.FC = () => {
               <p className="text-sm font-medium text-gray-600">전체 게시글</p>
               <p className="text-2xl font-bold text-gray-900">{posts.length}</p>
             </div>
-            <Users className="h-8 w-8 text-blue-600" />
+            <Users className="h-8 w-8 text-primary-600" />
           </div>
         </div>
         
@@ -274,7 +274,7 @@ const CommunityAdmin: React.FC = () => {
               placeholder="제목, 작성자, 교회명으로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
@@ -282,7 +282,7 @@ const CommunityAdmin: React.FC = () => {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             {postTypes.map(type => (
               <option key={type.value} value={type.value}>
@@ -295,7 +295,7 @@ const CommunityAdmin: React.FC = () => {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             {statusOptions.map(status => (
               <option key={status.value} value={status.value}>

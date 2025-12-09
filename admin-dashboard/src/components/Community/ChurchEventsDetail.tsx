@@ -127,7 +127,7 @@ const ChurchEventsDetail: React.FC = () => {
       type: 'badge' as const,
       color: newsItem?.priority === 'urgent' ? 'bg-red-100 text-red-800' :
              newsItem?.priority === 'important' ? 'bg-orange-100 text-orange-800' :
-             'bg-blue-100 text-blue-800'
+             'bg-primary-100 text-primary-800'
     },
     {
       label: '카테고리',

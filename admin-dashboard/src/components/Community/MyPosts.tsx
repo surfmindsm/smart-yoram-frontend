@@ -206,11 +206,11 @@ const MyPosts: React.FC = () => {
       case 'community-request':
         return {
           icon: HandHeart,
-          color: 'text-blue-600',
-          bg: 'bg-blue-50',
+          color: 'text-primary-600',
+          bg: 'bg-primary-50',
           label: '물품 요청',
           menu: '물품 요청',
-          chipColor: 'bg-blue-100 text-blue-800'
+          chipColor: 'bg-primary-100 text-primary-800'
         };
       case 'job-posts':
         return {
@@ -371,7 +371,7 @@ const MyPosts: React.FC = () => {
       case 'ongoing':
         return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary-100 text-primary-800';
     }
   };
 
@@ -435,7 +435,7 @@ const MyPosts: React.FC = () => {
               <select
                 value={post.status}
                 onChange={(e) => handleStatusChange(post, e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 onClick={(e) => e.stopPropagation()}
               >
                 <option value="active">
@@ -451,7 +451,7 @@ const MyPosts: React.FC = () => {
               onClick={() => handleEdit(post)}
               size="sm"
               variant="outline"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              className="text-primary-600 border-primary-200 hover:bg-primary-50"
             >
               <Edit className="h-4 w-4 mr-1" />
               수정
@@ -485,7 +485,7 @@ const MyPosts: React.FC = () => {
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
               />
             </div>
             <CustomSelect

@@ -16,6 +16,18 @@
     --primary: 199 89% 48%;
     --primary-foreground: 0 0% 100%;
 
+    /* Primary palette for consistent color usage */
+    --primary-50: 199 89% 97%;
+    --primary-100: 199 89% 92%;
+    --primary-200: 199 89% 84%;
+    --primary-300: 199 89% 72%;
+    --primary-400: 199 89% 60%;
+    --primary-500: 199 89% 48%;
+    --primary-600: 199 89% 40%;
+    --primary-700: 199 89% 32%;
+    --primary-800: 199 89% 24%;
+    --primary-900: 199 89% 16%;
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
@@ -53,6 +65,18 @@
 
     --primary: 199 89% 48%;
     --primary-foreground: 0 0% 100%;
+
+    /* Primary palette for consistent color usage */
+    --primary-50: 199 89% 97%;
+    --primary-100: 199 89% 92%;
+    --primary-200: 199 89% 84%;
+    --primary-300: 199 89% 72%;
+    --primary-400: 199 89% 60%;
+    --primary-500: 199 89% 48%;
+    --primary-600: 199 89% 40%;
+    --primary-700: 199 89% 32%;
+    --primary-800: 199 89% 24%;
+    --primary-900: 199 89% 16%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 0 0% 100%;

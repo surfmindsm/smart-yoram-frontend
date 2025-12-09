@@ -763,7 +763,7 @@ function ServiceCard({
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <h4 className="font-semibold text-gray-900">{service.name}</h4>
-          {service.is_online && <Monitor className="h-4 w-4 text-blue-600" />}
+          {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
           {!service.is_active && <span className="text-xs text-gray-500">(비활성)</span>}
         </div>
         <div className="mt-1 space-y-1 text-sm text-gray-600">

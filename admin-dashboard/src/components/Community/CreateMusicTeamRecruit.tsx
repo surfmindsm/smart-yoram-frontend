@@ -184,7 +184,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="예: 주일예배 피아니스트 모집"
                 required
               />
@@ -242,7 +242,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                     type="text"
                     value={formData.rehearsalSchedule}
                     onChange={(e) => setFormData({...formData, rehearsalSchedule: e.target.value})}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="예: 매주 토요일 오후 2시"
                   />
                   <Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -289,7 +289,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                   type="text"
                   value={formData.detailedAddress}
                   onChange={(e) => setFormData({...formData, detailedAddress: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: ○○교회, ○○빌딩 3층"
                 />
               </div>
@@ -311,7 +311,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="행사 내용, 분위기, 특별한 요구사항 등을 자세히 설명해주세요"
               />
             </div>
@@ -326,7 +326,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                   type="text"
                   value={requirementInput}
                   onChange={(e) => setRequirementInput(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 3년 이상 연주 경험, 악보 시창 가능"
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
                 />
@@ -334,14 +334,14 @@ const CreateMusicTeamRecruit: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.requirements.map((req, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                  <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs bg-primary-100 text-primary-800">
                     {req}
                     <Button
                       type="button"
                       onClick={() => removeRequirement(index)}
                       variant="ghost"
                       size="sm"
-                      className="ml-1 text-blue-600 hover:text-blue-800 h-4 w-4 p-0"
+                      className="ml-1 text-primary-600 hover:text-primary-800 h-4 w-4 p-0"
                     >
                       ×
                     </Button>
@@ -359,7 +359,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                 type="text"
                 value={formData.compensation}
                 onChange={(e) => setFormData({...formData, compensation: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="예: 회당 5만원, 봉사, 협의"
               />
             </div>
@@ -380,7 +380,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -394,7 +394,7 @@ const CreateMusicTeamRecruit: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>

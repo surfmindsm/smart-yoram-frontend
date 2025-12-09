@@ -76,7 +76,7 @@ const OrganizationTreeNode: React.FC<OrganizationTreeNodeProps> = ({
     <div className="w-full">
       <div
         className={`flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-          selected ? 'bg-blue-50 border border-blue-200' : ''
+          selected ? 'bg-primary-50 border border-primary-200' : ''
         }`}
         onClick={() => {
           onSelect(organization);
@@ -104,7 +104,7 @@ const OrganizationTreeNode: React.FC<OrganizationTreeNodeProps> = ({
             <div className="w-6" />
           )}
 
-          <Building2 className="w-5 h-5 text-blue-500" />
+          <Building2 className="w-5 h-5 text-primary-500" />
 
           <div>
             <h3 className="font-medium text-gray-900">{organization.name}</h3>
@@ -908,7 +908,7 @@ const OrganizationManagement: React.FC = () => {
             onClick={() => setActiveTab('organizations')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'organizations'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -919,7 +919,7 @@ const OrganizationManagement: React.FC = () => {
             onClick={() => setActiveTab('departments')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'departments'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -934,11 +934,11 @@ const OrganizationManagement: React.FC = () => {
       {activeTab === 'organizations' && (
         <div>
         {/* 조직 관리 안내 */}
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-3">
-          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+        <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-lg flex items-start space-x-3">
+          <Info className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
           <div>
-            <h4 className="text-sm font-semibold text-blue-900 mb-1">조직 관리란?</h4>
-            <p className="text-sm text-blue-800">
+            <h4 className="text-sm font-semibold text-primary-900 mb-1">조직 관리란?</h4>
+            <p className="text-sm text-primary-800">
               일반적으로 <strong>교구, 구역</strong> 등을 말합니다. 교회의 지역별 또는 계층별 조직 구조를 관리할 수 있습니다.
             </p>
           </div>

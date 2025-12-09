@@ -325,7 +325,7 @@ const PrayerRequests: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-blue-100 text-blue-800';
+      case 'active': return 'bg-primary-100 text-primary-800';
       case 'answered': return 'bg-green-100 text-green-800';
       case 'closed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -365,8 +365,8 @@ const PrayerRequests: React.FC = () => {
           <Card className="border-muted">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Heart className="h-6 w-6 text-blue-500" />
+                <div className="p-3 rounded-lg bg-primary-500/10">
+                  <Heart className="h-6 w-6 text-primary-500" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">전체 요청</p>
@@ -429,14 +429,14 @@ const PrayerRequests: React.FC = () => {
             <input
               type="text"
               placeholder="검색..."
-              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -447,7 +447,7 @@ const PrayerRequests: React.FC = () => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
@@ -460,7 +460,7 @@ const PrayerRequests: React.FC = () => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={urgentFilter}
             onChange={(e) => setUrgentFilter(e.target.value)}
           >
@@ -470,7 +470,7 @@ const PrayerRequests: React.FC = () => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={publicFilter}
             onChange={(e) => setPublicFilter(e.target.value)}
           >
@@ -676,7 +676,7 @@ const PrayerRequests: React.FC = () => {
                 <input
                   type="text"
                   className={cn(
-                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                     newRequest.memberId && "bg-gray-50 text-gray-600"
                   )}
                   value={newRequest.requesterName}
@@ -693,7 +693,7 @@ const PrayerRequests: React.FC = () => {
                 <input
                   type="text"
                   className={cn(
-                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                     newRequest.memberId && "bg-gray-50 text-gray-600"
                   )}
                   value={newRequest.requesterPhone}
@@ -708,7 +708,7 @@ const PrayerRequests: React.FC = () => {
                   기도 유형
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newRequest.prayerType}
                   onChange={(e) => setNewRequest({ ...newRequest, prayerType: e.target.value })}
                 >
@@ -726,7 +726,7 @@ const PrayerRequests: React.FC = () => {
                 </label>
                 <textarea
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newRequest.prayerContent}
                   onChange={(e) => setNewRequest({ ...newRequest, prayerContent: e.target.value })}
                 />
@@ -869,7 +869,7 @@ const PrayerRequests: React.FC = () => {
               {selectedRequest.adminNotes && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">관리자 메모</label>
-                  <p className="text-gray-900 whitespace-pre-wrap bg-blue-50 p-3 rounded-md border border-blue-200">{selectedRequest.adminNotes}</p>
+                  <p className="text-gray-900 whitespace-pre-wrap bg-primary-50 p-3 rounded-md border border-primary-200">{selectedRequest.adminNotes}</p>
                 </div>
               )}
             </div>

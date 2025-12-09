@@ -93,7 +93,7 @@ const SharingOfferDetail: React.FC = () => {
       key: 'condition',
       label: '상품 상태',
       type: 'badge' as const,
-      color: 'bg-blue-100 text-blue-800'
+      color: 'bg-primary-100 text-primary-800'
     },
     {
       key: 'userName',

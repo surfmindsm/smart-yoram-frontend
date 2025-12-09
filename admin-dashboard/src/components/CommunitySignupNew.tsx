@@ -542,7 +542,7 @@ const CommunitySignupNew: React.FC = () => {
                           확인
                         </Button>
                       </div>
-                      <p className="text-sm text-blue-600 mt-1">
+                      <p className="text-sm text-primary-600 mt-1">
                         {formData.email}로 발송된 6자리 인증 코드를 입력해주세요.
                       </p>
                     </div>
@@ -719,7 +719,7 @@ const CommunitySignupNew: React.FC = () => {
                         서비스 이용약관 동의 (필수) *
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        <Link to="/terms" target="_blank" className="text-blue-600 hover:underline">
+                        <Link to="/terms" target="_blank" className="text-primary-600 hover:underline">
                           이용약관 보기
                         </Link>
                       </p>
@@ -740,7 +740,7 @@ const CommunitySignupNew: React.FC = () => {
                         개인정보처리방침 동의 (필수) *
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        <Link to="/privacy" target="_blank" className="text-blue-600 hover:underline">
+                        <Link to="/privacy" target="_blank" className="text-primary-600 hover:underline">
                           개인정보처리방침 보기
                         </Link>
                       </p>

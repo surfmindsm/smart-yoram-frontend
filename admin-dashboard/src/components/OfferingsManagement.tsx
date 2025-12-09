@@ -399,8 +399,8 @@ const OfferingsManagement: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-primary-600" />
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">헌금 건수</p>
@@ -461,14 +461,14 @@ const OfferingsManagement: React.FC = () => {
             <input
               type="text"
               placeholder="검색..."
-              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={fundTypeFilter}
             onChange={(e) => setFundTypeFilter(e.target.value)}
           >
@@ -480,7 +480,7 @@ const OfferingsManagement: React.FC = () => {
 
           <input
             type="date"
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={dateFromFilter}
             onChange={(e) => setDateFromFilter(e.target.value)}
             placeholder="시작일"
@@ -488,7 +488,7 @@ const OfferingsManagement: React.FC = () => {
 
           <input
             type="date"
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={dateToFilter}
             onChange={(e) => setDateToFilter(e.target.value)}
             placeholder="종료일"
@@ -573,7 +573,7 @@ const OfferingsManagement: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                         {offering.fundType}
                       </span>
                     </td>
@@ -600,7 +600,7 @@ const OfferingsManagement: React.FC = () => {
                             setSelectedOffering(offering);
                             setShowDetailModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-primary-600 hover:text-primary-900"
                           title="상세보기"
                         >
                           <Eye className="h-4 w-4" />
@@ -650,7 +650,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newOffering.memberId}
                   onChange={(e) => setNewOffering({ ...newOffering, memberId: e.target.value })}
                   placeholder="교인 ID를 입력하세요"
@@ -663,7 +663,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newOffering.offeredOn}
                   onChange={(e) => setNewOffering({ ...newOffering, offeredOn: e.target.value })}
                 />
@@ -674,7 +674,7 @@ const OfferingsManagement: React.FC = () => {
                   헌금 유형 *
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newOffering.fundType}
                   onChange={(e) => setNewOffering({ ...newOffering, fundType: e.target.value })}
                 >
@@ -691,7 +691,7 @@ const OfferingsManagement: React.FC = () => {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newOffering.amount}
                   onChange={(e) => setNewOffering({ ...newOffering, amount: e.target.value })}
                   placeholder="헌금 금액을 입력하세요"
@@ -704,7 +704,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <textarea
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={newOffering.note}
                   onChange={(e) => setNewOffering({ ...newOffering, note: e.target.value })}
                   placeholder="추가 메모를 입력하세요"
@@ -842,7 +842,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={editOffering.memberId}
                   onChange={(e) => setEditOffering({ ...editOffering, memberId: e.target.value })}
                 />
@@ -854,7 +854,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={editOffering.offeredOn}
                   onChange={(e) => setEditOffering({ ...editOffering, offeredOn: e.target.value })}
                 />
@@ -865,7 +865,7 @@ const OfferingsManagement: React.FC = () => {
                   헌금 유형 *
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={editOffering.fundType}
                   onChange={(e) => setEditOffering({ ...editOffering, fundType: e.target.value })}
                 >
@@ -882,7 +882,7 @@ const OfferingsManagement: React.FC = () => {
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={editOffering.amount}
                   onChange={(e) => setEditOffering({ ...editOffering, amount: e.target.value })}
                 />
@@ -894,7 +894,7 @@ const OfferingsManagement: React.FC = () => {
                 </label>
                 <textarea
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={editOffering.note}
                   onChange={(e) => setEditOffering({ ...editOffering, note: e.target.value })}
                 />

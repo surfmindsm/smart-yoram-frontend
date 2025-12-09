@@ -24,7 +24,7 @@ const CreateCommunityPost: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/community')}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-primary-600 hover:text-primary-700"
           >
             커뮤니티 홈으로 돌아가기
           </button>
@@ -47,7 +47,7 @@ const CreateCommunityPost: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/community')}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-primary-600 hover:text-primary-700"
           >
             커뮤니티 홈으로 돌아가기
           </button>

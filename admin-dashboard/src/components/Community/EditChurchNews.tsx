@@ -65,7 +65,7 @@ const EditChurchNews: React.FC = () => {
   const priorities = [
     { value: 'urgent', label: '긴급', icon: <Bell className="w-4 h-4" />, color: 'text-red-600' },
     { value: 'important', label: '중요', icon: <Star className="w-4 h-4" />, color: 'text-orange-600' },
-    { value: 'normal', label: '일반', icon: <Megaphone className="w-4 h-4" />, color: 'text-blue-600' }
+    { value: 'normal', label: '일반', icon: <Megaphone className="w-4 h-4" />, color: 'text-primary-600' }
   ];
 
   const statusOptions = [
@@ -259,7 +259,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="행사 소식의 제목을 입력하세요"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
@@ -274,7 +274,7 @@ const EditChurchNews: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="행사 소식의 상세 내용을 입력하세요"
                 rows={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
@@ -289,7 +289,7 @@ const EditChurchNews: React.FC = () => {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 >
                   {categories.map(category => (
@@ -318,7 +318,7 @@ const EditChurchNews: React.FC = () => {
                       <div className={`
                         p-3 border-2 rounded-lg text-center transition-all
                         ${formData.priority === priority.value
-                          ? 'border-blue-500 bg-blue-50'
+                          ? 'border-primary-500 bg-primary-50'
                           : 'border-gray-200 hover:border-gray-300'
                         }
                       `}>
@@ -342,7 +342,7 @@ const EditChurchNews: React.FC = () => {
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 {statusOptions.map(status => (
                   <option key={status.value} value={status.value}>
@@ -368,7 +368,7 @@ const EditChurchNews: React.FC = () => {
                   name="eventDate"
                   value={formData.eventDate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
@@ -381,7 +381,7 @@ const EditChurchNews: React.FC = () => {
                   name="eventTime"
                   value={formData.eventTime}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -396,7 +396,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.location}
                 onChange={handleInputChange}
                 placeholder="행사가 열릴 장소를 입력하세요"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -410,7 +410,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.organizer}
                 onChange={handleInputChange}
                 placeholder="행사 주최자나 담당 부서를 입력하세요"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
@@ -426,7 +426,7 @@ const EditChurchNews: React.FC = () => {
                   value={formData.targetAudience}
                   onChange={handleInputChange}
                   placeholder="참여 대상을 입력하세요"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
@@ -440,7 +440,7 @@ const EditChurchNews: React.FC = () => {
                   value={formData.participationFee}
                   onChange={handleInputChange}
                   placeholder="참가비를 입력하세요 (예: 무료, 10,000원)"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -453,7 +453,7 @@ const EditChurchNews: React.FC = () => {
                   id="registrationRequired"
                   checked={formData.registrationRequired}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="registrationRequired" className="text-sm font-medium text-gray-700">
                   사전 등록 필요
@@ -470,7 +470,7 @@ const EditChurchNews: React.FC = () => {
                     name="registrationDeadline"
                     value={formData.registrationDeadline}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               )}
@@ -492,7 +492,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.contactPerson}
                 onChange={handleInputChange}
                 placeholder="담당자 이름"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -506,7 +506,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.contactPhone}
                 onChange={handleInputChange}
                 placeholder="010-0000-0000"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -520,7 +520,7 @@ const EditChurchNews: React.FC = () => {
                 value={formData.contactEmail}
                 onChange={handleInputChange}
                 placeholder="contact@church.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -542,7 +542,7 @@ const EditChurchNews: React.FC = () => {
                   }
                 }}
                 placeholder="태그를 입력하고 Enter를 누르세요"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
               <Button
                 type="button"
@@ -559,13 +559,13 @@ const EditChurchNews: React.FC = () => {
                 {formData.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-primary-100 text-primary-800 text-sm rounded-full"
                   >
                     {tag}
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
+                      className="ml-1 text-primary-600 hover:text-primary-800"
                     >
                       ×
                     </button>

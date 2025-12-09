@@ -188,7 +188,7 @@ const DailyVerses: React.FC = () => {
                   <p className="text-sm text-gray-600">전체 말씀</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total_verses}</p>
                 </div>
-                <BarChart3 className="w-8 h-8 text-blue-600" />
+                <BarChart3 className="w-8 h-8 text-primary-600" />
               </div>
             </CardContent>
           </Card>
@@ -222,10 +222,10 @@ const DailyVerses: React.FC = () => {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary-600" />
               <h3 className="text-lg font-semibold text-gray-900">현재 오늘의 말씀</h3>
             </div>
-            <blockquote className="text-lg italic text-gray-900 mb-2 pl-4 border-l-4 border-blue-600">
+            <blockquote className="text-lg italic text-gray-900 mb-2 pl-4 border-l-4 border-primary-600">
               {currentRandomVerse.verse}
             </blockquote>
             <p className="text-right text-gray-600 font-medium">

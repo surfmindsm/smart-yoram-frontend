@@ -32,7 +32,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
         return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'info':
       default:
-        return <Info className="h-5 w-5 text-blue-600" />;
+        return <Info className="h-5 w-5 text-primary-600" />;
     }
   };
 
@@ -46,7 +46,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
         return 'bg-yellow-50 border-yellow-200';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-primary-50 border-primary-200';
     }
   };
 

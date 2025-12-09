@@ -155,7 +155,7 @@ export const CommunityPagination: React.FC<CommunityPaginationProps> = ({
                 onClick={() => onPageChange(page)}
                 className={`px-3 py-2 rounded-md border text-sm font-medium ${
                   page === current_page
-                    ? 'border-blue-500 bg-blue-500 text-white'
+                    ? 'border-primary-500 bg-primary-500 text-white'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >

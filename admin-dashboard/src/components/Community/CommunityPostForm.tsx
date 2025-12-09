@@ -480,7 +480,7 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               value={value}
               onChange={(e) => handleInputChange(field.key, e.target.value)}
               placeholder={field.placeholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[120px]"
               maxLength={field.maxLength}
               required={field.required}
             />
@@ -551,7 +551,7 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
                 type="checkbox"
                 checked={value === true || value === 'true'}
                 onChange={(e) => handleInputChange(field.key, e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
               <span className="ml-2 text-sm font-medium text-gray-700">
                 {field.label}
@@ -573,7 +573,7 @@ const CommunityPostForm: React.FC<CommunityPostFormProps> = ({ config, onCancel 
               value={value}
               onChange={(e) => handleInputChange(field.key, e.target.value)}
               placeholder={field.placeholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               maxLength={field.maxLength}
               required={field.required}
             />

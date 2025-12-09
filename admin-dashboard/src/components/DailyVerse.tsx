@@ -177,13 +177,13 @@ const DailyVerse: React.FC = () => {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+              <BookOpen className="h-5 w-5 text-primary-600" />
               <h3 className="text-lg font-semibold text-gray-900">오늘의 말씀</h3>
             </div>
-            <blockquote className="text-lg text-gray-900 italic mb-3 pl-4 border-l-4 border-blue-600 leading-relaxed">
+            <blockquote className="text-lg text-gray-900 italic mb-3 pl-4 border-l-4 border-primary-600 leading-relaxed">
               "{todayVerse.verse}"
             </blockquote>
-            <cite className="text-blue-600 font-medium">
+            <cite className="text-primary-600 font-medium">
               - {todayVerse.reference}
             </cite>
           </CardContent>
@@ -273,7 +273,7 @@ const DailyVerse: React.FC = () => {
                         "{verse.verse}"
                       </blockquote>
                       <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <cite className="font-medium text-blue-600">
+                        <cite className="font-medium text-primary-600">
                           - {verse.reference}
                         </cite>
                         <Badge

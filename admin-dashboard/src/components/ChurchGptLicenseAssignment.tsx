@@ -167,7 +167,7 @@ export default function ChurchGptLicenseAssignment() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary-600">
                 {licenseStats.licenses_purchased}
               </div>
               <div className="text-sm text-gray-600">구매한 라이선스</div>

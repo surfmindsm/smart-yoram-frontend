@@ -210,7 +210,7 @@ const AnalyticsDashboard: React.FC = () => {
                     {formatNumber(usageStats.total_requests)}
                   </p>
                 </div>
-                <MessageSquare className="h-8 w-8 text-blue-500" />
+                <MessageSquare className="h-8 w-8 text-primary-500" />
               </div>
               <div className="flex items-center mt-4 text-sm">
                 {getGrowthIcon(usageStats.period_growth.requests)}
@@ -370,7 +370,7 @@ const AnalyticsDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-4 text-sm">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                          <div className="w-3 h-3 bg-primary-500 rounded-full mr-2"></div>
                           <span className="text-slate-600">
                             {formatNumber(trend.requests)} 요청
                           </span>
@@ -390,7 +390,7 @@ const AnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* 요약 인사이트 */}
-          <div className="bg-gradient-to-r from-primary/10 to-blue-50 rounded-lg p-6 border border-primary/30">
+          <div className="bg-gradient-to-r from-primary/10 to-primary-50 rounded-lg p-6 border border-primary/30">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">📊 이번 달 인사이트</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg">
@@ -405,7 +405,7 @@ const AnalyticsDashboard: React.FC = () => {
               
               <div className="bg-white p-4 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <Clock className="h-5 w-5 text-blue-500 mr-2" />
+                  <Clock className="h-5 w-5 text-primary-500 mr-2" />
                   <span className="font-medium text-slate-900">평균 응답시간</span>
                 </div>
                 <p className="text-sm text-slate-600">

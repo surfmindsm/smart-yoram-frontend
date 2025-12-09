@@ -87,7 +87,7 @@ const BugReportModal: React.FC<BugReportModalProps> = ({ open, onOpenChange }) =
               id="issue_type"
               value={issueType}
               onChange={(e) => setIssueType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {ISSUE_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -114,10 +114,10 @@ const BugReportModal: React.FC<BugReportModalProps> = ({ open, onOpenChange }) =
           </div>
 
           {/* 안내 메시지 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
-              <div className="text-xs text-blue-800">
+              <AlertCircle className="h-4 w-4 text-primary-600 mt-0.5" />
+              <div className="text-xs text-primary-800">
                 <p className="font-medium mb-1">안내사항</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>전달하신 문의는 관리자가 검토합니다</li>

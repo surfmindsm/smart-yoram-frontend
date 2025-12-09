@@ -407,11 +407,11 @@ const StatisticsDashboard: React.FC = () => {
                 </div>
                 <div className="text-sm text-green-700">총 신규 교인</div>
               </div>
-              <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
-                <div className="text-2xl font-bold text-blue-600">
+              <div className="text-center p-4 rounded-lg bg-primary-50 border border-primary-200">
+                <div className="text-2xl font-bold text-primary-600">
                   {memberGrowth.total_current_members}명
                 </div>
-                <div className="text-sm text-blue-700">현재 총 교인</div>
+                <div className="text-sm text-primary-700">현재 총 교인</div>
               </div>
               <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">

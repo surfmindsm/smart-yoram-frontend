@@ -108,7 +108,7 @@ const CreateItemRequest: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="요청할 물품의 제목을 입력하세요"
                 required
               />
@@ -124,7 +124,7 @@ const CreateItemRequest: React.FC = () => {
                   type="text"
                   value={formData.requestedItem}
                   onChange={(e) => setFormData({...formData, requestedItem: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="구체적인 물품명을 입력하세요"
                   required
                 />
@@ -153,7 +153,7 @@ const CreateItemRequest: React.FC = () => {
                   type="number"
                   value={formData.quantity}
                   onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   min="1"
                 />
               </div>
@@ -192,7 +192,7 @@ const CreateItemRequest: React.FC = () => {
                   type="text"
                   value={formData.maxBudget}
                   onChange={(e) => setFormData({...formData, maxBudget: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="예: 50,000원"
                 />
               </div>
@@ -240,7 +240,7 @@ const CreateItemRequest: React.FC = () => {
                 value={formData.reason}
                 onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="물품이 필요한 이유를 간단히 설명해주세요"
               />
             </div>
@@ -254,7 +254,7 @@ const CreateItemRequest: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="원하는 물품의 상세한 조건이나 상태를 설명해주세요"
               />
             </div>
@@ -269,7 +269,7 @@ const CreateItemRequest: React.FC = () => {
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                   required
                 />
@@ -282,7 +282,7 @@ const CreateItemRequest: React.FC = () => {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({...formData, contactEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
               </div>
@@ -291,9 +291,9 @@ const CreateItemRequest: React.FC = () => {
         </div>
 
         {/* 안내 사항 */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 물품 요청 안내</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-primary-50 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-primary-900 mb-2">💡 물품 요청 안내</h3>
+          <ul className="text-sm text-primary-800 space-y-1">
             <li>• 구체적인 물품명과 조건을 명시하면 더 좋은 응답을 받을 수 있습니다.</li>
             <li>• 필요일을 정확히 입력하여 적절한 시점에 연락받으세요.</li>
             <li>• 예산 범위를 제시하면 적절한 거래가 이루어질 수 있습니다.</li>

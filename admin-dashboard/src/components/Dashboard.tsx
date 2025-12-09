@@ -353,7 +353,7 @@ const Dashboard = React.memo(() => {
 
   // stats 배열을 useMemo로 최적화
   const stats = useMemo(() => [
-    { title: '전체 교인', value: dashboardData.totalMembers.toString(), Icon: Users, color: 'bg-blue-500' },
+    { title: '전체 교인', value: dashboardData.totalMembers.toString(), Icon: Users, color: 'bg-primary-500' },
     // { title: '오늘 출석', value: dashboardData.todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' }, // 임시로 주석처리
     { title: '이번 주 새가족', value: dashboardData.newMembersThisWeek.toString(), Icon: UserPlus, color: 'bg-purple-500' },
     { title: '활성 사용자', value: dashboardData.activeUsers.toString(), Icon: User, color: 'bg-yellow-500' },
@@ -366,7 +366,7 @@ const Dashboard = React.memo(() => {
       description: '교인 정보를 조회하고 관리합니다',
       Icon: Users,
       link: '/member-management',
-      color: 'bg-blue-500'
+      color: 'bg-primary-500'
     },
     {
       title: '심방관리',
@@ -439,7 +439,7 @@ const Dashboard = React.memo(() => {
           {(todos.todayBirthdays.length + todos.upcomingBirthdays.length +
             todos.todayPastoralCare.length + todos.upcomingPastoralCare.length +
             todos.upcomingImportantDates.length) > 0 && (
-            <Badge variant="default" className="bg-blue-500">
+            <Badge variant="default" className="bg-primary-500">
               {todos.todayBirthdays.length + todos.upcomingBirthdays.length +
                todos.todayPastoralCare.length + todos.upcomingPastoralCare.length +
                todos.upcomingImportantDates.length}
@@ -712,11 +712,11 @@ const Dashboard = React.memo(() => {
                   </div>
                   <div className="text-xs text-green-700">총 신규 교인</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="text-xl font-bold text-blue-600">
+                <div className="text-center p-3 rounded-lg bg-primary-50 border border-primary-200">
+                  <div className="text-xl font-bold text-primary-600">
                     {memberGrowth.total_current_members}명
                   </div>
-                  <div className="text-xs text-blue-700">현재 총 교인</div>
+                  <div className="text-xs text-primary-700">현재 총 교인</div>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
                   <div className="text-xl font-bold text-purple-600">

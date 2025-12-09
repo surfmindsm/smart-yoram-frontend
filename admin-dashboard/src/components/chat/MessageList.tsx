@@ -49,7 +49,7 @@ const MessageList: React.FC<MessageListProps> = memo(({ messages, isLoading, mes
             {/* 비서 에이전트 응답 헤더 */}
             {message.role === 'assistant' && message.is_secretary_agent && (
               <div className="mb-3 flex items-center space-x-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                   👩‍💼 비서 AI
                 </span>
                 {message.query_type && (
@@ -97,7 +97,7 @@ const MessageList: React.FC<MessageListProps> = memo(({ messages, isLoading, mes
                   ),
                   
                   a: ({children, href}) => (
-                    <a href={href} className="text-blue-600 hover:text-blue-700 underline" target="_blank" rel="noopener noreferrer">
+                    <a href={href} className="text-primary-600 hover:text-primary-700 underline" target="_blank" rel="noopener noreferrer">
                       {children}
                     </a>
                   ),

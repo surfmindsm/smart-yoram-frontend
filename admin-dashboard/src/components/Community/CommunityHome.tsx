@@ -60,7 +60,7 @@ const CommunityHome: React.FC = () => {
       case 'sharing':
         return { icon: Gift, color: 'text-green-600', bg: 'bg-green-50', label: '무료 나눔' };
       case 'request':
-        return { icon: HandHeart, color: 'text-blue-600', bg: 'bg-blue-50', label: '물품 요청' };
+        return { icon: HandHeart, color: 'text-primary-600', bg: 'bg-primary-50', label: '물품 요청' };
       case 'offer':
         return { icon: Share2, color: 'text-purple-600', bg: 'bg-purple-50', label: '나눔 제공' };
       default:
@@ -86,8 +86,8 @@ const CommunityHome: React.FC = () => {
               <p className="text-sm font-medium text-gray-600">전체 게시글</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total_posts}</p>
             </div>
-            <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 bg-primary-50 rounded-lg flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-primary-600" />
             </div>
           </div>
         </div>
@@ -120,10 +120,10 @@ const CommunityHome: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">활성 요청</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.active_requests}</p>
+              <p className="text-2xl font-bold text-primary-600">{stats.active_requests}</p>
             </div>
-            <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <HandHeart className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 bg-primary-50 rounded-lg flex items-center justify-center">
+              <HandHeart className="h-6 w-6 text-primary-600" />
             </div>
           </div>
         </div>
@@ -194,8 +194,8 @@ const CommunityHome: React.FC = () => {
               className="block p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
             >
               <div className="flex items-center">
-                <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
-                  <HandHeart className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 bg-primary-50 rounded-lg flex items-center justify-center mr-3">
+                  <HandHeart className="h-5 w-5 text-primary-600" />
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">물품 요청</h3>
@@ -225,7 +225,7 @@ const CommunityHome: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">최근 활동</h2>
-            <Link to="/community/all" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+            <Link to="/community/all" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
               전체 보기 →
             </Link>
           </div>
@@ -289,12 +289,12 @@ const CommunityHome: React.FC = () => {
       </div>
 
       {/* 안내 메시지 */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="mt-8 bg-primary-50 border border-primary-200 rounded-lg p-4">
         <div className="flex">
-          <Users2 className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+          <Users2 className="h-5 w-5 text-primary-600 mt-0.5 mr-3" />
           <div>
-            <h3 className="text-sm font-medium text-blue-900">커뮤니티 이용 안내</h3>
-            <div className="mt-1 text-sm text-blue-700">
+            <h3 className="text-sm font-medium text-primary-900">커뮤니티 이용 안내</h3>
+            <div className="mt-1 text-sm text-primary-700">
               <p>• 모든 게시글은 교회 관리자의 승인 후 게시됩니다.</p>
               <p>• 상업적 목적의 게시글은 금지되며, 순수한 나눔 목적으로만 이용해 주세요.</p>
               <p>• 개인정보 보호를 위해 연락처는 비공개 메시지로 주고받을 수 있습니다.</p>

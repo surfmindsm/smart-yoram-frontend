@@ -111,7 +111,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
       case 'important':
         return <Megaphone className="w-5 h-5 text-orange-500" />;
       default:
-        return <Info className="w-5 h-5 text-blue-500" />;
+        return <Info className="w-5 h-5 text-primary-500" />;
     }
   };
 
@@ -153,7 +153,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
                 </span>
               )}
               {currentAnnouncement.target_type === 'specific' && (
-                <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
+                <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded">
                   선택 교회
                 </span>
               )}
@@ -165,7 +165,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
               <span className={`text-xs px-2 py-1 rounded ${
                 currentAnnouncement.priority === 'urgent' ? 'bg-red-100 text-red-800' :
                 currentAnnouncement.priority === 'important' ? 'bg-orange-100 text-orange-800' :
-                'bg-blue-100 text-blue-800'
+                'bg-primary-100 text-primary-800'
               }`}>
                 {currentAnnouncement.priority === 'urgent' ? '긴급' :
                  currentAnnouncement.priority === 'important' ? '중요' : '일반'}

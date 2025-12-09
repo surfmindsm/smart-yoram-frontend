@@ -646,7 +646,7 @@ const SermonManagement: React.FC = () => {
                 <p className="text-sm text-muted-foreground">전체 설교</p>
                 <p className="text-2xl font-bold">{sermons.length}</p>
               </div>
-              <BarChart3 className="w-8 h-8 text-blue-500" />
+              <BarChart3 className="w-8 h-8 text-primary-500" />
             </div>
           </CardContent>
         </Card>

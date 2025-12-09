@@ -181,9 +181,9 @@ const CommunitySignup: React.FC = () => {
                   승인 후 이메일로 받은 아이디/비밀번호로 <strong>모바일 앱에서만 로그인</strong>하실 수 있습니다.
                 </p>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">다음 단계</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="bg-primary-50 p-4 rounded-lg">
+                <h4 className="font-medium text-primary-900 mb-2">다음 단계</h4>
+                <ul className="text-sm text-primary-800 space-y-1">
                   <li>• 관리자가 신청 내용을 검토합니다 (1-2일 소요)</li>
                   <li>• 승인 시 로그인 정보를 이메일로 발송합니다</li>
                   <li>• 이메일을 받으면 모바일 앱을 다운로드하세요</li>
@@ -225,9 +225,9 @@ const CommunitySignup: React.FC = () => {
                 </CardDescription>
               </div>
             </div>
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+            <Alert className="bg-primary-50 border-primary-200">
+              <AlertCircle className="h-4 w-4 text-primary-600" />
+              <AlertDescription className="text-primary-800">
                 <strong>📱 모바일 앱 전용 서비스</strong>
                 <br />
                 커뮤니티 회원은 웹 로그인이 불가능합니다. 승인 후 모바일 앱을 다운로드하여 이용해주세요.
@@ -393,7 +393,7 @@ const CommunitySignup: React.FC = () => {
                       />
                       <Label 
                         htmlFor="file-upload"
-                        className="cursor-pointer text-blue-600 hover:text-blue-500"
+                        className="cursor-pointer text-primary-600 hover:text-primary-500"
                       >
                         파일 선택
                       </Label>

@@ -390,8 +390,8 @@ const PastoralCareManagement: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      case 'scheduled': return 'bg-purple-100 text-purple-800';
+      case 'approved': return 'bg-primary-100 text-primary-800';
+      case 'scheduled': return 'bg-primary-100 text-primary-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -1103,8 +1103,8 @@ const PastoralCareManagement: React.FC = () => {
             <Card className="border-muted">
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-purple-500/10">
-                    <Calendar className="h-6 w-6 text-purple-500" />
+                  <div className="p-3 rounded-lg bg-primary-500/10">
+                    <Calendar className="h-6 w-6 text-primary-500" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">예정됨</p>
@@ -1173,8 +1173,8 @@ const PastoralCareManagement: React.FC = () => {
             <Card className="border-muted">
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-blue-500/10">
-                    <Calendar className="h-6 w-6 text-blue-500" />
+                  <div className="p-3 rounded-lg bg-primary-500/10">
+                    <Calendar className="h-6 w-6 text-primary-500" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">이번 달</p>
@@ -1210,8 +1210,8 @@ const PastoralCareManagement: React.FC = () => {
             <Card className="border-muted">
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-purple-500/10">
-                    <FileText className="h-6 w-6 text-purple-500" />
+                  <div className="p-3 rounded-lg bg-primary-500/10">
+                    <FileText className="h-6 w-6 text-primary-500" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">일지 작성</p>
@@ -1245,9 +1245,9 @@ const PastoralCareManagement: React.FC = () => {
         {showFilters && (
           <div className="space-y-4 pt-4 border-t border-slate-200">
             {/* 🆕 위치 기반 검색 섽션 - 주석처리 */}
-            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-blue-800 flex items-center">
+                <h4 className="text-sm font-medium text-primary-800 flex items-center">
                   <MapPin className="h-4 w-4 mr-2" />
                   위치 기반 검색
                 </h4>
@@ -1256,7 +1256,7 @@ const PastoralCareManagement: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={getCurrentLocation}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    className="text-primary-600 border-primary-300 hover:bg-primary-100"
                   >
                     <Navigation className="h-3 w-3 mr-1" />
                     현재 위치
@@ -1273,29 +1273,29 @@ const PastoralCareManagement: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-blue-700 mb-1">위도</label>
+                  <label className="block text-xs font-medium text-primary-700 mb-1">위도</label>
                   <input
                     type="number"
                     step="0.0000001"
                     value={searchLocation.latitude}
                     onChange={(e) => setSearchLocation({...searchLocation, latitude: parseFloat(e.target.value) || 0})}
-                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="37.5665"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-blue-700 mb-1">경도</label>
+                  <label className="block text-xs font-medium text-primary-700 mb-1">경도</label>
                   <input
                     type="number"
                     step="0.0000001"
                     value={searchLocation.longitude}
                     onChange={(e) => setSearchLocation({...searchLocation, longitude: parseFloat(e.target.value) || 0})}
-                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="126.9780"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-blue-700 mb-1">반경 (km)</label>
+                  <label className="block text-xs font-medium text-primary-700 mb-1">반경 (km)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -1303,14 +1303,14 @@ const PastoralCareManagement: React.FC = () => {
                     max="50"
                     value={searchLocation.radius_km}
                     onChange={(e) => setSearchLocation({...searchLocation, radius_km: parseFloat(e.target.value) || 5.0})}
-                    className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="5.0"
                   />
                 </div>
               </div>
               
               {locationSearchResults.length > 0 && (
-                <div className="mt-3 text-xs text-blue-700">
+                <div className="mt-3 text-xs text-primary-700">
                   검색 결과: {locationSearchResults.length}건 (거리순 정렬)
                 </div>
               )}
@@ -1342,7 +1342,7 @@ const PastoralCareManagement: React.FC = () => {
                   size="sm"
                   variant="outline"
                   onClick={loadPastoralCareRequests}
-                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                  className="text-primary-600 border-primary-300 hover:bg-primary-50"
                 >
                   <User className="h-3 w-3 mr-1" />
                   전체 요청 다시 로드
@@ -1563,7 +1563,7 @@ const PastoralCareManagement: React.FC = () => {
                             e.stopPropagation();
                             handleAssignPastor(request);
                           }}
-                          className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           담당자배정
                         </button>
@@ -1576,7 +1576,7 @@ const PastoralCareManagement: React.FC = () => {
                               setSelectedRequest(request);
                               setShowCompletionModal(true);
                             }}
-                            className="px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             완료처리
                           </button>
@@ -1585,7 +1585,7 @@ const PastoralCareManagement: React.FC = () => {
                               e.stopPropagation();
                               handlePrintCard(request);
                             }}
-                            className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             카드인쇄
                           </button>
@@ -1697,7 +1697,7 @@ const PastoralCareManagement: React.FC = () => {
             <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
               <span>총 {filteredRecords.length}건의 심방 기록</span>
               {(personFilter || dateFromFilter || dateToFilter || priorityFilter !== 'all' || typeFilter !== 'all') && (
-                <span className="text-blue-600">필터 적용 중</span>
+                <span className="text-primary-600">필터 적용 중</span>
               )}
             </div>
             </CardContent>
@@ -1896,8 +1896,8 @@ const PastoralCareManagement: React.FC = () => {
 
               {/* 🆕 위치 정보 섹션 개선 */}
               {(selectedRequest.address || selectedRequest.contactInfo || selectedRequest.isUrgent) && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+                <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-primary-800 mb-3 flex items-center">
                     <MapPin className="h-5 w-5 mr-2" />
                     위치 및 추가 정보
                   </h3>
@@ -1905,9 +1905,9 @@ const PastoralCareManagement: React.FC = () => {
                     {selectedRequest.address && (
                       <div className="bg-white rounded-md p-3">
                         <div className="flex items-start space-x-3">
-                          <MapPin className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+                          <MapPin className="h-5 w-5 text-primary-600 mt-1 flex-shrink-0" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-800 mb-1">방문 주소</p>
+                            <p className="text-sm font-medium text-primary-800 mb-1">방문 주소</p>
                             <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.address}</p>
                           </div>
                         </div>
@@ -1932,7 +1932,7 @@ const PastoralCareManagement: React.FC = () => {
                         </div>
                       )}
                       {selectedRequest.distanceKm && (
-                        <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                        <div className="flex items-center space-x-2 bg-primary-100 text-primary-800 px-3 py-1 rounded-full">
                           <Target className="h-4 w-4" />
                           <span className="text-sm font-medium">거리: {formatDistance(selectedRequest.distanceKm)}</span>
                         </div>
@@ -2433,10 +2433,10 @@ const PastoralCareManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
                 <div className="flex items-start">
-                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-2" />
-                  <div className="text-sm text-blue-800">
+                  <AlertCircle className="h-4 w-4 text-primary-600 mt-0.5 mr-2" />
+                  <div className="text-sm text-primary-800">
                     <p className="font-medium mb-1">심방 일지 작성 가이드</p>
                     <ul className="text-xs space-y-0.5">
                       <li>• 신청자의 현재 상황과 필요 사항을 구체적으로 기록</li>
@@ -2535,11 +2535,11 @@ const PastoralCareManagement: React.FC = () => {
                   </h4>
                   <div className="space-y-3">
                     {selectedRecord.address && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                      <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
                         <div className="flex items-start space-x-2">
-                          <MapPin className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+                          <MapPin className="h-4 w-4 text-primary-600 mt-1 flex-shrink-0" />
                           <div>
-                            <p className="text-sm font-medium text-blue-800 mb-1">방문 주소</p>
+                            <p className="text-sm font-medium text-primary-800 mb-1">방문 주소</p>
                             <p className="text-slate-900 leading-relaxed">{selectedRecord.address}</p>
                           </div>
                         </div>
@@ -2680,7 +2680,7 @@ const PastoralCareManagement: React.FC = () => {
                       onChange={(e) => setNewRequest({...newRequest, requesterName: e.target.value})}
                       readOnly={!!newRequest.memberId}
                       className={cn(
-                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                         newRequest.memberId && "bg-gray-50 text-gray-600"
                       )}
                       placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "신청자 성명 직접 입력"}
@@ -2696,7 +2696,7 @@ const PastoralCareManagement: React.FC = () => {
                       onChange={(e) => setNewRequest({...newRequest, requesterPhone: e.target.value})}
                       readOnly={!!newRequest.memberId}
                       className={cn(
-                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                         newRequest.memberId && "bg-gray-50 text-gray-600"
                       )}
                       placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "010-0000-0000"}
@@ -2712,7 +2712,7 @@ const PastoralCareManagement: React.FC = () => {
                   <select
                     value={newRequest.requestType}
                     onChange={(e) => setNewRequest({...newRequest, requestType: e.target.value as 'general' | 'urgent' | 'hospital' | 'counseling'})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="general">일반 심방</option>
                     <option value="urgent">긴급 심방</option>
@@ -2725,7 +2725,7 @@ const PastoralCareManagement: React.FC = () => {
                   <select
                     value={newRequest.priority}
                     onChange={(e) => setNewRequest({...newRequest, priority: e.target.value as 'urgent' | 'high' | 'normal' | 'low'})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="low">낮음</option>
                     <option value="normal">보통</option>
@@ -2743,7 +2743,7 @@ const PastoralCareManagement: React.FC = () => {
                 <textarea
                   value={newRequest.requestContent}
                   onChange={(e) => setNewRequest({...newRequest, requestContent: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   rows={4}
                   placeholder="심방이 필요한 이유나 상황을 자세히 입력해주세요..."
                 />
@@ -2759,7 +2759,7 @@ const PastoralCareManagement: React.FC = () => {
                       type="date"
                       value={newRequest.preferredDate}
                       onChange={(e) => setNewRequest({...newRequest, preferredDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -2768,7 +2768,7 @@ const PastoralCareManagement: React.FC = () => {
                       type="time"
                       value={newRequest.preferredTimeStart}
                       onChange={(e) => setNewRequest({...newRequest, preferredTimeStart: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -2786,7 +2786,7 @@ const PastoralCareManagement: React.FC = () => {
                       onChange={(e) => setNewRequest({...newRequest, address: e.target.value})}
                       readOnly={!!newRequest.memberId}
                       className={cn(
-                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
                         newRequest.memberId && "bg-gray-50 text-gray-600"
                       )}
                       placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "예: 서울특별시 강남구 테헤란로 123"}
@@ -2798,7 +2798,7 @@ const PastoralCareManagement: React.FC = () => {
                       type="text"
                       value={newRequest.contactInfo}
                       onChange={(e) => setNewRequest({...newRequest, contactInfo: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       placeholder="예: 가족 연락처, 특이사항 등"
                     />
                   </div>
@@ -2808,7 +2808,7 @@ const PastoralCareManagement: React.FC = () => {
                       id="isUrgent"
                       checked={newRequest.isUrgent}
                       onChange={(e) => setNewRequest({...newRequest, isUrgent: e.target.checked})}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
                     />
                     <label htmlFor="isUrgent" className="ml-2 block text-sm text-slate-900">
                       긴급 요청으로 표시

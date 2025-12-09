@@ -282,7 +282,7 @@ const AdminRoleManagement: React.FC = () => {
                       ) : (
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           user.role === ROLES.SUPER_ADMIN ? 'bg-purple-100 text-purple-800' :
-                          user.role === ROLES.CHURCH_SUPER_ADMIN ? 'bg-blue-100 text-blue-800' :
+                          user.role === ROLES.CHURCH_SUPER_ADMIN ? 'bg-primary-100 text-primary-800' :
                           user.role === ROLES.CHURCH_ADMIN ? 'bg-green-100 text-green-800' :
                           user.role === ROLES.COMMUNITY_ADMIN ? 'bg-orange-100 text-orange-800' :
                           'bg-muted text-muted-foreground'
@@ -347,10 +347,10 @@ const AdminRoleManagement: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-muted bg-blue-50/50">
+      <Card className="border-muted bg-primary-50/50">
         <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-blue-800 mb-2">역할 설명</h3>
-          <ul className="text-sm text-blue-700 space-y-1">
+          <h3 className="text-sm font-semibold text-primary-800 mb-2">역할 설명</h3>
+          <ul className="text-sm text-primary-700 space-y-1">
             <li><strong>교회 최고 관리자:</strong> 모든 교회 기능 관리 + 다른 관리자 권한 부여</li>
             <li><strong>교회 관리자:</strong> 교회 관리 기능 접근 (교인 관리, 출석, 헌금 등)</li>
             <li><strong>교인:</strong> 관리자 페이지 접근 불가 (일반 앱 사용자)</li>
