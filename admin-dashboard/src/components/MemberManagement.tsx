@@ -164,6 +164,8 @@ const MemberManagement: React.FC = () => {
   const [showExcelImportModal, setShowExcelImportModal] = useState(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [excelPreviewData, setExcelPreviewData] = useState<any[] | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   
   // View and pagination states
   const [viewType, setViewType] = useState<'grid'>('grid');
@@ -1064,6 +1066,46 @@ const MemberManagement: React.FC = () => {
 
     // 엑셀 파일 다운로드
     XLSX.writeFile(workbook, fileName);
+  };
+
+  const handleExcelPreview = async () => {
+    if (!excelFile) {
+      alert('파일을 선택해주세요.');
+      return;
+    }
+
+    setIsPreviewLoading(true);
+
+    try {
+      // 엑셀 파일 읽기
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 첫 번째 시트 읽기
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // JSON으로 변환 (헤더 포함)
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonData.length < 2) {
+        alert('엑셀 파일에 데이터가 없습니다.');
+        setIsPreviewLoading(false);
+        return;
+      }
+
+      // 헤더와 데이터 분리 (최대 5행만)
+      const headers = jsonData[0];
+      const previewRows = jsonData.slice(1, 6); // 최대 5행
+
+      // 미리보기 데이터 저장 (헤더 + 데이터)
+      setExcelPreviewData([headers, ...previewRows]);
+    } catch (error: any) {
+      console.error('파일 미리보기 실패:', error);
+      alert(`파일을 읽는 중 오류가 발생했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
+    } finally {
+      setIsPreviewLoading(false);
+    }
   };
 
   const handleExcelImport = async () => {
@@ -2813,9 +2855,15 @@ const MemberManagement: React.FC = () => {
       </Dialog>
 
       {/* Excel Import Modal */}
-      <Dialog open={showExcelImportModal} onOpenChange={setShowExcelImportModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+      <Dialog open={showExcelImportModal} onOpenChange={(open) => {
+        setShowExcelImportModal(open);
+        if (!open) {
+          setExcelFile(null);
+          setExcelPreviewData(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5" />
               엑셀 일괄 등록
@@ -2824,13 +2872,13 @@ const MemberManagement: React.FC = () => {
               엑셀 파일을 사용하여 여러 교인을 한번에 등록할 수 있습니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
             <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
               <p className="text-sm text-primary-800">
                 <strong>안내:</strong> 엑셀 템플릿을 먼저 다운로드하여 작성한 후 업로드해주세요.
               </p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 엑셀 파일 선택
@@ -2840,14 +2888,17 @@ const MemberManagement: React.FC = () => {
                 accept=".csv,.xlsx,.xls"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) setExcelFile(file);
+                  if (file) {
+                    setExcelFile(file);
+                    setExcelPreviewData(null); // 새 파일 선택 시 미리보기 초기화
+                  }
                 }}
               />
               <p className="text-xs text-gray-600 mt-1">
                 CSV, XLSX, XLS 파일만 가능
               </p>
             </div>
-            
+
             {excelFile && (
               <div className="bg-green-50 border border-green-200 rounded-md p-3">
                 <p className="text-sm text-green-800">
@@ -2855,36 +2906,107 @@ const MemberManagement: React.FC = () => {
                 </p>
               </div>
             )}
-            
-            <div className="flex justify-end space-x-2">
-              <Button
-                onClick={() => {
-                  setShowExcelImportModal(false);
-                  setExcelFile(null);
-                }}
-                variant="outline"
-                disabled={isImporting}
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleExcelImport}
-                disabled={!excelFile || isImporting}
-                className="flex items-center gap-2"
-              >
-                {isImporting ? (
-                  <>
-                    <Spinner size="sm" variant="white" />
-                    등록 중...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    등록 시작
-                  </>
-                )}
-              </Button>
-            </div>
+
+            {excelFile && !excelPreviewData && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleExcelPreview}
+                  disabled={isPreviewLoading}
+                  className="flex items-center gap-2"
+                  variant="outline"
+                >
+                  {isPreviewLoading ? (
+                    <>
+                      <Spinner size="sm" />
+                      미리보기 로딩 중...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      미리보기 (5행)
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {excelPreviewData && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between flex-shrink-0">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    데이터 미리보기 (최대 5행)
+                  </h3>
+                  <Button
+                    onClick={() => setExcelPreviewData(null)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    닫기
+                  </Button>
+                </div>
+                <div className="border rounded-md overflow-x-auto bg-white" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <table className="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        {excelPreviewData[0].map((header: any, idx: number) => (
+                          <th
+                            key={idx}
+                            className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap border-r border-gray-200 last:border-r-0"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {excelPreviewData.slice(1).map((row: any[], rowIdx: number) => (
+                        <tr key={rowIdx} className="hover:bg-gray-50">
+                          {row.map((cell: any, cellIdx: number) => (
+                            <td
+                              key={cellIdx}
+                              className="px-3 py-2 text-gray-900 whitespace-nowrap border-r border-gray-100 last:border-r-0"
+                            >
+                              {cell ?? '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t flex-shrink-0">
+            <Button
+              onClick={() => {
+                setShowExcelImportModal(false);
+                setExcelFile(null);
+                setExcelPreviewData(null);
+              }}
+              variant="outline"
+              disabled={isImporting}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleExcelImport}
+              disabled={!excelPreviewData || isImporting}
+              className="flex items-center gap-2"
+            >
+              {isImporting ? (
+                <>
+                  <Spinner size="sm" variant="white" />
+                  등록 중...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  등록 시작
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
