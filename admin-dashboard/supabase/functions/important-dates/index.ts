@@ -40,23 +40,26 @@ Deno.serve(async (req) => {
 
     if (customToken.startsWith('temp_token_')) {
       const tokenParts = customToken.split('_')
+      console.log('🔍 Token parts:', tokenParts)
       if (tokenParts.length >= 3) {
         userId = parseInt(tokenParts[2])
+        console.log('👤 Parsed userId:', userId)
         if (!isNaN(userId) && userId > 0) {
           // Get user's church_id
-          const { data: userProfile } = await supabaseClient
+          const { data: userProfile, error: userError } = await supabaseClient
             .from('users')
-            .select('church_id')
+            .select('church_id, id, email')
             .eq('id', userId.toString())
             .single()
 
+          console.log('📊 User query result:', { userProfile, userError })
           userChurchId = userProfile?.church_id
           console.log('🏛️ User info:', { userId, userChurchId })
         }
       }
     }
 
-    if (!userChurchId) {
+    if (userChurchId === null || userChurchId === undefined) {
       return new Response(
         JSON.stringify({ error: '사용자의 교회 정보를 찾을 수 없습니다' }),
         {
