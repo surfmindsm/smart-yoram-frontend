@@ -13,12 +13,7 @@ import {
   CheckSquare,
   TrendingUp,
   AlertTriangle,
-  Heart,
-  Calculator,
-  HandCoins,
-  FileText,
-  Bell,
-  Calendar
+  Settings
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
@@ -45,7 +40,9 @@ import StatCard from './dashboard/StatCard';
 import QuickActionCard from './dashboard/QuickActionCard';
 import TodoList from './dashboard/TodoList';
 import PasswordChangeModal from './PasswordChangeModal';
+import QuickActionsCustomizer from './dashboard/QuickActionsCustomizer';
 import { useToast } from '../hooks/use-toast';
+import { AVAILABLE_QUICK_ACTIONS, DEFAULT_QUICK_ACTIONS, QuickAction } from '../constants/quickActions';
 
 // Chart configurations
 const genderChartConfig = {
@@ -124,6 +121,11 @@ const Dashboard = React.memo(() => {
   const [error, setError] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isTemporaryPassword, setIsTemporaryPassword] = useState(false);
+  const [showQuickActionsCustomizer, setShowQuickActionsCustomizer] = useState(false);
+  const [selectedQuickActionIds, setSelectedQuickActionIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('quickActionIds');
+    return saved ? JSON.parse(saved) : DEFAULT_QUICK_ACTIONS;
+  });
   const { toast } = useToast();
 
   // Todo item 다이얼로그 상태
@@ -359,51 +361,22 @@ const Dashboard = React.memo(() => {
     { title: '활성 사용자', value: dashboardData.activeUsers.toString(), Icon: User, color: 'bg-yellow-500' },
   ], [dashboardData]);
 
-  // quickActions를 useMemo로 최적화 (정적 데이터이므로)
-  const quickActions = useMemo(() => [
-    {
-      title: '교인관리',
-      description: '교인 정보를 조회하고 관리합니다',
-      Icon: Users,
-      link: '/member-management',
-      color: 'bg-primary-500'
-    },
-    {
-      title: '심방관리',
-      description: '심방 일정과 기록을 관리합니다',
-      Icon: Heart,
-      link: '/pastoral-care',
-      color: 'bg-pink-500'
-    },
-    {
-      title: '회계관리',
-      description: '교회 회계 내역을 관리합니다',
-      Icon: Calculator,
-      link: '/accounting',
-      color: 'bg-green-500'
-    },
-    {
-      title: '헌금관리',
-      description: '헌금 내역을 조회하고 관리합니다',
-      Icon: HandCoins,
-      link: '/donations',
-      color: 'bg-yellow-500'
-    },
-    {
-      title: '주보관리',
-      description: '주보를 작성하고 관리합니다',
-      Icon: FileText,
-      link: '/bulletins',
-      color: 'bg-indigo-500'
-    },
-    {
-      title: '공지사항',
-      description: '교회 공지사항을 관리합니다',
-      Icon: Bell,
-      link: '/announcements',
-      color: 'bg-purple-500'
-    }
-  ], []);
+  // quickActions를 선택된 항목으로 필터링
+  const quickActions = useMemo(() => {
+    return selectedQuickActionIds
+      .map(id => AVAILABLE_QUICK_ACTIONS.find(action => action.id === id))
+      .filter((action): action is QuickAction => action !== undefined);
+  }, [selectedQuickActionIds]);
+
+  // 빠른 작업 저장 핸들러
+  const handleSaveQuickActions = (newSelectedIds: string[]) => {
+    setSelectedQuickActionIds(newSelectedIds);
+    localStorage.setItem('quickActionIds', JSON.stringify(newSelectedIds));
+    toast({
+      title: '설정 저장 완료',
+      description: '빠른 작업 설정이 저장되었습니다',
+    });
+  };
 
   // 에러가 있으면 에러 메시지 표시
   if (error) {
@@ -462,7 +435,18 @@ const Dashboard = React.memo(() => {
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-foreground mb-4">빠른 작업</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">빠른 작업</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowQuickActionsCustomizer(true)}
+            className="gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            커스터마이징
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
             <QuickActionCard
@@ -736,6 +720,14 @@ const Dashboard = React.memo(() => {
         onClose={handlePasswordModalClose}
         onSuccess={handlePasswordChangeSuccess}
         isTemporaryPassword={isTemporaryPassword}
+      />
+
+      {/* 빠른 작업 커스터마이저 */}
+      <QuickActionsCustomizer
+        open={showQuickActionsCustomizer}
+        onOpenChange={setShowQuickActionsCustomizer}
+        selectedIds={selectedQuickActionIds}
+        onSave={handleSaveQuickActions}
       />
 
       {/* 교인 상세 다이얼로그 */}
