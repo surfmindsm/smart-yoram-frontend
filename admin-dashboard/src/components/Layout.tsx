@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -93,6 +93,7 @@ const Layout: React.FC = () => {
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
     '대시보드 & 분석': false,
     '교인 관리': false,
@@ -106,6 +107,7 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const helpMenuRef = useRef<HTMLDivElement>(null);
 
   // GPT 사용 권한 확인 함수
   const hasGPTAccess = () => {
@@ -256,6 +258,31 @@ const Layout: React.FC = () => {
 
     fetchUserInfo();
   }, []);
+
+  // ESC 키와 외부 클릭으로 도움말 메뉴 닫기
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showHelpMenu) {
+        setShowHelpMenu(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target as Node)) {
+        setShowHelpMenu(false);
+      }
+    };
+
+    if (showHelpMenu) {
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showHelpMenu]);
 
   const handleLogout = async () => {
     try {
@@ -590,18 +617,6 @@ const Layout: React.FC = () => {
               </div>
             </div>
 
-            {/* 문의하기 버튼  */}
-            <div className="p-3 border-b border-slate-200">
-              <Button
-                variant="outline"
-                onClick={() => setShowBugReportModal(true)}
-                className="w-full flex items-center justify-center gap-2 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300 transition-colors"
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">문의하기</span>
-              </Button>
-            </div>
-
             {/* 프로필 섹션 */}
             <div className="p-3 pb-6">
               {userInfo ? (
@@ -662,6 +677,44 @@ const Layout: React.FC = () => {
             </div>
           </div>
         </main>
+      </div>
+
+      {/* 우측 하단 플로팅 도움말 버튼 */}
+      <div ref={helpMenuRef} className="fixed bottom-6 right-6 z-50">
+        {/* 도움말 메뉴 */}
+        {showHelpMenu && (
+          <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden mb-2 w-48">
+            <button
+              onClick={() => {
+                setShowBugReportModal(true);
+                setShowHelpMenu(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+            >
+              <HelpCircle className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">문의하기</span>
+            </button>
+            {/* <div className="border-t border-slate-100" />
+            <button
+              onClick={() => {
+                window.open('https://www.naver.com', '_blank');
+                setShowHelpMenu(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+            >
+              <BookOpen className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">사용자 매뉴얼</span>
+            </button> */}
+          </div>
+        )}
+
+        {/* 플로팅 버튼 */}
+        <button
+          onClick={() => setShowHelpMenu(!showHelpMenu)}
+          className="h-16 w-16 rounded-full shadow-lg bg-primary-500 hover:bg-primary-600 text-white p-0 flex items-center justify-center transition-colors cursor-pointer border-0"
+        >
+          <HelpCircle className="h-8 w-8" strokeWidth={1.4} />
+        </button>
       </div>
 
       {/* 문의하기 모달 */}

@@ -289,6 +289,17 @@ const ChurchSignup: React.FC = () => {
     setLoading(true);
 
     try {
+      // 0. 최종 제출 전 이메일 중복 체크 (추가 검증)
+      console.log('📧 최종 이메일 중복 체크 시작...');
+      const emailExists = await supabaseApiService.emailVerification.checkEmailExists(formData.email);
+
+      if (emailExists) {
+        setError('이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.');
+        setLoading(false);
+        return;
+      }
+      console.log('✅ 이메일 중복 체크 통과');
+
       // 1. 먼저 파일을 Supabase Storage에 업로드
       const uploadedAttachments: Array<{ filename: string; path: string; size: number; url: string }> = [];
 
@@ -613,9 +624,17 @@ const ChurchSignup: React.FC = () => {
                         이메일 인증이 완료되었습니다.
                       </p>
                     ) : !emailError && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        승인 시 이 이메일로 로그인 정보를 발송드립니다.
-                      </p>
+                      <div className="mt-1 space-y-1">
+                        <p className="text-sm text-gray-500">
+                          승인 시 이 이메일로 로그인 정보를 발송드립니다.
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          인증코드가 오지 않으시나요? 메일 주소를 변경하여 테스트해보시거나, 아래로 연락주세요 😊
+                        </p>
+                        <p className="text-xs text-primary-600">
+                          📞 010-6617-1875 | ✉️ contact@churchround.com
+                        </p>
+                      </div>
                     )}
                   </div>
 

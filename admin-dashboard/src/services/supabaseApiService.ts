@@ -3640,23 +3640,61 @@ export const supabaseApiService = {
     // 이메일 중복 체크
     checkEmailExists: async (email: string) => {
       try {
-        // console.log('📧 [이메일 중복 체크] 시작:', email);
+        console.log('📧 [이메일 중복 체크] 시작:', email);
 
-        // community_applications 테이블에서 이메일 확인
-        const { data, error } = await supabase
+        // 1. users 테이블에서 이메일 확인 (이미 가입된 사용자)
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('email')
+          .eq('email', email)
+          .limit(1);
+
+        if (userError) {
+          console.error('📧 [사용자 테이블 체크] 오류:', userError);
+          throw userError;
+        }
+
+        if (userData && userData.length > 0) {
+          console.log('✅ [이메일 중복 체크] users 테이블에서 발견:', email);
+          return true;
+        }
+
+        // 2. community_applications 테이블에서 이메일 확인
+        const { data: communityData, error: communityError } = await supabase
           .from('community_applications')
           .select('email')
           .eq('email', email)
           .limit(1);
 
-        if (error) {
-          console.error('📧 [이메일 중복 체크] 오류:', error);
-          throw error;
+        if (communityError) {
+          console.error('📧 [커뮤니티 신청 체크] 오류:', communityError);
+          throw communityError;
         }
 
-        const exists = data && data.length > 0;
-        // console.log('✅ [이메일 중복 체크] 결과:', { email, exists });
-        return exists;
+        if (communityData && communityData.length > 0) {
+          console.log('✅ [이메일 중복 체크] community_applications 테이블에서 발견:', email);
+          return true;
+        }
+
+        // 3. church_applications 테이블에서 이메일 확인
+        const { data: churchData, error: churchError } = await supabase
+          .from('church_applications')
+          .select('email')
+          .eq('email', email)
+          .limit(1);
+
+        if (churchError) {
+          console.error('📧 [교회 신청 체크] 오류:', churchError);
+          throw churchError;
+        }
+
+        if (churchData && churchData.length > 0) {
+          console.log('✅ [이메일 중복 체크] church_applications 테이블에서 발견:', email);
+          return true;
+        }
+
+        console.log('✅ [이메일 중복 체크] 사용 가능한 이메일:', email);
+        return false;
       } catch (error: any) {
         console.error('📧 [이메일 중복 체크] 실패:', error);
         throw new Error(error.message || '이메일 중복 체크에 실패했습니다.');
