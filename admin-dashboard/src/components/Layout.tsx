@@ -538,7 +538,6 @@ const Layout: React.FC = () => {
                             {isActive && (
                               <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600"></span>
                             )}
-                            <span className={cn(isActive ? "text-primary-700" : "text-slate-400")}>•</span>
                             {item.name}
                           </Link>
                         );
