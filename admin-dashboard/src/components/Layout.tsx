@@ -591,7 +591,7 @@ const Layout: React.FC = () => {
               </div>
             </div>
 
-            {/* 문의하기 버튼 */}
+            {/* 문의하기 버튼  */}
             <div className="p-3 border-b border-slate-200">
               <Button
                 variant="outline"
