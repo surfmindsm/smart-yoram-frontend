@@ -858,12 +858,13 @@ export const supabaseApiService = {
     assignPastor: async (id: any, pastorId: any) => {
       try {
         // Use Supabase client directly instead of Edge Function
+        const updateData: any = {
+          assigned_pastor_id: pastorId || null
+        };
+
         const { data, error } = await supabase
           .from('pastoral_care_requests')
-          .update({
-            assigned_pastor_id: pastorId,
-            status: 'in_progress'
-          })
+          .update(updateData)
           .eq('id', id)
           .select()
           .single();

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Combobox } from "./ui";
 import { SimpleTabs } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
+import { DatePicker } from "./ui/date-picker";
 import { 
   Search, 
   Filter, 
@@ -72,9 +73,9 @@ interface PastoralCareRequest {
   preferredTimeEnd?: string;
   status: 'pending' | 'approved' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'urgent' | 'high' | 'normal' | 'low';
-  assignedPastorId?: number;
+  assignedPastorId?: string;
   assignedPastor?: {
-    id: number;
+    id: string;
     name: string;
     phone: string;
   };
@@ -108,7 +109,7 @@ interface PastoralCareRecord {
   scheduledDate: string;
   scheduledTime: string;
   assignedPastor?: {
-    id: number;
+    id: string;
     name: string;
     phone: string;
   };
@@ -144,6 +145,8 @@ const PastoralCareManagement: React.FC = () => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showRecordDetailModal, setShowRecordDetailModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showAssignPastorModal, setShowAssignPastorModal] = useState(false);
+  const [selectedPastorId, setSelectedPastorId] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<PastoralCareRecord | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
@@ -156,6 +159,7 @@ const PastoralCareManagement: React.FC = () => {
   const [urgentFilter, setUrgentFilter] = useState<string>('all');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [customMinute, setCustomMinute] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [completionNotes, setCompletionNotes] = useState('');
 
@@ -765,8 +769,53 @@ const PastoralCareManagement: React.FC = () => {
       setShowScheduleModal(false);
       setScheduledDate('');
       setScheduledTime('');
+      setCustomMinute('');
     } catch (error) {
       console.error('Failed to schedule request:', error);
+    }
+  };
+
+  const handleAssignPastor = (request: PastoralCareRequest) => {
+    setSelectedRequest(request);
+    setSelectedPastorId(request.assignedPastorId?.toString() || 'unassigned');
+    setShowAssignPastorModal(true);
+  };
+
+  const handleSaveAssignPastor = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      // 담당자 정보 찾기
+      const pastor = selectedPastorId !== 'unassigned'
+        ? members.find(m => m.id.toString() === selectedPastorId)
+        : undefined;
+
+      // user_id를 사용 (users 테이블의 외래 키)
+      const userIdToSave = pastor?.user_id || '';
+      await supabaseApiService.pastoralCare.assignPastor(selectedRequest.id, userIdToSave);
+
+      setRequests(prev =>
+        prev.map(req =>
+          req.id === selectedRequest.id
+            ? {
+                ...req,
+                assignedPastorId: pastor?.user_id,
+                assignedPastor: pastor ? {
+                  id: pastor.user_id || '',
+                  name: pastor.name,
+                  phone: pastor.phone || ''
+                } : undefined
+              }
+            : req
+        )
+      );
+
+      setShowAssignPastorModal(false);
+      setSelectedPastorId('');
+      alert(pastor ? '담당자가 배정되었습니다.' : '담당자 배정이 해제되었습니다.');
+    } catch (error) {
+      console.error('Failed to assign pastor:', error);
+      alert('담당자 배정에 실패했습니다.');
     }
   };
 
@@ -1514,11 +1563,28 @@ const PastoralCareManagement: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {new Date(request.createdAt).toLocaleDateString('ko-KR')}
+                    {new Date(request.createdAt).toLocaleString('ko-KR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <div className="flex items-center justify-center space-x-2" onClick={(e) => e.stopPropagation()}>
-                      {request.status === 'pending' && (
+                      {request.status === 'pending' && !request.assignedPastor && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssignPastor(request);
+                          }}
+                          className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                          담당자 배정
+                        </button>
+                      )}
+                      {request.status === 'pending' && request.assignedPastor && (
                         <>
                           <button
                             onClick={(e) => {
@@ -1536,7 +1602,7 @@ const PastoralCareManagement: React.FC = () => {
                             }}
                             className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            거부
+                            반려
                           </button>
                           <button
                             onClick={(e) => {
@@ -1545,7 +1611,16 @@ const PastoralCareManagement: React.FC = () => {
                             }}
                             className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            일정조율
+                            일정변경
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssignPastor(request);
+                            }}
+                            className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            재배정
                           </button>
                         </>
                       )}
@@ -1557,9 +1632,18 @@ const PastoralCareManagement: React.FC = () => {
                               setSelectedRequest(request);
                               setShowCompletionModal(true);
                             }}
-                            className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             완료처리
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssignPastor(request);
+                            }}
+                            className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            재배정
                           </button>
                           <button
                             onClick={(e) => {
@@ -1954,28 +2038,17 @@ const PastoralCareManagement: React.FC = () => {
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                 닫기
               </Button>
-              {selectedRequest.status === 'pending' && (
-                <Button onClick={() => handleSchedule(selectedRequest)}>
-                  일정 조율
-                </Button>
-              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* 일정 조율 모달 */}
+      {/* 일정 변경 모달 */}
       {showScheduleModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">일정 조율</h2>
-              <button
-                onClick={() => setShowScheduleModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">일정 변경</h2>
             </div>
 
             <div className="space-y-4">
@@ -1984,8 +2057,13 @@ const PastoralCareManagement: React.FC = () => {
                   신청자: {selectedRequest.requesterName}
                 </label>
                 <p className="text-sm text-slate-500">
-                  희망 일정: {selectedRequest.preferredDate} 
-                  {selectedRequest.preferredTimeStart && ` ${selectedRequest.preferredTimeStart}`}
+                  신청 일자: {new Date(selectedRequest.createdAt).toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </p>
               </div>
 
@@ -1993,11 +2071,13 @@ const PastoralCareManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   확정 날짜
                 </label>
-                <input
-                  type="date"
+                <DatePicker
                   value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  onChange={(value) => setScheduledDate(value)}
+                  placeholder="날짜 선택"
+                  disablePast={true}
+                  fromYear={2020}
+                  toYear={new Date().getFullYear() + 5}
                 />
               </div>
 
@@ -2005,21 +2085,189 @@ const PastoralCareManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   확정 시간
                 </label>
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
+                <div className="flex gap-2">
+                  <Select
+                    value={(() => {
+                      const hour = parseInt(scheduledTime.split(':')[0] || '0');
+                      return hour >= 12 ? 'PM' : 'AM';
+                    })()}
+                    onValueChange={(period) => {
+                      const currentHour = parseInt(scheduledTime.split(':')[0] || '0');
+                      const minute = scheduledTime.split(':')[1] || '00';
+                      let hour12 = currentHour % 12 || 12;
+                      let newHour24 = period === 'PM' ? (hour12 === 12 ? 12 : hour12 + 12) : (hour12 === 12 ? 0 : hour12);
+                      setScheduledTime(`${newHour24.toString().padStart(2, '0')}:${minute}`);
+                    }}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="오전/오후" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">오전</SelectItem>
+                      <SelectItem value="PM">오후</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={(() => {
+                      const hour = parseInt(scheduledTime.split(':')[0] || '0');
+                      const hour12 = hour % 12 || 12;
+                      return hour12.toString().padStart(2, '0');
+                    })()}
+                    onValueChange={(hour12) => {
+                      const minute = scheduledTime.split(':')[1] || '00';
+                      const currentHour = parseInt(scheduledTime.split(':')[0] || '0');
+                      const isPM = currentHour >= 12;
+                      const h12 = parseInt(hour12);
+                      let newHour24 = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                      setScheduledTime(`${newHour24.toString().padStart(2, '0')}:${minute}`);
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="시" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const hour = (i + 1).toString().padStart(2, '0');
+                        return <SelectItem key={hour} value={hour}>{hour}시</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {scheduledTime.split(':')[1] === 'custom' || customMinute ? (
+                    <div className="flex-1 flex gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={customMinute}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 59)) {
+                            setCustomMinute(value);
+                            if (value !== '') {
+                              const hour = scheduledTime.split(':')[0] || '00';
+                              setScheduledTime(`${hour}:${value.padStart(2, '0')}`);
+                            }
+                          }
+                        }}
+                        placeholder="분"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCustomMinute('');
+                          const hour = scheduledTime.split(':')[0] || '00';
+                          setScheduledTime(`${hour}:00`);
+                        }}
+                        className="px-3"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={scheduledTime.split(':')[1] || ''}
+                      onValueChange={(minute) => {
+                        if (minute === 'custom') {
+                          setCustomMinute('');
+                          const hour = scheduledTime.split(':')[0] || '00';
+                          setScheduledTime(`${hour}:custom`);
+                        } else {
+                          const hour = scheduledTime.split(':')[0] || '00';
+                          setScheduledTime(`${hour}:${minute}`);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="분" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="00">00분</SelectItem>
+                        <SelectItem value="15">15분</SelectItem>
+                        <SelectItem value="30">30분</SelectItem>
+                        <SelectItem value="45">45분</SelectItem>
+                        <SelectItem value="custom">직접 입력</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setShowScheduleModal(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowScheduleModal(false);
+                setCustomMinute('');
+              }}>
                 취소
               </Button>
-              <Button onClick={handleSaveSchedule} disabled={!scheduledDate || !scheduledTime}>
-                일정 확정
+              <Button
+                onClick={handleSaveSchedule}
+                disabled={!scheduledDate || !scheduledTime || scheduledTime.includes('custom')}
+              >
+                일정 변경
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 담당자 배정 모달 */}
+      {showAssignPastorModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-900">담당자 배정</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  신청자: {selectedRequest.requesterName}
+                </label>
+                <p className="text-sm text-slate-500">
+                  현재 담당자: {selectedRequest.assignedPastor?.name || '미배정'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  담당자 선택
+                </label>
+                <Select value={selectedPastorId} onValueChange={setSelectedPastorId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="담당자를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">미배정</SelectItem>
+                    {members
+                      .filter(member =>
+                        member.position_main === 'CLERGY' ||
+                        member.position_main === '교역자'
+                      )
+                      .map((member) => (
+                        <SelectItem key={member.id} value={member.id.toString()}>
+                          {member.name} ({member.phone || '전화번호 없음'})
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                {members.filter(m => m.position_main === 'CLERGY' || m.position_main === '교역자').length === 0 && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    등록된 교역자가 없습니다.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setShowAssignPastorModal(false)}>
+                취소
+              </Button>
+              <Button onClick={handleSaveAssignPastor}>
+                배정 완료
               </Button>
             </div>
           </div>
