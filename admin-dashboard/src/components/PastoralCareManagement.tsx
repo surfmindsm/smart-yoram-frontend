@@ -1064,24 +1064,6 @@ const PastoralCareManagement: React.FC = () => {
       <PageHeader
         title="심방 관리"
         description="심방 신청 관리와 완료된 심방 기록을 확인하세요"
-        actions={
-          <>
-            <Button
-              onClick={() => setShowAdminRegistrationModal(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              직접 등록
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2"
-            >
-              <Filter className="h-4 w-4" />
-              <span>필터</span>
-            </Button>
-          </>
-        }
       />
 
       <SimpleTabs
@@ -1272,7 +1254,7 @@ const PastoralCareManagement: React.FC = () => {
       {/* 검색 및 필터 */}
       <Card className="border-muted">
         <CardContent className="p-6">
-        <div className="flex items-center space-x-4 mb-4">
+        <div className="flex items-center space-x-4 mb-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -1283,179 +1265,29 @@ const PastoralCareManagement: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
 
-        {showFilters && (
-          <div className="space-y-4 pt-4 border-t border-slate-200">
-            {/* 🆕 위치 기반 검색 섽션 - 주석처리 */}
-            {/* <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-primary-800 flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  위치 기반 검색
-                </h4>
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={getCurrentLocation}
-                    className="text-primary-600 border-primary-300 hover:bg-primary-100"
-                  >
-                    <Navigation className="h-3 w-3 mr-1" />
-                    현재 위치
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={loadLocationBasedRequests}
-                  >
-                    <Target className="h-3 w-3 mr-1" />
-                    검색
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-primary-700 mb-1">위도</label>
-                  <input
-                    type="number"
-                    step="0.0000001"
-                    value={searchLocation.latitude}
-                    onChange={(e) => setSearchLocation({...searchLocation, latitude: parseFloat(e.target.value) || 0})}
-                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="37.5665"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-primary-700 mb-1">경도</label>
-                  <input
-                    type="number"
-                    step="0.0000001"
-                    value={searchLocation.longitude}
-                    onChange={(e) => setSearchLocation({...searchLocation, longitude: parseFloat(e.target.value) || 0})}
-                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="126.9780"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-primary-700 mb-1">반경 (km)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    max="50"
-                    value={searchLocation.radius_km}
-                    onChange={(e) => setSearchLocation({...searchLocation, radius_km: parseFloat(e.target.value) || 5.0})}
-                    className="w-full px-2 py-1 text-sm border border-primary-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="5.0"
-                  />
-                </div>
-              </div>
-              
-              {locationSearchResults.length > 0 && (
-                <div className="mt-3 text-xs text-primary-700">
-                  검색 결과: {locationSearchResults.length}건 (거리순 정렬)
-                </div>
-              )}
-            </div> */}
-            
-            {/* 🆕 빠른 액션 버튼들 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-800 mb-3">빠른 액션</h4>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={loadUrgentRequests}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  <Zap className="h-3 w-3 mr-1" />
-                  긴급 요청만 보기
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={loadRequestsWithLocation}
-                  className="text-green-600 border-green-300 hover:bg-green-50"
-                >
-                  <MapPin className="h-3 w-3 mr-1" />
-                  위치 정보 있는 요청
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={loadPastoralCareRequests}
-                  className="text-primary-600 border-primary-300 hover:bg-primary-50"
-                >
-                  <User className="h-3 w-3 mr-1" />
-                  전체 요청 다시 로드
-                </Button>
-              </div>
-            </div>
-            
-            {/* 기존 필터들 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">상태</label>
-              <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">전체</option>
-                <option value="pending">대기중</option>
-                <option value="approved">승인됨</option>
-                <option value="scheduled">예정됨</option>
-                <option value="completed">완료</option>
-                <option value="cancelled">취소</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">우선순위</label>
-              <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-              >
-                <option value="all">전체</option>
-                <option value="urgent">긴급</option>
-                <option value="high">높음</option>
-                <option value="normal">보통</option>
-                <option value="low">낮음</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">유형</label>
-              <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              >
-                <option value="all">전체</option>
-                <option value="general">일반 심방</option>
-                <option value="urgent">긴급 심방</option>
-                <option value="hospital">병원 심방</option>
-                <option value="counseling">상담</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">긴급 여부</label>
-              <select
-                className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                value={urgentFilter}
-                onChange={(e) => setUrgentFilter(e.target.value)}
-              >
-                <option value="all">전체</option>
-                <option value="urgent">긴급 요청</option>
-                <option value="normal">일반 요청</option>
-              </select>
-            </div>
-            </div>
-          </div>
-        )}
+          {/* 기본 필터들 - 항상 표시 */}
+          <select
+            className="px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px]"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">모든 상태</option>
+            <option value="pending">대기중</option>
+            <option value="approved">승인됨</option>
+            <option value="scheduled">예정됨</option>
+            <option value="completed">완료</option>
+            <option value="cancelled">취소</option>
+          </select>
+
+          <Button
+            onClick={() => setShowAdminRegistrationModal(true)}
+            className="flex items-center whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            직접 등록
+          </Button>
+        </div>
         </CardContent>
       </Card>
 
@@ -1474,12 +1306,6 @@ const PastoralCareManagement: React.FC = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   부서
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  유형
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  우선순위
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   상태
@@ -1527,25 +1353,6 @@ const PastoralCareManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {request.department || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-slate-900">
-                        {getRequestTypeText(request.requestType)}
-                      </span>
-                      {/* 🆕 긴급 요청 표시 */}
-                      {request.isUrgent && (
-                        <Badge className="bg-red-100 text-red-800 text-xs px-1 py-0">
-                          <Zap className="h-3 w-3 mr-1" />
-                          긴급
-                        </Badge>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={cn("text-sm font-medium", getPriorityColor(request.priority))}>
-                      {getPriorityText(request.priority)}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={cn(
@@ -1678,98 +1485,6 @@ const PastoralCareManagement: React.FC = () => {
       {/* 심방 기록 목록 */}
       {activeTab === 'records' && (
         <>
-          {/* 심방 기록 필터링 */}
-          <Card className="border-muted mb-6">
-            <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">심방 기록 검색 및 필터</h3>
-              <button
-                onClick={() => {
-                  setPersonFilter('');
-                  setDateFromFilter('');
-                  setDateToFilter('');
-                  setSearchTerm('');
-                  setPriorityFilter('all');
-                  setTypeFilter('all');
-                }}
-                className="text-sm text-slate-600 hover:text-slate-800"
-              >
-                필터 초기화
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* 사람별 검색 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  성명 검색
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="성명으로 검색..."
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                    value={personFilter}
-                    onChange={(e) => setPersonFilter(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* 기간 필터 - 시작일 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  시작일
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={dateFromFilter}
-                  onChange={(e) => setDateFromFilter(e.target.value)}
-                />
-              </div>
-
-              {/* 기간 필터 - 종료일 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  종료일
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={dateToFilter}
-                  onChange={(e) => setDateToFilter(e.target.value)}
-                />
-              </div>
-
-              {/* 우선순위 필터 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  우선순위
-                </label>
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="all">전체</option>
-                  <option value="high">긴급</option>
-                  <option value="medium">보통</option>
-                  <option value="low">일반</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 검색 결과 통계 */}
-            <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-              <span>총 {filteredRecords.length}건의 심방 기록</span>
-              {(personFilter || dateFromFilter || dateToFilter || priorityFilter !== 'all' || typeFilter !== 'all') && (
-                <span className="text-primary-600">필터 적용 중</span>
-              )}
-            </div>
-            </CardContent>
-          </Card>
-
           {/* 테이블 형태로 변경 */}
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
