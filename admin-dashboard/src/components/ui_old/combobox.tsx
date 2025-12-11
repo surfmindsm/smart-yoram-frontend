@@ -154,7 +154,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
           ${isOpen ? 'border-primary-500 ring-1 ring-primary-500' : ''}
         `}
       >
-        <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+        <span className={`truncate ${selectedOption ? 'text-gray-900' : 'text-gray-500'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <div className="flex items-center space-x-1">
@@ -225,9 +225,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   `}
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
+                    <span className="font-medium truncate">{option.label}</span>
                     {option.description && (
-                      <span className="text-sm text-gray-500">{option.description}</span>
+                      <span className="text-sm text-gray-500 truncate">{option.description}</span>
                     )}
                   </div>
                 </button>

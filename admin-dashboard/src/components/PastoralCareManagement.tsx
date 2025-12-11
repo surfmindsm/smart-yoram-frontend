@@ -42,6 +42,7 @@ import {
 import { cn } from '../lib/utils';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { getPositionDetailLabel } from '../constants/memberPositions';
 
 interface Member {
   id: number;
@@ -55,6 +56,7 @@ interface Member {
   department?: string;
   profile_photo_url?: string;
   position_main?: string;
+  position_detail?: string;
 }
 
 interface PastoralCareRequest {
@@ -2805,11 +2807,17 @@ const PastoralCareManagement: React.FC = () => {
                     교인 선택 (선택사항)
                   </label>
                   <Combobox
-                    options={members.map(member => ({
-                      value: member.id.toString(),
-                      label: member.name,
-                      description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                    }))}
+                    options={members.map(member => {
+                      const details = [
+                        getPositionDetailLabel(member.position_detail),
+                        member.department,
+                        member.organization_name
+                      ].filter(Boolean).join('/');
+                      return {
+                        value: member.id.toString(),
+                        label: details ? `${member.name}(${details})` : member.name
+                      };
+                    })}
                     value={newRequest.memberId}
                     onChange={(value) => {
                       const selectedMember = members.find(m => m.id.toString() === value);
@@ -2925,24 +2933,127 @@ const PastoralCareManagement: React.FC = () => {
               {/* 희망 일정 */}
               <div>
                 <h3 className="text-lg font-medium text-slate-900 mb-3">희망 일정 (선택사항)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">희망 날짜</label>
-                    <input
-                      type="date"
+                    <label className="block text-sm font-medium text-slate-700 mb-1">희망 날짜</label>
+                    <DatePicker
                       value={newRequest.preferredDate}
-                      onChange={(e) => setNewRequest({...newRequest, preferredDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      onChange={(value) => setNewRequest({...newRequest, preferredDate: value})}
+                      placeholder="날짜 선택"
+                      disablePast={true}
+                      fromYear={2020}
+                      toYear={new Date().getFullYear() + 5}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">희망 시간</label>
-                    <input
-                      type="time"
-                      value={newRequest.preferredTimeStart}
-                      onChange={(e) => setNewRequest({...newRequest, preferredTimeStart: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-1">희망 시간</label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={(() => {
+                          const hour = parseInt(newRequest.preferredTimeStart.split(':')[0] || '0');
+                          return hour >= 12 ? 'PM' : 'AM';
+                        })()}
+                        onValueChange={(period) => {
+                          const currentHour = parseInt(newRequest.preferredTimeStart.split(':')[0] || '0');
+                          const minute = newRequest.preferredTimeStart.split(':')[1] || '00';
+                          let hour12 = currentHour % 12 || 12;
+                          let newHour24 = period === 'PM' ? (hour12 === 12 ? 12 : hour12 + 12) : (hour12 === 12 ? 0 : hour12);
+                          setNewRequest({...newRequest, preferredTimeStart: `${newHour24.toString().padStart(2, '0')}:${minute}`});
+                        }}
+                      >
+                        <SelectTrigger className="w-24">
+                          <SelectValue placeholder="오전/오후" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="AM">오전</SelectItem>
+                          <SelectItem value="PM">오후</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={(() => {
+                          const hour = parseInt(newRequest.preferredTimeStart.split(':')[0] || '0');
+                          const hour12 = hour % 12 || 12;
+                          return hour12.toString().padStart(2, '0');
+                        })()}
+                        onValueChange={(hour12) => {
+                          const minute = newRequest.preferredTimeStart.split(':')[1] || '00';
+                          const currentHour = parseInt(newRequest.preferredTimeStart.split(':')[0] || '0');
+                          const isPM = currentHour >= 12;
+                          const h12 = parseInt(hour12);
+                          let newHour24 = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                          setNewRequest({...newRequest, preferredTimeStart: `${newHour24.toString().padStart(2, '0')}:${minute}`});
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="시" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => {
+                            const hour = (i + 1).toString().padStart(2, '0');
+                            return <SelectItem key={hour} value={hour}>{hour}시</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {newRequest.preferredTimeStart.split(':')[1] === 'custom' || customMinute ? (
+                        <div className="flex-1 flex gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={customMinute}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 59)) {
+                                setCustomMinute(value);
+                                if (value !== '') {
+                                  const hour = newRequest.preferredTimeStart.split(':')[0] || '00';
+                                  setNewRequest({...newRequest, preferredTimeStart: `${hour}:${value.padStart(2, '0')}`});
+                                }
+                              }
+                            }}
+                            placeholder="분"
+                            className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCustomMinute('');
+                              const hour = newRequest.preferredTimeStart.split(':')[0] || '00';
+                              setNewRequest({...newRequest, preferredTimeStart: `${hour}:00`});
+                            }}
+                            className="px-3"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      ) : (
+                        <Select
+                          value={newRequest.preferredTimeStart.split(':')[1] || ''}
+                          onValueChange={(minute) => {
+                            if (minute === 'custom') {
+                              setCustomMinute('');
+                              const hour = newRequest.preferredTimeStart.split(':')[0] || '00';
+                              setNewRequest({...newRequest, preferredTimeStart: `${hour}:custom`});
+                            } else {
+                              const hour = newRequest.preferredTimeStart.split(':')[0] || '00';
+                              setNewRequest({...newRequest, preferredTimeStart: `${hour}:${minute}`});
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="분" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="00">00분</SelectItem>
+                            <SelectItem value="15">15분</SelectItem>
+                            <SelectItem value="30">30분</SelectItem>
+                            <SelectItem value="45">45분</SelectItem>
+                            <SelectItem value="custom">직접 입력</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
