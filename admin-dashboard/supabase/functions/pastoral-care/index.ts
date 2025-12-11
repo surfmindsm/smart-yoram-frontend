@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
         const priority = url.searchParams.get('priority')
         const requestType = url.searchParams.get('request_type')
         const churchId = url.searchParams.get('church_id')
+        const excludeCompleted = url.searchParams.get('exclude_completed') === 'true'
         const page = parseInt(url.searchParams.get('page') || '1')
         const limit = parseInt(url.searchParams.get('limit') || '50')
 
@@ -100,6 +101,11 @@ Deno.serve(async (req) => {
         // Apply filters
         if (status) {
           query = query.eq('status', status)
+        }
+
+        // 완료된 심방 제외 (심방신청 탭용)
+        if (excludeCompleted) {
+          query = query.neq('status', 'completed')
         }
 
         if (priority) {
@@ -166,6 +172,79 @@ Deno.serve(async (req) => {
 
                 enrichedRequest.organization_name = orgData?.name || null
               }
+            }
+          }
+
+          // Get assigned pastor information if assigned_pastor_id exists
+          if (request.assigned_pastor_id) {
+            // assigned_pastor_id가 숫자인지 UUID인지 확인
+            const isNumericId = typeof request.assigned_pastor_id === 'number' || !isNaN(Number(request.assigned_pastor_id))
+
+            console.log('🔍 [Edge Function] 담당자 조인 시도:', {
+              request_id: request.id,
+              assigned_pastor_id: request.assigned_pastor_id,
+              isNumericId
+            })
+
+            let pastorData = null
+
+            if (isNumericId) {
+              // 숫자형 ID인 경우: members.id로 먼저 시도
+              const membersResult = await supabaseClient
+                .from('members')
+                .select('name, phone')
+                .eq('id', request.assigned_pastor_id)
+                .maybeSingle()
+
+              if (membersResult.data) {
+                console.log('✅ [Edge Function] members 테이블에서 찾음:', membersResult.data.name)
+                pastorData = membersResult.data
+              } else {
+                // members에 없으면 users 테이블에서 시도
+                console.log('⚠️ [Edge Function] members에 없음, users 테이블 확인 중...')
+                const usersResult = await supabaseClient
+                  .from('users')
+                  .select('*')  // 모든 컬럼 조회
+                  .eq('id', request.assigned_pastor_id)
+                  .maybeSingle()
+
+                if (usersResult.data) {
+                  console.log('✅ [Edge Function] users 테이블에서 찾음:', usersResult.data.full_name || usersResult.data.email)
+                  pastorData = {
+                    name: usersResult.data.full_name || usersResult.data.email || '사용자',
+                    phone: usersResult.data.phone || ''
+                  }
+                } else if (usersResult.error) {
+                  console.error('❌ [Edge Function] users 조회 에러:', usersResult.error)
+                }
+              }
+
+              if (membersResult.error) {
+                console.error('❌ [Edge Function] members 조회 에러:', membersResult.error)
+              }
+            } else {
+              // UUID인 경우: members.user_id로 조회
+              const result = await supabaseClient
+                .from('members')
+                .select('name, phone')
+                .eq('user_id', request.assigned_pastor_id)
+                .maybeSingle()
+
+              if (result.data) {
+                console.log('✅ [Edge Function] members 테이블에서 찾음 (user_id):', result.data.name)
+                pastorData = result.data
+              } else if (result.error) {
+                console.error('❌ [Edge Function] 담당자 조회 실패:', result.error)
+              }
+            }
+
+            if (pastorData) {
+              enrichedRequest.assigned_pastor = {
+                name: pastorData.name,
+                phone: pastorData.phone || ''
+              }
+            } else {
+              console.warn('⚠️ [Edge Function] 담당자 정보를 찾을 수 없음')
             }
           }
 
@@ -349,11 +428,21 @@ Deno.serve(async (req) => {
       if (pathParts.includes('complete')) {
         const requestId = pathParts[pathParts.length - 2] // requests/{id}/complete
 
-        const updateData = {
+        const updateData: any = {
           status: 'completed',
           completion_date: new Date().toISOString(),
           completion_notes: body.completion_notes || body.completionNotes,
           pastor_notes: body.pastor_notes || body.pastorNotes
+        }
+
+        // 완료 처리한 사용자를 assigned_pastor_id로 저장
+        if (body.assigned_pastor_id || body.assignedPastorId) {
+          updateData.assigned_pastor_id = body.assigned_pastor_id || body.assignedPastorId
+        }
+
+        // completed_at 필드도 저장
+        if (body.completed_at || body.completedAt) {
+          updateData.completed_at = body.completed_at || body.completedAt
         }
 
         const { data, error } = await supabaseClient

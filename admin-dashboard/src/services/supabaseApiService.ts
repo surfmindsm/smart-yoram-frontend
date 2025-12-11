@@ -592,6 +592,7 @@ export const supabaseApiService = {
         if (filters.priority) params.append('priority', filters.priority);
         if (filters.request_type) params.append('request_type', filters.request_type);
         if (filters.church_id) params.append('church_id', filters.church_id.toString());
+        if (filters.exclude_completed) params.append('exclude_completed', 'true');
         if (filters.page) params.append('page', filters.page.toString());
         if (filters.limit) params.append('limit', filters.limit.toString());
 

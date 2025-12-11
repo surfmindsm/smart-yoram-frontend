@@ -44,6 +44,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService';
 
 interface Member {
   id: number;
+  user_id?: string;  // Supabase Auth user ID
   church_id?: number;
   name: string;
   phone?: string;
@@ -52,6 +53,7 @@ interface Member {
   organization_name?: string;
   department?: string;
   profile_photo_url?: string;
+  position_main?: string;
 }
 
 interface PastoralCareRequest {
@@ -138,7 +140,6 @@ const PastoralCareManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showRecordDetailModal, setShowRecordDetailModal] = useState(false);
@@ -146,7 +147,7 @@ const PastoralCareManagement: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [selectedRecord, setSelectedRecord] = useState<PastoralCareRecord | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
-  
+
   // 🆕 위치 관련 상태
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
@@ -155,7 +156,6 @@ const PastoralCareManagement: React.FC = () => {
   const [urgentFilter, setUrgentFilter] = useState<string>('all');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
-  const [assignedPastorId, setAssignedPastorId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [completionNotes, setCompletionNotes] = useState('');
 
@@ -227,10 +227,12 @@ const PastoralCareManagement: React.FC = () => {
       const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
 
       const params: any = {
-        church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
+        church_id: userChurchId,  // 현재 사용자의 교회 ID로 필터링
+        exclude_completed: true   // 완료된 심방 제외
       };
 
-      if (statusFilter !== 'all') params.status = statusFilter;
+      // exclude_completed가 true일 때는 status 필터를 적용하지 않음 (충돌 방지)
+      // if (statusFilter !== 'all') params.status = statusFilter;
       if (priorityFilter !== 'all') params.priority = priorityFilter;
       if (typeFilter !== 'all') params.request_type = typeFilter;
 
@@ -350,33 +352,41 @@ const PastoralCareManagement: React.FC = () => {
         recordsData = [];
       }
       
-      const transformedRecords: PastoralCareRecord[] = recordsData.map((item: any) => ({
-        id: item.id,
-        requesterName: item.requester_name,
-        requesterPhone: item.requester_phone,
-        organizationName: item.organization_name,
-        department: item.department,
-        profilePhotoUrl: item.profile_photo_url,
-        requestType: item.request_type,
-        requestContent: item.request_content,
-        priority: item.priority || 'normal',
-        assignedPastor: item.assigned_pastor_id ? {
-          id: item.assigned_pastor_id,
-          name: item.assigned_pastor?.name || '담당자 미지정',
-          phone: item.assigned_pastor?.phone || ''
-        } : undefined,
-        scheduledDate: item.scheduled_date || '미지정',
-        scheduledTime: item.scheduled_time || '미지정',
-        completionNotes: item.completion_notes,
-        completedAt: item.completed_at,
-        createdAt: item.created_at,
-        // 🆕 위치 관련 필드 추가
-        address: item.address,
-        latitude: item.latitude,
-        longitude: item.longitude,
-        contactInfo: item.contact_info,
-        isUrgent: item.is_urgent || false
-      }));
+      const transformedRecords: PastoralCareRecord[] = recordsData.map((item: any) => {
+        // assigned_pastor_id로 담당자 정보 찾기 (백엔드에서 조인된 데이터 사용)
+        let assignedPastor = undefined;
+        if (item.assigned_pastor_id && item.assigned_pastor?.name) {
+          assignedPastor = {
+            id: item.assigned_pastor_id,
+            name: item.assigned_pastor.name,
+            phone: item.assigned_pastor.phone || ''
+          };
+        }
+
+        return {
+          id: item.id,
+          requesterName: item.requester_name,
+          requesterPhone: item.requester_phone,
+          organizationName: item.organization_name,
+          department: item.department,
+          profilePhotoUrl: item.profile_photo_url,
+          requestType: item.request_type,
+          requestContent: item.request_content,
+          priority: item.priority || 'normal',
+          assignedPastor,
+          scheduledDate: item.scheduled_date || '미지정',
+          scheduledTime: item.scheduled_time || '미지정',
+          completionNotes: item.completion_notes,
+          completedAt: item.completed_at,
+          createdAt: item.created_at,
+          // 🆕 위치 관련 필드 추가
+          address: item.address,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          contactInfo: item.contact_info,
+          isUrgent: item.is_urgent || false
+        };
+      });
       
       setCompletedRecords(transformedRecords);
     } catch (error) {
@@ -729,12 +739,6 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
-  const handleAssignPastor = (request: PastoralCareRequest) => {
-    setSelectedRequest(request);
-    setAssignedPastorId('');
-    setShowAssignModal(true);
-  };
-
   const handleSaveSchedule = async () => {
     if (!selectedRequest || !scheduledDate || !scheduledTime) return;
 
@@ -777,18 +781,35 @@ const PastoralCareManagement: React.FC = () => {
       alert('심방 기록을 입력해주세요.');
       return;
     }
-    const updateData = {
-      status: 'completed',
-      completion_notes: completionNotes,
-      completed_at: new Date().toISOString()
-    };
 
     try {
+      // 현재 사용자 정보 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userId = currentUser?.user?.id;
+
+      if (!userId) {
+        alert('사용자 정보를 가져올 수 없습니다.');
+        return;
+      }
+
       // 심방 신청을 완료 상태로 업데이트 - completeRequest 엔드포인트 사용
       const response = await supabaseApiService.pastoralCare.complete(selectedRequest.id, {
         completion_notes: completionNotes,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        assigned_pastor_id: userId  // 현재 사용자를 작성자로 기록
       });
+
+      // 현재 사용자 정보를 members에서 찾기 (user_id로 매칭)
+      const currentUserMember = members.find(m => m.user_id === userId);
+      const assignedPastor = currentUserMember ? {
+        id: userId,
+        name: currentUserMember.name,
+        phone: currentUserMember.phone || ''
+      } : {
+        id: userId,
+        name: currentUser?.user?.name || '작성자',
+        phone: ''
+      };
 
       // 완료된 심방을 기록 목록에 추가
       const completedRecord: PastoralCareRecord = {
@@ -803,7 +824,7 @@ const PastoralCareManagement: React.FC = () => {
         priority: selectedRequest.priority,
         scheduledDate: selectedRequest.scheduledDate || new Date().toISOString().split('T')[0],
         scheduledTime: selectedRequest.scheduledTime || '미지정',
-        assignedPastor: selectedRequest.assignedPastor,
+        assignedPastor: assignedPastor,  // 현재 사용자를 작성자로 설정
         completionNotes: completionNotes,
         completedAt: new Date().toISOString(),
         createdAt: selectedRequest.createdAt,
@@ -966,35 +987,6 @@ const PastoralCareManagement: React.FC = () => {
         status: error.response?.status
       });
       alert(`심방 일지 수정에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
-    }
-  };
-
-  const handleSaveAssignment = async () => {
-    if (!selectedRequest || !assignedPastorId) return;
-
-    try {
-      await supabaseApiService.pastoralCare.assignPastor(selectedRequest.id, assignedPastorId);
-      
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === selectedRequest.id 
-            ? { 
-                ...req, 
-                assignedPastorId: parseInt(assignedPastorId),
-                assignedPastor: {
-                  id: parseInt(assignedPastorId),
-                  name: '배정된 목사',
-                  phone: ''
-                }
-              }
-            : req
-        )
-      );
-      
-      setShowAssignModal(false);
-      setAssignedPastorId('');
-    } catch (error) {
-      console.error('Failed to assign pastor:', error);
     }
   };
 
@@ -1557,17 +1549,6 @@ const PastoralCareManagement: React.FC = () => {
                           </button>
                         </>
                       )}
-                      {request.status === 'approved' && !request.assignedPastor && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAssignPastor(request);
-                          }}
-                          className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          담당자배정
-                        </button>
-                      )}
                       {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
                         <>
                           <button
@@ -2039,62 +2020,6 @@ const PastoralCareManagement: React.FC = () => {
               </Button>
               <Button onClick={handleSaveSchedule} disabled={!scheduledDate || !scheduledTime}>
                 일정 확정
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 담당자 배정 모달 */}
-      {showAssignModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">담당자 배정</h2>
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  신청자: {selectedRequest.requesterName}
-                </label>
-                <p className="text-sm text-slate-500">
-                  심방 유형: {selectedRequest.requestType === 'general' ? '일반' : 
-                           selectedRequest.requestType === 'urgent' ? '긴급' :
-                           selectedRequest.requestType === 'hospital' ? '병원' : '상담'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  담당 목사 선택
-                </label>
-                <select
-                  value={assignedPastorId}
-                  onChange={(e) => setAssignedPastorId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">담당자 선택</option>
-                  <option value="pastor1">김목사</option>
-                  <option value="pastor2">이목사</option>
-                  <option value="pastor3">박목사</option>
-                  <option value="pastor4">최목사</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setShowAssignModal(false)}>
-                취소
-              </Button>
-              <Button onClick={handleSaveAssignment} disabled={!assignedPastorId}>
-                배정 완료
               </Button>
             </div>
           </div>

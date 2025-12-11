@@ -13,7 +13,12 @@ import {
   CheckSquare,
   TrendingUp,
   AlertTriangle,
-  Settings
+  Settings,
+  Heart,
+  Calculator,
+  HandCoins,
+  FileText,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
