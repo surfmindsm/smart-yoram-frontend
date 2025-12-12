@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { Card, CardContent } from "./ui";
 import { Button, Combobox } from "./ui";
 import { Spinner } from "./ui/spinner";
+import { getPositionDetailLabel } from '../constants/memberPositions';
 
 interface Member {
   id: number;
@@ -33,6 +34,7 @@ interface Member {
   phone?: string;
   address?: string;
   email?: string;
+  position_detail?: string;
   organization_name?: string;
   department?: string;
   profile_photo_url?: string;
@@ -359,53 +361,6 @@ const PrayerRequests: React.FC = () => {
         <p className="text-gray-600">교회 공동체의 기도요청을 관리하고 중보기도를 진행합니다.</p>
       </div>
 
-      {/* 통계 카드 */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-primary-500/10">
-                  <Heart className="h-6 w-6 text-primary-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">전체 요청</p>
-                  <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-orange-500/10">
-                  <Clock className="h-6 w-6 text-orange-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">진행중</p>
-                  <div className="text-2xl font-bold text-foreground">{stats.active}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">응답됨</p>
-                  <div className="text-2xl font-bold text-foreground">{stats.answered}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* 필터 및 검색 */}
       <Card className="border-muted mb-6">
         <CardContent className="p-6">
@@ -579,11 +534,17 @@ const PrayerRequests: React.FC = () => {
                   교인 선택 (선택사항)
                 </label>
                 <Combobox
-                  options={members.map(member => ({
-                    value: member.id.toString(),
-                    label: member.name,
-                    description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                  }))}
+                  options={members.map(member => {
+                    const details = [
+                      getPositionDetailLabel(member.position_detail),
+                      member.department,
+                      member.organization_name
+                    ].filter(Boolean).join('/');
+                    return {
+                      value: member.id.toString(),
+                      label: details ? `${member.name}(${details})` : member.name
+                    };
+                  })}
                   value={newRequest.memberId}
                   onChange={(value) => {
                     const selectedMember = members.find(m => m.id.toString() === value);

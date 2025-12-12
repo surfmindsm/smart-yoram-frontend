@@ -31,7 +31,6 @@ const AIAgentManagement = lazy(() => import('./components/AIAgentManagement'));
 const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
-const PrayerRequestManagement = lazy(() => import('./components/PrayerRequestManagement'));
 const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
@@ -262,11 +261,6 @@ function App() {
           <Route path="important-dates" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ImportantDatesManagement />
-            </Suspense>
-          } />
-          <Route path="prayer-requests-old" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <PrayerRequestManagement />
             </Suspense>
           } />
           <Route path="prayer-requests" element={
@@ -529,21 +523,6 @@ function App() {
           <Route path="ai-tools/bulletin-content" element={
             <Suspense fallback={<LoadingSpinner />}>
               <BulletinContent />
-            </Suspense>
-          } />
-          <Route path="pastoral-care" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <PastoralCareManagement />
-            </Suspense>
-          } />
-          <Route path="prayer-requests-old" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <PrayerRequestManagement />
-            </Suspense>
-          } />
-          <Route path="prayer-requests" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <PrayerRequests />
             </Suspense>
           } />
         </Route>
