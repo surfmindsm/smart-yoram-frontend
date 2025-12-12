@@ -176,7 +176,7 @@ const Layout: React.FC = () => {
       newExpandedGroups['교인 관리'] = true;
     } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
-    } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements'/*, '/push-notifications'*/].some(path => currentPath.startsWith(path))) {
+    } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements', '/message-sending'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['예배 & 소식'] = true;
     } else if (['/church', '/important-dates', '/excel', '/sms', '/qr-codes'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교회 운영 & 설정'] = true;
@@ -398,7 +398,7 @@ const Layout: React.FC = () => {
         { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
         { path: '/bulletins', name: '주보 관리', Icon: FileText },
         ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
-        // { path: '/push-notifications', name: '푸시 알림', Icon: Bell },
+        { path: '/message-sending', name: '메시지 보내기', Icon: Bell },
       ],
     },
     {

@@ -26,6 +26,7 @@ const ChurchInfo = lazy(() => import('./components/ChurchInfo'));
 const DailyVerse = lazy(() => import('./components/DailyVerse'));
 const WorshipScheduleManagement = lazy(() => import('./components/worship/WorshipScheduleManagement'));
 const PushNotifications = lazy(() => import('./components/PushNotifications'));
+const MessageSending = lazy(() => import('./components/MessageSending'));
 const AIChat = lazy(() => import('./components/AIChat'));
 const AIAgentManagement = lazy(() => import('./components/AIAgentManagement'));
 const ChurchSettings = lazy(() => import('./components/ChurchSettings'));
@@ -312,6 +313,11 @@ function App() {
           <Route path="push-notifications" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PushNotifications />
+            </Suspense>
+          } />
+          <Route path="message-sending" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MessageSending />
             </Suspense>
           } />
           <Route path="gpt-settings" element={
