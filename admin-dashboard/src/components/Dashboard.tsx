@@ -17,8 +17,7 @@ import {
   Heart,
   Calculator,
   HandCoins,
-  FileText,
-  Bell
+  FileText
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
@@ -79,6 +78,22 @@ const memberGrowthConfig = {
   },
 } satisfies ChartConfig
 
+const pastoralCareChartConfig = {
+  pending: {
+    label: "대기중",
+    color: "hsl(var(--chart-1))",
+  },
+  in_progress: {
+    label: "진행중",
+    color: "hsl(var(--chart-2))",
+  },
+  completed: {
+    label: "완료",
+    color: "hsl(var(--chart-3))",
+  },
+} satisfies ChartConfig
+
+
 interface Demographics {
   gender_distribution: Array<{ gender: string; count: number; percentage: number }>;
   age_distribution: Array<{ age_group: string; count: number; percentage: number }>;
@@ -104,6 +119,19 @@ interface TodoData {
   upcomingImportantDates: any[];
 }
 
+interface PastoralCareStats {
+  total: number;
+  pending: number;
+  in_progress: number;
+  completed: number;
+  by_type: {
+    general: number;
+    urgent: number;
+    hospital: number;
+    counseling: number;
+  };
+}
+
 const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({
@@ -114,6 +142,7 @@ const Dashboard = React.memo(() => {
   });
   const [demographics, setDemographics] = useState<Demographics | null>(null);
   const [memberGrowth, setMemberGrowth] = useState<MemberGrowth | null>(null);
+  const [pastoralCareStats, setPastoralCareStats] = useState<PastoralCareStats | null>(null);
   const [todos, setTodos] = useState<TodoData>({
     todayBirthdays: [],
     upcomingBirthdays: [],
@@ -245,6 +274,33 @@ const Dashboard = React.memo(() => {
     }
   };
 
+  const fetchPastoralCareStats = async () => {
+    try {
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/pastoral-care/admin/stats`;
+
+      const token = await supabaseAuthService.getToken();
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      setPastoralCareStats(data);
+    } catch (error) {
+      console.error('심방 신청 통계 조회 실패:', error);
+      setPastoralCareStats(null);
+    }
+  };
+
+
   const fetchTodos = useCallback(async () => {
     try {
       setTodosLoading(true);
@@ -288,12 +344,13 @@ const Dashboard = React.memo(() => {
       const currentUser = await supabaseAuthService.getCurrentUser();
       const userChurchId = currentUser?.user?.church_id;
 
-      // 교인 데이터만 조회 (출석 데이터는 임시로 주석처리)
+      // 교인 데이터 조회 및 통계 함수 실행
       const [membersResponse] = await Promise.all([
         edgeApi.get(`/members/${userChurchId ? `?church_id=${userChurchId}` : ''}`).catch(() => ({ data: [] })),
         fetchDemographics(),
         fetchMemberGrowth(),
-        fetchTodos()
+        fetchTodos(),
+        fetchPastoralCareStats()
       ]);
 
       const totalMembers = membersResponse.data.length || 0;
@@ -625,98 +682,164 @@ const Dashboard = React.memo(() => {
           )}
         </div>
 
-        {/* 교인 증가 추이 */}
-        {memberGrowth && (
-          <Card className="border-muted">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  교인 증가 추이 (최근 12개월)
-                </CardTitle>
-                <div className="text-sm text-muted-foreground flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    현재 교인: {memberGrowth.total_current_members}명
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="h-4 w-4" />
-                    조회 기간: {memberGrowth.period_months}개월
-                  </span>
+        {/* 교인 증가 추이 및 심방 신청 통계 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 교인 증가 추이 */}
+          {memberGrowth && (
+            <Card className="border-muted">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    교인 증가 추이 (최근 12개월)
+                  </CardTitle>
+                  <div className="text-sm text-muted-foreground flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      현재 교인: {memberGrowth.total_current_members}명
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4" />
+                      조회 기간: {memberGrowth.period_months}개월
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={memberGrowthConfig}
-                className="h-[200px] w-full"
-              >
-                <ComposedChart
-                  data={memberGrowth.growth_data.slice(-12)}
-                  margin={{
-                    left: 8,
-                    right: 8,
-                    top: 8,
-                    bottom: 8,
-                  }}
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={memberGrowthConfig}
+                  className="h-[200px] w-full"
                 >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(5)}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent />}
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar
-                    dataKey="new_members"
-                    fill="var(--color-new_members)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Line
-                    dataKey="total_members"
-                    type="linear"
-                    stroke="var(--color-total_members)"
-                    strokeWidth={2}
-                    dot={{
-                      fill: "var(--color-total_members)",
+                  <ComposedChart
+                    data={memberGrowth.growth_data.slice(-12)}
+                    margin={{
+                      left: 8,
+                      right: 8,
+                      top: 8,
+                      bottom: 8,
                     }}
-                    activeDot={{
-                      r: 6,
-                    }}
-                  />
-                </ComposedChart>
-              </ChartContainer>
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      tickFormatter={(value) => value.slice(5)}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent />}
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Bar
+                      dataKey="new_members"
+                      fill="var(--color-new_members)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Line
+                      dataKey="total_members"
+                      type="linear"
+                      stroke="var(--color-total_members)"
+                      strokeWidth={2}
+                      dot={{
+                        fill: "var(--color-total_members)",
+                      }}
+                      activeDot={{
+                        r: 6,
+                      }}
+                    />
+                  </ComposedChart>
+                </ChartContainer>
 
-              {/* 요약 통계 */}
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
-                  <div className="text-xl font-bold text-green-600">
-                    +{memberGrowth.growth_data.reduce((sum, item) => sum + item.new_members, 0)}
+                {/* 요약 통계 */}
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-xl font-bold text-green-600">
+                      +{memberGrowth.growth_data.reduce((sum, item) => sum + item.new_members, 0)}
+                    </div>
+                    <div className="text-xs text-green-700">총 신규 교인</div>
                   </div>
-                  <div className="text-xs text-green-700">총 신규 교인</div>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-primary-50 border border-primary-200">
-                  <div className="text-xl font-bold text-primary-600">
-                    {memberGrowth.total_current_members}명
+                  <div className="text-center p-3 rounded-lg bg-primary-50 border border-primary-200">
+                    <div className="text-xl font-bold text-primary-600">
+                      {memberGrowth.total_current_members}명
+                    </div>
+                    <div className="text-xs text-primary-700">현재 총 교인</div>
                   </div>
-                  <div className="text-xs text-primary-700">현재 총 교인</div>
-                </div>
-                <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
-                  <div className="text-xl font-bold text-purple-600">
-                    {memberGrowth.growth_data.slice(-3).reduce((sum, item) => sum + item.new_members, 0)}
+                  <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
+                    <div className="text-xl font-bold text-purple-600">
+                      {memberGrowth.growth_data.slice(-3).reduce((sum, item) => sum + item.new_members, 0)}
+                    </div>
+                    <div className="text-xs text-purple-700">최근 3개월 신규</div>
                   </div>
-                  <div className="text-xs text-purple-700">최근 3개월 신규</div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 심방 신청 통계 */}
+          {pastoralCareStats && (
+            <Card className="border-muted">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  심방 신청 현황
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pastoralCareStats.total > 0 ? (
+                  <>
+                    <ChartContainer
+                      config={pastoralCareChartConfig}
+                      className="mx-auto aspect-square max-h-[200px]"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
+                        />
+                        <Pie
+                          data={[
+                            { name: '대기중', value: pastoralCareStats.pending },
+                            { name: '진행중', value: pastoralCareStats.in_progress },
+                            { name: '완료', value: pastoralCareStats.completed },
+                          ].filter(item => item.value > 0)}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={40}
+                          strokeWidth={4}
+                        >
+                          <Cell fill="var(--color-pending)" />
+                          <Cell fill="var(--color-in_progress)" />
+                          <Cell fill="var(--color-completed)" />
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="text-center p-2 rounded bg-muted/30">
+                        <div className="text-sm font-bold">{pastoralCareStats.pending}</div>
+                        <div className="text-xs text-muted-foreground">대기중</div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-muted/30">
+                        <div className="text-sm font-bold">{pastoralCareStats.in_progress}</div>
+                        <div className="text-xs text-muted-foreground">진행중</div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-muted/30">
+                        <div className="text-sm font-bold">{pastoralCareStats.completed}</div>
+                        <div className="text-xs text-muted-foreground">완료</div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                    <Heart className="h-12 w-12 mb-2 opacity-20" />
+                    <p className="text-sm">심방 신청이 없습니다</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* 비밀번호 변경 모달 */}
