@@ -134,12 +134,7 @@ const PastoralCareManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [personFilter, setPersonFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -211,7 +206,7 @@ const PastoralCareManagement: React.FC = () => {
     } else {
       loadCompletedRecords();
     }
-  }, [activeTab, statusFilter, priorityFilter, typeFilter]);
+  }, [activeTab, statusFilter]);
   
   // 초기 로드 시 모든 데이터 로드 (카운트 업데이트를 위해)
   useEffect(() => {
@@ -239,8 +234,6 @@ const PastoralCareManagement: React.FC = () => {
 
       // exclude_completed가 true일 때는 status 필터를 적용하지 않음 (충돌 방지)
       // if (statusFilter !== 'all') params.status = statusFilter;
-      if (priorityFilter !== 'all') params.priority = priorityFilter;
-      if (typeFilter !== 'all') params.request_type = typeFilter;
 
       // 심방 신청과 교인 데이터를 병렬로 로드
       const [response, membersResult] = await Promise.allSettled([
@@ -337,9 +330,6 @@ const PastoralCareManagement: React.FC = () => {
         church_id: userChurchId,  // 현재 사용자의 교회 ID로 필터링
         status: 'completed' // 완료된 심방 기록만 조회
       };
-
-      if (priorityFilter !== 'all') params.priority = priorityFilter;
-      if (typeFilter !== 'all') params.request_type = typeFilter;
       
       const response = await supabaseApiService.pastoralCare.getAll(params);
       
@@ -408,6 +398,7 @@ const PastoralCareManagement: React.FC = () => {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'approved': return 'bg-primary-100 text-primary-800';
       case 'scheduled': return 'bg-primary-100 text-primary-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -419,8 +410,9 @@ const PastoralCareManagement: React.FC = () => {
       case 'pending': return '대기중';
       case 'approved': return '승인됨';
       case 'scheduled': return '예정됨';
-      case 'completed': return '완료';
-      case 'cancelled': return '취소';
+      case 'in_progress': return '진행중';
+      case 'completed': return '완료됨';
+      case 'cancelled': return '취소됨';
       default: return '알 수 없음';
     }
   };
@@ -647,35 +639,11 @@ const PastoralCareManagement: React.FC = () => {
                          request.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (request.address && request.address.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
-    const matchesType = typeFilter === 'all' || request.requestType === typeFilter;
-    // 🆕 긴급 요청 필터
-    const matchesUrgent = urgentFilter === 'all' || 
-                         (urgentFilter === 'urgent' && request.isUrgent) ||
-                         (urgentFilter === 'normal' && !request.isUrgent);
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesUrgent;
+
+    return matchesSearch && matchesStatus;
   });
 
-  const filteredRecords = completedRecords.filter(record => {
-    const matchesSearch = 
-      record.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.completionNotes && record.completionNotes.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesPriority = priorityFilter === 'all' || record.priority === priorityFilter;
-    const matchesType = typeFilter === 'all' || record.requestType === typeFilter;
-    
-    // 사람별 필터
-    const matchesPerson = !personFilter || record.requesterName.toLowerCase().includes(personFilter.toLowerCase());
-    
-    // 날짜 필터
-    const recordDate = record.completedAt ? new Date(record.completedAt) : new Date();
-    const matchesDateFrom = !dateFromFilter || recordDate >= new Date(dateFromFilter);
-    const matchesDateTo = !dateToFilter || recordDate <= new Date(dateToFilter + 'T23:59:59');
-    
-    return matchesSearch && matchesPriority && matchesType && matchesPerson && matchesDateFrom && matchesDateTo;
-  });
+  const filteredRecords = completedRecords;
 
   const handleViewDetails = (request: PastoralCareRequest) => {
     setSelectedRequest(request);
@@ -1091,7 +1059,7 @@ const PastoralCareManagement: React.FC = () => {
       {activeTab === 'requests' && (
         <>
           {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-muted">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -1102,23 +1070,6 @@ const PastoralCareManagement: React.FC = () => {
                     <p className="text-sm font-medium text-muted-foreground">대기중</p>
                     <div className="text-2xl font-bold text-foreground">
                       {requests.filter(r => r.status === 'pending').length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 🆕 긴급 요청 통계 추가 */}
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-red-500/10">
-                    <Zap className="h-6 w-6 text-red-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">긴급 요청</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {requests.filter(r => r.isUrgent).length}
                     </div>
                   </div>
                 </div>
@@ -1276,8 +1227,9 @@ const PastoralCareManagement: React.FC = () => {
             <option value="pending">대기중</option>
             <option value="approved">승인됨</option>
             <option value="scheduled">예정됨</option>
-            <option value="completed">완료</option>
-            <option value="cancelled">취소</option>
+            <option value="in_progress">진행중</option>
+            <option value="completed">완료됨</option>
+            <option value="cancelled">취소됨</option>
           </select>
 
           <Button

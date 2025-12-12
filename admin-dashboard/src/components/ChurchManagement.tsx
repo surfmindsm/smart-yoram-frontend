@@ -23,9 +23,11 @@ import {
   RefreshCw,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Download
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import * as XLSX from 'xlsx';
 
 interface Church {
   id: string;
@@ -88,10 +90,12 @@ const ChurchManagement: React.FC = () => {
       console.log('✅ 교회 목록 조회 성공:', data?.length, '개');
       setChurches(data || []);
 
-      // 각 교회의 교인 수 조회
+      // 각 교회의 교인 수 조회 (병렬 처리로 성능 개선)
       if (data) {
         const counts: {[key: number]: number} = {};
-        for (const church of data) {
+
+        // 모든 교회의 교인 수를 병렬로 조회
+        const countPromises = data.map(async (church) => {
           try {
             const churchId = parseInt(church.id);
             if (churchId) {
@@ -102,21 +106,30 @@ const ChurchManagement: React.FC = () => {
 
               if (error) {
                 console.warn(`교회 ${church.name} (ID: ${churchId}) 교인 수 조회 오류:`, error);
-                counts[churchId] = 0;
+                return { churchId, count: 0 };
               } else {
-                counts[churchId] = count || 0;
                 console.log(`✅ 교회 ${church.name} (ID: ${churchId}) 교인 수: ${count}명`);
+                return { churchId, count: count || 0 };
               }
             } else {
               console.warn(`교회 ${church.name}의 ID가 유효하지 않음:`, church.id);
-              counts[parseInt(church.id) || 0] = 0;
+              return { churchId: parseInt(church.id) || 0, count: 0 };
             }
           } catch (error) {
             console.warn(`교회 ${church.name} 교인 수 조회 실패:`, error);
             const churchId = parseInt(church.id);
-            counts[churchId || 0] = 0;
+            return { churchId: churchId || 0, count: 0 };
           }
-        }
+        });
+
+        // 모든 요청이 완료될 때까지 기다림
+        const results = await Promise.all(countPromises);
+
+        // 결과를 counts 객체로 변환
+        results.forEach(({ churchId, count }) => {
+          counts[churchId] = count;
+        });
+
         setMemberCounts(counts);
       }
     } catch (error) {
@@ -287,6 +300,71 @@ const ChurchManagement: React.FC = () => {
       : <ArrowDown className="w-4 h-4 ml-1 inline" />;
   };
 
+  const handleExcelDownload = () => {
+    try {
+      // 엑셀로 내보낼 데이터 준비
+      const excelData = filteredChurches.map((church) => ({
+        'ID': church.id,
+        '교회명': church.name,
+        '담임목사': church.pastor_name || '미설정',
+        '교단': church.denomination || '미설정',
+        '전화번호': church.phone || '미설정',
+        '이메일': church.email || '미설정',
+        '주소': church.address || '미설정',
+        '교인 수': memberCounts[parseInt(church.id)] || 0,
+        '구독 상태': church.subscription_status === 'active' ? '활성' :
+                    church.subscription_status === 'inactive' ? '비활성' :
+                    church.subscription_status === 'trial' ? '체험' :
+                    church.subscription_status === 'suspended' ? '정지' : church.subscription_status,
+        '구독 플랜': !church.subscription_plan || church.subscription_plan === 'trial' ? '무료' :
+                    church.subscription_plan === 'standard' ? '스탠다드' :
+                    church.subscription_plan === 'premium' ? '프리미엄' :
+                    church.subscription_plan === 'enterprise' ? '엔터프라이즈' : church.subscription_plan,
+        '교인 제한': getMemberLimitInfo(church),
+        '활성 상태': church.is_active ? '활성' : '비활성',
+        '등록일': new Date(church.created_at).toLocaleDateString('ko-KR'),
+        '수정일': church.updated_at ? new Date(church.updated_at).toLocaleDateString('ko-KR') : '없음',
+      }));
+
+      // 워크시트 생성
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // 컬럼 너비 설정
+      const columnWidths = [
+        { wch: 8 },  // ID
+        { wch: 25 }, // 교회명
+        { wch: 15 }, // 담임목사
+        { wch: 15 }, // 교단
+        { wch: 15 }, // 전화번호
+        { wch: 25 }, // 이메일
+        { wch: 40 }, // 주소
+        { wch: 10 }, // 교인 수
+        { wch: 10 }, // 구독 상태
+        { wch: 12 }, // 구독 플랜
+        { wch: 15 }, // 교인 제한
+        { wch: 10 }, // 활성 상태
+        { wch: 12 }, // 등록일
+        { wch: 12 }, // 수정일
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // 워크북 생성
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, '교회 목록');
+
+      // 파일명 생성 (현재 날짜 포함)
+      const fileName = `교회목록_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.xlsx`;
+
+      // 엑셀 파일 다운로드
+      XLSX.writeFile(workbook, fileName);
+
+      console.log(`✅ 엑셀 다운로드 성공: ${filteredChurches.length}개 교회`);
+    } catch (error) {
+      console.error('엑셀 다운로드 실패:', error);
+      alert('엑셀 다운로드에 실패했습니다.');
+    }
+  };
+
   const filteredChurches = churches
     .filter(church => {
       const matchesSearch = !searchTerm ||
@@ -343,10 +421,16 @@ const ChurchManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">교회 관리</h2>
-        <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
-          <RefreshCw className="w-4 h-4" />
-          새로고침
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExcelDownload} variant="outline" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            엑셀 다운로드
+          </Button>
+          <Button onClick={fetchChurches} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            새로고침
+          </Button>
+        </div>
       </div>
 
       {/* 통계 카드 */}

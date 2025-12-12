@@ -2658,6 +2658,7 @@ export const supabaseApiService = {
             phone,
             email,
             pastor_name,
+            denomination,
             subscription_plan,
             subscription_status,
             subscription_end_date,

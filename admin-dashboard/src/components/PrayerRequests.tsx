@@ -361,7 +361,7 @@ const PrayerRequests: React.FC = () => {
 
       {/* 통계 카드 */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="border-muted">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -399,20 +399,6 @@ const PrayerRequests: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">응답됨</p>
                   <div className="text-2xl font-bold text-foreground">{stats.answered}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-red-500/10">
-                  <AlertTriangle className="h-6 w-6 text-red-500" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">긴급</p>
-                  <div className="text-2xl font-bold text-foreground">{stats.urgent}</div>
                 </div>
               </div>
             </CardContent>
