@@ -8,6 +8,57 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
+// 디스코드 임베드 색상
+const COLORS = {
+  COMMUNITY_APPLICATION: 0x57F287, // Green
+  APPROVED: 0x57F287, // Green
+  REJECTED: 0xED4245, // Red
+}
+
+// 신청자 타입을 한글로 변환
+const applicantTypeKorean: { [key: string]: string } = {
+  'company': '기업',
+  'individual': '개인',
+  'musician': '음악인',
+  'minister': '사역자',
+  'organization': '단체',
+  'church_admin': '교회 관리자',
+  'other': '기타',
+}
+
+/**
+ * 디스코드 웹훅으로 메시지 전송
+ */
+async function sendDiscordWebhook(embed: any): Promise<void> {
+  const webhookUrl = Deno.env.get('DISCORD_WEBHOOK_URL')
+
+  if (!webhookUrl) {
+    console.warn('⚠️ 디스코드 웹훅 URL이 설정되지 않았습니다.')
+    return
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: 'ChurchRound 가입 알림',
+        embeds: [embed],
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('❌ 디스코드 웹훅 전송 실패:', response.status, response.statusText)
+    } else {
+      console.log('✅ 디스코드 알림 전송 완료')
+    }
+  } catch (error) {
+    console.error('❌ 디스코드 웹훅 전송 중 오류:', error)
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -120,6 +171,33 @@ Deno.serve(async (req) => {
       }
 
       console.log('✅ 커뮤니티 신청서 저장 완료:', data.id)
+
+      // 디스코드 알림 전송 (비동기, 실패해도 신청은 성공)
+      try {
+        const embed = {
+          title: '🌐 새로운 커뮤니티 회원 가입 신청',
+          description: '새로운 회원이 커뮤니티 가입을 신청했습니다.',
+          color: COLORS.COMMUNITY_APPLICATION,
+          fields: [
+            { name: '신청자 유형', value: applicantTypeKorean[applicant_type] || applicant_type, inline: true },
+            { name: '단체/조직명', value: organization_name, inline: true },
+            { name: '담당자명', value: contact_person, inline: true },
+            { name: '이메일', value: email, inline: true },
+            { name: '전화번호', value: phone, inline: true },
+            {
+              name: '상세 설명',
+              value: description.length > 200 ? description.substring(0, 200) + '...' : description,
+              inline: false,
+            },
+          ],
+          footer: { text: `신청 ID: ${data.id}` },
+          timestamp: new Date().toISOString(),
+        }
+        await sendDiscordWebhook(embed)
+      } catch (discordError) {
+        console.error('❌ 디스코드 알림 전송 실패:', discordError)
+        // 디스코드 알림 실패는 치명적이지 않으므로 무시
+      }
 
       return new Response(
         JSON.stringify({
@@ -340,6 +418,42 @@ Deno.serve(async (req) => {
           console.error('❌ 이메일/사용자 생성 오류:', emailError)
           // 오류 발생 시에도 승인은 완료되지만 로그 남김
         }
+      }
+
+      // 디스코드 알림 전송 (비동기, 실패해도 처리는 성공)
+      try {
+        if (status === 'approved') {
+          const embed = {
+            title: '✅ 커뮤니티 회원 가입 승인 완료',
+            description: '커뮤니티 회원 가입 신청이 승인되었습니다.',
+            color: COLORS.APPROVED,
+            fields: [
+              { name: '단체/조직명', value: updatedApplication.organization_name, inline: true },
+              { name: '담당자명', value: updatedApplication.contact_person, inline: true },
+              { name: '이메일', value: updatedApplication.email, inline: true },
+            ],
+            footer: { text: `신청 ID: ${applicationId}` },
+            timestamp: new Date().toISOString(),
+          }
+          await sendDiscordWebhook(embed)
+        } else if (status === 'rejected') {
+          const embed = {
+            title: '❌ 커뮤니티 회원 가입 반려',
+            description: '커뮤니티 회원 가입 신청이 반려되었습니다.',
+            color: COLORS.REJECTED,
+            fields: [
+              { name: '단체/조직명', value: updatedApplication.organization_name, inline: true },
+              { name: '담당자명', value: updatedApplication.contact_person, inline: true },
+              { name: '이메일', value: updatedApplication.email, inline: true },
+            ],
+            footer: { text: `신청 ID: ${applicationId}` },
+            timestamp: new Date().toISOString(),
+          }
+          await sendDiscordWebhook(embed)
+        }
+      } catch (discordError) {
+        console.error('❌ 디스코드 알림 전송 실패:', discordError)
+        // 디스코드 알림 실패는 치명적이지 않으므로 무시
       }
 
       return new Response(

@@ -1,5 +1,4 @@
 import { authService } from './api';
-import { notifyCommunityApplication, notifyCommunityApproval } from '../utils/discordWebhook';
 
 // API Base URL from guide
 const BASE_URL = 'https://api.surfmind-team.com/api/v1';
@@ -128,44 +127,7 @@ class CommunityApplicationService {
       }
 
       if (result.success) {
-        // 알림 이메일 발송
-        try {
-          await fetch(`${SUPABASE_URL}/functions/v1/notify-application`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              type: 'community',
-              applicantEmail: data.email,
-              applicantName: data.contact_person,
-              organizationName: data.organization_name,
-              applicationId: result.data.application_id
-            })
-          });
-        } catch (emailError) {
-          console.error('❌ 알림 이메일 발송 실패:', emailError);
-          // 이메일 발송 실패해도 신청은 성공으로 처리
-        }
-
-        // 디스코드 알림 전송 (비동기, 실패해도 신청은 성공)
-        try {
-          await notifyCommunityApplication({
-            applicant_type: data.applicant_type,
-            organization_name: data.organization_name,
-            contact_person: data.contact_person,
-            email: data.email,
-            phone: data.phone,
-            description: data.description,
-            application_id: result.data.application_id,
-          });
-        } catch (discordError) {
-          console.error('❌ 디스코드 알림 전송 실패:', discordError);
-          // 디스코드 알림 실패는 치명적이지 않으므로 무시
-        }
-
+        // 웹훅 알림은 Edge Function에서 자동으로 전송됨
         return result.data;
       } else {
         throw new Error(result.message);
@@ -382,9 +344,6 @@ class CommunityApplicationService {
     message?: string;
   }> {
     try {
-      // 먼저 신청서 정보를 가져옴 (디스코드 알림용)
-      const application = await this.getApplication(applicationId);
-
       const SUPABASE_URL = 'https://adzhdsajdamrflvybhxq.supabase.co';
       const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NDg5ODEsImV4cCI6MjA2OTQyNDk4MX0.pgn6M5_ihDFt3ojQmCoc3Qf8pc7LzRvQEIDT7g1nW3c';
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/community-applications`;
@@ -410,18 +369,7 @@ class CommunityApplicationService {
         throw new Error(result.message || '신청서 승인 처리에 실패했습니다.');
       }
 
-      // 디스코드 승인 알림 전송 (비동기, 실패해도 승인은 성공)
-      try {
-        await notifyCommunityApproval({
-          organization_name: application.organization_name,
-          contact_person: application.contact_person,
-          email: application.email,
-          application_id: applicationId,
-        });
-      } catch (discordError) {
-        console.error('❌ 디스코드 승인 알림 전송 실패:', discordError);
-        // 디스코드 알림 실패는 치명적이지 않으므로 무시
-      }
+      // 웹훅 알림은 Edge Function에서 자동으로 전송됨
 
       return {
         application_id: applicationId,

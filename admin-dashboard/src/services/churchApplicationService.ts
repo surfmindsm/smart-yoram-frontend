@@ -1,5 +1,4 @@
 import { authService } from './api';
-import { notifyChurchApplication, notifyChurchApproval } from '../utils/discordWebhook';
 
 // API Base URL from guide
 const BASE_URL = 'https://api.surfmind-team.com/api/v1';
@@ -159,24 +158,7 @@ class ChurchApplicationService {
       }
 
       if (result.success) {
-        // 디스코드 알림 전송 (비동기, 실패해도 신청은 성공)
-        try {
-          await notifyChurchApplication({
-            church_name: data.church_name,
-            pastor_name: data.pastor_name,
-            admin_name: data.admin_name,
-            email: data.email,
-            phone: data.phone,
-            address: data.address,
-            description: data.description,
-            denomination: data.denomination,
-            application_id: result.data.application_id,
-          });
-        } catch (discordError) {
-          console.error('❌ 디스코드 알림 전송 실패:', discordError);
-          // 디스코드 알림 실패는 치명적이지 않으므로 무시
-        }
-
+        // 웹훅 알림은 Edge Function에서 자동으로 전송됨
         return result.data;
       } else {
         throw new Error(result.message);
@@ -550,19 +532,7 @@ class ChurchApplicationService {
         console.error('❌ 임시 비밀번호 이메일 발송 실패:', emailError);
       }
 
-      // 디스코드 승인 알림 전송 (비동기, 실패해도 승인은 성공)
-      try {
-        await notifyChurchApproval({
-          church_name: data.church_name,
-          pastor_name: data.pastor_name,
-          email: data.email,
-          denomination: data.denomination,
-          application_id: applicationId,
-        });
-      } catch (discordError) {
-        console.error('❌ 디스코드 승인 알림 전송 실패:', discordError);
-        // 디스코드 알림 실패는 치명적이지 않으므로 무시
-      }
+      // 웹훅 알림은 Edge Function에서 자동으로 전송됨
 
       return {
         application_id: applicationId,
