@@ -208,9 +208,36 @@ serve(async (req) => {
 
     console.log(`📱 알림 발송 대상: ${deviceTokens.length}개 디바이스`);
 
-    // 3. 각 디바이스에 FCM 알림 발송
+    // 3-1. 먼저 Supabase notifications 테이블에 저장 (사용자별 1번만)
+    const uniqueUserIds = [...new Set(deviceTokens.map(d => d.user_id))];
+    console.log(`💾 알림 저장 대상: ${uniqueUserIds.length}명`);
+
+    for (const userId of uniqueUserIds) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          title: title,
+          body: content,
+          type: 'custom_message',
+          is_read: false,
+          related_id: null,
+          related_type: null,
+          data: {
+            church_id: church_id,
+            sender_id: senderId,
+            sender_name: senderName,
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        console.log(`💾 알림 저장 완료 (user_id: ${userId})`);
+      } catch (saveError) {
+        console.error(`⚠️ 알림 저장 실패 (user_id: ${userId}):`, saveError);
+      }
+    }
+
+    // 3-2. 각 디바이스에 FCM 알림 발송
     const notifications = [];
-    const notifiedUserIds = new Set(); // 중복 방지
 
     for (const device of deviceTokens) {
       const fcmPayload = {
@@ -266,33 +293,6 @@ serve(async (req) => {
           platform: device.platform,
           success: true,
         });
-
-        // 🆕 Supabase notifications 테이블에 저장 (사용자당 1번만)
-        if (!notifiedUserIds.has(device.user_id)) {
-          notifiedUserIds.add(device.user_id);
-          try {
-            await supabase.from('notifications').insert({
-              user_id: device.user_id,
-              title: title,
-              body: content,
-              type: 'custom_message',
-              is_read: false,
-              related_id: null,
-              related_type: null,
-              data: {
-                church_id: church_id,
-                sender_id: senderId,
-                sender_name: senderName,
-              },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-            console.log(`💾 알림 저장 완료 (user_id: ${device.user_id})`);
-          } catch (saveError) {
-            console.error(`⚠️ 알림 저장 실패 (user_id: ${device.user_id}):`, saveError);
-            // 저장 실패해도 FCM은 발송되었으므로 계속 진행
-          }
-        }
       } else {
         console.error(`❌ FCM 알림 발송 실패 (user_id: ${device.user_id}):`, fcmResult);
         notifications.push({
