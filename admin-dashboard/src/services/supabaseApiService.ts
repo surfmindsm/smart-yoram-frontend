@@ -2829,21 +2829,23 @@ export const supabaseApiService = {
     // 내 교회 정보 조회 (동적 데이터 관리)
     getMyChurch: async () => {
       try {
-        // console.log('🏛️ [교회 정보 API] 내 교회 조회 시작');
+        console.log('🏛️ [교회 정보 API] 내 교회 조회 시작');
 
         // 1. 현재 사용자 정보 가져오기
         const currentUser = await supabaseAuthService.getCurrentUser();
         const churchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
-        // console.log('📍 현재 사용자의 교회 ID:', churchId);
+        console.log('📍 현재 사용자의 교회 ID:', churchId);
+        console.log('📍 현재 사용자 전체 정보:', currentUser);
 
         if (!churchId || churchId === 0) {
           // super_admin의 경우 기본 교회 정보 반환
-          // console.log('🔑 super_admin 사용자 - fallback 데이터 사용');
+          console.log('🔑 super_admin 사용자 - fallback 데이터 사용');
           const fallbackChurch = supabaseApiService.churches._generateFallbackData(6);
           return fallbackChurch;
         }
 
         // 2. Supabase 직접 쿼리로 교회 정보 조회
+        console.log('🔍 Supabase에서 교회 정보 조회 중... (church_id:', churchId, ')');
         const { data, error } = await supabase
           .from('churches')
           .select('*')
@@ -2852,13 +2854,12 @@ export const supabaseApiService = {
 
         if (error) {
           console.error('🏛️ [교회 정보 API] 조회 오류:', error);
-          // fallback 데이터 사용
-          const fallbackChurch = supabaseApiService.churches._generateFallbackData(churchId);
-          // console.log('🔄 fallback 데이터 사용:', fallbackChurch.name);
-          return fallbackChurch;
+          console.error('🏛️ [교회 정보 API] 에러 상세:', JSON.stringify(error, null, 2));
+          // fallback 데이터 사용하지 않고 에러 던지기
+          throw new Error(`교회 정보 조회 실패: ${error.message}`);
         }
 
-        // console.log('✅ [교회 정보 API] 조회 성공:', data);
+        console.log('✅ [교회 정보 API] 조회 성공:', data);
 
         // 캐시에 저장
         localStorage.setItem(`church_${churchId}`, JSON.stringify(data));
@@ -2866,8 +2867,8 @@ export const supabaseApiService = {
 
       } catch (error) {
         console.error('🏛️ [교회 정보 API] 조회 실패:', error);
-        // 최종 fallback
-        return supabaseApiService.churches._generateFallbackData(6);
+        // 에러를 다시 던져서 UI에서 처리하도록 함
+        throw error;
       }
     },
 
@@ -3012,13 +3013,13 @@ export const supabaseApiService = {
     // 교회 정보 수정 (현재는 로컬 시뮬레이션)
     update: async (churchId: number, updateData: any) => {
       try {
-        // console.log('🏛️ [교회 정보 API] 교회 정보 수정 시작:', churchId, updateData);
+        console.log('🏛️ [교회 정보 API] 교회 정보 수정 시작:', churchId, updateData);
 
         // 1. 현재 사용자 정보 가져오기
         const currentUser = await supabaseAuthService.getCurrentUser();
         const userChurchId = currentUser?.user?.church_id || currentUser?.profile?.church_id;
         const userRole = currentUser?.user?.role || currentUser?.profile?.role;
-        // console.log('📍 현재 사용자의 교회 ID:', userChurchId, '권한:', userRole);
+        console.log('📍 현재 사용자의 교회 ID:', userChurchId, '권한:', userRole);
 
         // 2. 권한 검증: super_admin이거나 사용자가 속한 교회만 수정 가능
 
@@ -3028,8 +3029,10 @@ export const supabaseApiService = {
 
         // super_admin의 경우 churchId를 그대로 사용, 일반 사용자는 userChurchId 사용
         const targetChurchId = userRole === 'super_admin' ? churchId : userChurchId;
+        console.log('🎯 대상 교회 ID:', targetChurchId);
 
         // 3. Supabase 직접 쿼리로 교회 정보 수정
+        console.log('💾 Supabase 업데이트 실행 중...');
         const { data, error } = await supabase
           .from('churches')
           .update({
@@ -3038,6 +3041,8 @@ export const supabaseApiService = {
             phone: updateData.phone,
             email: updateData.email,
             pastor_name: updateData.pastor_name,
+            homepage_url: updateData.homepage_url,
+            youtube_channel: updateData.youtube_channel,
             business_no: updateData.business_no,
             district_scheme: updateData.district_scheme,
             updated_at: new Date().toISOString()
@@ -3048,10 +3053,11 @@ export const supabaseApiService = {
 
         if (error) {
           console.error('🏛️ [교회 정보 API] 수정 오류:', error);
+          console.error('🏛️ [교회 정보 API] 에러 상세:', JSON.stringify(error, null, 2));
           throw new Error(error.message);
         }
 
-        // console.log('✅ [교회 정보 API] 수정 성공:', data);
+        console.log('✅ [교회 정보 API] 수정 성공:', data);
 
         // 캐시 삭제
         localStorage.removeItem(`church_${targetChurchId}`);
