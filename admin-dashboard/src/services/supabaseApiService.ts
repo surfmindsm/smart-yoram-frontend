@@ -3964,8 +3964,10 @@ export const supabaseApiService = {
 
             if (inviteError) {
               console.error('👤 [invite-user Edge Function] 실패:', inviteError);
+              console.error('👤 [invite-user Edge Function] 에러 메시지:', inviteError.message);
               console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
             } else {
+              console.log('✅ [invite-user Edge Function] 성공:', inviteData);
             }
           }
         } catch (userCreateError) {

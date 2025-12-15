@@ -5,6 +5,7 @@ import { Input } from "../components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui";
 import { Textarea } from "../components/ui";
 import { DatePicker } from "../components/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui";
 import {
   ContactRound,
   Briefcase,
@@ -38,6 +39,9 @@ const AddMemberPage: React.FC = () => {
   const [departments, setDepartments] = useState<string[]>([]);
   const [members, setMembers] = useState<Array<{ id: number; name: string }>>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [showInviteMessage, setShowInviteMessage] = useState(false);
+  const [inviteMessageData, setInviteMessageData] = useState({ email: '', name: '' });
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     // 기본 정보
@@ -117,6 +121,42 @@ const AddMemberPage: React.FC = () => {
     return formData.name && formData.email && formData.phone;
   };
 
+  // 초대 메시지 생성 함수
+  const generateInviteMessage = (name: string, email: string) => {
+    const appUrl = process.env.REACT_APP_PRODUCTION_URL || 'https://churchround.com';
+    return `[Church Round 교인 초대]
+
+${name}님, 안녕하세요!
+Church Round 앱에 초대되셨습니다.
+
+📱 앱 다운로드:
+- iOS: App Store에서 "Church Round" 검색
+- Android: Google Play에서 "Church Round" 검색
+
+🔑 로그인 정보:
+- 이메일: ${email}
+- 임시 비밀번호: 이메일로 발송됨
+
+⚠️ 첫 로그인 후 반드시 비밀번호를 변경해주세요.
+
+앱 다운로드 링크: ${appUrl}/download
+
+문의사항이 있으시면 담당자에게 연락주세요.`;
+  };
+
+  // 클립보드 복사 함수
+  const handleCopyMessage = async () => {
+    const message = generateInviteMessage(inviteMessageData.name, inviteMessageData.email);
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('복사 실패:', err);
+      alert('메시지 복사에 실패했습니다.');
+    }
+  };
+
   const handlePhotoUpload = (file: File) => {
     setProfilePhoto(file);
     const reader = new FileReader();
@@ -129,6 +169,12 @@ const AddMemberPage: React.FC = () => {
   const handleRemovePhoto = () => {
     setProfilePhoto(null);
     setProfilePhotoPreview(null);
+  };
+
+  const handleCloseInviteMessage = () => {
+    setShowInviteMessage(false);
+    setCopySuccess(false);
+    navigate('/member-management');
   };
 
   // Load organizations, departments, and members
@@ -348,8 +394,9 @@ const AddMemberPage: React.FC = () => {
         }
       }
 
-      alert('교인 정보가 성공적으로 등록되었습니다.');
-      navigate('/member-management');
+      // 초대 메시지 데이터 설정 및 모달 표시
+      setInviteMessageData({ email: formData.email, name: formData.name });
+      setShowInviteMessage(true);
     } catch (error) {
       console.error('교인 추가 실패:', error);
       alert('교인 추가에 실패했습니다.');
@@ -1118,6 +1165,61 @@ const AddMemberPage: React.FC = () => {
           </details>
         </div>
       </div>
+
+      {/* 초대 메시지 모달 */}
+      <Dialog open={showInviteMessage} onOpenChange={handleCloseInviteMessage}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              교인 등록 완료 - 초대 메시지
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 font-medium">✅ 교인 정보가 성공적으로 등록되었습니다!</p>
+              <p className="text-sm text-green-700 mt-1">이메일로 임시 비밀번호가 발송되었습니다.</p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 font-medium mb-2">📱 이메일을 확인하지 못하는 경우</p>
+              <p className="text-sm text-yellow-700">
+                아래 메시지를 복사하여 휴대폰 문자나 카카오톡으로 전달해주세요.
+              </p>
+            </div>
+
+            <div className="bg-muted rounded-lg p-4 relative">
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                {generateInviteMessage(inviteMessageData.name, inviteMessageData.email)}
+              </pre>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={handleCopyMessage}
+                variant={copySuccess ? "default" : "outline"}
+                className="flex items-center gap-2"
+              >
+                {copySuccess ? (
+                  <>
+                    <span className="text-green-600">✓</span>
+                    복사됨!
+                  </>
+                ) : (
+                  <>
+                    <span>📋</span>
+                    메시지 복사
+                  </>
+                )}
+              </Button>
+              <Button onClick={handleCloseInviteMessage}>
+                확인
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
