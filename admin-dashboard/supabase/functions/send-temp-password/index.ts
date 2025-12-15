@@ -45,54 +45,63 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'noreply@churchround.com',
           to: email,
-          subject: 'Church Round 커뮤니티 가입 승인 및 로그인 정보',
+          subject: 'Church Round 앱 초대 - 로그인 정보',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-              <h2 style="color: #333; text-align: center;">Church Round 커뮤니티 가입 승인</h2>
+              <h2 style="color: #333; text-align: center;">Church Round 앱 초대</h2>
 
               <p style="font-size: 16px; color: #555;">안녕하세요, ${contact_person}님!</p>
 
               <p style="font-size: 16px; color: #555;">
-                ${organization_name || '귀하'}의 Church Round 커뮤니티 가입 신청이 승인되었습니다.
+                ${organization_name || '귀하'}의 Church Round 앱에 초대되셨습니다.
               </p>
 
               <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="color: #333; margin-top: 0;">로그인 정보</h3>
+                <h3 style="color: #333; margin-top: 0;">📱 앱 다운로드</h3>
+                <p style="margin: 10px 0;"><strong>iOS:</strong> App Store에서 "Church Round" 검색</p>
+                <p style="margin: 10px 0;"><strong>Android:</strong> Google Play에서 "Church Round" 검색</p>
+                <p style="margin: 15px 0;">
+                  <a href="https://churchround.com/download"
+                     style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    앱 다운로드하기
+                  </a>
+                </p>
+              </div>
+
+              <div style="background-color: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #333; margin-top: 0;">🔑 로그인 정보</h3>
                 <p style="margin: 10px 0;"><strong>이메일:</strong> ${email}</p>
                 <p style="margin: 10px 0;"><strong>임시 비밀번호:</strong>
-                  <span style="background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 14px;">${temporary_password}</span>
-                </p>
-                <p style="margin: 10px 0;"><strong>로그인 주소:</strong>
-                  <a href="https://your-domain.com/login" style="color: #007bff;">https://your-domain.com/login</a>
+                  <span style="background-color: #fff; padding: 6px 12px; border-radius: 4px; font-family: monospace; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">${temporary_password}</span>
                 </p>
               </div>
 
               <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <h4 style="color: #856404; margin-top: 0;">⚠️ 보안 안내</h4>
                 <ul style="color: #856404; margin: 0; padding-left: 20px;">
+                  <li>앱을 다운로드한 후 위의 이메일과 임시 비밀번호로 로그인하세요</li>
                   <li>첫 로그인 후 반드시 비밀번호를 변경해주세요</li>
                   <li>임시 비밀번호는 타인과 공유하지 마세요</li>
-                  <li>로그인 시 이메일 인증이 추가로 요구됩니다</li>
                 </ul>
               </div>
 
               <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <h4 style="color: #155724; margin-top: 0;">📋 다음 단계</h4>
                 <ol style="color: #155724; margin: 0; padding-left: 20px;">
-                  <li>위 정보로 로그인하기</li>
-                  <li>이메일 인증 코드 입력</li>
+                  <li>App Store 또는 Google Play에서 "Church Round" 앱 다운로드</li>
+                  <li>앱 실행 후 이메일과 임시 비밀번호로 로그인</li>
                   <li>새로운 비밀번호로 변경</li>
-                  <li>커뮤니티 서비스 이용 시작</li>
+                  <li>Church Round 앱 사용 시작!</li>
                 </ol>
               </div>
 
               <p style="font-size: 14px; color: #777; margin-top: 30px;">
-                문의사항이 있으시면 고객지원팀으로 연락해주세요.
+                문의사항이 있으시면 담당자에게 연락해주세요.
               </p>
 
               <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
               <p style="font-size: 12px; color: #999; text-align: center;">
-                Church Round 커뮤니티<br>
+                Church Round<br>
                 이 이메일은 자동으로 발송되었습니다.
               </p>
             </div>

@@ -15,6 +15,7 @@ import {
   ChevronUp,
   ChevronDown,
   User,
+  UserPlus,
   Trash2,
   Key,
   Eye,
@@ -164,7 +165,17 @@ const MemberManagement: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [excelPreviewData, setExcelPreviewData] = useState<any[] | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  
+
+  // 초대 메시지 모달 상태
+  const [showInviteMessage, setShowInviteMessage] = useState(false);
+  const [inviteMessageData, setInviteMessageData] = useState({ email: '', name: '', temporaryPassword: '' });
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // 일괄 초대 결과 모달 상태
+  const [showBulkInviteResults, setShowBulkInviteResults] = useState(false);
+  const [bulkInviteResults, setBulkInviteResults] = useState<Array<{ name: string; email: string; temporaryPassword: string; success: boolean }>>([]);
+  const [bulkCopySuccess, setBulkCopySuccess] = useState(false);
+
   // View and pagination states
   const [viewType, setViewType] = useState<'grid'>('grid');
   const [pagination, setPagination] = useState<StandardPagination>({
@@ -701,7 +712,7 @@ const MemberManagement: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
-  // SMS 초대 발송 함수
+  // 일괄 초대 발송 함수
   const handleBulkInvitation = async () => {
     if (selectedMembers.size === 0) {
       alert('초대할 교인을 선택해주세요.');
@@ -709,16 +720,16 @@ const MemberManagement: React.FC = () => {
     }
 
     const selectedMembersList = members.filter(m => selectedMembers.has(m.id));
-    const membersWithoutPhone = selectedMembersList.filter(m => !m.phone);
+    const membersWithoutEmail = selectedMembersList.filter(m => !m.email);
 
-    if (membersWithoutPhone.length > 0) {
-      const memberNames = membersWithoutPhone.map(m => m.name).join(', ');
-      if (!window.confirm(`전화번호가 없는 교인이 있습니다: ${memberNames}\n\n나머지 교인들에게만 초대를 발송하시겠습니까?`)) {
+    if (membersWithoutEmail.length > 0) {
+      const memberNames = membersWithoutEmail.map(m => m.name).join(', ');
+      if (!window.confirm(`이메일이 없는 교인이 있습니다: ${memberNames}\n\n나머지 교인들에게만 초대를 발송하시겠습니까?`)) {
         return;
       }
     }
 
-    const validMembers = selectedMembersList.filter(m => m.phone && m.invitation_status !== 'active');
+    const validMembers = selectedMembersList.filter(m => m.email && m.invitation_status !== 'active');
 
     const alreadyActiveMembers = selectedMembersList.filter(m => m.invitation_status === 'active');
     if (alreadyActiveMembers.length > 0) {
@@ -727,11 +738,11 @@ const MemberManagement: React.FC = () => {
     }
 
     if (validMembers.length === 0) {
-      alert('전화번호가 등록된 교인이 없습니다.');
+      alert('이메일이 등록된 교인이 없습니다.');
       return;
     }
 
-    if (!window.confirm(`선택한 ${validMembers.length}명의 교인에게 앱 초대를 발송하시겠습니까?`)) {
+    if (!window.confirm(`선택한 ${validMembers.length}명의 교인에게 앱 초대 이메일을 발송하시겠습니까?`)) {
       return;
     }
 
@@ -740,32 +751,49 @@ const MemberManagement: React.FC = () => {
 
       let successCount = 0;
       let failCount = 0;
-      const results: string[] = [];
+      const results: Array<{ name: string; email: string; temporaryPassword: string; success: boolean }> = [];
 
       for (const member of validMembers) {
         try {
           const result = await supabaseApiService.smsInvitation.send(
             member.id,
-            member.phone,
-            member.name || member.phone,
+            member.phone || '',
+            member.name || member.email,
             member.email,
             '요람교회'
           );
 
           if (result.success) {
             successCount++;
-            results.push(`✓ ${member.name}: 발송 완료`);
+            results.push({
+              name: member.name,
+              email: member.email,
+              temporaryPassword: result.temporaryPassword || '이메일 확인',
+              success: true
+            });
           } else {
             failCount++;
-            results.push(`✗ ${member.name}: ${result.message || '발송 실패'}`);
+            results.push({
+              name: member.name,
+              email: member.email,
+              temporaryPassword: '',
+              success: false
+            });
           }
         } catch (error) {
           failCount++;
-          results.push(`✗ ${member.name}: 발송 실패`);
+          results.push({
+            name: member.name,
+            email: member.email,
+            temporaryPassword: '',
+            success: false
+          });
         }
       }
 
-      alert(`초대 발송 완료\n\n성공: ${successCount}명\n실패: ${failCount}명\n\n${results.join('\n')}`);
+      // 일괄 초대 결과를 state에 저장하고 모달 표시
+      setBulkInviteResults(results);
+      setShowBulkInviteResults(true);
 
       // 선택 초기화 및 목록 새로고침
       setSelectedMembers(new Set());
@@ -796,20 +824,75 @@ const MemberManagement: React.FC = () => {
     }
   };
 
+  // 초대 메시지 생성 함수
+  const generateInviteMessage = (name: string, email: string, temporaryPassword: string) => {
+    const appUrl = process.env.REACT_APP_PRODUCTION_URL || 'https://churchround.com';
+    return `[Church Round 교인 초대]
+
+${name}님, 안녕하세요!
+Church Round 앱에 초대되셨습니다.
+
+앱 다운로드:
+- iOS: App Store에서 "Church Round" 검색
+- Android: Google Play에서 "Church Round" 검색
+
+로그인 정보:
+- 이메일: ${email}
+- 임시 비밀번호: ${temporaryPassword}
+
+첫 로그인 후 반드시 비밀번호를 변경해주세요.
+
+앱 다운로드 링크: ${appUrl}/download
+
+문의사항이 있으시면 담당자에게 연락주세요.`;
+  };
+
+  // 클립보드 복사 함수
+  const handleCopyMessage = async () => {
+    const message = generateInviteMessage(inviteMessageData.name, inviteMessageData.email, inviteMessageData.temporaryPassword);
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('복사 실패:', err);
+      alert('메시지 복사에 실패했습니다.');
+    }
+  };
+
+  // 일괄 초대 메시지 생성 함수
+  const generateBulkInviteMessages = () => {
+    const successResults = bulkInviteResults.filter(r => r.success);
+    return successResults.map(result =>
+      generateInviteMessage(result.name, result.email, result.temporaryPassword)
+    ).join('\n\n' + '='.repeat(50) + '\n\n');
+  };
+
+  // 일괄 초대 메시지 복사 함수
+  const handleCopyBulkMessages = async () => {
+    const messages = generateBulkInviteMessages();
+    try {
+      await navigator.clipboard.writeText(messages);
+      setBulkCopySuccess(true);
+      setTimeout(() => setBulkCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('복사 실패:', err);
+      alert('메시지 복사에 실패했습니다.');
+    }
+  };
+
   const handleSendInvitation = async (member: Member) => {
     if (member.invitation_status === 'active') {
       alert('이미 활성화된 회원입니다. 초대를 다시 발송할 수 없습니다.');
       return;
     }
 
-    if (!member.phone) {
-      alert('전화번호가 등록되지 않은 교인입니다.');
+    if (!member.email) {
+      alert('이메일이 등록되지 않은 교인입니다.');
       return;
     }
 
-    const inviteMessage = member.email
-      ? `${member.name}님에게 앱 초대를 발송하시겠습니까?\nSMS: ${member.phone}\n이메일: ${member.email}`
-      : `${member.name}님에게 앱 초대 SMS를 발송하시겠습니까?\n전화번호: ${member.phone}`;
+    const inviteMessage = `${member.name}님에게 앱 초대 이메일을 발송하시겠습니까?\n이메일: ${member.email}`;
 
     if (!window.confirm(inviteMessage)) {
       return;
@@ -818,25 +901,30 @@ const MemberManagement: React.FC = () => {
     try {
       setSmsLoading(member.id);
 
-      // SMS + 이메일 초대 발송
+      // 이메일 초대 발송 (전화번호는 필수가 아니므로 빈 문자열로 전달)
       const result = await supabaseApiService.smsInvitation.send(
         member.id,
-        member.phone,
-        member.name || member.phone, // 이름이 있으면 이름, 없으면 전화번호를 username으로 사용
-        member.email, // 이메일 주소 추가
+        member.phone || '', // 전화번호가 없어도 진행
+        member.name || member.email, // 이름이 있으면 이름, 없으면 이메일을 username으로 사용
+        member.email, // 이메일 주소
         '요람교회' // 교회명
       );
 
       if (result.success) {
-        const statusText = result.message || '초대 발송 완료';
-        alert(`${statusText}\n임시 비밀번호: ${result.temporaryPassword}`);
+        // 초대 메시지 데이터 설정 및 모달 표시 (임시 비밀번호 포함)
+        setInviteMessageData({
+          email: member.email,
+          name: member.name,
+          temporaryPassword: result.temporaryPassword || '이메일을 확인해주세요'
+        });
+        setShowInviteMessage(true);
         // 교인 목록 새로고침
         fetchMembers();
       }
 
     } catch (error: any) {
-      console.error('SMS 초대 발송 실패:', error);
-      alert(`SMS 초대 발송에 실패했습니다.\n오류: ${error.message}`);
+      console.error('초대 발송 실패:', error);
+      alert(`초대 발송에 실패했습니다.\n오류: ${error.message}`);
     } finally {
       setSmsLoading(null);
     }
@@ -3228,6 +3316,130 @@ const MemberManagement: React.FC = () => {
                 disabled={roleChangeLoading}
               >
                 취소
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 초대 메시지 모달 */}
+      <Dialog open={showInviteMessage} onOpenChange={setShowInviteMessage}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              초대 완료 - 메시지
+            </DialogTitle>
+            <DialogDescription>
+              초대 이메일이 발송되었습니다. 아래 메시지를 복사하여 카카오톡이나 문자로 전달할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 font-medium">초대 이메일이 성공적으로 발송되었습니다!</p>
+              <p className="text-sm text-green-700 mt-1">이메일로 임시 비밀번호가 발송되었습니다.</p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 font-medium mb-2">이메일을 확인하지 못하는 경우</p>
+              <p className="text-sm text-yellow-700">
+                아래 메시지를 복사하여 휴대폰 문자나 카카오톡으로 전달해주세요.
+              </p>
+            </div>
+
+            <div className="bg-muted rounded-lg p-4 relative">
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                {generateInviteMessage(inviteMessageData.name, inviteMessageData.email, inviteMessageData.temporaryPassword)}
+              </pre>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={handleCopyMessage}
+                variant={copySuccess ? "default" : "outline"}
+                className="flex items-center gap-2"
+              >
+                {copySuccess ? (
+                  <>
+                    복사됨!
+                  </>
+                ) : (
+                  <>
+                    메시지 복사
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => setShowInviteMessage(false)}>
+                확인
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 일괄 초대 결과 모달 */}
+      <Dialog open={showBulkInviteResults} onOpenChange={setShowBulkInviteResults}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              일괄 초대 완료
+            </DialogTitle>
+            <DialogDescription>
+              초대가 완료되었습니다. 아래 메시지들을 복사하여 카카오톡이나 문자로 각 교인에게 전달할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800 font-medium">
+                초대 결과: 성공 {bulkInviteResults.filter(r => r.success).length}명 / 전체 {bulkInviteResults.length}명
+              </p>
+            </div>
+
+            {bulkInviteResults.filter(r => !r.success).length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-medium mb-2">발송 실패한 교인:</p>
+                <ul className="text-sm text-red-700 list-disc list-inside">
+                  {bulkInviteResults.filter(r => !r.success).map((result, idx) => (
+                    <li key={idx}>{result.name} ({result.email})</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 font-medium mb-2">각 교인에게 전달할 메시지</p>
+              <p className="text-sm text-yellow-700">
+                아래 메시지를 복사하여 각 교인에게 개별적으로 카카오톡이나 문자로 전달해주세요.
+              </p>
+            </div>
+
+            <div className="bg-muted rounded-lg p-4 relative">
+              <pre className="text-sm whitespace-pre-wrap font-mono max-h-96 overflow-y-auto">
+                {generateBulkInviteMessages()}
+              </pre>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={handleCopyBulkMessages}
+                variant={bulkCopySuccess ? "default" : "outline"}
+                className="flex items-center gap-2"
+              >
+                {bulkCopySuccess ? (
+                  <>
+                    복사됨!
+                  </>
+                ) : (
+                  <>
+                    전체 메시지 복사
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => setShowBulkInviteResults(false)}>
+                확인
               </Button>
             </div>
           </div>

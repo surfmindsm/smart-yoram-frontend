@@ -3963,15 +3963,21 @@ export const supabaseApiService = {
             });
 
             if (inviteError) {
-              console.error('👤 [invite-user Edge Function] 실패:', inviteError);
-              console.error('👤 [invite-user Edge Function] 에러 메시지:', inviteError.message);
-              console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
+              // console.error('👤 [invite-user Edge Function] 실패:', inviteError);
+              // console.error('👤 [invite-user Edge Function] 에러 메시지:', inviteError.message);
+              // console.error('👤 [invite-user Edge Function] 에러 상세:', JSON.stringify(inviteError, null, 2));
+              // console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
+
+              // Edge Function에서 반환한 에러 상세 확인
+              // if (inviteData && typeof inviteData === 'object') {
+              //   console.error('👤 [invite-user Edge Function] 에러 응답 내용:', JSON.stringify(inviteData, null, 2));
+              // }
             } else {
-              console.log('✅ [invite-user Edge Function] 성공:', inviteData);
+              // console.log('✅ [invite-user Edge Function] 성공:', inviteData);
             }
           }
         } catch (userCreateError) {
-          console.error('👤 [사용자 생성] 전체 실패:', userCreateError);
+          // console.error('👤 [사용자 생성] 전체 실패:', userCreateError);
           // 사용자 생성 실패는 초대 전체를 실패로 처리하지 않음 (SMS/이메일 발송은 성공했으므로)
         }
 

@@ -71,6 +71,14 @@ serve(async (req) => {
     console.log('ℹ️ [초대 Edge Function] users 테이블에 없음 → 새로 생성합니다.')
 
     // 2. users 테이블에 바로 생성 (auth.users는 사용 안 함)
+    console.log('ℹ️ [초대 Edge Function] users 테이블에 삽입할 데이터:', {
+      email: email,
+      username: memberData.name,
+      full_name: memberData.name,
+      church_id: memberData.church_id,
+      role: 'member'
+    })
+
     const { data: newUsersRecord, error: usersError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -88,7 +96,10 @@ serve(async (req) => {
 
     if (usersError) {
       console.error('❌ [초대 Edge Function] users 테이블 생성 실패:', usersError)
-      throw usersError
+      console.error('❌ [초대 Edge Function] 에러 코드:', usersError.code)
+      console.error('❌ [초대 Edge Function] 에러 상세:', usersError.details)
+      console.error('❌ [초대 Edge Function] 에러 힌트:', usersError.hint)
+      throw new Error(`users 테이블 생성 실패: ${usersError.message} (코드: ${usersError.code})`)
     }
 
     console.log('✅ [초대 Edge Function] users 테이블에 사용자 생성 성공:', newUsersRecord)
