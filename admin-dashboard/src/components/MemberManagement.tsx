@@ -48,7 +48,6 @@ import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { PageContainer, PageHeader, FilterBar } from "./ui";
 import { DatePicker } from "./ui/date-picker";
-import AddMemberModal from './AddMemberModal';
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
@@ -160,7 +159,6 @@ const MemberManagement: React.FC = () => {
   const [memberTransfers, setMemberTransfers] = useState<any[]>([]);
   const [memberVehicles, setMemberVehicles] = useState<any[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showExcelImportModal, setShowExcelImportModal] = useState(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -1357,7 +1355,7 @@ const MemberManagement: React.FC = () => {
               엑셀 일괄 등록
             </Button>
             <Button
-              onClick={() => setShowAddMemberModal(true)}
+              onClick={() => navigate('/member-management/add')}
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -1912,7 +1910,7 @@ const MemberManagement: React.FC = () => {
                   )}
 
                   <Button
-                    onClick={handleEditMember}
+                    onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`)}
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1"
@@ -3178,13 +3176,6 @@ const MemberManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add Member Modal */}
-      <AddMemberModal
-        open={showAddMemberModal}
-        onOpenChange={setShowAddMemberModal}
-        onMemberAdded={fetchMembers}
-      />
 
       {/* 역할 선택 모달 */}
       <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>

@@ -421,15 +421,45 @@ serve(async (req) => {
         }
       })
 
-      // 누적 교인 수 계산
-      let cumulativeCount = 0
+      // 각 월까지의 총 교인 수 계산
+      // 각 월의 끝 시점까지 등록된 모든 교인을 카운트
       const growthData = Object.entries(monthlyGrowth).map(([month, newMembers]) => {
-        cumulativeCount += newMembers as number
+        // 해당 월의 마지막 날짜 계산
+        const [year, monthNum] = month.split('-').map(Number)
+        const monthEndDate = new Date(year, monthNum, 0) // 다음 달 0일 = 이번 달 마지막 날
+        const monthEndKorea = new Date(monthEndDate.getTime() + (koreaOffset * 60 * 1000))
+
+        // 해당 월 말까지 등록된 총 교인 수 계산
+        const totalMembersUntilMonth = membersData.filter((member: any) => {
+          if (!member.created_at) return false
+          const createdDateUTC = new Date(member.created_at)
+          const createdDateKorea = new Date(createdDateUTC.getTime() + (koreaOffset * 60 * 1000))
+          return createdDateKorea <= monthEndKorea
+        }).length
+
+        // 성장률 계산 (전월 대비)
+        const prevMonthIndex = Object.keys(monthlyGrowth).indexOf(month) - 1
+        const prevMonthTotal = prevMonthIndex >= 0
+          ? membersData.filter((member: any) => {
+              if (!member.created_at) return false
+              const createdDateUTC = new Date(member.created_at)
+              const createdDateKorea = new Date(createdDateUTC.getTime() + (koreaOffset * 60 * 1000))
+              const [prevYear, prevMonthNum] = Object.keys(monthlyGrowth)[prevMonthIndex].split('-').map(Number)
+              const prevMonthEnd = new Date(prevYear, prevMonthNum, 0)
+              const prevMonthEndKorea = new Date(prevMonthEnd.getTime() + (koreaOffset * 60 * 1000))
+              return createdDateKorea <= prevMonthEndKorea
+            }).length
+          : 0
+
+        const growthRate = prevMonthTotal > 0
+          ? Math.round(((newMembers as number) / prevMonthTotal) * 100 * 100) / 100
+          : 0
+
         return {
           month,
           new_members: newMembers,
-          total_members: cumulativeCount,
-          growth_rate: cumulativeCount > 0 ? Math.round(((newMembers as number) / cumulativeCount) * 100 * 100) / 100 : 0
+          total_members: totalMembersUntilMonth,
+          growth_rate: growthRate
         }
       })
 

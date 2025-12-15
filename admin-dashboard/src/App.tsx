@@ -115,6 +115,10 @@ const DownloadRedirect = lazy(() => import('./pages/DownloadRedirect'));
 // Sermon Management
 const SermonManagement = lazy(() => import('./components/SermonManagement'));
 
+// Member Pages
+const AddMemberPage = lazy(() => import('./pages/AddMemberPage'));
+const EditMemberPage = lazy(() => import('./pages/EditMemberPage'));
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -192,6 +196,16 @@ function App() {
           <Route path="member-management" element={
             <Suspense fallback={<LoadingSpinner />}>
               <MemberManagement />
+            </Suspense>
+          } />
+          <Route path="member-management/add" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AddMemberPage />
+            </Suspense>
+          } />
+          <Route path="member-management/edit/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <EditMemberPage />
             </Suspense>
           } />
           <Route path="organization-management" element={
