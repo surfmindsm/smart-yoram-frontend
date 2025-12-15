@@ -228,9 +228,9 @@ export const supabaseAuthService = {
 
       const user = users[0];
 
-      // 2. community_admin 역할 체크 - 웹 로그인 차단
-      if (user.role === 'community_admin') {
-        throw new Error('커뮤니티 회원은 웹 로그인이 불가능합니다. 모바일 앱을 다운로드하여 이용해주세요.');
+      // 2. community_admin 및 member 역할 체크 - 웹 로그인 차단
+      if (user.role === 'community_admin' || user.role === 'member') {
+        throw new Error('일반 회원은 웹 로그인이 불가능합니다. 모바일 앱을 다운로드하여 이용해주세요.');
       }
 
       // 3. 비밀번호 검증은 현재는 skip (실제로는 bcrypt 등으로 해시 비교해야 함)
