@@ -17,6 +17,7 @@ interface Church {
   pastor_name?: string;
   homepage_url?: string;
   youtube_channel?: string;
+  account?: string;
   subscription_status: string;
   subscription_end_date?: string | null;
   member_limit: number;
@@ -49,6 +50,7 @@ const ChurchInfo: React.FC = () => {
     pastor_name: '',
     homepage_url: '',
     youtube_channel: '',
+    account: '',
     business_no: '',
     district_scheme: ''
   });
@@ -72,6 +74,7 @@ const ChurchInfo: React.FC = () => {
         pastor_name: data.pastor_name || '',
         homepage_url: data.homepage_url || '',
         youtube_channel: data.youtube_channel || '',
+        account: data.account || '',
         business_no: data.business_no || '',
         district_scheme: data.district_scheme || ''
       });
@@ -105,6 +108,7 @@ const ChurchInfo: React.FC = () => {
         pastor_name: church.pastor_name || '',
         homepage_url: church.homepage_url || '',
         youtube_channel: church.youtube_channel || '',
+        account: church.account || '',
         business_no: church.business_no || '',
         district_scheme: church.district_scheme || ''
       });
@@ -247,6 +251,17 @@ const ChurchInfo: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, youtube_channel: e.target.value })}
                   />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    헌금 계좌
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="예) 국민은행 123-456-789012 (교회명)"
+                    value={formData.account}
+                    onChange={(e) => setFormData({ ...formData, account: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
                 <Button
@@ -320,6 +335,10 @@ const ChurchInfo: React.FC = () => {
                     </a>
                   ) : '-'}
                 </p>
+              </div>
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-medium text-gray-600">헌금 계좌</h3>
+                <p className="mt-1 text-lg text-gray-900">{church?.account || '-'}</p>
               </div>
             </div>
           )}

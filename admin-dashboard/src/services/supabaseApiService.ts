@@ -2668,7 +2668,8 @@ export const supabaseApiService = {
             is_active,
             business_no,
             homepage_url,
-            youtube_channel
+            youtube_channel,
+            account
           `)
           .order('serial_id', { ascending: true });
 
@@ -3045,6 +3046,7 @@ export const supabaseApiService = {
             youtube_channel: updateData.youtube_channel,
             business_no: updateData.business_no,
             district_scheme: updateData.district_scheme,
+            account: updateData.account,
             updated_at: new Date().toISOString()
           })
           .eq('id', targetChurchId)
