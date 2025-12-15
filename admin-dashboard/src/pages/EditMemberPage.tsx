@@ -431,12 +431,32 @@ const EditMemberPage: React.FC = () => {
       // Upload profile photo if changed
       if (profilePhoto) {
         try {
-          const formDataForUpload = new FormData();
-          formDataForUpload.append('file', profilePhoto);
-          await api.post(`/members/${id}/upload-photo`, formDataForUpload, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
+          // Generate unique file path
+          const fileExt = profilePhoto.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `members/${id}/${fileName}`;
+
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('member-photos')
+            .upload(filePath, profilePhoto, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('member-photos')
+            .getPublicUrl(filePath);
+
+          // Update member record with photo URL
+          await supabaseApiService.members.update({
+            id: parseInt(id!),
+            profile_photo_url: publicUrl
           });
 
           activityLogger.log({

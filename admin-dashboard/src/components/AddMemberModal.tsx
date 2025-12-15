@@ -404,14 +404,34 @@ Church Round 앱에 초대되셨습니다.
       // Upload profile photo if selected
       if (profilePhoto && newMemberId) {
         try {
-          const formData = new FormData();
-          formData.append('file', profilePhoto);
-          await api.post(`/members/${newMemberId}/upload-photo`, formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
+          // Generate unique file path
+          const fileExt = profilePhoto.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `members/${newMemberId}/${fileName}`;
+
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('member-photos')
+            .upload(filePath, profilePhoto, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('member-photos')
+            .getPublicUrl(filePath);
+
+          // Update member record with photo URL
+          await supabaseApiService.members.update({
+            id: newMemberId,
+            profile_photo_url: publicUrl
           });
-          
+
           // 사진 업로드 로그 기록
           activityLogger.log({
             action: 'create',
