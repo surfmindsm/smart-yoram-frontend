@@ -1492,46 +1492,50 @@ const DonationManagement: React.FC = () => {
                   <span>날짜 필터</span>
                 </Button>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  onClick={downloadDonationsExcel}
-                  variant="outline"
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
-                >
-                  <Download className="w-4 h-4" />
-                  헌금 데이터 다운로드
-                </Button>
-                <Button
-                  onClick={downloadExcelTemplate}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  엑셀 템플릿 다운로드
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsExcelUploadModalOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  엑셀 업로드
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/donation-management/bulk-input')}
-                  className="flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4" />
-                  일괄 입력
-                </Button>
-                <Button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  헌금 입력
-                </Button>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={downloadDonationsExcel}
+                    variant="outline"
+                    className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
+                  >
+                    <Download className="w-4 h-4" />
+                    헌금 데이터 다운로드
+                  </Button>
+                  <Button
+                    onClick={downloadExcelTemplate}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    엑셀 템플릿 다운로드
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsExcelUploadModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    엑셀 업로드
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/donation-management/bulk-input')}
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    일괄 입력
+                  </Button>
+                  <Button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    헌금 입력
+                  </Button>
+                </div>
               </div>
             </div>
             
