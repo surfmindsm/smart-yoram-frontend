@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Plus,
   Search,
   Trash2,
@@ -14,7 +14,9 @@ import {
   ArrowDown,
   Printer,
   CalendarDays,
-  Edit
+  Edit,
+  Upload,
+  Download
 } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -27,6 +29,7 @@ import { PageContainer, PageHeader } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabase } from '../lib/supabase';
+import * as XLSX from 'xlsx';
 
 // 백엔드 API 응답 타입 정의
 interface Member {
@@ -198,6 +201,7 @@ const DonationManagement: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isExcelUploadModalOpen, setIsExcelUploadModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -205,6 +209,8 @@ const DonationManagement: React.FC = () => {
   const loadDataRef = useRef(false);
   const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelPreviewData, setExcelPreviewData] = useState<any[]>([]);
   
   // 날짜 필터 상태
   const [dateFilter, setDateFilter] = useState({
@@ -748,6 +754,292 @@ const DonationManagement: React.FC = () => {
     }
   };
 
+  // 엑셀 템플릿 다운로드
+  const downloadExcelTemplate = () => {
+    if (!XLSX || !XLSX.utils) {
+      alert('엑셀 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    // 엑셀 헤더 정의
+    const headers = [
+      '기부자명',
+      '헌금일',
+      '헌금유형',
+      '금액',
+      '비고'
+    ];
+
+    // 샘플 데이터
+    const sampleData = [
+      '홍길동',
+      '2024-01-07',
+      '십일조',
+      '100000',
+      '감사합니다'
+    ];
+
+    // 워크시트 생성
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, sampleData]);
+
+    // 열 너비 설정
+    const columnWidths = [
+      { wch: 15 }, // 기부자명
+      { wch: 12 }, // 헌금일
+      { wch: 12 }, // 헌금유형
+      { wch: 12 }, // 금액
+      { wch: 20 }  // 비고
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '헌금정보');
+
+    // 엑셀 파일 다운로드
+    XLSX.writeFile(workbook, '헌금내역_엑셀템플릿.xlsx');
+  };
+
+  // 헌금 데이터 다운로드
+  const downloadDonationsExcel = () => {
+    if (!XLSX || !XLSX.utils) {
+      alert('엑셀 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    if (donations.length === 0) {
+      alert('다운로드할 헌금 데이터가 없습니다.');
+      return;
+    }
+
+    // 엑셀 헤더 정의
+    const headers = [
+      '헌금일',
+      '기부자명',
+      '헌금유형',
+      '금액',
+      '비고'
+    ];
+
+    // 헌금 데이터를 엑셀 행으로 변환
+    const data = filteredDonations.map(donation => [
+      donation.offeredOn || '',
+      donation.donorName || '',
+      donation.fundType || '',
+      donation.amount || 0,
+      donation.note || ''
+    ]);
+
+    // 워크시트 생성
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+    // 열 너비 자동 조정
+    const maxWidth = 30;
+    const columnWidths = headers.map((header, i) => {
+      const headerWidth = header.length;
+      const dataWidth = Math.max(
+        ...data.map(row => String(row[i] || '').length)
+      );
+      return { wch: Math.min(Math.max(headerWidth, dataWidth) + 2, maxWidth) };
+    });
+    worksheet['!cols'] = columnWidths;
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '헌금목록');
+
+    // 파일명 생성 (현재 날짜 포함)
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0].replace(/-/g, '');
+    const fileName = `헌금목록_${dateString}.xlsx`;
+
+    // 엑셀 파일 다운로드
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  // 엑셀 파일 미리보기
+  const handleExcelPreview = async () => {
+    if (!excelFile) {
+      alert('파일을 선택해주세요.');
+      return;
+    }
+
+    if (!XLSX || !XLSX.utils) {
+      alert('엑셀 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 엑셀 파일 읽기
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 첫 번째 시트 가져오기
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // 시트를 JSON으로 변환
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // 헤더와 데이터 분리
+      const headers = jsonData[0] as string[];
+      const rows = jsonData.slice(1);
+
+      // 헤더 매핑
+      const headerMap: { [key: string]: number } = {};
+      headers.forEach((header, index) => {
+        headerMap[header] = index;
+      });
+
+      // 필수 헤더 확인
+      const requiredHeaders = ['기부자명', '헌금일', '헌금유형', '금액'];
+      const missingHeaders = requiredHeaders.filter(h => !(h in headerMap));
+
+      if (missingHeaders.length > 0) {
+        alert(`필수 컬럼이 누락되었습니다: ${missingHeaders.join(', ')}\n엑셀 템플릿을 다운로드하여 양식을 확인해주세요.`);
+        setLoading(false);
+        return;
+      }
+
+      // 미리보기 데이터 생성
+      const previewData = rows.slice(0, 10).map((row: any) => ({
+        donorName: row[headerMap['기부자명']] || '',
+        offeredOn: row[headerMap['헌금일']] || '',
+        fundType: row[headerMap['헌금유형']] || '',
+        amount: row[headerMap['금액']] || 0,
+        note: row[headerMap['비고']] || ''
+      }));
+
+      setExcelPreviewData(previewData);
+      setLoading(false);
+    } catch (error) {
+      console.error('엑셀 파일 읽기 실패:', error);
+      alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  };
+
+  // 엑셀 데이터 업로드
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      alert('파일을 선택해주세요.');
+      return;
+    }
+
+    if (!XLSX || !XLSX.utils) {
+      alert('엑셀 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    setSubmitLoading(true);
+
+    try {
+      // 엑셀 파일 읽기
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 첫 번째 시트 가져오기
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // 시트를 JSON으로 변환
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // 헤더와 데이터 분리
+      const headers = jsonData[0] as string[];
+      const rows = jsonData.slice(1);
+
+      // 헤더 매핑
+      const headerMap: { [key: string]: number } = {};
+      headers.forEach((header, index) => {
+        headerMap[header] = index;
+      });
+
+      // 현재 로그인한 사용자 ID 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const inputUserId = currentUser?.user?.id;
+
+      if (!inputUserId) {
+        throw new Error('로그인 사용자 정보를 찾을 수 없습니다.');
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+
+      // 각 행을 헌금으로 등록
+      for (let i = 0; i < rows.length; i++) {
+        const row: any = rows[i];
+
+        // 빈 행 건너뛰기
+        if (!row[headerMap['기부자명']] || !row[headerMap['금액']]) {
+          continue;
+        }
+
+        try {
+          const donorName = String(row[headerMap['기부자명']]).trim();
+          const offeredOn = String(row[headerMap['헌금일']]).trim();
+          const fundType = String(row[headerMap['헌금유형']]).trim();
+          const amount = Number(row[headerMap['금액']]);
+          const note = row[headerMap['비고']] ? String(row[headerMap['비고']]).trim() : '';
+
+          // 기부자명으로 교인 찾기
+          let memberId: number | null = null;
+          if (donorName !== '무명') {
+            const member = members.find(m => m.name === donorName);
+            if (member) {
+              memberId = member.id;
+            } else {
+              errors.push(`${i + 2}행: 기부자 "${donorName}"을 찾을 수 없습니다.`);
+              continue;
+            }
+          }
+
+          // 헌금 등록
+          const offeringData = {
+            member_id: memberId,
+            church_id: churchInfo?.id || 1,
+            offered_on: offeredOn,
+            fund_type: fundType,
+            amount: amount.toString(),
+            note: note || null,
+            input_user_id: inputUserId
+          };
+
+          await supabaseApiService.offerings.create(offeringData);
+          successCount++;
+        } catch (error) {
+          errors.push(`${i + 2}행: ${error instanceof Error ? error.message : '등록 실패'}`);
+        }
+      }
+
+      // 결과 메시지
+      let message = `${successCount}건의 헌금이 등록되었습니다.`;
+      if (errors.length > 0) {
+        message += `\n\n실패한 항목 (${errors.length}건):\n${errors.slice(0, 5).join('\n')}`;
+        if (errors.length > 5) {
+          message += `\n... 외 ${errors.length - 5}건`;
+        }
+      }
+
+      alert(message);
+
+      // 데이터 새로고침
+      await loadData();
+
+      // 모달 닫기
+      setIsExcelUploadModalOpen(false);
+      setExcelFile(null);
+      setExcelPreviewData([]);
+    } catch (error) {
+      console.error('엑셀 업로드 실패:', error);
+      alert('엑셀 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   const generateReceipt = async () => {
     if (!selectedDonor) {
       alert('기부자를 선택해주세요.');
@@ -1200,22 +1492,46 @@ const DonationManagement: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Button
+                  onClick={downloadDonationsExcel}
+                  variant="outline"
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
+                >
+                  <Download className="w-4 h-4" />
+                  헌금 데이터 다운로드
+                </Button>
+                <Button
+                  onClick={downloadExcelTemplate}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  엑셀 템플릿 다운로드
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsExcelUploadModalOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  엑셀 업로드
+                </Button>
+                <Button
                   variant="outline"
                   onClick={() => {
                     setIsBulkModalOpen(true);
                     setBulkDonations([{ donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
                   }}
-                  className="flex items-center space-x-2"
+                  className="flex items-center gap-2"
                 >
                   <Users className="w-4 h-4" />
-                  <span>일괄 입력</span>
+                  일괄 입력
                 </Button>
                 <Button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center space-x-2"
+                  className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>헌금 입력</span>
+                  헌금 입력
                 </Button>
               </div>
             </div>
@@ -2068,6 +2384,132 @@ const DonationManagement: React.FC = () => {
                     donorAddress: '',
                     donorRegNo: ''
                   });
+                }}
+                className="flex-1"
+              >
+                취소
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 엑셀 업로드 모달 */}
+      {isExcelUploadModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                엑셀 업로드
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsExcelUploadModalOpen(false);
+                  setExcelFile(null);
+                  setExcelPreviewData([]);
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
+                <p className="text-sm text-primary-800">
+                  <strong>안내:</strong> 엑셀 템플릿을 먼저 다운로드하여 작성한 후 업로드해주세요.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  엑셀 파일 선택
+                </label>
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setExcelFile(file);
+                      setExcelPreviewData([]);
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.
+                </p>
+              </div>
+
+              {excelFile && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-900">{excelFile.name}</span>
+                    <span className="text-xs text-gray-500">
+                      ({(excelFile.size / 1024).toFixed(2)} KB)
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExcelPreview}
+                    disabled={loading}
+                  >
+                    미리보기
+                  </Button>
+                </div>
+              )}
+
+              {excelPreviewData.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2 border-b">
+                    <h3 className="font-medium text-sm">미리보기 (최대 10건)</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">기부자명</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">헌금일</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">헌금유형</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-600">금액</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">비고</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {excelPreviewData.map((row, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 text-sm">{row.donorName}</td>
+                            <td className="px-4 py-2 text-sm">{row.offeredOn}</td>
+                            <td className="px-4 py-2 text-sm">{row.fundType}</td>
+                            <td className="px-4 py-2 text-sm text-right">{row.amount.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-sm">{row.note}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-2 mt-6">
+              <Button
+                onClick={handleExcelUpload}
+                className="flex-1"
+                disabled={!excelFile || submitLoading}
+              >
+                {submitLoading ? '업로드 중...' : '업로드 시작'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsExcelUploadModalOpen(false);
+                  setExcelFile(null);
+                  setExcelPreviewData([]);
                 }}
                 className="flex-1"
               >

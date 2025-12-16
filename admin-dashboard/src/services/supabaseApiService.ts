@@ -1321,31 +1321,111 @@ export const supabaseApiService = {
 
     update: async (id: string, updateData: any) => {
       try {
-        const token = await supabaseAuthService.getToken();
-        if (!token) {
-          throw new Error('No authentication token available');
+        console.log('🔍 Updating offering:', id, updateData);
+
+        // 1. 기존 헌금 데이터 조회 (accounting_transaction_id 포함)
+        const { data: existingOffering, error: fetchError } = await supabase
+          .from('offerings')
+          .select('accounting_transaction_id, church_id, member_id')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) {
+          console.error('Failed to fetch existing offering:', fetchError);
+          throw fetchError;
         }
 
-        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-        const functionsUrl = `${supabaseUrl}/functions/v1/offerings/admin/offerings/${id}`;
+        // 2. 헌금 데이터 업데이트
+        const { data, error } = await supabase
+          .from('offerings')
+          .update({
+            offered_on: updateData.offered_on,
+            fund_type: updateData.fund_type,
+            amount: updateData.amount,
+            note: updateData.note,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select(`
+            *,
+            members:member_id(id, name, email)
+          `)
+          .single();
 
-        const response = await fetch(functionsUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updateData)
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Offering update error:', errorText);
-          throw new Error(`Failed to update offering: ${response.statusText}`);
+        if (error) {
+          console.error('Supabase update error:', error);
+          throw error;
         }
 
-        const data = await response.json();
+        console.log('✅ Offering updated successfully:', data);
+
+        // 3. 연동된 회계 거래가 있으면 업데이트
+        if (existingOffering?.accounting_transaction_id) {
+          console.log('🔍 Updating linked accounting transaction:', existingOffering.accounting_transaction_id);
+
+          // 기부자 이름 조회
+          let donorName = '무명';
+          const memberId = data.member_id;
+          if (memberId) {
+            const { data: memberData } = await supabase
+              .from('members')
+              .select('name')
+              .eq('id', memberId)
+              .single();
+
+            if (memberData) {
+              donorName = memberData.name;
+            }
+          }
+
+          // 회계 거래 업데이트
+          const accountingUpdateData: any = {
+            transaction_date: updateData.offered_on,
+            amount: updateData.amount,
+            description: `헌금 - ${donorName}${data.note ? ` (${data.note})` : ''}`,
+            updated_at: new Date().toISOString()
+          };
+
+          // 헌금 유형이 변경되었으면 계정과목도 업데이트
+          if (updateData.fund_type) {
+            // 헌금 유형을 회계 계정과목명으로 매핑
+            const fundTypeMapping: { [key: string]: string } = {
+              '십일조': '십일조',
+              '주일헌금': '주일헌금',
+              '감사헌금': '감사헌금',
+              '선교헌금': '선교헌금',
+              '건축헌금': '건축헌금',
+              '절기헌금': '절기헌금',
+              '특별헌금': '특별헌금',
+              '기타': '기타헌금',
+            };
+            const categoryName = fundTypeMapping[updateData.fund_type] || '기타헌금';
+
+            const { data: categoryData } = await supabase
+              .from('account_categories')
+              .select('id')
+              .eq('church_id', existingOffering.church_id)
+              .eq('name', categoryName)
+              .eq('type', 'income')
+              .single();
+
+            if (categoryData) {
+              accountingUpdateData.category_id = categoryData.id;
+            }
+          }
+
+          const { error: accountingUpdateError } = await supabase
+            .from('accounting_transactions')
+            .update(accountingUpdateData)
+            .eq('id', existingOffering.accounting_transaction_id);
+
+          if (accountingUpdateError) {
+            console.warn('⚠️ 회계 거래 업데이트 실패:', accountingUpdateError);
+          } else {
+            console.log('✅ 회계 거래 동기화 완료');
+          }
+        }
+
         return data;
       } catch (error) {
         console.error('Failed to update offering:', error);

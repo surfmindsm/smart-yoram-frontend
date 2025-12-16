@@ -463,8 +463,9 @@ Deno.serve(async (req) => {
       const body = await req.json()
 
       // PUT /offerings/admin/offerings/{id} - Update offering
-      if (pathParts.includes('admin') && pathParts.includes('offerings')) {
+      if (pathParts.includes('admin') && pathParts.includes('offerings') && pathParts.length >= 3) {
         const offeringId = pathParts[pathParts.length - 1]
+        console.log('🔍 PUT 요청 - Offering ID:', offeringId)
 
         // 1. 기존 헌금 데이터 조회 (accounting_transaction_id 포함)
         const { data: existingOffering } = await supabaseClient
