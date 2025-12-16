@@ -34,6 +34,7 @@ const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'))
 const PastoralCareManagement = lazy(() => import('./components/PastoralCareManagement'));
 const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
+const BulkDonationInput = lazy(() => import('./components/BulkDonationInput'));
 const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
 const ImportantDatesManagement = lazy(() => import('./components/ImportantDatesManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
@@ -221,6 +222,21 @@ function App() {
           <Route path="donations" element={
             <Suspense fallback={<LoadingSpinner />}>
               <DonationManagement />
+            </Suspense>
+          } />
+          <Route path="donations/bulk-input" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BulkDonationInput />
+            </Suspense>
+          } />
+          <Route path="donation-management" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <DonationManagement />
+            </Suspense>
+          } />
+          <Route path="donation-management/bulk-input" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BulkDonationInput />
             </Suspense>
           } />
           <Route path="accounting" element={

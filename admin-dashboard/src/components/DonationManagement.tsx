@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -141,6 +142,7 @@ const FUND_TYPES = [
 ];
 
 const DonationManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'donations' | 'receipts'>('donations');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
@@ -1517,10 +1519,7 @@ const DonationManagement: React.FC = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setIsBulkModalOpen(true);
-                    setBulkDonations([{ donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
-                  }}
+                  onClick={() => navigate('/donation-management/bulk-input')}
                   className="flex items-center gap-2"
                 >
                   <Users className="w-4 h-4" />
