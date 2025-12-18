@@ -170,9 +170,8 @@ const Layout: React.FC = () => {
     };
 
     // 현재 경로에 해당하는 그룹 찾기 및 펼치기
-    if (currentPath === '/dashboard') {
-      newExpandedGroups['대시보드 & 분석'] = true;
-    } else if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
+    // 대시보드는 하위메뉴가 없으므로 그룹 펼치기 제외
+    if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
     } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
@@ -512,66 +511,90 @@ const Layout: React.FC = () => {
                 groupIndex === menuGroups.length - 1 && "border-b border-slate-200"
               )}>
                 {/* Group Header */}
-                <button
-                  onClick={() => toggleGroup(group.title)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
-                    expandedGroups[group.title]
-                      ? "bg-primary-500 text-white hover:bg-primary-600"
-                      : "text-slate-600 hover:bg-slate-50"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
-                    {group.items && group.items[0] && (() => {
-                      const IconComponent = group.items[0].Icon;
-                      return <IconComponent className="h-5 w-5" />;
-                    })()}
-                    <span>{group.title}</span>
-                  </div>
-                  {expandedGroups[group.title] ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 -rotate-90" />
-                  )}
-                </button>
+                {group.title === '대시보드 & 분석' ? (
+                  // 대시보드는 바로 이동
+                  <Link
+                    to="/dashboard"
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
+                      location.pathname === '/dashboard'
+                        ? "bg-primary-500 text-white hover:bg-primary-600"
+                        : "text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
+                      {group.items && group.items[0] && (() => {
+                        const IconComponent = group.items[0].Icon;
+                        return <IconComponent className="h-5 w-5" />;
+                      })()}
+                      <span>대시보드</span>
+                    </div>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => toggleGroup(group.title)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
+                      expandedGroups[group.title]
+                        ? "bg-primary-500 text-white hover:bg-primary-600"
+                        : "text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
+                      {group.items && group.items[0] && (() => {
+                        const IconComponent = group.items[0].Icon;
+                        return <IconComponent className="h-5 w-5" />;
+                      })()}
+                      <span>{group.title}</span>
+                    </div>
+                    {expandedGroups[group.title] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 -rotate-90" />
+                    )}
+                  </button>
+                )}
 
-                {/* Collapsed content */}
-                <div
-                  className={cn(
-                    "bg-slate-50 grid transition-all duration-300 ease-in-out",
-                    expandedGroups[group.title]
-                      ? "grid-rows-[1fr]"
-                      : "grid-rows-[0fr]"
-                  )}
-                >
-                  <div className="overflow-hidden">
-                    {/* Regular Items */}
-                    <div className="divide-y divide-slate-100">
-                      {group.items && group.items.map((item, itemIndex) => {
-                        const isActive = location.pathname === item.path;
+                {/* Collapsed content - 대시보드는 하위메뉴 없음 */}
+                {group.title !== '대시보드 & 분석' && (
+                  <div
+                    className={cn(
+                      "bg-slate-50 grid transition-all duration-300 ease-in-out",
+                      expandedGroups[group.title]
+                        ? "grid-rows-[1fr]"
+                        : "grid-rows-[0fr]"
+                    )}
+                  >
+                    <div className="overflow-hidden">
+                      {/* Regular Items */}
+                      <div className="divide-y divide-slate-100">
+                        {group.items && group.items.map((item, itemIndex) => {
+                          const isActive = location.pathname === item.path;
 
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            className={cn(
-                              "flex items-center gap-3 py-3 text-sm font-normal transition-colors relative",
-                              isActive
-                                ? "bg-primary-50 text-primary-700 pl-4 pr-4"
-                                : "text-slate-600 hover:bg-slate-50 pl-4 pr-4"
-                            )}
-                          >
-                            {isActive && (
-                              <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600"></span>
-                            )}
-                            {item.name}
-                          </Link>
-                        );
-                      })}
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              className={cn(
+                                "flex items-center gap-3 py-3 text-sm font-normal transition-colors relative",
+                                isActive
+                                  ? "bg-primary-50 text-primary-700 pl-4 pr-4"
+                                  : "text-slate-600 hover:bg-slate-50 pl-4 pr-4"
+                              )}
+                            >
+                              {isActive && (
+                                <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600"></span>
+                              )}
+                              {item.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
             </div>
