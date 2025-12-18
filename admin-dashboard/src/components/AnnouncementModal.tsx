@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Info, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
-import { Button } from "./ui";
+import { AlertTriangle, Info, Megaphone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BaseDialog, Button } from "./ui";
 import { announcementService, Announcement } from '../services/announcementService';
 
 interface AnnouncementModalProps {
   className?: string;
 }
 
+/**
+ * AnnouncementModal - 시스템 공지사항 다이얼로그
+ *
+ * BaseDialog 공통 컴포넌트를 사용하여 리팩토링되었습니다.
+ */
 const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -122,25 +126,71 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
   const currentAnnouncement = announcements[currentIndex];
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-md mx-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {getPriorityIcon(currentAnnouncement.priority)}
-              <DialogTitle className="text-lg font-semibold">
-                시스템 공지사항
-              </DialogTitle>
-            </div>
+    <BaseDialog
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      title={
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center space-x-2">
+            {getPriorityIcon(currentAnnouncement.priority)}
+            <span className="text-lg font-semibold">시스템 공지사항</span>
+          </div>
+          {announcements.length > 1 && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {currentIndex + 1} / {announcements.length}
+            </span>
+          )}
+        </div>
+      }
+      size="md"
+      footer={
+        <div className="flex items-center justify-between w-full">
+          {/* 네비게이션 버튼 */}
+          <div className="flex space-x-2">
             {announcements.length > 1 && (
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                {currentIndex + 1} / {announcements.length}
-              </span>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={moveToPrevious}
+                  disabled={currentIndex === 0}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  이전
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={moveToNext}
+                  disabled={currentIndex === announcements.length - 1}
+                >
+                  다음
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
             )}
           </div>
-        </DialogHeader>
 
-        <div className="py-4">
+          {/* 액션 버튼 */}
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDontShowAgain}
+            >
+              다시 보지 않기
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleMarkRead}
+            >
+              확인
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div>
           {/* 제목 */}
           <div className="mb-3">
             <h3 className="font-medium text-base mb-2">
@@ -185,54 +235,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
             게시일: {new Date(currentAnnouncement.created_at).toLocaleString()}
           </div>
         </div>
-
-        {/* 버튼들 */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          {/* 네비게이션 버튼 */}
-          <div className="flex space-x-2">
-            {announcements.length > 1 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={moveToPrevious}
-                  disabled={currentIndex === 0}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  이전
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={moveToNext}
-                  disabled={currentIndex === announcements.length - 1}
-                >
-                  다음
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
-
-          {/* 액션 버튼 */}
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDontShowAgain}
-            >
-              다시 보지 않기
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleMarkRead}
-            >
-              확인
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </BaseDialog>
   );
 };
 

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import { Button } from "./ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
-import { Input } from "./ui";
-import { Label } from "./ui";
-import { Alert, AlertDescription } from "./ui";
-import { X, Eye, EyeOff } from 'lucide-react';
+import { FormDialog, Button, Input, Label, Alert, AlertDescription } from "./ui";
+import { Eye, EyeOff } from 'lucide-react';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
 interface PasswordChangeModalProps {
@@ -14,6 +10,11 @@ interface PasswordChangeModalProps {
   isTemporaryPassword?: boolean;
 }
 
+/**
+ * PasswordChangeModal - 비밀번호 변경 다이얼로그
+ *
+ * FormDialog 공통 컴포넌트를 사용하여 리팩토링되었습니다.
+ */
 const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
   isOpen,
   onClose,
@@ -29,8 +30,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
 
     if (newPassword !== confirmPassword) {
@@ -66,162 +66,124 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
     setShowConfirmPassword(false);
   };
 
-  const handleClose = () => {
-    if (!isTemporaryPassword) {
+  const handleClose = (open: boolean) => {
+    if (!open && !isTemporaryPassword) {
       resetForm();
       onClose();
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md border-muted mx-4">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">
-              {isTemporaryPassword ? '비밀번호 변경 필수' : '비밀번호 변경'}
-            </CardTitle>
-            {!isTemporaryPassword && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <CardDescription>
-            {isTemporaryPassword
-              ? '보안을 위해 임시 비밀번호를 새로운 비밀번호로 변경해주세요.'
-              : '새로운 비밀번호를 설정하세요.'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+    <FormDialog
+      open={isOpen}
+      onOpenChange={handleClose}
+      title={isTemporaryPassword ? '비밀번호 변경 필수' : '비밀번호 변경'}
+      description={
+        isTemporaryPassword
+          ? '보안을 위해 임시 비밀번호를 새로운 비밀번호로 변경해주세요.'
+          : '새로운 비밀번호를 설정하세요.'
+      }
+      onSubmit={handleSubmit}
+      submitText="비밀번호 변경"
+      loading={loading}
+      hideCancel={isTemporaryPassword}
+      size="md"
+    >
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-            {/* 현재 비밀번호 (임시 비밀번호가 아닌 경우에만 표시) */}
-            {!isTemporaryPassword && (
-              <div className="space-y-2">
-                <Label htmlFor="current-password">현재 비밀번호</Label>
-                <div className="relative">
-                  <Input
-                    id="current-password"
-                    type={showCurrentPassword ? "text" : "password"}
-                    required
-                    placeholder="현재 비밀번호를 입력하세요"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* 새 비밀번호 */}
-            <div className="space-y-2">
-              <Label htmlFor="new-password">새 비밀번호</Label>
-              <div className="relative">
-                <Input
-                  id="new-password"
-                  type={showNewPassword ? "text" : "password"}
-                  required
-                  placeholder="새 비밀번호를 입력하세요 (최소 6자리)"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                >
-                  {showNewPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* 새 비밀번호 확인 */}
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">새 비밀번호 확인</Label>
-              <div className="relative">
-                <Input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  required
-                  placeholder="새 비밀번호를 다시 입력하세요"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              {!isTemporaryPassword && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
-                  취소
-                </Button>
+      {/* 현재 비밀번호 (임시 비밀번호가 아닌 경우에만 표시) */}
+      {!isTemporaryPassword && (
+        <div className="space-y-2">
+          <Label htmlFor="current-password">현재 비밀번호</Label>
+          <div className="relative">
+            <Input
+              id="current-password"
+              type={showCurrentPassword ? "text" : "password"}
+              required
+              placeholder="현재 비밀번호를 입력하세요"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+            >
+              {showCurrentPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
               )}
-              <Button
-                type="submit"
-                className={isTemporaryPassword ? "w-full" : "flex-1"}
-                disabled={loading}
-              >
-                {loading ? '변경 중...' : '비밀번호 변경'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 새 비밀번호 */}
+      <div className="space-y-2">
+        <Label htmlFor="new-password">새 비밀번호</Label>
+        <div className="relative">
+          <Input
+            id="new-password"
+            type={showNewPassword ? "text" : "password"}
+            required
+            placeholder="새 비밀번호를 입력하세요 (최소 6자리)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+          >
+            {showNewPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* 새 비밀번호 확인 */}
+      <div className="space-y-2">
+        <Label htmlFor="confirm-password">새 비밀번호 확인</Label>
+        <div className="relative">
+          <Input
+            id="confirm-password"
+            type={showConfirmPassword ? "text" : "password"}
+            required
+            placeholder="새 비밀번호를 다시 입력하세요"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </FormDialog>
   );
 };
 

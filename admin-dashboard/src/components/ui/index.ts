@@ -66,6 +66,9 @@ export {
   DialogTitle,
   DialogDescription
 } from './dialog'
+export { BaseDialog } from './base-dialog'
+export { ConfirmDialog } from './confirm-dialog'
+export { FormDialog } from './form-dialog'
 export {
   DropdownMenu,
   DropdownMenuTrigger,
