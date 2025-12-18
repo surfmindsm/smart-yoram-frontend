@@ -254,14 +254,6 @@ const AnnouncementManagement: React.FC = () => {
     return map[audience] || audience;
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">로딩 중...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-600 text-center">{error}</div>;
-  }
-
   return (
     <PageContainer>
       <PageHeader
@@ -275,100 +267,119 @@ const AnnouncementManagement: React.FC = () => {
         }
       />
 
-      {/* Filter Buttons */}
-      <div className="mb-6 flex gap-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          onClick={() => setFilter('all')}
-          size="sm"
-        >
-          전체
-        </Button>
-        <Button
-          variant={filter === 'active' ? 'default' : 'outline'}
-          onClick={() => setFilter('active')}
-          size="sm"
-        >
-          활성
-        </Button>
-        <Button
-          variant={filter === 'pinned' ? 'default' : 'outline'}
-          onClick={() => setFilter('pinned')}
-          size="sm"
-        >
-          고정
-        </Button>
-      </div>
-
-      {/* Announcements List */}
-      <div className="space-y-4">
-        {filteredAnnouncements.map((announcement) => (
-          <Card
-            key={announcement.id}
-            className={`group ${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/30' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2 text-gray-900">
-                    {announcement.is_pinned && (
-                      <Pin className="w-4 h-4 text-yellow-600 fill-current" />
-                    )}
-                    {announcement.title}
-                    {!announcement.is_active && (
-                      <Badge variant="secondary">비활성</Badge>
-                    )}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                    <Badge variant="secondary" className="bg-primary-100 text-primary-800">
-                      {getCategoryLabel(announcement.category)}
-                    </Badge>
-                    <span>작성자: {announcement.author_name || '관리자'}</span>
-                    <span>·</span>
-                    <span>{new Date(announcement.created_at).toLocaleDateString('ko-KR')}</span>
-                    <span>·</span>
-                    <span>대상: {getTargetAudienceText(announcement.target_audience || 'all')}</span>
-                  </div>
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(announcement)}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleToggleActive(announcement.id, announcement.is_active)}
-                  >
-                    <Pin className={`w-4 h-4 ${announcement.is_active ? 'fill-current' : ''}`} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(announcement.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-gray-700 whitespace-pre-wrap">{announcement.content}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredAnnouncements.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <p className="text-gray-600">공지사항이 없습니다.</p>
+      {loading ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">공지사항을 불러오는 중...</p>
+            </div>
           </CardContent>
         </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Filter Buttons */}
+          <div className="mb-6 flex gap-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilter('all')}
+              size="sm"
+            >
+              전체
+            </Button>
+            <Button
+              variant={filter === 'active' ? 'default' : 'outline'}
+              onClick={() => setFilter('active')}
+              size="sm"
+            >
+              활성
+            </Button>
+            <Button
+              variant={filter === 'pinned' ? 'default' : 'outline'}
+              onClick={() => setFilter('pinned')}
+              size="sm"
+            >
+              고정
+            </Button>
+          </div>
+
+          {/* Announcements List */}
+          {filteredAnnouncements.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <p className="text-gray-600">공지사항이 없습니다.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredAnnouncements.map((announcement) => (
+                <Card
+                  key={announcement.id}
+                  className={`group ${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/30' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2 text-gray-900">
+                          {announcement.is_pinned && (
+                            <Pin className="w-4 h-4 text-yellow-600 fill-current" />
+                          )}
+                          {announcement.title}
+                          {!announcement.is_active && (
+                            <Badge variant="secondary">비활성</Badge>
+                          )}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                          <Badge variant="secondary" className="bg-primary-100 text-primary-800">
+                            {getCategoryLabel(announcement.category)}
+                          </Badge>
+                          <span>작성자: {announcement.author_name || '관리자'}</span>
+                          <span>·</span>
+                          <span>{new Date(announcement.created_at).toLocaleDateString('ko-KR')}</span>
+                          <span>·</span>
+                          <span>대상: {getTargetAudienceText(announcement.target_audience || 'all')}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(announcement)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleActive(announcement.id, announcement.is_active)}
+                        >
+                          <Pin className={`w-4 h-4 ${announcement.is_active ? 'fill-current' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(announcement.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-gray-700 whitespace-pre-wrap">{announcement.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal */}

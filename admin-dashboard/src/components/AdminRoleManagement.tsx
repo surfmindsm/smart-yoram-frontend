@@ -164,8 +164,21 @@ const AdminRoleManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Spinner size="default" />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Shield className="w-6 h-6" />
+            관리자 권한 관리
+          </h2>
+        </div>
+        <Card className="border-muted">
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">관리자 목록을 불러오는 중...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

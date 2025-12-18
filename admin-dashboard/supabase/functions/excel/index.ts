@@ -1,11 +1,109 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth, Authorization, X-Custom-Auth',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Max-Age': '86400',
+}
+
+// 직분 매핑 (한글 -> 영문 코드)
+const POSITION_MAPPING: Record<string, string> = {
+  '목사': 'PASTOR',
+  '전도사': 'EVANGELIST',
+  '교육전도사': 'EDUCATION_EVANGELIST',
+  '장로': 'ELDER',
+  '은퇴장로': 'RETIRED_ELDER',
+  '권사': 'DEACONESS',
+  '은퇴권사': 'RETIRED_DEACONESS',
+  '집사': 'DEACON',
+  '안수집사': 'ORDAINED_DEACON',
+  '교사': 'TEACHER',
+  '부장': 'DIRECTOR',
+  '회장': 'PRESIDENT',
+  '성도': 'MEMBER',
+  '교역자': 'CLERGY',
+};
+
+// 역방향 매핑 (영문 -> 한글)
+const POSITION_REVERSE_MAPPING: Record<string, string> = Object.entries(POSITION_MAPPING)
+  .reduce((acc, [key, value]) => ({ ...acc, [value]: key }), {});
+
+// 퍼지 매칭 함수 (Levenshtein distance 사용)
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length];
+}
+
+// 퍼지 매칭으로 가장 유사한 값 찾기
+function findBestMatch(input: string, validValues: string[]): { match: string | null, confidence: number } {
+  if (!input || !input.trim()) {
+    return { match: null, confidence: 0 };
+  }
+
+  const inputClean = input.trim().toLowerCase();
+
+  // 정확히 일치하는 경우
+  for (const value of validValues) {
+    if (value.toLowerCase() === inputClean) {
+      return { match: value, confidence: 1.0 };
+    }
+  }
+
+  // 부분 일치 확인
+  for (const value of validValues) {
+    if (value.toLowerCase().includes(inputClean) || inputClean.includes(value.toLowerCase())) {
+      return { match: value, confidence: 0.8 };
+    }
+  }
+
+  // Levenshtein distance로 유사도 계산
+  let bestMatch: string | null = null;
+  let bestDistance = Infinity;
+
+  for (const value of validValues) {
+    const distance = levenshteinDistance(inputClean, value.toLowerCase());
+    const maxLen = Math.max(inputClean.length, value.length);
+    const similarity = 1 - (distance / maxLen);
+
+    if (similarity > 0.6 && distance < bestDistance) {
+      bestDistance = distance;
+      bestMatch = value;
+    }
+  }
+
+  if (bestMatch) {
+    const maxLen = Math.max(inputClean.length, bestMatch.length);
+    const confidence = 1 - (bestDistance / maxLen);
+    return { match: bestMatch, confidence };
+  }
+
+  return { match: null, confidence: 0 };
 }
 
 // 임시 토큰 검증 함수
@@ -21,7 +119,6 @@ async function verifyToken(token: string, supabaseClient: any) {
         const userId = parts[2];
         console.log('🔍 임시 토큰에서 추출된 사용자 ID:', userId);
 
-        console.log('🔍 users 테이블 조회 시작...');
         const { data: user, error } = await supabaseClient
           .from('users')
           .select('id, church_id, email, is_active')
@@ -29,24 +126,8 @@ async function verifyToken(token: string, supabaseClient: any) {
           .eq('is_active', true)
           .single();
 
-        console.log('🔍 users 테이블 조회 완료:', {
-          user,
-          error,
-          hasData: !!user,
-          errorMessage: error?.message,
-          errorDetails: error?.details
-        });
-
         if (error || !user) {
           console.error('❌ 사용자 조회 실패:', error);
-          // 사용자가 존재하지 않을 경우를 위한 추가 조회
-          console.log('🔍 is_active 조건 없이 다시 조회...');
-          const { data: userAny, error: errorAny } = await supabaseClient
-            .from('users')
-            .select('id, church_id, email, is_active')
-            .eq('id', userId)
-            .single();
-          console.log('🔍 모든 사용자 조회 결과:', { userAny, errorAny });
           return null;
         }
 
@@ -56,11 +137,7 @@ async function verifyToken(token: string, supabaseClient: any) {
           church_id: user.church_id,
           email: user.email
         };
-      } else {
-        console.error('❌ 토큰 파싱 실패: parts.length < 3');
       }
-    } else {
-      console.error('❌ 지원하지 않는 토큰 형식:', token.substring(0, 20));
     }
 
     return null;
@@ -70,61 +147,20 @@ async function verifyToken(token: string, supabaseClient: any) {
   }
 }
 
-// 엑셀 파일 파싱 함수 (간단한 CSV 형태로 시뮬레이션)
-function parseExcelData(fileContent: string): any[] {
-  // 실제 환경에서는 적절한 엑셀 파싱 라이브러리를 사용해야 합니다
-  // 여기서는 CSV 형태로 간단히 처리
-  const lines = fileContent.split('\n').filter(line => line.trim());
-  const headers = lines[0].split(',').map(h => h.trim());
-
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim());
-    const record: any = {};
-    headers.forEach((header, index) => {
-      record[header] = values[index] || '';
-    });
-    return record;
-  });
-}
-
-// 교인 데이터 검증 함수
-function validateMemberData(member: any): string[] {
-  const errors: string[] = [];
-
-  if (!member.name || member.name.trim() === '') {
-    errors.push('이름은 필수입니다');
-  }
-
-  if (!member.phone || member.phone.trim() === '') {
-    errors.push('전화번호는 필수입니다');
-  } else if (!/^01[0-9]-[0-9]{4}-[0-9]{4}$/.test(member.phone)) {
-    errors.push('전화번호 형식이 올바르지 않습니다 (010-1234-5678)');
-  }
-
-  if (member.birth_date && !/^\d{4}-\d{2}-\d{2}$/.test(member.birth_date)) {
-    errors.push('생년월일 형식이 올바르지 않습니다 (YYYY-MM-DD)');
-  }
-
-  return errors;
-}
-
 serve(async (req) => {
   console.log('📊 [Excel Function] 요청 받음:', {
     method: req.method,
     url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
   });
 
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    console.log('📊 [Excel Function] OPTIONS 요청 처리');
-    const preflightHeaders = {
-      ...corsHeaders,
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth, Authorization, X-Custom-Auth, Content-Type',
-    };
     return new Response(null, {
       status: 200,
-      headers: preflightHeaders
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth, Authorization, X-Custom-Auth, Content-Type',
+      }
     })
   }
 
@@ -132,23 +168,15 @@ serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
 
-    console.log('📊 [Excel Function] URL 파싱:', {
-      pathname: url.pathname,
-      pathParts,
-      method: req.method
-    });
-
-    // 템플릿 다운로드는 인증 없이 허용
+    // 템플릿 다운로드 (인증 불필요)
     if (pathParts.includes('members') && pathParts.includes('template') && req.method === 'GET') {
-      console.log('📊 [템플릿 다운로드] 템플릿 생성 시작');
+      console.log('📊 [템플릿 다운로드] 시작');
 
       const templateContent = [
-        '이름*,영문명,이메일*,전화번호*,성별,생년월일,직분,조직,부서,임명일,안수교회,결혼상태,배우자이름,결혼일,우편번호,주소,지역1,지역2,지역3,교인구분,입교일,소구역,나이그룹,신급,마지막연락일,직업분류,구체적업무,직책직위,직업명,직장명,직장전화번호,사역시작일,이웃교회,직분결정,인도자ID,일상활동,자유필드1,자유필드2,자유필드3,자유필드4,자유필드5,자유필드6,자유필드7,자유필드8,자유필드9,자유필드10,자유필드11,자유필드12,특별사항',
+        '이름*,영문명,이메일,전화번호*,성별,생년월일,직분,조직,부서,임명일,안수교회,결혼상태,배우자이름,결혼일,우편번호,주소,지역1,지역2,지역3,교인구분,입교일,소구역,나이그룹,신급,마지막연락일,직업분류,구체적업무,직책직위,직업명,직장명,직장전화번호,사역시작일,이웃교회,직분결정,인도자ID,일상활동,자유필드1,자유필드2,자유필드3,자유필드4,자유필드5,자유필드6,자유필드7,자유필드8,자유필드9,자유필드10,자유필드11,자유필드12,특별사항',
         '홍길동,Hong Gil Dong,hong@example.com,010-1234-5678,남,1990-01-15,장로,청년부,청년1부,2020-01-01,서울중앙교회,기혼,김영희,2015-05-20,06234,서울시 강남구 테헤란로 123,서울시,강남구,역삼동,정교인,2010-06-01,1구역,청년,A급,2024-12-01,사무직,소프트웨어 개발,팀장,회사원,삼성전자,02-2255-0114,2018-01-01,은혜교회,장로 추천,,새벽기도 참석,특기사항1,,,,,,,,,,,,건강상 주의사항 없음',
         '김영희,Kim Young Hee,kim@example.com,010-9876-5432,여,1985-05-20,집사,여전도회,여전도1부,2019-03-15,부산온누리교회,기혼,홍길동,2015-05-20,06235,서울시 서초구 서초대로 456,서울시,서초구,서초동,정교인,2008-03-10,2구역,성인,B급,2024-11-28,교육직,초등학교 교사,교사,교사,서울초등학교,02-3456-7890,2017-06-01,사랑교회,집사 임명,,구역모임 리더,,,,,,,,,,,,알레르기: 새우'
       ].join('\n');
-
-      console.log('📊 [템플릿 다운로드] 템플릿 생성 완료 (51개 필드)');
 
       return new Response(templateContent, {
         headers: {
@@ -159,7 +187,7 @@ serve(async (req) => {
       });
     }
 
-    // 인증이 필요한 엔드포인트들
+    // 인증 필요한 엔드포인트
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -170,298 +198,389 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     const customAuthHeader = req.headers.get('X-Custom-Auth');
 
-    console.log('🔍 받은 헤더들:', {
-      authHeader: authHeader ? 'Bearer ' + authHeader.substring(7, 27) + '...' : null,
-      customAuthHeader: customAuthHeader ? customAuthHeader.substring(0, 20) + '...' : null,
-      allHeaders: Object.fromEntries(req.headers.entries())
-    });
-
-    // X-Custom-Auth를 우선으로 처리
     if (customAuthHeader) {
       token = customAuthHeader;
-      console.log('🔑 X-Custom-Auth 헤더에서 토큰 추출');
     } else if (authHeader?.startsWith('Bearer ')) {
       token = authHeader.replace('Bearer ', '');
-      console.log('🔑 Authorization 헤더에서 토큰 추출');
     } else {
-      console.error('❌ 인증 헤더 없음');
       return new Response(
         JSON.stringify({ error: 'Unauthorized - No token provided' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
       )
     }
 
     const payload = await verifyToken(token, supabaseClient);
     if (!payload) {
-      console.error('❌ 토큰 검증 실패');
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
       )
     }
 
     const churchId = payload.church_id;
 
-    console.log('🔍 인증 성공:', {
-      churchId,
-      userId: payload.user_id
-    });
+    // 직분/구역 목록 조회 API
+    if (pathParts.includes('valid-values') && req.method === 'GET') {
+      console.log('📊 [유효값 조회] 직분/구역 목록 조회');
 
-    // /excel/members/upload 엔드포인트
+      // 직분 목록 (한글)
+      const positions = Object.keys(POSITION_MAPPING);
+
+      // 구역 목록 조회
+      const { data: organizations } = await supabaseClient
+        .from('church_organizations')
+        .select('name')
+        .eq('church_id', churchId)
+        .eq('is_active', true)
+        .in('organization_type', ['district', 'sub_district']);
+
+      const districts = organizations?.map((org: any) => org.name) || [];
+
+      // members 테이블에서 실제 사용 중인 sub_district 값도 포함
+      const { data: members } = await supabaseClient
+        .from('members')
+        .select('sub_district')
+        .eq('church_id', churchId)
+        .not('sub_district', 'is', null);
+
+      const memberDistricts = [...new Set(members?.map((m: any) => m.sub_district).filter(Boolean))] as string[];
+      const allDistricts = [...new Set([...districts, ...memberDistricts])];
+
+      return new Response(JSON.stringify({
+        positions,
+        districts: allDistricts
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 엑셀 업로드 - 파싱 및 검증만
+    if (pathParts.includes('members') && pathParts.includes('parse') && req.method === 'POST') {
+      console.log('📊 [엑셀 파싱] 시작');
+
+      const formData = await req.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return new Response(
+          JSON.stringify({ error: '파일이 없습니다' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+        )
+      }
+
+      // 파일 읽기
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+      console.log('📊 파싱된 행 수:', jsonData.length);
+
+      // 유효값 조회
+      const positions = Object.keys(POSITION_MAPPING);
+      const { data: organizations } = await supabaseClient
+        .from('church_organizations')
+        .select('name')
+        .eq('church_id', churchId)
+        .eq('is_active', true);
+      const districts = organizations?.map((org: any) => org.name) || [];
+
+      // 각 행 검증
+      const parsedRows = jsonData.map((row: any, index: number) => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        const suggestions: any = {};
+
+        // 필수 필드 검증
+        if (!row['이름*'] || !row['이름*'].trim()) {
+          errors.push('이름은 필수입니다');
+        }
+        if (!row['전화번호*'] || !row['전화번호*'].trim()) {
+          errors.push('전화번호는 필수입니다');
+        } else if (!/^01[0-9]-[0-9]{3,4}-[0-9]{4}$/.test(row['전화번호*'])) {
+          warnings.push('전화번호 형식을 확인하세요 (010-1234-5678)');
+        }
+
+        // 직분 검증 및 매칭
+        if (row['직분'] && row['직분'].trim()) {
+          const positionInput = row['직분'].trim();
+          const match = findBestMatch(positionInput, positions);
+
+          if (match.match) {
+            if (match.confidence < 1.0) {
+              warnings.push(`직분 "${positionInput}"이(가) "${match.match}"로 자동 매칭되었습니다`);
+              suggestions.position = match.match;
+            }
+          } else {
+            errors.push(`유효하지 않은 직분: ${positionInput}. 사용 가능한 값: ${positions.join(', ')}`);
+          }
+        }
+
+        // 구역 검증 및 매칭
+        if (row['소구역'] && row['소구역'].trim() && districts.length > 0) {
+          const districtInput = row['소구역'].trim();
+          const match = findBestMatch(districtInput, districts);
+
+          if (match.match) {
+            if (match.confidence < 1.0) {
+              warnings.push(`구역 "${districtInput}"이(가) "${match.match}"로 자동 매칭되었습니다`);
+              suggestions.sub_district = match.match;
+            }
+          } else {
+            warnings.push(`구역 "${districtInput}"이(가) 등록된 구역 목록에 없습니다. 새로운 구역으로 등록됩니다.`);
+          }
+        }
+
+        return {
+          rowNumber: index + 2, // Excel 행 번호 (헤더 포함)
+          data: row,
+          errors,
+          warnings,
+          suggestions,
+          isValid: errors.length === 0
+        };
+      });
+
+      const validCount = parsedRows.filter(r => r.isValid).length;
+      const errorCount = parsedRows.filter(r => !r.isValid).length;
+
+      return new Response(JSON.stringify({
+        success: true,
+        totalRows: parsedRows.length,
+        validRows: validCount,
+        errorRows: errorCount,
+        rows: parsedRows
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 엑셀 업로드 - 최종 저장
     if (pathParts.includes('members') && pathParts.includes('upload') && req.method === 'POST') {
-      try {
-        console.log('📊 [엑셀 업로드] 교인 명단 업로드 시작');
+      console.log('📊 [엑셀 저장] 시작');
 
-        // 파일 데이터 처리 (실제로는 multipart/form-data 파싱 필요)
-        const formData = await req.formData();
-        const file = formData.get('file') as File;
+      const body = await req.json();
+      const { rows } = body;
 
-        if (!file) {
-          return new Response(
-            JSON.stringify({ error: '파일이 없습니다' }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        // 임시로 시뮬레이션 결과 반환
-        console.log('📊 [엑셀 업로드] 파일 처리 완료, 시뮬레이션 결과 반환');
-
-        return new Response(JSON.stringify({
-          message: '교인 명단 업로드가 완료되었습니다',
-          created: 5,
-          updated: 3,
-          errors: [
-            '2행: 전화번호 형식이 올바르지 않습니다',
-            '5행: 이름이 비어있습니다'
-          ]
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      } catch (error) {
-        console.error('❌ [엑셀 업로드] 오류:', error);
+      if (!rows || !Array.isArray(rows)) {
         return new Response(
-          JSON.stringify({ error: '업로드 처리 중 오류가 발생했습니다' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          JSON.stringify({ error: '유효하지 않은 데이터입니다' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
         )
       }
+
+      let created = 0;
+      let updated = 0;
+      const errors: string[] = [];
+
+      for (const rowData of rows) {
+        try {
+          const row = rowData.data;
+
+          // 데이터 변환
+          const memberData: any = {
+            church_id: churchId,
+            name: row['이름*'],
+            name_eng: row['영문명'] || null,
+            email: row['이메일'] || null,
+            phone: row['전화번호*'],
+            gender: row['성별'] || null,
+            birthdate: row['생년월일'] || null,
+            position: row['직분'] ? (POSITION_MAPPING[row['직분']] || 'MEMBER') : 'MEMBER',
+            department: row['부서'] || null,
+            appointed_on: row['임명일'] || null,
+            ordination_church: row['안수교회'] || null,
+            marital_status: row['결혼상태'] || null,
+            spouse_name: row['배우자이름'] || null,
+            married_on: row['결혼일'] || null,
+            postal_code: row['우편번호'] || null,
+            address: row['주소'] || null,
+            region_1: row['지역1'] || null,
+            region_2: row['지역2'] || null,
+            region_3: row['지역3'] || null,
+            member_type: row['교인구분'] || null,
+            confirmation_date: row['입교일'] || null,
+            sub_district: rowData.suggestions?.sub_district || row['소구역'] || null,
+            age_group: row['나이그룹'] || null,
+            spiritual_grade: row['신급'] || null,
+            last_contact_date: row['마지막연락일'] || null,
+            job_category: row['직업분류'] || null,
+            job_detail: row['구체적업무'] || null,
+            job_position: row['직책직위'] || null,
+            job_title: row['직업명'] || null,
+            workplace: row['직장명'] || null,
+            workplace_phone: row['직장전화번호'] || null,
+            ministry_start_date: row['사역시작일'] || null,
+            neighboring_church: row['이웃교회'] || null,
+            position_decision: row['직분결정'] || null,
+            daily_activity: row['일상활동'] || null,
+            custom_field_1: row['자유필드1'] || null,
+            custom_field_2: row['자유필드2'] || null,
+            custom_field_3: row['자유필드3'] || null,
+            custom_field_4: row['자유필드4'] || null,
+            custom_field_5: row['자유필드5'] || null,
+            custom_field_6: row['자유필드6'] || null,
+            custom_field_7: row['자유필드7'] || null,
+            custom_field_8: row['자유필드8'] || null,
+            custom_field_9: row['자유필드9'] || null,
+            custom_field_10: row['자유필드10'] || null,
+            custom_field_11: row['자유필드11'] || null,
+            custom_field_12: row['자유필드12'] || null,
+            special_notes: row['특별사항'] || null,
+          };
+
+          // 전화번호로 기존 교인 확인
+          const { data: existing } = await supabaseClient
+            .from('members')
+            .select('id')
+            .eq('church_id', churchId)
+            .eq('phone', memberData.phone)
+            .single();
+
+          if (existing) {
+            // 업데이트
+            const { error } = await supabaseClient
+              .from('members')
+              .update(memberData)
+              .eq('id', existing.id);
+
+            if (error) throw error;
+            updated++;
+          } else {
+            // 신규 생성
+            const { error } = await supabaseClient
+              .from('members')
+              .insert(memberData);
+
+            if (error) throw error;
+            created++;
+          }
+        } catch (error: any) {
+          errors.push(`${rowData.rowNumber}행: ${error.message}`);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: '교인 명단 업로드가 완료되었습니다',
+        created,
+        updated,
+        errors
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // /excel/members/download 엔드포인트
+    // 교인 명단 다운로드
     if (pathParts.includes('members') && pathParts.includes('download') && req.method === 'GET') {
-      try {
-        console.log('📊 [엑셀 다운로드] 교인 명단 다운로드 시작, Church ID:', churchId);
+      console.log('📊 [엑셀 다운로드] 교인 명단 다운로드 시작');
 
-        // 교인 데이터 조회
-        const { data: members, error } = await supabaseClient
-          .from('members')
-          .select('*')
-          .eq('church_id', churchId)
-          .order('name', { ascending: true });
+      const { data: members, error } = await supabaseClient
+        .from('members')
+        .select('*')
+        .eq('church_id', churchId)
+        .order('name', { ascending: true });
 
-        if (error) {
-          console.error('❌ 교인 데이터 조회 실패:', error);
-          return new Response(
-            JSON.stringify({ error: '교인 데이터 조회에 실패했습니다' }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
-        }
-
-        console.log('✅ 교인 데이터 조회 성공, 교인 수:', members.length);
-
-        // CSV 헤더 생성 (51개 필드)
-        const headers = [
-          '이름', '영문명', '이메일', '전화번호', '성별', '생년월일', '직분', '조직', '부서', '임명일', '안수교회',
-          '결혼상태', '배우자이름', '결혼일', '우편번호', '주소', '지역1', '지역2', '지역3',
-          '교인구분', '입교일', '소구역', '나이그룹', '신급', '마지막연락일',
-          '직업분류', '구체적업무', '직책직위', '직업명', '직장명', '직장전화번호',
-          '사역시작일', '이웃교회', '직분결정', '인도자ID', '일상활동',
-          '자유필드1', '자유필드2', '자유필드3', '자유필드4', '자유필드5', '자유필드6',
-          '자유필드7', '자유필드8', '자유필드9', '자유필드10', '자유필드11', '자유필드12',
-          '특별사항', '등록일', '상태'
-        ];
-
-        // CSV 데이터 행 생성
-        const rows = members.map(m => [
-          m.name || '',
-          m.name_eng || '',
-          m.email || '',
-          m.phone || '',
-          m.gender || '',
-          m.birthdate || '',
-          m.position || '',
-          m.organization_id || '',
-          m.department || '',
-          m.appointed_on || '',
-          m.ordination_church || '',
-          m.marital_status || '',
-          m.spouse_name || '',
-          m.married_on || '',
-          m.postal_code || '',
-          m.address || '',
-          m.region_1 || '',
-          m.region_2 || '',
-          m.region_3 || '',
-          m.member_type || '',
-          m.confirmation_date || '',
-          m.sub_district || '',
-          m.age_group || '',
-          m.spiritual_grade || '',
-          m.last_contact_date || '',
-          m.job_category || '',
-          m.job_detail || '',
-          m.job_position || '',
-          m.job_title || '',
-          m.workplace || '',
-          m.workplace_phone || '',
-          m.ministry_start_date || '',
-          m.neighboring_church || '',
-          m.position_decision || '',
-          m.inviter3_member_id || '',
-          m.daily_activity || '',
-          m.custom_field_1 || '',
-          m.custom_field_2 || '',
-          m.custom_field_3 || '',
-          m.custom_field_4 || '',
-          m.custom_field_5 || '',
-          m.custom_field_6 || '',
-          m.custom_field_7 || '',
-          m.custom_field_8 || '',
-          m.custom_field_9 || '',
-          m.custom_field_10 || '',
-          m.custom_field_11 || '',
-          m.custom_field_12 || '',
-          m.special_notes || '',
-          m.created_at || '',
-          m.status || ''
-        ].map(field => {
-          // CSV 이스케이프 처리: 쉼표나 줄바꿈이 있으면 따옴표로 감싸기
-          const str = String(field);
-          if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-            return `"${str.replace(/"/g, '""')}"`;
-          }
-          return str;
-        }).join(','));
-
-        const csvContent = [headers.join(','), ...rows].join('\n');
-
-        console.log('✅ [엑셀 다운로드] CSV 생성 완료, 교인 수:', members.length);
-
-        return new Response(csvContent, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="교인명단_${new Date().toISOString().split('T')[0]}.csv"`
-          }
-        });
-
-      } catch (error) {
-        console.error('❌ [엑셀 다운로드] 오류:', error);
+      if (error) {
         return new Response(
-          JSON.stringify({ error: '다운로드 처리 중 오류가 발생했습니다' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          JSON.stringify({ error: '교인 데이터 조회에 실패했습니다' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
         )
       }
-    }
 
-    // /excel/attendance/download 엔드포인트
-    if (pathParts.includes('attendance') && pathParts.includes('download') && req.method === 'GET') {
-      try {
-        const startDate = url.searchParams.get('start_date') || '2024-01-01';
-        const endDate = url.searchParams.get('end_date') || new Date().toISOString().split('T')[0];
+      // CSV 생성
+      const headers = [
+        '이름', '영문명', '이메일', '전화번호', '성별', '생년월일', '직분', '조직', '부서', '임명일', '안수교회',
+        '결혼상태', '배우자이름', '결혼일', '우편번호', '주소', '지역1', '지역2', '지역3',
+        '교인구분', '입교일', '소구역', '나이그룹', '신급', '마지막연락일',
+        '직업분류', '구체적업무', '직책직위', '직업명', '직장명', '직장전화번호',
+        '사역시작일', '이웃교회', '직분결정', '인도자ID', '일상활동',
+        '자유필드1', '자유필드2', '자유필드3', '자유필드4', '자유필드5', '자유필드6',
+        '자유필드7', '자유필드8', '자유필드9', '자유필드10', '자유필드11', '자유필드12',
+        '특별사항'
+      ];
 
-        console.log('📊 [출석 다운로드] 출석 기록 다운로드:', { startDate, endDate });
-
-        // 출석 데이터 조회
-        const { data: attendances, error } = await supabaseClient
-          .from('attendances')
-          .select(`
-            *,
-            members (name, phone)
-          `)
-          .eq('members.church_id', churchId)
-          .gte('attendance_date', startDate)
-          .lte('attendance_date', endDate)
-          .order('attendance_date', { ascending: true });
-
-        if (error) {
-          console.error('❌ 출석 데이터 조회 실패:', error);
-          return new Response(
-            JSON.stringify({ error: '출석 데이터 조회에 실패했습니다' }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          )
+      const rows = members.map(m => [
+        m.name || '',
+        m.name_eng || '',
+        m.email || '',
+        m.phone || '',
+        m.gender || '',
+        m.birthdate || '',
+        POSITION_REVERSE_MAPPING[m.position] || m.position || '',
+        m.organization_id || '',
+        m.department || '',
+        m.appointed_on || '',
+        m.ordination_church || '',
+        m.marital_status || '',
+        m.spouse_name || '',
+        m.married_on || '',
+        m.postal_code || '',
+        m.address || '',
+        m.region_1 || '',
+        m.region_2 || '',
+        m.region_3 || '',
+        m.member_type || '',
+        m.confirmation_date || '',
+        m.sub_district || '',
+        m.age_group || '',
+        m.spiritual_grade || '',
+        m.last_contact_date || '',
+        m.job_category || '',
+        m.job_detail || '',
+        m.job_position || '',
+        m.job_title || '',
+        m.workplace || '',
+        m.workplace_phone || '',
+        m.ministry_start_date || '',
+        m.neighboring_church || '',
+        m.position_decision || '',
+        m.inviter3_member_id || '',
+        m.daily_activity || '',
+        m.custom_field_1 || '',
+        m.custom_field_2 || '',
+        m.custom_field_3 || '',
+        m.custom_field_4 || '',
+        m.custom_field_5 || '',
+        m.custom_field_6 || '',
+        m.custom_field_7 || '',
+        m.custom_field_8 || '',
+        m.custom_field_9 || '',
+        m.custom_field_10 || '',
+        m.custom_field_11 || '',
+        m.custom_field_12 || '',
+        m.special_notes || '',
+      ].map(field => {
+        const str = String(field);
+        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+          return `"${str.replace(/"/g, '""')}"`;
         }
+        return str;
+      }).join(','));
 
-        // CSV 형태로 생성
-        const csvContent = [
-          '날짜,이름,전화번호,출석여부,비고',
-          ...attendances.map(a => `${a.attendance_date},${a.members?.name || ''},${a.members?.phone || ''},${a.is_present ? '출석' : '결석'},${a.notes || ''}`)
-        ].join('\n');
+      const csvContent = [headers.join(','), ...rows].join('\n');
 
-        console.log('✅ [출석 다운로드] CSV 생성 완료, 기록 수:', attendances.length);
-
-        return new Response(csvContent, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="출석기록_${startDate}_${endDate}.xlsx"`
-          }
-        });
-
-      } catch (error) {
-        console.error('❌ [출석 다운로드] 오류:', error);
-        return new Response(
-          JSON.stringify({ error: '출석 기록 다운로드 중 오류가 발생했습니다' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
-      }
+      return new Response(csvContent, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="교인명단_${new Date().toISOString().split('T')[0]}.csv"`
+        }
+      });
     }
 
     // 지원하지 않는 엔드포인트
-    console.log('❌ [Excel Function] 지원하지 않는 엔드포인트:', url.pathname);
     return new Response(
       JSON.stringify({ error: 'Not found' }),
-      {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ [Excel Function] 오류:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        details: error.message
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
     )
   }
 })

@@ -26,10 +26,14 @@ import { SimpleTabs } from "./ui";
 import { Combobox } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
+import { DateRangePicker } from "./ui";
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 // Legacy API imports removed - now using Supabase Edge Functions
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabase } from '../lib/supabase';
+import { getPositionDetailLabel } from '../constants/memberPositions';
 import * as XLSX from 'xlsx';
 
 // 백엔드 API 응답 타입 정의
@@ -53,6 +57,9 @@ interface Member {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
+  position_detail?: string;
+  department?: string;
+  organization_name?: string;
 }
 
 interface Donor {
@@ -213,13 +220,9 @@ const DonationManagement: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [excelPreviewData, setExcelPreviewData] = useState<any[]>([]);
-  
+
   // 날짜 필터 상태
-  const [dateFilter, setDateFilter] = useState({
-    startDate: '',
-    endDate: '',
-    isActive: false
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   
   // 정렬 상태
   const [sortConfig, setSortConfig] = useState<{
@@ -653,23 +656,6 @@ const DonationManagement: React.FC = () => {
     };
 
     saveBulkDonations();
-  };
-
-  // 날짜 필터링 함수
-  const toggleDateFilter = () => {
-    setDateFilter({ ...dateFilter, isActive: !dateFilter.isActive });
-    if (dateFilter.isActive) {
-      // 필터 해제 시 날짜 초기화
-      setDateFilter({ startDate: '', endDate: '', isActive: false });
-    }
-  };
-
-  const applyDateFilter = () => {
-    if (!dateFilter.startDate && !dateFilter.endDate) {
-      alert('시작일 또는 종료일을 입력해주세요.');
-      return;
-    }
-    // 실제 필터링은 filteredDonations에서 적용
   };
 
   // 정렬 함수
@@ -1112,23 +1098,21 @@ const DonationManagement: React.FC = () => {
     // 검색 필터
     const matchesSearch = donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          donation.fundType.includes(searchTerm);
-    
+
     // 날짜 필터
     let matchesDate = true;
-    if (dateFilter.isActive && (dateFilter.startDate || dateFilter.endDate)) {
+    if (dateRange?.from || dateRange?.to) {
       const donationDate = new Date(donation.offeredOn);
-      
-      if (dateFilter.startDate) {
-        const startDate = new Date(dateFilter.startDate);
-        matchesDate = matchesDate && donationDate >= startDate;
+
+      if (dateRange.from) {
+        matchesDate = matchesDate && donationDate >= dateRange.from;
       }
-      
-      if (dateFilter.endDate) {
-        const endDate = new Date(dateFilter.endDate);
-        matchesDate = matchesDate && donationDate <= endDate;
+
+      if (dateRange.to) {
+        matchesDate = matchesDate && donationDate <= dateRange.to;
       }
     }
-    
+
     return matchesSearch && matchesDate;
   }).sort((a, b) => {
     // 정렬 로직
@@ -1483,14 +1467,10 @@ const DonationManagement: React.FC = () => {
                     className="pl-10 w-80"
                   />
                 </div>
-                <Button
-                  variant={dateFilter.isActive ? 'default' : 'outline'}
-                  onClick={toggleDateFilter}
-                  className="flex items-center space-x-2"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  <span>날짜 필터</span>
-                </Button>
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                />
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div className="flex items-center gap-2">
@@ -1538,70 +1518,22 @@ const DonationManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-            
-            {/* 날짜 필터 */}
-            {dateFilter.isActive && (
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium">시작일:</label>
-                  <Input
-                    type="date"
-                    value={dateFilter.startDate}
-                    onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
-                    className="w-40"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium">종료일:</label>
-                  <Input
-                    type="date"
-                    value={dateFilter.endDate}
-                    onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
-                    className="w-40"
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDateFilter({ startDate: '', endDate: '', isActive: true })}
-                >
-                  초기화
-                </Button>
-                <div className="text-sm text-gray-600">
-                  {dateFilter.startDate && dateFilter.endDate 
-                    ? `${dateFilter.startDate} ~ ${dateFilter.endDate}` 
-                    : dateFilter.startDate 
-                    ? `${dateFilter.startDate} 이후` 
-                    : dateFilter.endDate 
-                    ? `${dateFilter.endDate} 이전`
-                    : '날짜를 선택하세요'
-                  }
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* 헌금 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {loading ? (
-              // 스켈레톤 카드들
-              Array.from({ length: 4 }).map((_, index) => (
-                <Card key={index} className="border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-gray-200 animate-pulse">
-                        <div className="h-6 w-6 bg-gray-300 rounded"></div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20 mb-2"></div>
-                        <div className="h-8 bg-gray-200 rounded animate-pulse w-24"></div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <>
+          {/* 헌금 데이터 전체 로딩 */}
+          {loading ? (
+            <Card className="border-gray-200">
+              <CardContent className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                  <p className="text-gray-600">헌금 데이터를 불러오는 중...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* 헌금 통계 카드 */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <Card className="border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex items-center">
@@ -1660,125 +1592,96 @@ const DonationManagement: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </>
-            )}
-          </div>
-
-          {/* 헌금 목록 */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort('offeredOn')}
-                      >
-                        <span className="flex items-center gap-1">
-                          날짜
-                          {getSortIcon('offeredOn')}
-                        </span>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort('donorName')}
-                      >
-                        <span className="flex items-center gap-1">
-                          기부자
-                          {getSortIcon('donorName')}
-                        </span>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort('fundType')}
-                      >
-                        <span className="flex items-center gap-1">
-                          헌금 유형
-                          {getSortIcon('fundType')}
-                        </span>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort('amount')}
-                      >
-                        <span className="flex items-center gap-1 justify-end">
-                          금액
-                          {getSortIcon('amount')}
-                        </span>
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {loading ? (
-                      // 스켈레톤 테이블 행들
-                      Array.from({ length: 5 }).map((_, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="h-4 bg-gray-200 rounded animate-pulse w-20 ml-auto"></div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      filteredDonations.map((donation) => (
-                        <tr key={donation.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.offeredOn}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.donorName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.fundType}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{formatCurrency(donation.amount)}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{donation.note}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleEditDonation(donation)}
-                                title="수정"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-600"
-                                onClick={() => handleDeleteDonation(donation.id)}
-                                title="삭제"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-              </table>
-            </div>
-            {!loading && filteredDonations.length === 0 && (
-              <div className="text-center py-8 text-gray-600">
-                등록된 헌금 내역이 없습니다.
               </div>
-            )}
-          </div>
+
+              {/* 헌금 목록 */}
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort('offeredOn')}
+                          >
+                            <span className="flex items-center gap-1">
+                              날짜
+                              {getSortIcon('offeredOn')}
+                            </span>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort('donorName')}
+                          >
+                            <span className="flex items-center gap-1">
+                              기부자
+                              {getSortIcon('donorName')}
+                            </span>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort('fundType')}
+                          >
+                            <span className="flex items-center gap-1">
+                              헌금 유형
+                              {getSortIcon('fundType')}
+                            </span>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort('amount')}
+                          >
+                            <span className="flex items-center gap-1 justify-end">
+                              금액
+                              {getSortIcon('amount')}
+                            </span>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
+                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredDonations.map((donation) => (
+                          <tr key={donation.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.offeredOn}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.donorName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.fundType}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{formatCurrency(donation.amount)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{donation.note}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditDonation(donation)}
+                                  title="수정"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteDonation(donation.id)}
+                                  title="삭제"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                  </table>
+                </div>
+                {filteredDonations.length === 0 && (
+                  <div className="text-center py-8 text-gray-600">
+                    등록된 헌금 내역이 없습니다.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1950,14 +1853,22 @@ const DonationManagement: React.FC = () => {
                           ) : (
                             <div style={{position: 'relative', zIndex: 9999}}>
                               <Combobox
-                                options={members.map(member => ({
-                                  value: member.id.toString(),
-                                  label: member.name,
-                                  description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                                }))}
+                                options={[...members]
+                                  .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+                                  .map(member => {
+                                    const details = [
+                                      getPositionDetailLabel(member.position_detail),
+                                      member.department,
+                                      member.organization_name
+                                    ].filter(Boolean).join('/');
+                                    return {
+                                      value: member.id.toString(),
+                                      label: details ? `${member.name}(${details})` : member.name
+                                    };
+                                  })}
                                 value={bulk.donorId}
                                 onChange={(value) => updateBulkRow(index, 'donorId', value)}
-                                placeholder="기부자 검색..."
+                                placeholder="교인 검색 (이름, 전화번호)"
                                 searchPlaceholder="이름, 전화번호로 검색"
                                 className="text-sm"
                               />
@@ -2054,43 +1965,53 @@ const DonationManagement: React.FC = () => {
             
             <div className="space-y-4">
               <div>
-                <div className="flex items-center space-x-4 mb-2">
-                  <label className="block text-sm font-medium">기부자</label>
-                  <label className="flex items-center space-x-2">
+                <label className="block text-sm font-medium mb-2">기부자</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
                     <input
                       type="checkbox"
                       checked={newDonation.isAnonymous}
                       onChange={(e) => {
-                        setNewDonation({ 
-                          ...newDonation, 
+                        setNewDonation({
+                          ...newDonation,
                           isAnonymous: e.target.checked,
                           donorId: e.target.checked ? '' : newDonation.donorId
                         });
                       }}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm">무명 헌금</span>
-                  </label>
-                </div>
-                {newDonation.isAnonymous ? (
-                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500 text-center">
-                    무명
+                    <span className="ml-2 text-sm">무명</span>
                   </div>
-                ) : (
-                  <Combobox
-                    options={members.map(member => ({
-                      value: member.id.toString(),
-                      label: member.name,
-                      description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                    }))}
-                    value={newDonation.donorId}
-                    onChange={(value) => {
-                      setNewDonation({ ...newDonation, donorId: value });
-                    }}
-                    placeholder="기부자 검색..."
-                    searchPlaceholder="이름, 전화번호, 주소로 검색"
-                  />
-                )}
+                  <div className="flex-1">
+                    {newDonation.isAnonymous ? (
+                      <div className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm text-center">
+                        무명
+                      </div>
+                    ) : (
+                      <Combobox
+                        options={[...members]
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+                          .map(member => {
+                            const details = [
+                              getPositionDetailLabel(member.position_detail),
+                              member.department,
+                              member.organization_name
+                            ].filter(Boolean).join('/');
+                            return {
+                              value: member.id.toString(),
+                              label: details ? `${member.name}(${details})` : member.name
+                            };
+                          })}
+                        value={newDonation.donorId}
+                        onChange={(value) => {
+                          setNewDonation({ ...newDonation, donorId: value });
+                        }}
+                        placeholder="교인 검색 (이름, 전화번호)"
+                        searchPlaceholder="이름, 전화번호로 검색"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -2276,15 +2197,23 @@ const DonationManagement: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">기부자</label>
                   <Combobox
-                    options={members.map(member => ({
-                      value: member.id.toString(),
-                      label: member.name,
-                      description: member.phone ? `📱 ${member.phone}` : member.address ? `🏠 ${member.address}` : undefined
-                    }))}
+                    options={[...members]
+                      .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+                      .map(member => {
+                        const details = [
+                          getPositionDetailLabel(member.position_detail),
+                          member.department,
+                          member.organization_name
+                        ].filter(Boolean).join('/');
+                        return {
+                          value: member.id.toString(),
+                          label: details ? `${member.name}(${details})` : member.name
+                        };
+                      })}
                     value={selectedDonor}
                     onChange={(value) => setSelectedDonor(value)}
-                    placeholder="기부자 검색..."
-                    searchPlaceholder="이름, 전화번호, 주소로 검색"
+                    placeholder="교인 검색 (이름, 전화번호)"
+                    searchPlaceholder="이름, 전화번호로 검색"
                   />
                 </div>
               </div>

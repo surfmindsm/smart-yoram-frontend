@@ -439,8 +439,11 @@ const ImportantDatesManagement: React.FC = () => {
       <div className="space-y-4">
         {loading ? (
           <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              불러오는 중...
+            <CardContent className="text-center py-12">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                <p className="text-gray-600">일정 목록을 불러오는 중...</p>
+              </div>
             </CardContent>
           </Card>
         ) : activeDates.length === 0 && completedDates.length === 0 ? (

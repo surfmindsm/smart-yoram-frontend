@@ -3320,6 +3320,97 @@ export const supabaseApiService = {
       }
     },
 
+    // 유효값 조회 (직분, 구역)
+    getValidValues: async () => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/excel/valid-values`, {
+          method: 'GET',
+          headers: {
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+            'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('❌ [유효값 조회 API] 실패:', error);
+        return { positions: [], districts: [] };
+      }
+    },
+
+    // 엑셀 파싱 (미리보기용)
+    parseMembers: async (file: File) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/excel/members/parse`, {
+          method: 'POST',
+          headers: {
+            'X-Custom-Auth': token,
+            'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('❌ [엑셀 파싱 API] 실패:', error);
+        throw error;
+      }
+    },
+
+    // 엑셀 업로드 (최종 저장) - 기존 uploadMembers 대체
+    saveParsedMembers: async (rows: any[]) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/excel/members/upload`, {
+          method: 'POST',
+          headers: {
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+            'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
+          },
+          body: JSON.stringify({ rows })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('❌ [엑셀 저장 API] 실패:', error);
+        throw error;
+      }
+    },
+
     // 출석 기록 다운로드
     downloadAttendance: async (startDate: string, endDate: string) => {
       try {

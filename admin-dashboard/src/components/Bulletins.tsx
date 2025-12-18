@@ -21,6 +21,7 @@ interface Bulletin {
 const Bulletins: React.FC = () => {
   const { toast } = useToast();
   const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingBulletin, setEditingBulletin] = useState<Bulletin | null>(null);
   const [formData, setFormData] = useState({
@@ -71,6 +72,7 @@ const Bulletins: React.FC = () => {
 
   const loadBulletins = async () => {
     try {
+      setIsLoading(true);
       const response = await supabaseApiService.bulletins.getAll({
         church_id: churchId,
         page: 1,
@@ -87,6 +89,8 @@ const Bulletins: React.FC = () => {
         description: '주보 목록을 불러오는데 실패했습니다.',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -251,7 +255,16 @@ const Bulletins: React.FC = () => {
       />
 
       {/* Bulletins Grid */}
-      {bulletins.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">주보 목록을 불러오는 중...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : bulletins.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />

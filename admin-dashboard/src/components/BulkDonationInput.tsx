@@ -255,17 +255,19 @@ const BulkDonationInput: React.FC = () => {
                       </div>
                     ) : (
                       <Combobox
-                        options={members.map(member => {
-                          const details = [
-                            getPositionDetailLabel(member.position_detail),
-                            member.department,
-                            member.organization_name
-                          ].filter(Boolean).join('/');
-                          return {
-                            value: member.id.toString(),
-                            label: details ? `${member.name}(${details})` : member.name
-                          };
-                        })}
+                        options={[...members]
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+                          .map(member => {
+                            const details = [
+                              getPositionDetailLabel(member.position_detail),
+                              member.department,
+                              member.organization_name
+                            ].filter(Boolean).join('/');
+                            return {
+                              value: member.id.toString(),
+                              label: details ? `${member.name}(${details})` : member.name
+                            };
+                          })}
                         value={bulk.donorId}
                         onChange={(value) => updateBulkRow(index, 'donorId', value)}
                         placeholder="교인 검색 (이름, 전화번호)"

@@ -61,6 +61,7 @@ const TARGET_GROUPS = [
 export default function WorshipScheduleManagement() {
   const [services, setServices] = useState<WorshipService[]>([]);
   const [categories, setCategories] = useState<WorshipCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<WorshipService | null>(null);
@@ -123,6 +124,7 @@ export default function WorshipScheduleManagement() {
 
   const fetchWorshipSchedule = async () => {
     try {
+      setIsLoading(true);
       const response = await supabaseApiService.worshipServices.getAll({
         church_id: churchId,
         page: 1,
@@ -139,6 +141,8 @@ export default function WorshipScheduleManagement() {
         description: '예배 일정을 불러오는데 실패했습니다.',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -416,7 +420,16 @@ export default function WorshipScheduleManagement() {
         }
       />
 
-      {services.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">예배 일정을 불러오는 중...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : services.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />

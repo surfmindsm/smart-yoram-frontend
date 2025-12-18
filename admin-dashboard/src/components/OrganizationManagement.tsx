@@ -946,10 +946,14 @@ const OrganizationManagement: React.FC = () => {
 
         {/* Organization List */}
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Spinner />
-            <span className="ml-2">조직 목록을 불러오는 중...</span>
-          </div>
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                <p className="text-gray-600">조직 목록을 불러오는 중...</p>
+              </div>
+            </CardContent>
+          </Card>
         ) : organizations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -990,10 +994,14 @@ const OrganizationManagement: React.FC = () => {
 
           {/* Department List */}
           {departmentLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner />
-              <span className="ml-2">부서 목록을 불러오는 중...</span>
-            </div>
+            <Card>
+              <CardContent className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                  <p className="text-gray-600">부서 목록을 불러오는 중...</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : departments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Layers className="w-12 h-12 mx-auto mb-4 text-gray-300" />

@@ -1383,9 +1383,22 @@ Church Round 앱에 초대되셨습니다.
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">
-      <Spinner size="xl" />
-    </div>;
+    return (
+      <PageContainer>
+        <PageHeader
+          title="교인 관리"
+          description="교회 교인 정보를 관리합니다."
+        />
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">교인 목록을 불러오는 중...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
+    );
   }
 
   return (

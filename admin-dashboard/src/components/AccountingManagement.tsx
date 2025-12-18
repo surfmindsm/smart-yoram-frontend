@@ -533,9 +533,14 @@ const AccountingManagement: React.FC = () => {
 
           {/* Transactions Table */}
           {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <Spinner />
-            </div>
+            <Card>
+              <CardContent className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                  <p className="text-gray-600">거래 내역을 불러오는 중...</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -637,8 +642,11 @@ const AccountingManagement: React.FC = () => {
               )}
 
               {loading ? (
-                <div className="flex justify-center py-4">
-                  <Spinner />
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-2"></div>
+                    <p className="text-sm text-gray-600">불러오는 중...</p>
+                  </div>
                 </div>
               ) : (
                 <div className="divide-y">
@@ -700,8 +708,11 @@ const AccountingManagement: React.FC = () => {
               )}
 
               {loading ? (
-                <div className="flex justify-center py-4">
-                  <Spinner />
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-2"></div>
+                    <p className="text-sm text-gray-600">불러오는 중...</p>
+                  </div>
                 </div>
               ) : (
                 <div className="divide-y">

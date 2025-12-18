@@ -119,9 +119,18 @@ const ChurchInfo: React.FC = () => {
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex justify-center items-center h-64">
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
+        <PageHeader
+          title="교회 정보"
+          description="교회의 기본 정보를 확인하고 수정합니다."
+        />
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">교회 정보를 불러오는 중...</p>
+            </div>
+          </CardContent>
+        </Card>
       </PageContainer>
     );
   }

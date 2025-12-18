@@ -516,11 +516,14 @@ const OfferingsManagement: React.FC = () => {
       {/* 헌금 목록 */}
       <div className="bg-white rounded-lg shadow">
         {loading ? (
-          <div className="p-6 text-center">
-            <Spinner size="lg" text="로딩 중..." />
+          <div className="p-6 text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">헌금 목록을 불러오는 중...</p>
+            </div>
           </div>
         ) : filteredOfferings.length === 0 ? (
-          <div className="p-6 text-center">
+          <div className="p-6 text-center py-12">
             <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">헌금 기록이 없습니다.</p>
           </div>

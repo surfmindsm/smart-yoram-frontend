@@ -494,9 +494,11 @@ const SecurityLogs: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Spinner size="default" />
-                <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                  <p className="text-gray-600">로그인 기록을 불러오는 중...</p>
+                </div>
               </div>
             ) : filteredLoginRecords.length === 0 ? (
               <div className="text-center py-12">
@@ -584,9 +586,11 @@ const SecurityLogs: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Spinner size="default" />
-                <span className="ml-2 text-muted-foreground">데이터를 불러오는 중...</span>
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                  <p className="text-gray-600">활동 로그를 불러오는 중...</p>
+                </div>
               </div>
             ) : filteredActivityLogs.length === 0 ? (
               <div className="text-center py-12">

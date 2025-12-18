@@ -165,7 +165,6 @@ const PrayerRequests: React.FC = () => {
 
         setMembers(membersData);
       } catch (error) {
-        console.error('❌ [기도요청] Failed to load members:', error);
         setMembers([]);
       }
     };
@@ -229,7 +228,6 @@ const PrayerRequests: React.FC = () => {
 
       setRequests(transformedRequests);
     } catch (error) {
-      console.error('Failed to load prayer requests:', error);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -241,13 +239,18 @@ const PrayerRequests: React.FC = () => {
       const statsData = await supabaseApiService.prayerRequests.getStats(6);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load prayer request stats:', error);
+      // Error loading stats
     }
   };
 
   const handleCreateRequest = async () => {
-    if (!newRequest.requesterName || !newRequest.prayerContent) {
-      alert('요청자 이름과 기도 내용을 입력해주세요.');
+    if (!newRequest.prayerContent) {
+      alert('기도 내용을 입력해주세요.');
+      return;
+    }
+
+    if (!newRequest.isAnonymous && !newRequest.requesterName) {
+      alert('요청자 이름을 입력해주세요.');
       return;
     }
 
@@ -259,8 +262,8 @@ const PrayerRequests: React.FC = () => {
       const requestData: any = {
         church_id: userChurchId,
         member_id: newRequest.memberId ? parseInt(newRequest.memberId) : null,
-        requester_name: newRequest.requesterName,
-        requester_phone: newRequest.requesterPhone,
+        requester_name: newRequest.isAnonymous ? '익명' : newRequest.requesterName,
+        requester_phone: newRequest.isAnonymous ? '' : newRequest.requesterPhone,
         prayer_type: newRequest.prayerType,
         prayer_content: newRequest.prayerContent,
         is_anonymous: newRequest.isAnonymous,
@@ -292,7 +295,6 @@ const PrayerRequests: React.FC = () => {
 
       alert('기도요청이 등록되었습니다.');
     } catch (error) {
-      console.error('Failed to create prayer request:', error);
       alert('기도요청 등록에 실패했습니다.');
     }
   };
@@ -308,7 +310,6 @@ const PrayerRequests: React.FC = () => {
 
       alert('기도요청이 삭제되었습니다.');
     } catch (error) {
-      console.error('Failed to delete prayer request:', error);
       alert('기도요청 삭제에 실패했습니다.');
     }
   };
@@ -376,17 +377,6 @@ const PrayerRequests: React.FC = () => {
             />
           </div>
 
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[140px]"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">모든 상태</option>
-            <option value="active">진행중</option>
-            <option value="answered">응답됨</option>
-            <option value="closed">종료됨</option>
-          </select>
-
           <Button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center whitespace-nowrap"
@@ -401,15 +391,17 @@ const PrayerRequests: React.FC = () => {
       {/* 기도요청 목록 */}
       <Card className="border-muted">
         {loading ? (
-          <div className="p-6 text-center">
-            <Spinner size="default" className="inline-block" />
-            <p className="mt-2 text-gray-600">로딩 중...</p>
-          </div>
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+              <p className="text-gray-600">기도요청을 불러오는 중...</p>
+            </div>
+          </CardContent>
         ) : filteredRequests.length === 0 ? (
-          <div className="p-6 text-center">
+          <CardContent className="text-center py-12">
             <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">기도요청이 없습니다.</p>
-          </div>
+          </CardContent>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -528,103 +520,117 @@ const PrayerRequests: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* 교인 선택 (선택사항) */}
+              {/* 요청자 정보 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  교인 선택 (선택사항)
-                </label>
-                <Combobox
-                  options={members.map(member => {
-                    const details = [
-                      getPositionDetailLabel(member.position_detail),
-                      member.department,
-                      member.organization_name
-                    ].filter(Boolean).join('/');
-                    return {
-                      value: member.id.toString(),
-                      label: details ? `${member.name}(${details})` : member.name
-                    };
-                  })}
-                  value={newRequest.memberId}
-                  onChange={(value) => {
-                    const selectedMember = members.find(m => m.id.toString() === value);
-                    if (selectedMember) {
-                      setNewRequest({
-                        ...newRequest,
-                        memberId: value,
-                        requesterName: selectedMember.name,
-                        requesterPhone: selectedMember.phone || '',
-                        organizationName: selectedMember.organization_name || '',
-                        department: selectedMember.department || '',
-                        profilePhotoUrl: selectedMember.profile_photo_url || ''
-                      });
-                    } else {
-                      setNewRequest({
-                        ...newRequest,
-                        memberId: '',
-                        requesterName: '',
-                        requesterPhone: '',
-                        organizationName: '',
-                        department: '',
-                        profilePhotoUrl: ''
-                      });
-                    }
-                  }}
-                  placeholder="교인 검색 (이름, 전화번호) - 선택 안 하면 직접 입력"
-                  emptyMessage="검색 결과가 없습니다"
-                />
+                <label className="block text-sm font-medium mb-2">요청자</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={newRequest.isAnonymous}
+                      onChange={(e) => {
+                        setNewRequest({
+                          ...newRequest,
+                          isAnonymous: e.target.checked,
+                          memberId: e.target.checked ? '' : newRequest.memberId,
+                          requesterName: e.target.checked ? '' : newRequest.requesterName,
+                          requesterPhone: e.target.checked ? '' : newRequest.requesterPhone
+                        });
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="ml-2 text-sm">익명</span>
+                  </div>
+                  <div className="flex-1">
+                    {newRequest.isAnonymous ? (
+                      <div className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-sm text-center">
+                        익명
+                      </div>
+                    ) : (
+                      <Combobox
+                        options={[...members]
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+                          .map(member => {
+                            const details = [
+                              getPositionDetailLabel(member.position_detail),
+                              member.department,
+                              member.organization_name
+                            ].filter(Boolean).join('/');
+                            return {
+                              value: member.id.toString(),
+                              label: details ? `${member.name}(${details})` : member.name
+                            };
+                          })}
+                        value={newRequest.memberId}
+                        onChange={(value) => {
+                          const selectedMember = members.find(m => m.id.toString() === value);
+                          if (selectedMember) {
+                            setNewRequest({
+                              ...newRequest,
+                              memberId: value,
+                              requesterName: selectedMember.name,
+                              requesterPhone: selectedMember.phone || '',
+                              organizationName: selectedMember.organization_name || '',
+                              department: selectedMember.department || '',
+                              profilePhotoUrl: selectedMember.profile_photo_url || ''
+                            });
+                          } else {
+                            setNewRequest({
+                              ...newRequest,
+                              memberId: '',
+                              requesterName: '',
+                              requesterPhone: '',
+                              organizationName: '',
+                              department: '',
+                              profilePhotoUrl: ''
+                            });
+                          }
+                        }}
+                        placeholder="교인 검색 (이름, 전화번호)"
+                        emptyMessage="검색 결과가 없습니다"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  요청자 이름 *
-                </label>
-                <input
-                  type="text"
-                  className={cn(
-                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
-                    newRequest.memberId && "bg-gray-50 text-gray-600"
-                  )}
-                  value={newRequest.requesterName}
-                  onChange={(e) => setNewRequest({ ...newRequest, requesterName: e.target.value })}
-                  readOnly={!!newRequest.memberId}
-                  placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "요청자 이름 직접 입력"}
-                />
-              </div>
+              {!newRequest.isAnonymous && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      요청자 이름 *
+                    </label>
+                    <input
+                      type="text"
+                      className={cn(
+                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                        newRequest.memberId && "bg-gray-50 text-gray-600"
+                      )}
+                      value={newRequest.requesterName}
+                      onChange={(e) => setNewRequest({ ...newRequest, requesterName: e.target.value })}
+                      readOnly={!!newRequest.memberId}
+                      placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "요청자 이름 직접 입력"}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  연락처
-                </label>
-                <input
-                  type="text"
-                  className={cn(
-                    "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
-                    newRequest.memberId && "bg-gray-50 text-gray-600"
-                  )}
-                  value={newRequest.requesterPhone}
-                  onChange={(e) => setNewRequest({ ...newRequest, requesterPhone: e.target.value })}
-                  readOnly={!!newRequest.memberId}
-                  placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "010-0000-0000"}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  기도 유형
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={newRequest.prayerType}
-                  onChange={(e) => setNewRequest({ ...newRequest, prayerType: e.target.value })}
-                >
-                  <option value="general">일반</option>
-                  <option value="healing">치유</option>
-                  <option value="family">가정</option>
-                  <option value="work">직장</option>
-                  <option value="ministry">사역</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      연락처
+                    </label>
+                    <input
+                      type="text"
+                      className={cn(
+                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+                        newRequest.memberId && "bg-gray-50 text-gray-600"
+                      )}
+                      value={newRequest.requesterPhone}
+                      onChange={(e) => setNewRequest({ ...newRequest, requesterPhone: e.target.value })}
+                      readOnly={!!newRequest.memberId}
+                      placeholder={newRequest.memberId ? "교인 선택 시 자동 입력" : "010-0000-0000"}
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -636,38 +642,6 @@ const PrayerRequests: React.FC = () => {
                   value={newRequest.prayerContent}
                   onChange={(e) => setNewRequest({ ...newRequest, prayerContent: e.target.value })}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="mr-2"
-                    checked={newRequest.isAnonymous}
-                    onChange={(e) => setNewRequest({ ...newRequest, isAnonymous: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-700">익명으로 등록</span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="mr-2"
-                    checked={newRequest.isUrgent}
-                    onChange={(e) => setNewRequest({ ...newRequest, isUrgent: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-700">긴급 기도요청</span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="mr-2"
-                    checked={newRequest.isPublic}
-                    onChange={(e) => setNewRequest({ ...newRequest, isPublic: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-700">공개적으로 기도</span>
-                </label>
               </div>
             </div>
 
