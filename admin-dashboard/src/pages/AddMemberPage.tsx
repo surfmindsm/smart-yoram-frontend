@@ -45,7 +45,7 @@ const AddMemberPage: React.FC = () => {
 
   const [formData, setFormData] = useState({
     // 기본 정보
-    name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
+    name: '', name_eng: '', email: '', gender: '남', birthdate: '', birthdate_type: '양력', phone: '',
     // 사역 정보
     position_main: 'MEMBER', position_detail: '', organization_id: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', workplace: '', workplace_phone: '',
@@ -279,6 +279,7 @@ Church Round 앱에 초대되셨습니다.
         email: formData.email || null,
         gender: formData.gender || null,
         birthdate: formData.birthdate || null,
+        birthdate_type: formData.birthdate_type || '양력',
         phone: formData.phone || null,
         address: formData.address || null,
 
@@ -561,14 +562,14 @@ Church Round 앱에 초대되셨습니다.
                   />
                 </div>
 
-                {/* 성별 */}
+                {/* 생년월일 구분 (양력/음력) */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
-                  <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
+                  <label className="block text-sm font-medium text-foreground mb-1">생년월일 구분</label>
+                  <Select value={formData.birthdate_type} onValueChange={(value) => setFormData(prev => ({ ...prev, birthdate_type: value }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="남">남</SelectItem>
-                      <SelectItem value="여">여</SelectItem>
+                      <SelectItem value="양력">양력</SelectItem>
+                      <SelectItem value="음력">음력</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -584,6 +585,18 @@ Church Round 앱에 초대되셨습니다.
                     fromYear={1920}
                     toYear={new Date().getFullYear()}
                   />
+                </div>
+
+                {/* 성별 */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                  <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="남">남</SelectItem>
+                      <SelectItem value="여">여</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

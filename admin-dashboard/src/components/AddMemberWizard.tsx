@@ -22,7 +22,7 @@ const AddMemberWizard: React.FC = () => {
 
   const [formData, setFormData] = useState({
     // 기본 정보
-    name: '', name_eng: '', email: '', gender: '남', birthdate: '', phone: '',
+    name: '', name_eng: '', email: '', gender: '남', birthdate: '', birthdate_type: '양력', phone: '',
     // 사역 정보
     position: '', district: '', department: '', position_code: '', appointed_on: '',
     ordination_church: '', ministry_start_date: '', neighboring_church: '',
@@ -148,6 +148,7 @@ const AddMemberWizard: React.FC = () => {
         email: formData.email,
         gender: formData.gender,
         birthdate: formData.birthdate,
+        birthdate_type: formData.birthdate_type || '양력',
         phone: formData.phone,
         // 사역 정보
         position: formData.position,
@@ -412,12 +413,12 @@ const AddMemberWizard: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
-                  <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
+                  <label className="block text-sm font-medium text-foreground mb-1">생년월일 구분</label>
+                  <Select value={formData.birthdate_type} onValueChange={(value) => setFormData(prev => ({ ...prev, birthdate_type: value }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="남">남</SelectItem>
-                      <SelectItem value="여">여</SelectItem>
+                      <SelectItem value="양력">양력</SelectItem>
+                      <SelectItem value="음력">음력</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -431,6 +432,16 @@ const AddMemberWizard: React.FC = () => {
                     fromYear={1920}
                     toYear={new Date().getFullYear()}
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                  <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="남">남</SelectItem>
+                      <SelectItem value="여">여</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

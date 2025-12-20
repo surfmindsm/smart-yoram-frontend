@@ -63,6 +63,7 @@ interface Member {
   email: string;
   gender: string;
   birthdate: string | null;
+  birthdate_type?: string;
   phone: string;
   address: string | null;
   position_main?: string | null;  // 직분 대분류
@@ -2177,21 +2178,22 @@ Church Round 앱에 초대되셨습니다.
                         )}
                       </div>
 
-                      {/* 성별 */}
+                      {/* 생년월일 구분 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">생년월일 구분</label>
                         {isEditMode ? (
-                          <Select value={editedMember.gender || ''} onValueChange={(value) => setEditedMember({...editedMember, gender: value})}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select
+                            value={editedMember.birthdate_type || '양력'}
+                            onValueChange={(value) => setEditedMember({...editedMember, birthdate_type: value})}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="남">남</SelectItem>
-                              <SelectItem value="여">여</SelectItem>
+                              <SelectItem value="양력">양력</SelectItem>
+                              <SelectItem value="음력">음력</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.gender}</p>
+                          <p className="text-sm text-gray-600">{selectedMember.birthdate_type || '양력'}</p>
                         )}
                       </div>
 
@@ -2209,6 +2211,24 @@ Church Round 앱에 초대되셨습니다.
                           />
                         ) : (
                           <p className="text-sm text-gray-600">{selectedMember.birthdate || '-'}</p>
+                        )}
+                      </div>
+
+                      {/* 성별 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
+                        {isEditMode ? (
+                          <Select value={editedMember.gender || ''} onValueChange={(value) => setEditedMember({...editedMember, gender: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="남">남</SelectItem>
+                              <SelectItem value="여">여</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-sm text-gray-600">{selectedMember.gender}</p>
                         )}
                       </div>
                       </div>
