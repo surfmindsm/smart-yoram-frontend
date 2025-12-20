@@ -25,7 +25,9 @@ interface AccountCategory {
   code: string;
   name: string;
   description?: string;
+  parent_id?: number | null;
   is_active: boolean;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -52,8 +54,55 @@ interface Summary {
   expense_count: number;
 }
 
+interface Budget {
+  id: number;
+  church_id: number;
+  year: number;
+  month: number | null;
+  category_id: number;
+  type: 'income' | 'expense';
+  budgeted_amount: number;
+  notes?: string;
+  created_by?: number;
+  created_at: string;
+  updated_at: string;
+  category?: AccountCategory;
+}
+
+interface BudgetVsActual {
+  id: number;
+  church_id: number;
+  year: number;
+  month: number | null;
+  category_id: number;
+  type: 'income' | 'expense';
+  budgeted_amount: number;
+  actual_amount: number;
+  difference: number;
+  execution_rate: number;
+  notes?: string;
+  category?: AccountCategory;
+}
+
+interface BudgetSummary {
+  budget: {
+    income: number;
+    expense: number;
+    net: number;
+  };
+  actual: {
+    income: number;
+    expense: number;
+    net: number;
+  };
+  execution_rate: {
+    income: number;
+    expense: number;
+  };
+}
+
 const AccountingManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'transactions' | 'categories'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'budgets' | 'budget-analysis' | 'categories'>('transactions');
   const [loading, setLoading] = useState(false);
 
   // Transactions
@@ -65,6 +114,16 @@ const AccountingManagement: React.FC = () => {
   const [expenseCategories, setExpenseCategories] = useState<AccountCategory[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingType, setAddingType] = useState<'income' | 'expense' | null>(null);
+
+  // Budgets (연간 예산만 사용)
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgetYear, setBudgetYear] = useState<number>(new Date().getFullYear());
+
+  // Budget Analysis
+  const [budgetVsActual, setBudgetVsActual] = useState<BudgetVsActual[]>([]);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
+  const [analysisYear, setAnalysisYear] = useState<number>(new Date().getFullYear());
+  const [analysisMonth, setAnalysisMonth] = useState<number | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,10 +146,23 @@ const AccountingManagement: React.FC = () => {
     if (activeTab === 'transactions') {
       loadTransactions();
       loadSummary();
-    } else {
+    } else if (activeTab === 'categories') {
       loadCategories();
     }
   }, [activeTab, typeFilter, dateRange]);
+
+  useEffect(() => {
+    if (activeTab === 'budgets') {
+      loadBudgets();
+      loadCategories(); // 예산 편성 시 필요
+    }
+  }, [activeTab, budgetYear]);
+
+  useEffect(() => {
+    if (activeTab === 'budget-analysis') {
+      loadBudgetVsActual();
+    }
+  }, [activeTab, analysisYear, analysisMonth]);
 
   const loadTransactions = async () => {
     try {
@@ -331,6 +403,256 @@ const AccountingManagement: React.FC = () => {
     }
   };
 
+  // Budget functions (연간 예산만 조회)
+  const loadBudgets = async () => {
+    try {
+      setLoading(true);
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      params.append('year', budgetYear.toString());
+      // month는 전달하지 않음 (연간 예산만)
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets?${params.toString()}`;
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // month가 null인 연간 예산만 필터링
+        const annualBudgets = Array.isArray(data)
+          ? data.filter(b => b.month === null)
+          : [];
+
+        // 모든 부모 계정과목에 대해 예산이 없으면 0으로 초기화
+        const allBudgets: Budget[] = [];
+
+        // 수입 카테고리
+        incomeCategories.filter(c => !c.parent_id).forEach(category => {
+          const existing = annualBudgets.find(b => b.category_id === category.id && b.type === 'income');
+          if (existing) {
+            allBudgets.push(existing);
+          } else {
+            // 예산이 없으면 0으로 초기화
+            allBudgets.push({
+              id: 0,
+              church_id: 0,
+              year: budgetYear,
+              month: null,
+              category_id: category.id,
+              type: 'income',
+              budgeted_amount: 0,
+              notes: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              category: category,
+            });
+          }
+        });
+
+        // 지출 카테고리
+        expenseCategories.filter(c => !c.parent_id).forEach(category => {
+          const existing = annualBudgets.find(b => b.category_id === category.id && b.type === 'expense');
+          if (existing) {
+            allBudgets.push(existing);
+          } else {
+            // 예산이 없으면 0으로 초기화
+            allBudgets.push({
+              id: 0,
+              church_id: 0,
+              year: budgetYear,
+              month: null,
+              category_id: category.id,
+              type: 'expense',
+              budgeted_amount: 0,
+              notes: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              category: category,
+            });
+          }
+        });
+
+        setBudgets(allBudgets);
+      }
+    } catch (error) {
+      console.error('예산 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBudgetVsActual = async () => {
+    try {
+      setLoading(true);
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      params.append('year', analysisYear.toString());
+      if (analysisMonth) {
+        params.append('month', analysisMonth.toString());
+      }
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets/vs-actual?${params.toString()}`;
+
+      const response = await fetch(functionsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBudgetVsActual(data.comparison || []);
+        setBudgetSummary(data.summary || null);
+      }
+    } catch (error) {
+      console.error('예산 대비 실적 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveBudgets = async () => {
+    if (!window.confirm('예산을 저장하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+
+      // 저장할 예산 데이터 준비 (모든 계정과목, 금액 0 포함)
+      const budgetData = budgets
+        .filter(b => b.budgeted_amount >= 0) // 0 이상 (0 포함)
+        .map(b => ({
+          year: budgetYear,
+          month: null, // 연간 예산만 사용
+          category_id: b.category_id,
+          type: b.type,
+          budgeted_amount: b.budgeted_amount,
+          notes: b.notes || null,
+        }));
+
+      if (budgetData.length === 0) {
+        alert('저장할 예산이 없습니다.');
+        setLoading(false);
+        return;
+      }
+
+      // UPSERT 방식으로 저장 (충돌 시 업데이트)
+      const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets/upsert`;
+
+      const response = await fetch(functionsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(budgetData),
+      });
+
+      if (response.ok) {
+        alert('예산이 저장되었습니다.');
+        await loadBudgets();
+      } else {
+        const error = await response.json();
+        alert(`예산 저장 실패: ${error.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('예산 저장 실패:', error);
+      alert('예산 저장 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyPreviousYearBudget = async () => {
+    if (!window.confirm(`${budgetYear - 1}년 예산을 ${budgetYear}년으로 복사하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets/copy-previous-year`;
+
+      const response = await fetch(functionsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from_year: budgetYear - 1,
+          to_year: budgetYear,
+        }),
+      });
+
+      if (response.ok) {
+        alert('전년도 예산이 복사되었습니다.');
+        await loadBudgets();
+      } else {
+        const error = await response.json();
+        alert(`예산 복사 실패: ${error.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('예산 복사 실패:', error);
+      alert('예산 복사 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateBudgetAmount = (categoryId: number, type: 'income' | 'expense', amount: number) => {
+    setBudgets(prev => {
+      const existing = prev.find(b => b.category_id === categoryId && b.type === type);
+      if (existing) {
+        return prev.map(b =>
+          b.category_id === categoryId && b.type === type
+            ? { ...b, budgeted_amount: amount }
+            : b
+        );
+      } else {
+        // 새로운 예산 항목 추가 (연간 예산만)
+        return [...prev, {
+          id: 0, // 임시 ID
+          church_id: 0,
+          year: budgetYear,
+          month: null, // 연간 예산만
+          category_id: categoryId,
+          type,
+          budgeted_amount: amount,
+          notes: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }];
+      }
+    });
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
   };
@@ -350,7 +672,51 @@ const AccountingManagement: React.FC = () => {
     return labels[method] || method;
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    // 예산 데이터 로드 (현재 연도)
+    const token = await supabaseAuthService.getToken();
+    if (!token) return;
+
+    const currentYear = new Date().getFullYear();
+
+    // 예산 데이터 가져오기
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    const budgetUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets?year=${currentYear}`;
+    const budgetVsActualUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets/vs-actual?year=${currentYear}`;
+
+    let budgetData: any[] = [];
+    let budgetVsActualData: any[] = [];
+
+    try {
+      const [budgetResponse, vsActualResponse] = await Promise.all([
+        fetch(budgetUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(budgetVsActualUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }),
+      ]);
+
+      if (budgetResponse.ok) {
+        budgetData = await budgetResponse.json();
+      }
+
+      if (vsActualResponse.ok) {
+        const vsActualJson = await vsActualResponse.json();
+        budgetVsActualData = vsActualJson.comparison || [];
+      }
+    } catch (error) {
+      console.error('예산 데이터 로드 실패:', error);
+    }
+
     // 엑셀로 내보낼 데이터 준비
     const excelData = filteredTransactions.map((transaction) => ({
       '날짜': formatDate(transaction.transaction_date),
@@ -369,6 +735,26 @@ const AccountingManagement: React.FC = () => {
       { '항목': '순 수익', '금액': summary?.net || 0, '건수': '' },
     ];
 
+    // 예산 데이터
+    const budgetSheetData = budgetData.map((b: any) => ({
+      '연도': b.year,
+      '월': b.month || '연간',
+      '구분': b.type === 'income' ? '수입' : '지출',
+      '계정과목': b.category?.name || '-',
+      '예산액': b.budgeted_amount,
+      '비고': b.notes || '',
+    }));
+
+    // 예산 대비 실적 데이터
+    const budgetVsActualSheetData = budgetVsActualData.map((item: any) => ({
+      '계정과목': item.category?.name || '-',
+      '구분': item.type === 'income' ? '수입' : '지출',
+      '예산액': item.budgeted_amount,
+      '실행액': item.actual_amount,
+      '차액': item.difference,
+      '집행률(%)': item.execution_rate.toFixed(1),
+    }));
+
     // 워크북 생성
     const wb = XLSX.utils.book_new();
 
@@ -379,6 +765,18 @@ const AccountingManagement: React.FC = () => {
     // 요약 시트 생성
     const ws2 = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, ws2, '요약');
+
+    // 예산 시트 생성
+    if (budgetSheetData.length > 0) {
+      const ws3 = XLSX.utils.json_to_sheet(budgetSheetData);
+      XLSX.utils.book_append_sheet(wb, ws3, '예산');
+    }
+
+    // 예산 대비 실적 시트 생성
+    if (budgetVsActualSheetData.length > 0) {
+      const ws4 = XLSX.utils.json_to_sheet(budgetVsActualSheetData);
+      XLSX.utils.book_append_sheet(wb, ws4, '예산대비실적');
+    }
 
     // 파일명 생성 (날짜 포함)
     const today = new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '');
@@ -482,13 +880,23 @@ const AccountingManagement: React.FC = () => {
             icon: <DollarSign className="w-4 h-4" />
           },
           {
+            id: 'budgets',
+            label: '예산 편성',
+            icon: <TrendingUp className="w-4 h-4" />
+          },
+          {
+            id: 'budget-analysis',
+            label: '예산 대비 실적',
+            icon: <TrendingDown className="w-4 h-4" />
+          },
+          {
             id: 'categories',
             label: '계정과목 관리',
             icon: <Edit className="w-4 h-4" />
           }
         ]}
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as 'transactions' | 'categories')}
+        onTabChange={(tab) => setActiveTab(tab as 'transactions' | 'budgets' | 'budget-analysis' | 'categories')}
         variant="default"
         className="mb-6"
       />
@@ -605,6 +1013,384 @@ const AccountingManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Budgets Tab */}
+      {activeTab === 'budgets' && (
+        <div className="space-y-4">
+          {/* Budget Controls */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">연도:</label>
+                  <Select value={budgetYear.toString()} onValueChange={(value) => setBudgetYear(parseInt(value))}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                        <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  연간 예산
+                </div>
+
+                <div className="ml-auto flex gap-2">
+                  <Button onClick={copyPreviousYearBudget} variant="outline">
+                    전년도 복사
+                  </Button>
+                  <Button onClick={saveBudgets}>
+                    저장
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Budget Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-600">총 수입 예산</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {formatCurrency(
+                        budgets
+                          .filter(b => b.type === 'income')
+                          .reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)
+                      )}
+                    </p>
+                  </div>
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-600">총 지출 예산</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {formatCurrency(
+                        budgets
+                          .filter(b => b.type === 'expense')
+                          .reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)
+                      )}
+                    </p>
+                  </div>
+                  <TrendingDown className="w-6 h-6 text-red-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-600">순 예산 (수입 - 지출)</p>
+                    <p className={`text-xl font-bold ${
+                      (budgets.filter(b => b.type === 'income').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0) -
+                       budgets.filter(b => b.type === 'expense').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)) >= 0
+                        ? 'text-primary-600'
+                        : 'text-orange-600'
+                    }`}>
+                      {formatCurrency(
+                        budgets.filter(b => b.type === 'income').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0) -
+                        budgets.filter(b => b.type === 'expense').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)
+                      )}
+                    </p>
+                  </div>
+                  <DollarSign className="w-6 h-6 text-primary-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Budget Input Tables */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Income Budget */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-green-700 mb-4">수입 예산</h3>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <Spinner />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {incomeCategories.filter(c => !c.parent_id).map(category => {
+                      const budget = budgets.find(b => b.category_id === category.id && b.type === 'income');
+                      return (
+                        <div key={category.id} className="flex items-center gap-2">
+                          <label className="text-sm flex-1">{category.name}</label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={budget?.budgeted_amount || ''}
+                            onChange={(e) => updateBudgetAmount(category.id, 'income', parseFloat(e.target.value) || 0)}
+                            className="w-40 text-right"
+                            min="0"
+                            step="10000"
+                          />
+                          <span className="text-sm text-gray-500 w-8">원</span>
+                        </div>
+                      );
+                    })}
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between font-semibold text-green-700">
+                        <span>합계</span>
+                        <span>
+                          {formatCurrency(
+                            budgets
+                              .filter(b => b.type === 'income')
+                              .reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Expense Budget */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-red-700 mb-4">지출 예산</h3>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <Spinner />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {expenseCategories.filter(c => !c.parent_id).map(category => {
+                      const budget = budgets.find(b => b.category_id === category.id && b.type === 'expense');
+                      return (
+                        <div key={category.id} className="flex items-center gap-2">
+                          <label className="text-sm flex-1">{category.name}</label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={budget?.budgeted_amount || ''}
+                            onChange={(e) => updateBudgetAmount(category.id, 'expense', parseFloat(e.target.value) || 0)}
+                            className="w-40 text-right"
+                            min="0"
+                            step="10000"
+                          />
+                          <span className="text-sm text-gray-500 w-8">원</span>
+                        </div>
+                      );
+                    })}
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between font-semibold text-red-700">
+                        <span>합계</span>
+                        <span>
+                          {formatCurrency(
+                            budgets
+                              .filter(b => b.type === 'expense')
+                              .reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Budget Analysis Tab */}
+      {activeTab === 'budget-analysis' && (
+        <div className="space-y-4">
+          {/* Analysis Controls */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">연도:</label>
+                  <Select value={analysisYear.toString()} onValueChange={(value) => setAnalysisYear(parseInt(value))}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                        <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  연간 예산 대비 실적 분석
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards */}
+          {budgetSummary && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-medium text-gray-600 mb-4">수입 현황</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">예산</span>
+                      <span className="font-medium">{formatCurrency(budgetSummary.budget.income)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">실적</span>
+                      <span className="font-medium text-green-600">{formatCurrency(budgetSummary.actual.income)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">집행률</span>
+                      <span className={`font-medium ${budgetSummary.execution_rate.income > 100 ? 'text-orange-600' : 'text-primary-600'}`}>
+                        {budgetSummary.execution_rate.income.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full ${budgetSummary.execution_rate.income > 100 ? 'bg-orange-600' : 'bg-green-600'}`}
+                        style={{ width: `${Math.min(budgetSummary.execution_rate.income, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-medium text-gray-600 mb-4">지출 현황</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">예산</span>
+                      <span className="font-medium">{formatCurrency(budgetSummary.budget.expense)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">실적</span>
+                      <span className="font-medium text-red-600">{formatCurrency(budgetSummary.actual.expense)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">집행률</span>
+                      <span className={`font-medium ${budgetSummary.execution_rate.expense > 100 ? 'text-orange-600' : 'text-primary-600'}`}>
+                        {budgetSummary.execution_rate.expense.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full ${budgetSummary.execution_rate.expense > 100 ? 'bg-orange-600' : 'bg-primary-600'}`}
+                        style={{ width: `${Math.min(budgetSummary.execution_rate.expense, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Detailed Comparison Table */}
+          {loading ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Spinner />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">계정과목</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">구분</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">예산</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">실적</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">차액</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">집행률</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {budgetVsActual
+                        .sort((a, b) => {
+                          // 1. type으로 정렬 (income이 먼저, expense가 나중)
+                          if (a.type !== b.type) {
+                            return a.type === 'income' ? -1 : 1;
+                          }
+                          // 2. 같은 type 내에서는 카테고리 이름으로 정렬
+                          return (a.category?.name || '').localeCompare(b.category?.name || '', 'ko-KR');
+                        })
+                        .map((item) => (
+                        <tr key={`${item.category_id}_${item.type}`} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {item.category?.name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              item.type === 'income'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {item.type === 'income' ? '수입' : '지출'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-900">
+                            {formatCurrency(item.budgeted_amount)}
+                          </td>
+                          <td className={`px-4 py-3 text-sm text-right font-medium ${
+                            item.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(item.actual_amount)}
+                          </td>
+                          <td className={`px-4 py-3 text-sm text-right font-medium ${
+                            item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {item.difference > 0 ? '+' : ''}{formatCurrency(item.difference)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className={`font-medium ${
+                                item.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
+                              }`}>
+                                {item.execution_rate.toFixed(1)}%
+                              </span>
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full ${
+                                    item.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
+                                  }`}
+                                  style={{ width: `${Math.min(item.execution_rate, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {budgetVsActual.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      예산 데이터가 없습니다.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Categories Tab */}
       {activeTab === 'categories' && (
         <div className="max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -650,7 +1436,7 @@ const AccountingManagement: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {incomeCategories.map((category) => (
+                  {incomeCategories.filter(c => !c.parent_id).map((category) => (
                     <div key={category.id} className="flex items-center justify-between py-3 group hover:bg-gray-50">
                       <div>
                         <p className="font-medium text-gray-900">{category.name}</p>
@@ -666,7 +1452,7 @@ const AccountingManagement: React.FC = () => {
                       </Button>
                     </div>
                   ))}
-                  {incomeCategories.length === 0 && (
+                  {incomeCategories.filter(c => !c.parent_id).length === 0 && (
                     <p className="text-center text-gray-500 py-4">등록된 수입 계정과목이 없습니다.</p>
                   )}
                 </div>
@@ -716,7 +1502,7 @@ const AccountingManagement: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {expenseCategories.map((category) => (
+                  {expenseCategories.filter(c => !c.parent_id).map((category) => (
                     <div key={category.id} className="flex items-center justify-between py-3 group hover:bg-gray-50">
                       <div>
                         <p className="font-medium text-gray-900">{category.name}</p>
@@ -732,7 +1518,7 @@ const AccountingManagement: React.FC = () => {
                       </Button>
                     </div>
                   ))}
-                  {expenseCategories.length === 0 && (
+                  {expenseCategories.filter(c => !c.parent_id).length === 0 && (
                     <p className="text-center text-gray-500 py-4">등록된 지출 계정과목이 없습니다.</p>
                   )}
                 </div>
@@ -789,11 +1575,13 @@ const AccountingManagement: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">계정과목 선택</option>
-                {(newTransaction.type === 'income' ? incomeCategories : expenseCategories).map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
+                {(newTransaction.type === 'income' ? incomeCategories : expenseCategories)
+                  .filter(c => !c.parent_id)  // 부모 카테고리만 선택 가능 (예산과 일치)
+                  .map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
               </select>
             </div>
 

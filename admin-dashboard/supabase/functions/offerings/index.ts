@@ -8,19 +8,10 @@ const corsHeaders = {
 }
 
 // 헌금 유형을 회계 계정과목명으로 매핑하는 함수
+// 모든 헌금을 상위 계정과목인 "헌금"으로 통합하여 예산 대비 실적 집계가 가능하도록 함
 function mapFundTypeToAccountCategory(fundType: string): string {
-  const mapping: { [key: string]: string } = {
-    '십일조': '십일조',
-    '주일헌금': '주일헌금',
-    '감사헌금': '감사헌금',
-    '선교헌금': '선교헌금',
-    '건축헌금': '건축헌금',
-    '절기헌금': '절기헌금',
-    '특별헌금': '특별헌금',
-    '기타': '기타헌금',
-  }
-
-  return mapping[fundType] || '기타헌금'
+  // 모든 헌금 유형을 "헌금" 계정과목으로 통일
+  return '헌금';
 }
 
 Deno.serve(async (req) => {
