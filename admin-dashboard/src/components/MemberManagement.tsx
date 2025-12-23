@@ -1429,7 +1429,7 @@ Church Round 앱에 초대되셨습니다.
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                선택한 교인 초대 ({selectedMembers.size}명)
+                선택한 교인 앱으로 초대 ({selectedMembers.size}명)
               </Button>
             )}
             <Button
@@ -1990,7 +1990,7 @@ Church Round 앱에 초대되셨습니다.
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    초대
+                    앱 사용자 초대
                   </Button>
 
                   {/* 관리자 지정 버튼 - Church Super Admin에게만 표시 */}
