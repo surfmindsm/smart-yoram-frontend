@@ -36,6 +36,8 @@ const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const BulkDonationInput = lazy(() => import('./components/BulkDonationInput'));
 const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
+const BudgetManagement = lazy(() => import('./components/BudgetManagement'));
+const SettlementManagement = lazy(() => import('./components/SettlementManagement'));
 const ImportantDatesManagement = lazy(() => import('./components/ImportantDatesManagement'));
 // const OfferingsManagement = lazy(() => import('./components/OfferingsManagement'));
 const AddMemberWizard = lazy(() => import('./components/AddMemberWizard'));
@@ -242,6 +244,16 @@ function App() {
           <Route path="accounting" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AccountingManagement />
+            </Suspense>
+          } />
+          <Route path="budget" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BudgetManagement />
+            </Suspense>
+          } />
+          <Route path="settlement" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SettlementManagement />
             </Suspense>
           } />
           <Route path="system-announcements" element={

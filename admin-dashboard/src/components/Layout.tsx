@@ -173,7 +173,7 @@ const Layout: React.FC = () => {
     // 대시보드는 하위메뉴가 없으므로 그룹 펼치기 제외
     if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
-    } else if (['/accounting', '/donations'].some(path => currentPath.startsWith(path))) {
+    } else if (['/accounting', '/budget', '/settlement', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
     } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements', '/message-sending'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['예배 & 소식'] = true;
@@ -387,6 +387,8 @@ const Layout: React.FC = () => {
       title: '재정 관리',
       items: [
         { path: '/accounting', name: '회계 관리', Icon: Calculator },
+        { path: '/budget', name: '예산 관리', Icon: TrendingUp },
+        { path: '/settlement', name: '결산 관리', Icon: ChartLine },
         { path: '/donations', name: '헌금 관리', Icon: DollarSign },
       ],
     },
