@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
 }
 
 Deno.serve(async (req) => {
@@ -21,10 +21,10 @@ Deno.serve(async (req) => {
     )
 
     // Verify authentication from custom auth service
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const customAuthHeader = req.headers.get('X-Custom-Auth')
+    if (!customAuthHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        JSON.stringify({ error: 'Missing authentication token' }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const token = authHeader.replace('Bearer ', '')
+    const token = customAuthHeader
 
     // Basic token validation (in real app, you'd verify JWT properly)
     if (!token.startsWith('temp_token_')) {
@@ -46,32 +46,39 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'GET') {
-      // Return mock system announcements
-      const mockAnnouncements = [
-        {
-          id: 1,
-          title: "시스템 업데이트 공지",
-          content: "Supabase 마이그레이션이 완료되었습니다. 새로운 기능들을 확인해보세요!",
-          priority: "important",
-          target_type: "all",
-          is_active: true,
-          created_at: "2024-01-15T09:00:00Z",
-          updated_at: "2024-01-15T09:00:00Z"
-        },
-        {
-          id: 2,
-          title: "정기 점검 안내",
-          content: "다음 주 일요일 오후 2시부터 4시까지 정기 점검이 있을 예정입니다.",
-          priority: "normal",
-          target_type: "all",
-          is_active: true,
-          created_at: "2024-01-14T10:00:00Z",
-          updated_at: "2024-01-14T10:00:00Z"
-        }
-      ]
+      // Get query parameters
+      const url = new URL(req.url)
+      const adminMode = url.searchParams.get('admin') === 'true'
+
+      let query = supabaseClient
+        .from('system_announcements')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      // If not admin mode, only return active announcements within date range
+      if (!adminMode) {
+        const now = new Date().toISOString()
+        query = query
+          .eq('is_active', true)
+          .lte('start_date', now)
+          .or(`end_date.is.null,end_date.gte.${now}`)
+      }
+
+      const { data: announcements, error } = await query
+
+      if (error) {
+        console.error('Database error:', error)
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
 
       return new Response(
-        JSON.stringify(mockAnnouncements),
+        JSON.stringify(announcements || []),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
@@ -82,15 +89,34 @@ Deno.serve(async (req) => {
       // Create new announcement
       const body = await req.json()
 
-      const newAnnouncement = {
-        id: Math.floor(Math.random() * 1000),
-        title: body.title,
-        content: body.content,
-        priority: body.priority || 'normal',
-        target_type: body.target_type || 'all',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Get user ID from token
+      const userId = parseInt(token.split('_')[2])
+
+      // Insert into database
+      const { data: newAnnouncement, error } = await supabaseClient
+        .from('system_announcements')
+        .insert({
+          title: body.title,
+          content: body.content,
+          priority: body.priority || 'normal',
+          target_churches: body.target_churches || null,
+          start_date: body.start_date,
+          end_date: body.end_date || null,
+          is_active: body.is_active !== undefined ? body.is_active : true,
+          created_by: userId,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Database error:', error)
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
 
       return new Response(

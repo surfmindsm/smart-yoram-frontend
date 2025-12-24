@@ -94,15 +94,21 @@ export const announcementService = {
 
   // 시스템 공지사항 생성 (시스템 관리자용)
   createSystemAnnouncement: async (announcement: AnnouncementCreate): Promise<Announcement> => {
-    // target_church_ids를 JSON 문자열로 변환
-    const payload = {
-      ...announcement,
-      target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
-    };
-    delete payload.target_church_ids; // 백엔드 필드명과 맞추기
-    
-    const response = await api.post(getApiUrl('/system-announcements/'), payload);
-    return response.data;
+    try {
+      // target_church_ids를 JSON 문자열로 변환
+      const payload = {
+        ...announcement,
+        target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
+      };
+      delete payload.target_church_ids; // 백엔드 필드명과 맞추기
+
+      // Use Supabase API
+      const response = await supabaseApiService.systemAnnouncements.create(payload);
+      return response.data;
+    } catch (error) {
+      console.error('시스템 공지사항 생성 실패:', error);
+      throw error;
+    }
   },
 
   // 시스템 공지사항 수정 (시스템 관리자용)

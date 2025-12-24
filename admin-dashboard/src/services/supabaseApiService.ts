@@ -280,66 +280,69 @@ export const supabaseApiService = {
   // System Announcements API
   systemAnnouncements: {
     getActive: async () => {
-      // Edge Functions not deployed yet, use fallback mock data
-      // console.log('🔄 Using fallback mock data for system announcements');
-      return {
-        data: [
-          {
-            id: 1,
-            title: "시스템 업데이트 공지",
-            content: "Supabase 마이그레이션이 완료되었습니다. 새로운 기능들을 확인해보세요!",
-            category: "system",
-            priority: "important" as 'urgent' | 'important' | 'normal',
-            target_type: "all" as 'all' | 'specific' | 'single',
-            is_active: true,
-            start_date: "2024-01-15",
-            created_by: 1,
-            created_at: "2024-01-15T09:00:00Z",
-            updated_at: "2024-01-15T09:00:00Z"
-          }
-        ]
-      };
-    },
-
-    // 시스템 공지사항 관리 조회 (시스템 관리자용) - Supabase 직접 쿼리 사용
-    getAdmin: async () => {
       try {
-        // console.log('📢 [시스템 공지사항] 관리자 조회 시작');
-
-        const { data, error } = await supabase
-          .from('system_announcements')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('📢 [시스템 공지사항] 조회 오류:', error);
-          throw error;
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
         }
 
-        // console.log('✅ [시스템 공지사항] 조회 성공:', data?.length || 0, '개');
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/system-announcements`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Active announcements fetch error:', error);
+          throw new Error(error.error || 'Failed to fetch active announcements');
+        }
+
+        const data = await response.json();
         return { data: data || [] };
       } catch (error) {
-        console.error('📢 [시스템 공지사항] 조회 실패:', error);
-        // 폴백 데이터 제공
-        return {
-          data: [
-            {
-              id: 1,
-              title: "시스템 업데이트 공지",
-              content: "Supabase 마이그레이션이 완료되었습니다.",
-              priority: "important",
-              start_date: "2024-01-15",
-              end_date: null,
-              target_churches: null,
-              is_active: true,
-              is_pinned: false,
-              created_by: 1,
-              author_name: "시스템 관리자",
-              created_at: "2024-01-15T09:00:00Z",
-              updated_at: "2024-01-15T09:00:00Z"
-            }
-          ]
-        };
+        console.error('Failed to fetch active announcements:', error);
+        return { data: [] };
+      }
+    },
+
+    // 시스템 공지사항 관리 조회 (시스템 관리자용) - Edge Function 사용
+    getAdmin: async () => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        if (!token) {
+          throw new Error('No authentication token available');
+        }
+
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/system-announcements?admin=true`;
+
+        const response = await fetch(functionsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Admin announcements fetch error:', error);
+          throw new Error(error.error || 'Failed to fetch admin announcements');
+        }
+
+        const data = await response.json();
+        return { data: data || [] };
+      } catch (error) {
+        console.error('Failed to fetch admin announcements:', error);
+        return { data: [] };
       }
     },
 
@@ -350,7 +353,7 @@ export const supabaseApiService = {
 
         const { data, error } = await supabase
           .from('churches')
-          .select('id, name, pastor_name, address, member_count')
+          .select('id, name, pastor_name, address')
           .eq('is_active', true)
           .order('name');
 
@@ -370,8 +373,7 @@ export const supabaseApiService = {
               id: 9998,
               name: "테스트 교회",
               pastor_name: "김목사",
-              address: "서울시 강남구",
-              member_count: 100
+              address: "서울시 강남구"
             }
           ]
         };
@@ -391,21 +393,26 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        const { data, error } = await supabase.functions.invoke('system-announcements', {
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const functionsUrl = `${supabaseUrl}/functions/v1/system-announcements`;
+
+        const response = await fetch(functionsUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
           },
-          body: announcementData
+          body: JSON.stringify(announcementData),
         });
 
-        if (error) {
+        if (!response.ok) {
+          const error = await response.json();
           console.error('Announcement creation error:', error);
-          throw error;
+          throw new Error(error.error || 'Failed to create announcement');
         }
 
+        const data = await response.json();
         return { data };
       } catch (error) {
         console.error('Failed to create announcement:', error);
