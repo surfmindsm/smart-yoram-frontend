@@ -57,7 +57,8 @@ import {
   AlertTriangle,
   Copy,
   Heart as HeartIcon,
-  HelpCircle
+  HelpCircle,
+  ListChecks
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -173,7 +174,7 @@ const Layout: React.FC = () => {
     // 대시보드는 하위메뉴가 없으므로 그룹 펼치기 제외
     if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
-    } else if (['/accounting', '/budget', '/settlement', '/donations'].some(path => currentPath.startsWith(path))) {
+    } else if (['/accounting', '/account-categories', '/budget', '/settlement', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
     } else if (['/daily-verses', '/worship-schedule', '/bulletins', '/announcements', '/message-sending'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['예배 & 소식'] = true;
@@ -183,7 +184,7 @@ const Layout: React.FC = () => {
       newExpandedGroups['AI 기능 (Premium)'] = true;
     } else if (currentPath.startsWith('/community')) {
       newExpandedGroups['커뮤니티'] = true;
-    } else if (['/security-logs', '/system-announcements', '/sermons', '/church-applications', '/community-applications', '/church-management', '/gpt-license-management', '/church-gpt-license-assignment', '/admin-roles'].some(path => currentPath.startsWith(path))) {
+    } else if (['/security-logs', '/system-announcements', '/system-announcements-list', '/sermons', '/church-applications', '/community-applications', '/church-management', '/gpt-license-management', '/church-gpt-license-assignment', '/admin-roles'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['보안 & 시스템'] = true;
     }
 
@@ -387,6 +388,7 @@ const Layout: React.FC = () => {
       title: '재정 관리',
       items: [
         { path: '/accounting', name: '회계 관리', Icon: Calculator },
+        { path: '/account-categories', name: '계정 과목 관리', Icon: ListChecks },
         { path: '/budget', name: '예산 관리', Icon: TrendingUp },
         { path: '/settlement', name: '결산 관리', Icon: ChartLine },
         { path: '/donations', name: '헌금 관리', Icon: DollarSign },
@@ -441,8 +443,12 @@ const Layout: React.FC = () => {
       title: '보안 & 시스템',
       items: [
         { path: '/security-logs', name: '보안 로그', Icon: Shield },
+        // 일반 교회 관리자에게는 조회만 가능한 시스템 공지사항 표시
+        ...(!isSystemAdmin ? [
+          { path: '/system-announcements-list', name: '시스템 공지사항', Icon: Megaphone }
+        ] : []),
         ...(isSystemAdmin ? [
-          { path: '/system-announcements', name: '시스템 공지사항', Icon: Megaphone },
+          { path: '/system-announcements', name: '시스템 공지사항 관리', Icon: Megaphone },
           { path: '/sermons', name: '명설교 관리', Icon: Video },
           { path: '/church-applications', name: '교회 가입 신청 관리', Icon: Church },
           { path: '/community-applications', name: '커뮤니티 신청 관리', Icon: UserCheck2 },

@@ -16,6 +16,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const Members = lazy(() => import('./components/Members'));
 const MemberManagement = lazy(() => import('./components/MemberManagement'));
 const SystemAnnouncementManagement = lazy(() => import('./components/SystemAnnouncementManagement'));
+const SystemAnnouncementList = lazy(() => import('./components/SystemAnnouncementList'));
 const AnnouncementManagement = lazy(() => import('./components/AnnouncementManagement'));
 const SMSManagement = lazy(() => import('./components/SMSManagement'));
 const QRCodeManagement = lazy(() => import('./components/QRCodeManagement'));
@@ -36,6 +37,7 @@ const PrayerRequests = lazy(() => import('./components/PrayerRequests'));
 const DonationManagement = lazy(() => import('./components/DonationManagement'));
 const BulkDonationInput = lazy(() => import('./components/BulkDonationInput'));
 const AccountingManagement = lazy(() => import('./components/AccountingManagement'));
+const AccountCategoryManagement = lazy(() => import('./components/AccountCategoryManagement'));
 const BudgetManagement = lazy(() => import('./components/BudgetManagement'));
 const SettlementManagement = lazy(() => import('./components/SettlementManagement'));
 const ImportantDatesManagement = lazy(() => import('./components/ImportantDatesManagement'));
@@ -246,6 +248,11 @@ function App() {
               <AccountingManagement />
             </Suspense>
           } />
+          <Route path="account-categories" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AccountCategoryManagement />
+            </Suspense>
+          } />
           <Route path="budget" element={
             <Suspense fallback={<LoadingSpinner />}>
               <BudgetManagement />
@@ -259,6 +266,11 @@ function App() {
           <Route path="system-announcements" element={
             <Suspense fallback={<LoadingSpinner />}>
               <SystemAnnouncementManagement />
+            </Suspense>
+          } />
+          <Route path="system-announcements-list" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SystemAnnouncementList />
             </Suspense>
           } />
           <Route path="announcements" element={
