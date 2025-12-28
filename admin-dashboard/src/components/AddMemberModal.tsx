@@ -447,7 +447,67 @@ Church Round 앱에 초대되셨습니다.
           // 사진 업로드 실패는 경고만 표시하고 교인 등록은 성공으로 처리
         }
       }
-      
+
+      // 이메일로 초대 - users 테이블에 사용자 생성 및 임시 비밀번호 발송
+      if (formData.email) {
+        try {
+          console.log('👤 [교인 초대] 시작:', { email: formData.email, name: formData.name });
+
+          // 1. 임시 비밀번호 생성 (8자리: 대소문자 + 숫자)
+          const generateTempPassword = (): string => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let password = '';
+            for (let i = 0; i < 8; i++) {
+              password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+          };
+          const temporaryPassword = generateTempPassword();
+
+          // 2. invite-user Edge Function 호출 - users 테이블에 사용자 생성
+          console.log('👤 [invite-user] Edge Function 호출');
+          const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
+            body: {
+              email: formData.email,
+              temporaryPassword: temporaryPassword,
+              memberData: {
+                name: formData.name,
+                church_id: userChurchId,
+                member_id: newMemberId
+              }
+            }
+          });
+
+          if (inviteError) {
+            console.error('👤 [invite-user] 실패:', inviteError);
+            throw new Error('사용자 계정 생성 실패: ' + inviteError.message);
+          }
+          console.log('✅ [invite-user] 성공:', inviteData);
+
+          // 3. send-temp-password Edge Function 호출 - 이메일 발송
+          console.log('📧 [send-temp-password] Edge Function 호출');
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-temp-password', {
+            body: {
+              email: formData.email,
+              temporary_password: temporaryPassword,
+              contact_person: formData.name,
+              organization_name: 'Church Round' // TODO: 실제 교회명으로 교체
+            }
+          });
+
+          if (emailError) {
+            console.error('📧 [send-temp-password] 실패:', emailError);
+            console.warn('이메일 발송 실패했지만 사용자 계정은 생성됨');
+          } else {
+            console.log('✅ [send-temp-password] 성공:', emailData);
+          }
+        } catch (inviteError) {
+          console.error('❌ [교인 초대] 전체 실패:', inviteError);
+          // 초대 실패는 경고만 표시하고 교인 등록은 성공으로 처리
+          alert('교인은 등록되었지만 초대 이메일 발송에 실패했습니다. 나중에 다시 초대해주세요.');
+        }
+      }
+
       // 초대 메시지 데이터 설정 및 모달 표시
       setInviteMessageData({ email: formData.email, name: formData.name });
       setShowInviteMessage(true);
