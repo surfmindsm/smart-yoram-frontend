@@ -119,10 +119,23 @@ const AccountCategoryManagement: React.FC = () => {
 
     try {
       const token = await supabaseAuthService.getToken();
-      if (!token) return;
+      if (!token) {
+        alert('인증 토큰을 가져올 수 없습니다. 다시 로그인해주세요.');
+        return;
+      }
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories/${id}`, {
+      if (!supabaseUrl) {
+        alert('Supabase URL이 설정되지 않았습니다.');
+        console.error('REACT_APP_SUPABASE_URL이 환경변수에 없습니다.');
+        return;
+      }
+
+      const url = `${supabaseUrl}/functions/v1/accounting/admin/categories/${id}`;
+      console.log('DELETE 요청 URL:', url);
+      console.log('토큰:', token.substring(0, 20) + '...');
+
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -131,15 +144,23 @@ const AccountCategoryManagement: React.FC = () => {
         },
       });
 
+      console.log('응답 상태:', response.status);
+
       if (response.ok) {
+        alert('계정과목이 삭제되었습니다.');
         await loadCategories();
       } else {
         const error = await response.json();
+        console.error('서버 응답 에러:', error);
         alert(`계정과목 삭제 실패: ${error.error || '알 수 없는 오류'}`);
       }
     } catch (error) {
-      console.error('계정과목 삭제 실패:', error);
-      alert('계정과목 삭제 중 오류가 발생했습니다.');
+      console.error('계정과목 삭제 실패 (전체 에러):', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('서버와 통신할 수 없습니다. 네트워크 연결을 확인해주세요.\n\n상세 정보: ' + error.message);
+      } else {
+        alert('계정과목 삭제 중 오류가 발생했습니다.\n\n상세 정보: ' + (error as Error).message);
+      }
     }
   };
 
