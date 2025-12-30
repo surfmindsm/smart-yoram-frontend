@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-auth',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
 // 헌금 유형을 회계 계정과목명으로 매핑하는 함수
@@ -579,13 +580,49 @@ Deno.serve(async (req) => {
         const offeringId = pathParts[pathParts.length - 1]
 
         // 1. 삭제할 헌금의 accounting_transaction_id 먼저 조회
-        const { data: existingOffering } = await supabaseClient
+        const { data: existingOffering, error: fetchError } = await supabaseClient
           .from('offerings')
           .select('accounting_transaction_id')
           .eq('id', offeringId)
           .single()
 
-        // 2. 헌금 삭제
+        if (fetchError) {
+          console.error('Failed to fetch offering:', fetchError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch offering', details: fetchError.message }),
+            {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        // 2. 연동된 회계 거래가 있으면 먼저 삭제 (순서 중요: offerings 삭제 전에)
+        if (existingOffering?.accounting_transaction_id) {
+          console.log('🗑️ 연동된 회계 거래 삭제 중:', existingOffering.accounting_transaction_id)
+          const { error: accountingDeleteError } = await supabaseClient
+            .from('accounting_transactions')
+            .delete()
+            .eq('id', existingOffering.accounting_transaction_id)
+
+          if (accountingDeleteError) {
+            console.error('❌ 회계 거래 삭제 실패:', accountingDeleteError)
+            return new Response(
+              JSON.stringify({
+                error: '연동된 회계 거래 삭제에 실패했습니다',
+                details: accountingDeleteError.message
+              }),
+              {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              }
+            )
+          } else {
+            console.log('✅ 연동된 회계 거래 삭제 완료')
+          }
+        }
+
+        // 3. 헌금 삭제
         const { error } = await supabaseClient
           .from('offerings')
           .delete()
@@ -602,22 +639,13 @@ Deno.serve(async (req) => {
           )
         }
 
-        // 3. 연동된 회계 거래가 있으면 함께 삭제
-        if (existingOffering?.accounting_transaction_id) {
-          const { error: accountingDeleteError } = await supabaseClient
-            .from('accounting_transactions')
-            .delete()
-            .eq('id', existingOffering.accounting_transaction_id)
-
-          if (accountingDeleteError) {
-            console.log('⚠️ 회계 거래 삭제 실패:', accountingDeleteError)
-          } else {
-            console.log('✅ 연동된 회계 거래도 삭제 완료')
-          }
-        }
-
+        console.log('✅ 헌금 삭제 완료')
         return new Response(
-          JSON.stringify({ message: 'Offering deleted successfully' }),
+          JSON.stringify({
+            success: true,
+            message: 'Offering deleted successfully',
+            accounting_transaction_deleted: !!existingOffering?.accounting_transaction_id
+          }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
