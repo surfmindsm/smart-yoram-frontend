@@ -1089,6 +1089,14 @@ Church Round 앱에 초대되셨습니다.
     positionData.push(['집사', '안수집사', '']);
     positionData.push(['집사', '서리집사', '']);
     positionData.push(['집사', '명예집사', '']);
+    positionData.push(['교회학교', '영아부', '']);
+    positionData.push(['교회학교', '유치부', '']);
+    positionData.push(['교회학교', '유년부', '']);
+    positionData.push(['교회학교', '초등부', '']);
+    positionData.push(['교회학교', '소년부', '']);
+    positionData.push(['교회학교', '중등부', '']);
+    positionData.push(['교회학교', '고등부', '']);
+    positionData.push(['교회학교', '청년부', '']);
     positionData.push(['', '', '']);
     positionData.push(['주의사항:', '', '']);
     positionData.push(['1. 위 표에 나열된 직분만 입력 가능합니다.', '', '']);
