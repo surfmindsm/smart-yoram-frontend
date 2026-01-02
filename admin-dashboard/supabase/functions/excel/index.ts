@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs';
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,6 +104,105 @@ function findBestMatch(input: string, validValues: string[]): { match: string | 
   }
 
   return { match: null, confidence: 0 };
+}
+
+// 날짜 형식 자동 변환 함수
+function parseDate(dateInput: string | null | undefined): { date: string | null, error: string | null } {
+  if (!dateInput || !dateInput.trim()) {
+    return { date: null, error: null };
+  }
+
+  const cleanInput = dateInput.trim().replace(/\s/g, '');
+
+  // 알파벳이나 특수문자가 포함된 경우 (숫자, -, /, . 제외)
+  if (/[^0-9\-\/.]/.test(cleanInput)) {
+    return {
+      date: null,
+      error: `날짜 형식이 올바르지 않습니다: "${dateInput}" (문자나 특수기호가 포함됨)`
+    };
+  }
+
+  // 이미 YYYY-MM-DD 형식인 경우
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleanInput)) {
+    return { date: cleanInput, error: null };
+  }
+
+  // YYYY/MM/DD 형식
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(cleanInput)) {
+    return { date: cleanInput.replace(/\//g, '-'), error: null };
+  }
+
+  // YYYY.MM.DD 형식
+  if (/^\d{4}\.\d{2}\.\d{2}$/.test(cleanInput)) {
+    return { date: cleanInput.replace(/\./g, '-'), error: null };
+  }
+
+  // YYYYMMDD 형식 (8자리)
+  if (/^\d{8}$/.test(cleanInput)) {
+    const year = cleanInput.substring(0, 4);
+    const month = cleanInput.substring(4, 6);
+    const day = cleanInput.substring(6, 8);
+    return { date: `${year}-${month}-${day}`, error: null };
+  }
+
+  // YYMMDD 형식 (6자리) - 가장 많이 사용되는 케이스
+  if (/^\d{6}$/.test(cleanInput)) {
+    let year = parseInt(cleanInput.substring(0, 2));
+    const month = cleanInput.substring(2, 4);
+    const day = cleanInput.substring(4, 6);
+
+    // 월/일 유효성 검증
+    const monthNum = parseInt(month);
+    const dayNum = parseInt(day);
+    if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      return {
+        date: null,
+        error: `날짜 값이 올바르지 않습니다: "${dateInput}" (월: ${month}, 일: ${day})`
+      };
+    }
+
+    // 2000년대 or 1900년대 판단 (50년 기준)
+    // 00-50 -> 2000-2050, 51-99 -> 1951-1999
+    if (year <= 50) {
+      year += 2000;
+    } else {
+      year += 1900;
+    }
+
+    return { date: `${year}-${month}-${day}`, error: null };
+  }
+
+  // YY-MM-DD, YY/MM/DD, YY.MM.DD 형식
+  const yyPattern = /^(\d{2})[-\/.](\d{2})[-\/.](\d{2})$/;
+  const yyMatch = cleanInput.match(yyPattern);
+  if (yyMatch) {
+    let year = parseInt(yyMatch[1]);
+    const month = yyMatch[2];
+    const day = yyMatch[3];
+
+    if (year <= 50) {
+      year += 2000;
+    } else {
+      year += 1900;
+    }
+
+    return { date: `${year}-${month}-${day}`, error: null };
+  }
+
+  // YYYY-M-D 형식 (월/일이 한 자리)
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(cleanInput)) {
+    const parts = cleanInput.split('-');
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    const day = parts[2].padStart(2, '0');
+    return { date: `${year}-${month}-${day}`, error: null };
+  }
+
+  // 인식할 수 없는 형식
+  return {
+    date: null,
+    error: `날짜 형식을 인식할 수 없습니다: "${dateInput}" (예: 2022-02-07, 220207, 20220207)`
+  };
 }
 
 // 임시 토큰 검증 함수
@@ -332,6 +431,27 @@ serve(async (req) => {
           }
         }
 
+        // 날짜 필드 검증
+        const dateFields = [
+          { field: '생년월일', value: row['생년월일'] },
+          { field: '임명일', value: row['임명일'] },
+          { field: '결혼일', value: row['결혼일'] },
+          { field: '입교일', value: row['입교일'] },
+          { field: '마지막연락일', value: row['마지막연락일'] },
+          { field: '사역시작일', value: row['사역시작일'] }
+        ];
+
+        for (const { field, value } of dateFields) {
+          if (value && value.trim()) {
+            const result = parseDate(value);
+            if (result.error) {
+              errors.push(`${field}: ${result.error}`);
+            } else if (result.date && result.date !== value.trim()) {
+              warnings.push(`${field} "${value}"이(가) "${result.date}"로 자동 변환됩니다`);
+            }
+          }
+        }
+
         return {
           rowNumber: index + 2, // Excel 행 번호 (헤더 포함)
           data: row,
@@ -386,33 +506,33 @@ serve(async (req) => {
             email: row['이메일'] || null,
             phone: row['전화번호*'],
             gender: row['성별'] || null,
-            birthdate: row['생년월일'] || null,
+            birthdate: parseDate(row['생년월일']).date,
             birthdate_type: row['생년월일구분'] || '양력',
             position: row['직분'] ? (POSITION_MAPPING[row['직분']] || 'MEMBER') : 'MEMBER',
             department: row['부서'] || null,
-            appointed_on: row['임명일'] || null,
+            appointed_on: parseDate(row['임명일']).date,
             ordination_church: row['안수교회'] || null,
             marital_status: row['결혼상태'] || null,
             spouse_name: row['배우자이름'] || null,
-            married_on: row['결혼일'] || null,
+            married_on: parseDate(row['결혼일']).date,
             postal_code: row['우편번호'] || null,
             address: row['주소'] || null,
             region_1: row['지역1'] || null,
             region_2: row['지역2'] || null,
             region_3: row['지역3'] || null,
             member_type: row['교인구분'] || null,
-            confirmation_date: row['입교일'] || null,
+            confirmation_date: parseDate(row['입교일']).date,
             sub_district: rowData.suggestions?.sub_district || row['소구역'] || null,
             age_group: row['나이그룹'] || null,
             spiritual_grade: row['신급'] || null,
-            last_contact_date: row['마지막연락일'] || null,
+            last_contact_date: parseDate(row['마지막연락일']).date,
             job_category: row['직업분류'] || null,
             job_detail: row['구체적업무'] || null,
             job_position: row['직책직위'] || null,
             job_title: row['직업명'] || null,
             workplace: row['직장명'] || null,
             workplace_phone: row['직장전화번호'] || null,
-            ministry_start_date: row['사역시작일'] || null,
+            ministry_start_date: parseDate(row['사역시작일']).date,
             neighboring_church: row['이웃교회'] || null,
             position_decision: row['직분결정'] || null,
             daily_activity: row['일상활동'] || null,

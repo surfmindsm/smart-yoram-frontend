@@ -36,7 +36,9 @@ import {
   Phone,
   Church,
   ArrowRightLeft,
-  Car
+  Car,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -54,7 +56,17 @@ import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
 import * as XLSX from 'xlsx';
-import { ADMIN_POSITION_OPTIONS, getPositionMainLabel, getPositionDetailLabel } from '../constants/memberPositions';
+import {
+  ADMIN_POSITION_OPTIONS,
+  getPositionMainLabel,
+  getPositionDetailLabel,
+  isValidPositionMain,
+  isValidPositionDetail,
+  normalizePositionMain,
+  normalizePositionDetail,
+  POSITION_MAIN_LABELS,
+  POSITION_DETAIL_LABELS
+} from '../constants/memberPositions';
 
 interface Member {
   id: number;
@@ -166,6 +178,13 @@ const MemberManagement: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [excelPreviewData, setExcelPreviewData] = useState<any[] | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [validationResults, setValidationResults] = useState<Array<{
+    rowNumber: number;
+    data: any;
+    errors: string[];
+    warnings: string[];
+    isValid: boolean;
+  }> | null>(null);
 
   // 초대 메시지 모달 상태
   const [showInviteMessage, setShowInviteMessage] = useState(false);
@@ -1016,11 +1035,11 @@ Church Round 앱에 초대되셨습니다.
       'Hong Gil Dong',
       'hong@example.com',
       '남',
-      '1990-01-01',
+      '1990-01-01',  // 또는 19900101, 900101 등 다양한 날짜 형식 가능
       '010-1234-5678',
       '서울시 강남구',
-      'DEACON',
-      'ACTIVE_DEACON',
+      '집사',  // 한글 직분 입력 가능 (직분 목록은 "직분 목록" 시트 참조)
+      '집사',  // 한글 세부 직분 입력 가능
       '1구역',
       '기혼',
       '김영희',
@@ -1048,9 +1067,41 @@ Church Round 앱에 초대되셨습니다.
     const columnWidths = headers.map(() => ({ wch: 15 }));
     worksheet['!cols'] = columnWidths;
 
+    // 직분 목록 시트 생성
+    const positionHeaders = ['직분 대분류', '직분 세부', '설명'];
+    const positionData: any[] = [positionHeaders];
+
+    // 직분 대분류와 세부 목록 추가
+    positionData.push(['성도', '', '일반 성도 (기본값)']);
+    positionData.push(['교역자', '담임목사', '']);
+    positionData.push(['교역자', '원로목사', '']);
+    positionData.push(['교역자', '부목사', '']);
+    positionData.push(['교역자', '협동목사', '']);
+    positionData.push(['교역자', '전도사', '']);
+    positionData.push(['교역자', '전임전도사', '']);
+    positionData.push(['교역자', '교육담당전도사', '']);
+    positionData.push(['장로', '시무장로', '']);
+    positionData.push(['장로', '원로장로', '']);
+    positionData.push(['장로', '이명은퇴장로', '']);
+    positionData.push(['권사', '시무권사', '']);
+    positionData.push(['권사', '명예권사', '']);
+    positionData.push(['집사', '집사', '안수집사가 아닌 일반 집사']);
+    positionData.push(['집사', '안수집사', '']);
+    positionData.push(['집사', '서리집사', '']);
+    positionData.push(['집사', '명예집사', '']);
+    positionData.push(['', '', '']);
+    positionData.push(['주의사항:', '', '']);
+    positionData.push(['1. 위 표에 나열된 직분만 입력 가능합니다.', '', '']);
+    positionData.push(['2. 한글로 정확히 입력하세요 (예: 집사, 시무장로)', '', '']);
+    positionData.push(['3. 직분대분류만 입력하면 세부는 비워두셔도 됩니다.', '', '']);
+
+    const positionSheet = XLSX.utils.aoa_to_sheet(positionData);
+    positionSheet['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 40 }];
+
     // 워크북 생성
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '교인정보');
+    XLSX.utils.book_append_sheet(workbook, positionSheet, '직분 목록');
 
     // 엑셀 파일 다운로드
     XLSX.writeFile(workbook, '교인정보_엑셀템플릿.xlsx');
@@ -1155,6 +1206,97 @@ Church Round 앱에 초대되셨습니다.
     XLSX.writeFile(workbook, fileName);
   };
 
+  // 날짜 형식 자동 변환 함수
+  const parseDateField = (dateInput: string | null | undefined): string | null => {
+    if (!dateInput || typeof dateInput !== 'string' || !dateInput.trim()) {
+      return null;
+    }
+
+    const cleanInput = dateInput.trim().replace(/\s/g, '');
+
+    // 알파벳이나 특수문자가 포함된 경우 (숫자, -, /, . 제외)
+    if (/[^0-9\-\/.]/.test(cleanInput)) {
+      console.warn(`날짜 형식이 올바르지 않습니다: "${dateInput}"`);
+      return null;
+    }
+
+    // 이미 YYYY-MM-DD 형식인 경우
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanInput)) {
+      return cleanInput;
+    }
+
+    // YYYY/MM/DD 형식
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(cleanInput)) {
+      return cleanInput.replace(/\//g, '-');
+    }
+
+    // YYYY.MM.DD 형식
+    if (/^\d{4}\.\d{2}\.\d{2}$/.test(cleanInput)) {
+      return cleanInput.replace(/\./g, '-');
+    }
+
+    // YYYYMMDD 형식 (8자리)
+    if (/^\d{8}$/.test(cleanInput)) {
+      const year = cleanInput.substring(0, 4);
+      const month = cleanInput.substring(4, 6);
+      const day = cleanInput.substring(6, 8);
+      return `${year}-${month}-${day}`;
+    }
+
+    // YYMMDD 형식 (6자리) - 가장 많이 사용되는 케이스
+    if (/^\d{6}$/.test(cleanInput)) {
+      let year = parseInt(cleanInput.substring(0, 2));
+      const month = cleanInput.substring(2, 4);
+      const day = cleanInput.substring(4, 6);
+
+      // 월/일 유효성 검증
+      const monthNum = parseInt(month);
+      const dayNum = parseInt(day);
+      if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+        console.warn(`날짜 값이 올바르지 않습니다: "${dateInput}" (월: ${month}, 일: ${day})`);
+        return null;
+      }
+
+      // 2000년대 or 1900년대 판단 (50년 기준)
+      if (year <= 50) {
+        year += 2000;
+      } else {
+        year += 1900;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+
+    // YY-MM-DD, YY/MM/DD, YY.MM.DD 형식
+    const yyPattern = /^(\d{2})[-\/.](\d{2})[-\/.](\d{2})$/;
+    const yyMatch = cleanInput.match(yyPattern);
+    if (yyMatch) {
+      let year = parseInt(yyMatch[1]);
+      const month = yyMatch[2];
+      const day = yyMatch[3];
+
+      if (year <= 50) {
+        year += 2000;
+      } else {
+        year += 1900;
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+
+    // YYYY-M-D 형식 (월/일이 한 자리)
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(cleanInput)) {
+      const parts = cleanInput.split('-');
+      const year = parts[0];
+      const month = parts[1].padStart(2, '0');
+      const day = parts[2].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    console.warn(`날짜 형식을 인식할 수 없습니다: "${dateInput}"`);
+    return null;
+  };
+
   const handleExcelPreview = async () => {
     if (!excelFile) {
       alert('파일을 선택해주세요.');
@@ -1181,14 +1323,104 @@ Church Round 앱에 초대되셨습니다.
         return;
       }
 
-      // 헤더와 데이터 분리 (최대 5행만)
+      // 헤더와 데이터 분리
       const headers = jsonData[0];
-      const previewRows = jsonData.slice(1, 6); // 최대 5행
+      const dataRows = jsonData.slice(1);
 
-      // 미리보기 데이터 저장 (헤더 + 데이터)
-      setExcelPreviewData([headers, ...previewRows]);
+      // 헤더 인덱스 매핑
+      const headerMap: { [key: string]: number } = {};
+      headers.forEach((header: string, index: number) => {
+        headerMap[header] = index;
+      });
+
+      // 날짜 필드 목록
+      const dateFields = ['생년월일', '등록일', '결혼일', '임명일', '사역시작일'];
+
+      // 각 행 검증
+      const validatedRows = dataRows.map((row: any[], index: number) => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        // 필수 필드 검증
+        if (!row[headerMap['이름']] || !String(row[headerMap['이름']]).trim()) {
+          errors.push('이름은 필수입니다');
+        }
+        if (!row[headerMap['전화번호']] || !String(row[headerMap['전화번호']]).trim()) {
+          errors.push('전화번호는 필수입니다');
+        }
+
+        // 날짜 필드 검증
+        dateFields.forEach(fieldName => {
+          if (headerMap[fieldName] !== undefined) {
+            const value = row[headerMap[fieldName]];
+            if (value && String(value).trim()) {
+              const parsed = parseDateField(String(value));
+              if (parsed === null) {
+                const cleanValue = String(value).trim();
+                // 알파벳이나 특수문자가 포함된 경우
+                if (/[^0-9\-\/.]/.test(cleanValue)) {
+                  errors.push(`${fieldName}: "${value}" - 잘못된 형식 (문자/특수기호 포함)`);
+                } else {
+                  errors.push(`${fieldName}: "${value}" - 인식할 수 없는 날짜 형식`);
+                }
+              } else if (parsed !== String(value).trim()) {
+                warnings.push(`${fieldName}: "${value}" → "${parsed}" 자동 변환됨`);
+              }
+            }
+          }
+        });
+
+        // 직분 대분류 검증
+        if (headerMap['직분대분류'] !== undefined) {
+          const positionMain = row[headerMap['직분대분류']];
+          if (positionMain && String(positionMain).trim()) {
+            const positionMainStr = String(positionMain).trim();
+            if (!isValidPositionMain(positionMainStr)) {
+              const validOptions = Object.values(POSITION_MAIN_LABELS).join(', ');
+              errors.push(`직분대분류: "${positionMainStr}" - 인식할 수 없는 직분 (허용: ${validOptions})`);
+            } else {
+              // 한글로 입력된 경우 변환될 것임을 알림
+              const normalized = normalizePositionMain(positionMainStr);
+              if (normalized && positionMainStr !== normalized) {
+                warnings.push(`직분대분류: "${positionMainStr}" → "${normalized}" 자동 변환됨`);
+              }
+            }
+          }
+        }
+
+        // 직분 세부 검증
+        if (headerMap['직분세부'] !== undefined) {
+          const positionDetail = row[headerMap['직분세부']];
+          if (positionDetail && String(positionDetail).trim()) {
+            const positionDetailStr = String(positionDetail).trim();
+            if (!isValidPositionDetail(positionDetailStr)) {
+              errors.push(`직분세부: "${positionDetailStr}" - 인식할 수 없는 직분`);
+            } else {
+              // 한글로 입력된 경우 변환될 것임을 알림
+              const normalized = normalizePositionDetail(positionDetailStr);
+              if (normalized && positionDetailStr !== normalized) {
+                warnings.push(`직분세부: "${positionDetailStr}" → "${normalized}" 자동 변환됨`);
+              }
+            }
+          }
+        }
+
+        return {
+          rowNumber: index + 2, // 엑셀 행 번호 (헤더 1 + 데이터)
+          data: row,
+          errors,
+          warnings,
+          isValid: errors.length === 0
+        };
+      });
+
+      // 검증 결과 저장
+      setValidationResults(validatedRows);
+
+      // 미리보기 데이터 저장 (헤더 + 전체 데이터)
+      setExcelPreviewData([headers, ...dataRows]);
     } catch (error: any) {
-      console.error('파일 미리보기 실패:', error);
+      console.error('파일 검증 실패:', error);
       alert(`파일을 읽는 중 오류가 발생했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
     } finally {
       setIsPreviewLoading(false);
@@ -1252,18 +1484,18 @@ Church Round 앱에 초대되셨습니다.
           name_eng: row[headerMap['영문명']] || null,
           email: row[headerMap['이메일']] || '',
           gender: row[headerMap['성별']] || '',
-          birthdate: row[headerMap['생년월일']] || null,
+          birthdate: parseDateField(row[headerMap['생년월일']]),
           phone: row[headerMap['전화번호']] || '',
           address: row[headerMap['주소']] || null,
-          position_main: row[headerMap['직분대분류']] || null,  // 엑셀: 직분대분류
-          position_detail: row[headerMap['직분세부']] || null,  // 엑셀: 직분세부
+          position_main: normalizePositionMain(row[headerMap['직분대분류']]),  // 한글 → 영문 코드 자동 변환
+          position_detail: normalizePositionDetail(row[headerMap['직분세부']]),  // 한글 → 영문 코드 자동 변환
           organization_name: row[headerMap['구역']] || null,
           church_id: currentUser.church_id,
           member_status: row[headerMap['교인상태']] || 'active',
-          registration_date: row[headerMap['등록일']] || null,
+          registration_date: parseDateField(row[headerMap['등록일']]),
           marital_status: row[headerMap['결혼상태']] || null,
           spouse_name: row[headerMap['배우자이름']] || null,
-          married_on: row[headerMap['결혼일']] || null,
+          married_on: parseDateField(row[headerMap['결혼일']]),
           job_category: row[headerMap['직업분류']] || null,
           job_detail: row[headerMap['직업상세']] || null,
           job_position: row[headerMap['직책']] || null,
@@ -1272,9 +1504,9 @@ Church Round 앱에 초대되셨습니다.
           workplace_phone: row[headerMap['직장전화번호']] || null,
           department: row[headerMap['부서']] || null,
           position_code: row[headerMap['직분코드']] || null,
-          appointed_on: row[headerMap['임명일']] || null,
+          appointed_on: parseDateField(row[headerMap['임명일']]),
           ordination_church: row[headerMap['안수교회']] || null,
-          ministry_start_date: row[headerMap['사역시작일']] || null,
+          ministry_start_date: parseDateField(row[headerMap['사역시작일']]),
           neighboring_church: row[headerMap['인근교회']] || null,
           position_decision: row[headerMap['직분결정']] || null,
           daily_activity: row[headerMap['일상활동']] || null,
@@ -2979,6 +3211,7 @@ Church Round 앱에 초대되셨습니다.
         if (!open) {
           setExcelFile(null);
           setExcelPreviewData(null);
+          setValidationResults(null);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -3010,6 +3243,7 @@ Church Round 앱에 초대되셨습니다.
                   if (file) {
                     setExcelFile(file);
                     setExcelPreviewData(null); // 새 파일 선택 시 미리보기 초기화
+                    setValidationResults(null); // 검증 결과 초기화
                   }
                 }}
               />
@@ -3037,61 +3271,156 @@ Church Round 앱에 초대되셨습니다.
                   {isPreviewLoading ? (
                     <>
                       <Spinner size="sm" />
-                      미리보기 로딩 중...
+                      검증 중...
                     </>
                   ) : (
                     <>
-                      <Eye className="w-4 h-4" />
-                      미리보기 (5행)
+                      <CheckCircle2 className="w-4 h-4" />
+                      파일 검증
                     </>
                   )}
                 </Button>
               </div>
             )}
 
-            {excelPreviewData && (
+            {excelPreviewData && validationResults && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between flex-shrink-0">
                   <h3 className="text-sm font-medium text-gray-900">
-                    데이터 미리보기 (최대 5행)
+                    검증 결과
                   </h3>
                   <Button
-                    onClick={() => setExcelPreviewData(null)}
+                    onClick={() => {
+                      setExcelPreviewData(null);
+                      setValidationResults(null);
+                    }}
                     variant="ghost"
                     size="sm"
                   >
                     닫기
                   </Button>
                 </div>
+
+                {/* 검증 통계 */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-gray-600">전체</p>
+                    <p className="text-xl font-bold">{validationResults.length}</p>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <p className="text-xs text-gray-600">유효</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {validationResults.filter(r => r.isValid).length}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                    <p className="text-xs text-gray-600">오류</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {validationResults.filter(r => !r.isValid).length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 검증 결과 테이블 */}
                 <div className="border rounded-md overflow-x-auto bg-white" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   <table className="min-w-full divide-y divide-gray-200 text-xs">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
-                        {excelPreviewData[0].map((header: any, idx: number) => (
-                          <th
-                            key={idx}
-                            className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap border-r border-gray-200 last:border-r-0"
-                          >
-                            {header}
-                          </th>
-                        ))}
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">행</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">이름</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">전화번호</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">상태</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {excelPreviewData.slice(1).map((row: any[], rowIdx: number) => (
-                        <tr key={rowIdx} className="hover:bg-gray-50">
-                          {row.map((cell: any, cellIdx: number) => (
-                            <td
-                              key={cellIdx}
-                              className="px-3 py-2 text-gray-900 whitespace-nowrap border-r border-gray-100 last:border-r-0"
-                            >
-                              {cell ?? '-'}
+                      {validationResults.map((result, idx) => {
+                        const headerMap: { [key: string]: number } = {};
+                        excelPreviewData[0].forEach((header: string, index: number) => {
+                          headerMap[header] = index;
+                        });
+
+                        return (
+                          <tr
+                            key={idx}
+                            className={`hover:bg-gray-50 ${!result.isValid ? 'bg-red-50' : result.warnings.length > 0 ? 'bg-yellow-50' : ''}`}
+                          >
+                            <td className="px-3 py-2 text-gray-900 whitespace-nowrap">{result.rowNumber}</td>
+                            <td className="px-3 py-2 text-gray-900 whitespace-nowrap">
+                              {result.data[headerMap['이름']] || '-'}
                             </td>
-                          ))}
-                        </tr>
-                      ))}
+                            <td className="px-3 py-2 text-gray-900 whitespace-nowrap">
+                              {result.data[headerMap['전화번호']] || '-'}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="space-y-1">
+                                {result.errors.map((err, errIdx) => (
+                                  <div key={errIdx} className="text-xs text-red-600 flex items-start gap-1">
+                                    <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                    <span>{err}</span>
+                                  </div>
+                                ))}
+                                {result.warnings.map((warn, warnIdx) => (
+                                  <div key={warnIdx} className="text-xs text-yellow-600 flex items-start gap-1">
+                                    <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                    <span>{warn}</span>
+                                  </div>
+                                ))}
+                                {result.isValid && result.errors.length === 0 && result.warnings.length === 0 && (
+                                  <div className="text-xs text-green-600 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>정상</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* 데이터 미리보기 섹션 */}
+                <div className="space-y-2 mt-4">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    데이터 미리보기 (전체)
+                  </h3>
+                  <div className="border rounded-md overflow-x-auto bg-white" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <table className="min-w-full divide-y divide-gray-200 text-xs">
+                      <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                          {excelPreviewData[0].map((header: string, index: number) => (
+                            <th
+                              key={index}
+                              className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap"
+                            >
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {excelPreviewData.slice(1).map((row: any[], rowIndex: number) => {
+                          const result = validationResults[rowIndex];
+                          return (
+                            <tr
+                              key={rowIndex}
+                              className={`hover:bg-gray-50 ${result && !result.isValid ? 'bg-red-50' : result && result.warnings.length > 0 ? 'bg-yellow-50' : ''}`}
+                            >
+                              {row.map((cell: any, cellIndex: number) => (
+                                <td
+                                  key={cellIndex}
+                                  className="px-3 py-2 text-gray-900 whitespace-nowrap"
+                                >
+                                  {cell || '-'}
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -3103,6 +3432,7 @@ Church Round 앱에 초대되셨습니다.
                 setShowExcelImportModal(false);
                 setExcelFile(null);
                 setExcelPreviewData(null);
+                setValidationResults(null);
               }}
               variant="outline"
               disabled={isImporting}
@@ -3111,7 +3441,7 @@ Church Round 앱에 초대되셨습니다.
             </Button>
             <Button
               onClick={handleExcelImport}
-              disabled={!excelPreviewData || isImporting}
+              disabled={!validationResults || validationResults.filter(r => r.isValid).length === 0 || isImporting}
               className="flex items-center gap-2"
             >
               {isImporting ? (
@@ -3122,7 +3452,7 @@ Church Round 앱에 초대되셨습니다.
               ) : (
                 <>
                   <Upload className="w-4 h-4" />
-                  등록 시작
+                  {validationResults ? `${validationResults.filter(r => r.isValid).length}개 행 등록` : '등록 시작'}
                 </>
               )}
             </Button>

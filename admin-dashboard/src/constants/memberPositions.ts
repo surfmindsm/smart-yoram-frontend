@@ -325,3 +325,113 @@ function calculateAge(birthDate: string | Date): number | null {
 
   return age;
 }
+
+// ===== 8. 엑셀 업로드용 한글 → 영문 코드 변환 =====
+
+/**
+ * 한글 레이블 → position_main 변환 (역매핑)
+ * 엑셀 업로드 시 사용
+ */
+export function parsePositionMainFromKorean(koreanLabel: string | null | undefined): PositionMain | null {
+  if (!koreanLabel) return null;
+
+  const trimmed = koreanLabel.trim();
+
+  // 정확히 일치하는 레이블 찾기
+  for (const [key, label] of Object.entries(POSITION_MAIN_LABELS)) {
+    if (label === trimmed) {
+      return key as PositionMain;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 한글 레이블 → position_detail 변환 (역매핑)
+ * 엑셀 업로드 시 사용
+ */
+export function parsePositionDetailFromKorean(koreanLabel: string | null | undefined): PositionDetail | null {
+  if (!koreanLabel) return null;
+
+  const trimmed = koreanLabel.trim();
+
+  // 정확히 일치하는 레이블 찾기
+  for (const [key, label] of Object.entries(POSITION_DETAIL_LABELS)) {
+    if (label === trimmed) {
+      return key as PositionDetail;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 직분 대분류 유효성 검증
+ * 한글과 영문 코드 모두 허용
+ */
+export function isValidPositionMain(value: string | null | undefined): boolean {
+  if (!value) return false;
+
+  const trimmed = value.trim();
+
+  // 영문 코드로 직접 입력된 경우
+  if (trimmed in POSITION_MAIN_LABELS) {
+    return true;
+  }
+
+  // 한글 레이블로 입력된 경우
+  return parsePositionMainFromKorean(trimmed) !== null;
+}
+
+/**
+ * 직분 세부 유효성 검증
+ * 한글과 영문 코드 모두 허용
+ */
+export function isValidPositionDetail(value: string | null | undefined): boolean {
+  if (!value) return false;
+
+  const trimmed = value.trim();
+
+  // 영문 코드로 직접 입력된 경우
+  if (trimmed in POSITION_DETAIL_LABELS) {
+    return true;
+  }
+
+  // 한글 레이블로 입력된 경우
+  return parsePositionDetailFromKorean(trimmed) !== null;
+}
+
+/**
+ * 직분 대분류 정규화 (한글 → 영문 코드 변환 또는 그대로 반환)
+ */
+export function normalizePositionMain(value: string | null | undefined): PositionMain | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+
+  // 이미 영문 코드인 경우
+  if (trimmed in POSITION_MAIN_LABELS) {
+    return trimmed as PositionMain;
+  }
+
+  // 한글인 경우 변환
+  return parsePositionMainFromKorean(trimmed);
+}
+
+/**
+ * 직분 세부 정규화 (한글 → 영문 코드 변환 또는 그대로 반환)
+ */
+export function normalizePositionDetail(value: string | null | undefined): PositionDetail | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+
+  // 이미 영문 코드인 경우
+  if (trimmed in POSITION_DETAIL_LABELS) {
+    return trimmed as PositionDetail;
+  }
+
+  // 한글인 경우 변환
+  return parsePositionDetailFromKorean(trimmed);
+}
