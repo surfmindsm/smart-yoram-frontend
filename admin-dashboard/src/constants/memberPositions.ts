@@ -9,11 +9,12 @@
 
 // ===== 1. 직분 대분류 (position_main) =====
 export const POSITION_MAIN = {
-  CLERGY: 'CLERGY',           // 교역자
-  ELDER: 'ELDER',             // 장로
-  DEACONESS: 'DEACONESS',     // 권사
-  DEACON: 'DEACON',           // 집사
-  MEMBER: 'MEMBER',           // 성도
+  CLERGY: 'CLERGY',                 // 교역자
+  ELDER: 'ELDER',                   // 장로
+  DEACONESS: 'DEACONESS',           // 권사
+  DEACON: 'DEACON',                 // 집사
+  CHURCH_SCHOOL: 'CHURCH_SCHOOL',   // 교회학교
+  MEMBER: 'MEMBER',                 // 성도
 } as const;
 
 export type PositionMain = typeof POSITION_MAIN[keyof typeof POSITION_MAIN];
@@ -44,6 +45,16 @@ export const POSITION_DETAIL = {
   ACTIVE_DEACON: 'ACTIVE_DEACON',                     // 집사
   ORDAINED_DEACON: 'ORDAINED_DEACON',                 // 안수집사
 
+  // 교회학교 부서
+  INFANT: 'INFANT',                                   // 영아부
+  KINDERGARTEN: 'KINDERGARTEN',                       // 유치부
+  YOUNG_CHILDREN: 'YOUNG_CHILDREN',                   // 유년부
+  ELEMENTARY: 'ELEMENTARY',                           // 초등부
+  JUNIOR: 'JUNIOR',                                   // 소년부
+  MIDDLE_SCHOOL: 'MIDDLE_SCHOOL',                     // 중등부
+  HIGH_SCHOOL: 'HIGH_SCHOOL',                         // 고등부
+  YOUTH: 'YOUTH',                                     // 청년부
+
   // 기타
   TEACHER: 'TEACHER',                                 // 교사
   STUDENT: 'STUDENT',                                 // 학생
@@ -57,6 +68,7 @@ export const POSITION_MAIN_LABELS: Record<PositionMain, string> = {
   ELDER: '장로',
   DEACONESS: '권사',
   DEACON: '집사',
+  CHURCH_SCHOOL: '교회학교',
   MEMBER: '성도',
 };
 
@@ -84,6 +96,16 @@ export const POSITION_DETAIL_LABELS: Record<PositionDetail, string> = {
   PROBATIONARY_DEACON: '서리집사',
   ACTIVE_DEACON: '집사',
   ORDAINED_DEACON: '안수집사',
+
+  // 교회학교 부서
+  INFANT: '영아부',
+  KINDERGARTEN: '유치부',
+  YOUNG_CHILDREN: '유년부',
+  ELEMENTARY: '초등부',
+  JUNIOR: '소년부',
+  MIDDLE_SCHOOL: '중등부',
+  HIGH_SCHOOL: '고등부',
+  YOUTH: '청년부',
 
   // 기타
   TEACHER: '교사',
@@ -115,6 +137,16 @@ export const POSITION_HIERARCHY: Record<PositionMain, PositionDetail[]> = {
     POSITION_DETAIL.ORDAINED_DEACON,
     POSITION_DETAIL.PROBATIONARY_DEACON,
     POSITION_DETAIL.HONORARY_DEACON,
+  ],
+  CHURCH_SCHOOL: [
+    POSITION_DETAIL.INFANT,
+    POSITION_DETAIL.KINDERGARTEN,
+    POSITION_DETAIL.YOUNG_CHILDREN,
+    POSITION_DETAIL.ELEMENTARY,
+    POSITION_DETAIL.JUNIOR,
+    POSITION_DETAIL.MIDDLE_SCHOOL,
+    POSITION_DETAIL.HIGH_SCHOOL,
+    POSITION_DETAIL.YOUTH,
   ],
   MEMBER: [
     POSITION_DETAIL.TEACHER,
@@ -190,6 +222,20 @@ export const ADMIN_POSITION_OPTIONS = [
       { value: POSITION_DETAIL.ORDAINED_DEACON, label: '안수집사' },
       { value: POSITION_DETAIL.PROBATIONARY_DEACON, label: '서리집사' },
       { value: POSITION_DETAIL.HONORARY_DEACON, label: '명예집사' },
+    ]
+  },
+  {
+    mainValue: POSITION_MAIN.CHURCH_SCHOOL,
+    mainLabel: '교회학교',
+    details: [
+      { value: POSITION_DETAIL.INFANT, label: '영아부' },
+      { value: POSITION_DETAIL.KINDERGARTEN, label: '유치부' },
+      { value: POSITION_DETAIL.YOUNG_CHILDREN, label: '유년부' },
+      { value: POSITION_DETAIL.ELEMENTARY, label: '초등부' },
+      { value: POSITION_DETAIL.JUNIOR, label: '소년부' },
+      { value: POSITION_DETAIL.MIDDLE_SCHOOL, label: '중등부' },
+      { value: POSITION_DETAIL.HIGH_SCHOOL, label: '고등부' },
+      { value: POSITION_DETAIL.YOUTH, label: '청년부' },
     ]
   },
 ];
@@ -301,6 +347,8 @@ export function getPositionCategory(
       return POSITION_CATEGORIES.DEACONESS;
     case POSITION_MAIN.DEACON:
       return POSITION_CATEGORIES.DEACON;
+    case POSITION_MAIN.CHURCH_SCHOOL:
+      return POSITION_CATEGORIES.CHILDREN;
     default:
       return POSITION_CATEGORIES.MEMBER;
   }
