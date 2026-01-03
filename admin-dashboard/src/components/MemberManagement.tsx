@@ -121,6 +121,7 @@ interface Member {
   marital_status?: string;
   spouse_name?: string;
   married_on?: string;
+  children?: Array<{ name: string; gender?: string; birthdate?: string; }>;
 
   // 자유 필드
   custom_field_1?: string;
@@ -649,8 +650,8 @@ const MemberManagement: React.FC = () => {
     const viewedFields = ['name', 'email', 'phone', 'gender', 'birthdate', 'address', 'position', 'district', 'member_status'];
     activityLogger.logMemberView(member.id, member.name, viewedFields);
 
-    setSelectedMember(member);
-    setEditedMember(member);
+    setSelectedMember({ ...member, children: member.children || [] });
+    setEditedMember({ ...member, children: member.children || [] });
     setIsEditMode(false);
 
     // 관계 테이블 데이터 로드
@@ -665,7 +666,7 @@ const MemberManagement: React.FC = () => {
 
   const handleCancelEdit = () => {
     if (selectedMember) {
-      setEditedMember(selectedMember);
+      setEditedMember({ ...selectedMember, children: selectedMember.children || [] });
     }
     setIsEditMode(false);
   };
@@ -1061,6 +1062,7 @@ Church Round 앱에 초대되셨습니다.
       '이메일',
       '성별',
       '생년월일',
+      '생년월일 구분',
       '전화번호',
       '주소',
       '직분대분류',
@@ -1092,6 +1094,7 @@ Church Round 앱에 초대되셨습니다.
       'hong@example.com',
       '남',
       '1990-01-01',  // 또는 19900101, 900101 등 다양한 날짜 형식 가능
+      '양력',  // 양력 또는 음력
       '010-1234-5678',
       '서울시 강남구',
       '집사',  // 한글 직분 입력 가능 (직분 목록은 "직분 목록" 시트 참조)
@@ -1184,6 +1187,7 @@ Church Round 앱에 초대되셨습니다.
       '이메일',
       '성별',
       '생년월일',
+      '생년월일 구분',
       '전화번호',
       '주소',
       '직분대분류',
@@ -1217,6 +1221,7 @@ Church Round 앱에 초대되셨습니다.
       member.email || '',
       member.gender || '',
       member.birthdate || '',
+      member.birthdate_type || '양력',
       member.phone || '',
       member.address || '',
       member.position_main || '',  // 직분 대분류
@@ -1549,6 +1554,7 @@ Church Round 앱에 초대되셨습니다.
           email: row[headerMap['이메일']] || '',
           gender: row[headerMap['성별']] || '',
           birthdate: parseDateField(row[headerMap['생년월일']]),
+          birthdate_type: row[headerMap['생년월일 구분']] || '양력',
           phone: row[headerMap['전화번호']] || '',
           address: row[headerMap['주소']] || null,
           position_main: normalizePositionMain(row[headerMap['직분대분류']]),  // 한글 → 영문 코드 자동 변환
@@ -2950,7 +2956,7 @@ Church Round 앱에 초대되셨습니다.
               </details>
 
               {/* 개인 및 가족 정보 */}
-              <details className="border rounded-lg group">
+              <details className="border rounded-lg group" open>
                 <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Heart className="w-5 h-5 text-gray-600" />
@@ -3077,6 +3083,103 @@ Church Round 앱에 초대되셨습니다.
                       <p className="text-sm text-gray-600">{selectedMember.married_on || '-'}</p>
                     )}
                   </div>
+
+                  {/* 디버그 정보 */}
+                  <div className="md:col-span-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-xs text-gray-700">디버그: isEditMode = {isEditMode ? 'true' : 'false'}</p>
+                    <p className="text-xs text-gray-700">디버그: marital_status = "{isEditMode ? editedMember.marital_status : selectedMember.marital_status}"</p>
+                    <p className="text-xs text-gray-700">디버그: 조건 결과 = {((isEditMode ? editedMember.marital_status : selectedMember.marital_status) === '기혼') ? 'true' : 'false'}</p>
+                  </div>
+
+                  {/* 자녀사항 (기혼일 경우에만 표시) */}
+                  {((isEditMode ? editedMember.marital_status : selectedMember.marital_status) === '기혼') && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-2">자녀사항</label>
+                    {isEditMode ? (
+                      <div className="space-y-3">
+                        {(editedMember.children || []).map((child, index) => (
+                          <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 rounded-lg">
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <Input
+                                value={child.name}
+                                onChange={(e) => {
+                                  const newChildren = [...(editedMember.children || [])];
+                                  newChildren[index] = { ...child, name: e.target.value };
+                                  setEditedMember({...editedMember, children: newChildren});
+                                }}
+                                placeholder="자녀 이름"
+                              />
+                              <Select
+                                value={child.gender || ''}
+                                onValueChange={(value) => {
+                                  const newChildren = [...(editedMember.children || [])];
+                                  newChildren[index] = { ...child, gender: value };
+                                  setEditedMember({...editedMember, children: newChildren});
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="성별" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="남">남</SelectItem>
+                                  <SelectItem value="여">여</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <DatePicker
+                                value={child.birthdate || ''}
+                                onChange={(value) => {
+                                  const newChildren = [...(editedMember.children || [])];
+                                  newChildren[index] = { ...child, birthdate: value };
+                                  setEditedMember({...editedMember, children: newChildren});
+                                }}
+                                placeholder="생년월일"
+                                fromYear={1950}
+                                toYear={new Date().getFullYear()}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newChildren = (editedMember.children || []).filter((_, i) => i !== index);
+                                setEditedMember({...editedMember, children: newChildren});
+                              }}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newChildren = [...(editedMember.children || []), { name: '', gender: '', birthdate: '' }];
+                            setEditedMember({...editedMember, children: newChildren});
+                          }}
+                          className="w-full"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          자녀 추가
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedMember.children && selectedMember.children.length > 0 ? (
+                          selectedMember.children.map((child, index) => (
+                            <div key={index} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+                              {child.name} {child.gender && `(${child.gender})`} {child.birthdate && `- ${child.birthdate}`}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-600">-</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  )}
                   </div>
                 </div>
               </details>

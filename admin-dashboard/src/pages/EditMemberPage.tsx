@@ -87,6 +87,7 @@ interface Member {
   custom_field_11?: string;
   custom_field_12?: string;
   special_notes?: string;
+  children?: Array<{ id?: number; name: string; gender: string; birthdate: string; birthdate_type: string; notes: string }>;
 }
 
 const EditMemberPage: React.FC = () => {
@@ -111,6 +112,8 @@ const EditMemberPage: React.FC = () => {
     ordination_church: '', workplace: '', workplace_phone: '',
     // 개인 정보
     address: '', marital_status: '', spouse_name: '', married_on: '',
+    // 자녀 정보
+    children: [] as { id?: number; name: string; gender: string; birthdate: string; birthdate_type: string; notes: string }[],
     // 새로 추가된 필드들
     member_type: '', confirmation_date: '', sub_district: '', age_group: '',
     baptism_date: '', baptism_church: '',
@@ -185,6 +188,10 @@ const EditMemberPage: React.FC = () => {
     setProfilePhotoPreview(null);
   };
 
+  // Helper functions for children array
+  const addChild = () => setFormData(prev => ({ ...prev, children: [...prev.children, { name: '', gender: '남', birthdate: '', birthdate_type: '양력', notes: '' }] }));
+  const removeChild = (index: number) => setFormData(prev => ({ ...prev, children: prev.children.filter((_, i) => i !== index) }));
+
   // Load member data
   useEffect(() => {
     if (id) {
@@ -211,6 +218,17 @@ const EditMemberPage: React.FC = () => {
 
       setMember(memberData);
 
+      // Load children data
+      const { data: childrenData, error: childrenError } = await supabase
+        .from('member_children')
+        .select('*')
+        .eq('member_id', parseInt(id!))
+        .order('id', { ascending: true });
+
+      if (childrenError) {
+        console.error('자녀 정보 조회 실패:', childrenError);
+      }
+
       // Set form data
       setFormData({
         name: memberData.name || '',
@@ -233,6 +251,14 @@ const EditMemberPage: React.FC = () => {
         marital_status: memberData.marital_status || '',
         spouse_name: memberData.spouse_name || '',
         married_on: memberData.married_on || '',
+        children: childrenData?.map(c => ({
+          id: c.id,
+          name: c.name || '',
+          gender: c.gender || '남',
+          birthdate: c.birthdate || '',
+          birthdate_type: c.birthdate_type || '양력',
+          notes: c.notes || ''
+        })) || [],
         member_type: memberData.member_type || '',
         confirmation_date: memberData.confirmation_date || '',
         sub_district: memberData.sub_district || '',
@@ -430,6 +456,41 @@ const EditMemberPage: React.FC = () => {
 
       // 교인 수정 로그 기록
       activityLogger.logMemberUpdate(parseInt(id!), memberData.name, Object.keys(memberData));
+
+      // 자녀 정보 저장 (기존 자녀 데이터 삭제 후 새로 저장)
+      // 1. 기존 자녀 데이터 삭제
+      const { error: deleteError } = await supabase
+        .from('member_children')
+        .delete()
+        .eq('member_id', parseInt(id!));
+
+      if (deleteError) {
+        console.error('기존 자녀 정보 삭제 실패:', deleteError);
+      }
+
+      // 2. 새로운 자녀 데이터 저장
+      if (formData.children.length > 0) {
+        const childrenData = formData.children
+          .filter(c => c.name) // 이름이 입력된 자녀만 저장
+          .map(c => ({
+            member_id: parseInt(id!),
+            name: c.name,
+            gender: c.gender || null,
+            birthdate: c.birthdate || null,
+            birthdate_type: c.birthdate_type || '양력',
+            notes: c.notes || null
+          }));
+
+        if (childrenData.length > 0) {
+          const { error: childrenError } = await supabase
+            .from('member_children')
+            .insert(childrenData);
+
+          if (childrenError) {
+            console.error('자녀 정보 저장 실패:', childrenError);
+          }
+        }
+      }
 
       // Upload profile photo if changed
       if (profilePhoto) {
@@ -808,7 +869,7 @@ const EditMemberPage: React.FC = () => {
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
             </summary>
-            <div className="px-6 pb-6">
+            <div className="px-6 pb-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">결혼 상태</label>
@@ -840,6 +901,121 @@ const EditMemberPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* 자녀 정보 (기혼일 경우에만 표시) */}
+              {formData.marital_status === '기혼' && (
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-foreground">자녀 정보</h4>
+                    <Button type="button" variant="outline" size="sm" onClick={addChild} className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      자녀 추가
+                    </Button>
+                  </div>
+
+                  {formData.children.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">자녀 정보를 추가하려면 위의 버튼을 클릭하세요.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {formData.children.map((child, index) => (
+                        <div key={index} className="p-4 bg-muted/30 rounded-lg border space-y-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-foreground">자녀 {index + 1}</span>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeChild(index)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {/* 자녀 이름 */}
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">이름</label>
+                              <Input
+                                value={child.name}
+                                onChange={(e) => {
+                                  const newChildren = [...formData.children];
+                                  newChildren[index].name = e.target.value;
+                                  setFormData(prev => ({ ...prev, children: newChildren }));
+                                }}
+                                placeholder="자녀 이름"
+                              />
+                            </div>
+
+                            {/* 성별 */}
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">성별</label>
+                              <Select
+                                value={child.gender}
+                                onValueChange={(value) => {
+                                  const newChildren = [...formData.children];
+                                  newChildren[index].gender = value;
+                                  setFormData(prev => ({ ...prev, children: newChildren }));
+                                }}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="남">남</SelectItem>
+                                  <SelectItem value="여">여</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* 생년월일 구분 */}
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">생년월일 구분</label>
+                              <Select
+                                value={child.birthdate_type}
+                                onValueChange={(value) => {
+                                  const newChildren = [...formData.children];
+                                  newChildren[index].birthdate_type = value;
+                                  setFormData(prev => ({ ...prev, children: newChildren }));
+                                }}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="양력">양력</SelectItem>
+                                  <SelectItem value="음력">음력</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* 생년월일 */}
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">생년월일</label>
+                              <DatePicker
+                                value={child.birthdate}
+                                onChange={(value) => {
+                                  const newChildren = [...formData.children];
+                                  newChildren[index].birthdate = value;
+                                  setFormData(prev => ({ ...prev, children: newChildren }));
+                                }}
+                                placeholder="생년월일 선택"
+                                disableFuture={true}
+                                fromYear={1950}
+                                toYear={new Date().getFullYear()}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 비고 */}
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">비고</label>
+                            <Textarea
+                              value={child.notes}
+                              onChange={(e) => {
+                                const newChildren = [...formData.children];
+                                newChildren[index].notes = e.target.value;
+                                setFormData(prev => ({ ...prev, children: newChildren }));
+                              }}
+                              placeholder="특이사항이나 메모 입력"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </details>
 
