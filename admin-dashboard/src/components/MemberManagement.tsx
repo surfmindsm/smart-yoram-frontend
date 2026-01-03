@@ -3313,7 +3313,7 @@ Church Round 앱에 초대되셨습니다.
             </div>
             <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
               <p className="text-sm text-destructive">
-                <strong>경고:</strong> 모든 개인정보가 완전히 삭제됩니다 (members, contacts, sacraments, transfers, vehicles, users, auth).
+                <strong>경고:</strong> 모든 개인정보가 완전히 삭제됩니다.
               </p>
             </div>
             <div className="flex justify-end space-x-2">
