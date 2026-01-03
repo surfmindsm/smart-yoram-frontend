@@ -537,7 +537,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'DELETE') {
-      // Delete member (soft delete by setting is_active to false)
+      // Hard delete member (complete removal for GDPR/privacy compliance)
       const url = new URL(req.url)
       const memberId = url.searchParams.get('id')
 
@@ -551,37 +551,171 @@ Deno.serve(async (req) => {
         )
       }
 
-      let deleteQuery = supabaseClient
-        .from('members')
-        .update({ status: 'inactive' })
-        .eq('id', parseInt(memberId))
+      console.log('🗑️ [교인 삭제] 시작:', memberId)
 
-      // Add church filter for non-super admins
-      if (userChurchId && userChurchId !== 0) {
-        deleteQuery = deleteQuery.eq('church_id', userChurchId)
-      }
+      try {
+        // 0. Get member info first (to get email and user_id for auth deletion)
+        const { data: memberInfo, error: getMemberError } = await supabaseClient
+          .from('members')
+          .select('email, user_id')
+          .eq('id', parseInt(memberId))
+          .single()
 
-      const { data, error } = await deleteQuery
-        .select()
-        .single()
+        if (getMemberError) {
+          console.error('❌ 교인 정보 조회 실패:', getMemberError)
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to get member info',
+              details: getMemberError.message
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
 
-      if (error) {
-        console.error('Database delete error:', error)
+        const memberEmail = memberInfo?.email
+        const memberUserId = memberInfo?.user_id
+        console.log('📧 삭제할 교인 정보:', { memberEmail, memberUserId })
+
+        // 1. Delete related data from member_contacts
+        const { error: contactsError } = await supabaseClient
+          .from('member_contacts')
+          .delete()
+          .eq('member_id', parseInt(memberId))
+
+        if (contactsError) {
+          console.log('⚠️ member_contacts 삭제 오류 (테이블이 없을 수 있음):', contactsError.message)
+        } else {
+          console.log('✅ member_contacts 삭제 완료')
+        }
+
+        // 2. Delete related data from sacraments
+        const { error: sacramentsError } = await supabaseClient
+          .from('sacraments')
+          .delete()
+          .eq('member_id', parseInt(memberId))
+
+        if (sacramentsError) {
+          console.log('⚠️ sacraments 삭제 오류 (테이블이 없을 수 있음):', sacramentsError.message)
+        } else {
+          console.log('✅ sacraments 삭제 완료')
+        }
+
+        // 3. Delete related data from transfers
+        const { error: transfersError } = await supabaseClient
+          .from('transfers')
+          .delete()
+          .eq('member_id', parseInt(memberId))
+
+        if (transfersError) {
+          console.log('⚠️ transfers 삭제 오류 (테이블이 없을 수 있음):', transfersError.message)
+        } else {
+          console.log('✅ transfers 삭제 완료')
+        }
+
+        // 4. Delete related data from member_vehicles
+        const { error: vehiclesError } = await supabaseClient
+          .from('member_vehicles')
+          .delete()
+          .eq('member_id', parseInt(memberId))
+
+        if (vehiclesError) {
+          console.log('⚠️ member_vehicles 삭제 오류 (테이블이 없을 수 있음):', vehiclesError.message)
+        } else {
+          console.log('✅ member_vehicles 삭제 완료')
+        }
+
+        // 5. Delete from auth.users if email exists
+        if (memberEmail) {
+          try {
+            const { data: authUser } = await supabaseClient.auth.admin.getUserByEmail(memberEmail)
+
+            if (authUser?.user) {
+              console.log('🔐 auth.users에서 사용자 찾음:', authUser.user.id)
+              const { error: deleteAuthError } = await supabaseClient.auth.admin.deleteUser(authUser.user.id)
+
+              if (deleteAuthError) {
+                console.error('⚠️ auth.users 삭제 실패:', deleteAuthError.message)
+              } else {
+                console.log('✅ auth.users 삭제 완료')
+              }
+            } else {
+              console.log('ℹ️ auth.users에 해당 이메일 없음 (초대받지 않은 교인)')
+            }
+          } catch (authError) {
+            console.error('⚠️ auth.users 삭제 중 오류:', authError)
+            // Auth 삭제 실패는 계속 진행
+          }
+        }
+
+        // 6. Delete from users table
+        if (memberEmail) {
+          const { error: usersDeleteError } = await supabaseClient
+            .from('users')
+            .delete()
+            .eq('email', memberEmail)
+
+          if (usersDeleteError) {
+            console.log('⚠️ users 테이블 삭제 오류:', usersDeleteError.message)
+          } else {
+            console.log('✅ users 테이블 삭제 완료')
+          }
+        }
+
+        // 7. Delete member record (with church filter for non-super admins)
+        let deleteQuery = supabaseClient
+          .from('members')
+          .delete()
+          .eq('id', parseInt(memberId))
+
+        // Add church filter for non-super admins
+        if (userChurchId && userChurchId !== 0) {
+          deleteQuery = deleteQuery.eq('church_id', userChurchId)
+        }
+
+        const { data, error } = await deleteQuery.select().single()
+
+        if (error) {
+          console.error('❌ members 삭제 실패:', error)
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to delete member',
+              details: error.message
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('✅ [교인 완전 삭제] 완료:', memberId)
+
         return new Response(
-          JSON.stringify({ error: 'Failed to delete member' }),
+          JSON.stringify({
+            success: true,
+            message: '교인 정보가 완전히 삭제되었습니다 (개인정보 포함).',
+            data
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      } catch (deleteError) {
+        console.error('❌ [교인 삭제] 예외 발생:', deleteError)
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to delete member',
+            details: deleteError.message
+          }),
           {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
-
-      return new Response(
-        JSON.stringify({ success: true, data }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
     }
 
     return new Response(

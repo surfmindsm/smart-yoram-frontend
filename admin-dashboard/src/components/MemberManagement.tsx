@@ -247,6 +247,10 @@ const MemberManagement: React.FC = () => {
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
   const [isBulkInviting, setIsBulkInviting] = useState(false);
 
+  // Bulk delete states
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
 
   const [newMember, setNewMember] = useState({
     name: '',
@@ -841,6 +845,58 @@ const MemberManagement: React.FC = () => {
       setSelectedMembers(new Set());
     } else {
       setSelectedMembers(new Set(members.map(m => m.id)));
+    }
+  };
+
+  // 일괄 삭제 함수
+  const handleBulkDelete = async () => {
+    if (selectedMembers.size === 0) {
+      alert('삭제할 교인을 선택해주세요.');
+      return;
+    }
+
+    const selectedMembersList = members.filter(m => selectedMembers.has(m.id));
+    const memberNames = selectedMembersList.map(m => m.name).join(', ');
+
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      setIsBulkDeleting(true);
+      setShowBulkDeleteConfirm(false);
+
+      const selectedMembersList = members.filter(m => selectedMembers.has(m.id));
+      let successCount = 0;
+      let failCount = 0;
+      const failedMembers: string[] = [];
+
+      for (const member of selectedMembersList) {
+        try {
+          await supabaseApiService.members.delete(member.id);
+          successCount++;
+        } catch (error) {
+          console.error(`교인 삭제 실패 (${member.name}):`, error);
+          failCount++;
+          failedMembers.push(member.name);
+        }
+      }
+
+      // 결과 알림
+      if (failCount === 0) {
+        alert(`${successCount}명의 교인이 완전히 삭제되었습니다.`);
+      } else {
+        alert(`${successCount}명 삭제 성공, ${failCount}명 실패\n\n실패한 교인: ${failedMembers.join(', ')}`);
+      }
+
+      // 선택 초기화 및 목록 새로고침
+      setSelectedMembers(new Set());
+      fetchMembers();
+    } catch (error) {
+      console.error('일괄 삭제 실패:', error);
+      alert('교인 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -1659,18 +1715,33 @@ Church Round 앱에 초대되셨습니다.
         actions={
           <>
             {selectedMembers.size > 0 && (
-              <Button
-                onClick={handleBulkInvitation}
-                disabled={isBulkInviting}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                {isBulkInviting ? (
-                  <Spinner size="sm" variant="white" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                선택한 교인 앱으로 초대 ({selectedMembers.size}명)
-              </Button>
+              <>
+                <Button
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                  variant="destructive"
+                  className="flex items-center gap-2"
+                >
+                  {isBulkDeleting ? (
+                    <Spinner size="sm" variant="white" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  선택한 교인 삭제 ({selectedMembers.size}명)
+                </Button>
+                <Button
+                  onClick={handleBulkInvitation}
+                  disabled={isBulkInviting}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {isBulkInviting ? (
+                    <Spinner size="sm" variant="white" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  선택한 교인 앱으로 초대 ({selectedMembers.size}명)
+                </Button>
+              </>
             )}
             <Button
               onClick={downloadMembersExcel}
@@ -3207,6 +3278,63 @@ Church Round 앱에 초대되셨습니다.
               >
                 <Trash2 className="w-4 h-4" />
                 삭제
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 일괄 삭제 확인 모달 */}
+      <Dialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              일괄 삭제 확인
+            </DialogTitle>
+            <DialogDescription>
+              선택한 교인들의 정보를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-900">
+              선택한 <strong>{selectedMembers.size}명</strong>의 교인 정보를 정말로 삭제하시겠습니까?
+            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3 max-h-40 overflow-y-auto">
+              <p className="text-sm font-medium text-gray-900 mb-2">삭제될 교인:</p>
+              <ul className="text-sm text-gray-700 space-y-1">
+                {members
+                  .filter(m => selectedMembers.has(m.id))
+                  .map(m => (
+                    <li key={m.id}>• {m.name} ({m.email || m.phone})</li>
+                  ))
+                }
+              </ul>
+            </div>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+              <p className="text-sm text-destructive">
+                <strong>경고:</strong> 모든 개인정보가 완전히 삭제됩니다 (members, contacts, sacraments, transfers, vehicles, users, auth).
+              </p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                variant="outline"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={confirmBulkDelete}
+                variant="destructive"
+                className="flex items-center gap-2"
+                disabled={isBulkDeleting}
+              >
+                {isBulkDeleting ? (
+                  <Spinner size="sm" variant="white" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {isBulkDeleting ? '삭제 중...' : `${selectedMembers.size}명 삭제`}
               </Button>
             </div>
           </div>
