@@ -628,6 +628,16 @@ Church Round 앱에 초대되셨습니다.
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 주소 */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="서울시 강남구 역삼동 123-45"
+                  />
+                </div>
               </div>
             </div>
           </details>
@@ -813,8 +823,8 @@ Church Round 앱에 초대되셨습니다.
                 </div>
               </div>
 
-              {/* 자녀 정보 (기혼일 경우에만 표시) */}
-              {formData.marital_status === '기혼' && (
+              {/* 자녀 정보 (기혼, 이혼, 사별인 경우 표시) */}
+              {['기혼', '이혼', '사별'].includes(formData.marital_status) && (
                 <div className="border-t pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-semibold text-foreground">자녀 정보</h4>
@@ -930,68 +940,6 @@ Church Round 앱에 초대되셨습니다.
             </div>
           </details>
 
-          {/* 주소 정보 */}
-          <details className="bg-card border rounded-lg group">
-            <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-muted-foreground" />
-                <h3 className="text-sm font-medium">
-                  주소 정보
-                </h3>
-              </div>
-              <ChevronDown className="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" />
-            </summary>
-            <div className="px-6 pb-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">우편번호</label>
-                  <Input
-                    value={formData.postal_code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
-                    placeholder="06234"
-                  />
-                </div>
-                <div className="md:col-span-1">
-                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
-                  <Textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="상세 주소 입력"
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {/* 지역 정보 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">지역 1</label>
-                  <Input
-                    value={formData.region_1}
-                    onChange={(e) => setFormData(prev => ({ ...prev, region_1: e.target.value }))}
-                    placeholder="서울시"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">지역 2</label>
-                  <Input
-                    value={formData.region_2}
-                    onChange={(e) => setFormData(prev => ({ ...prev, region_2: e.target.value }))}
-                    placeholder="강남구"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">지역 3</label>
-                  <Input
-                    value={formData.region_3}
-                    onChange={(e) => setFormData(prev => ({ ...prev, region_3: e.target.value }))}
-                    placeholder="역삼동"
-                  />
-                </div>
-              </div>
-            </div>
-          </details>
-
           {/* 교회 정보 확장 */}
           <details className="bg-card border rounded-lg group">
             <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
@@ -1047,46 +995,6 @@ Church Round 앱에 초대되셨습니다.
                     value={formData.baptism_church}
                     onChange={(e) => setFormData(prev => ({ ...prev, baptism_church: e.target.value }))}
                     placeholder="세례받은 교회"
-                  />
-                </div>
-
-                {/* 나이그룹 */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">나이그룹</label>
-                  <Select value={formData.age_group} onValueChange={(value) => setFormData(prev => ({ ...prev, age_group: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="그룹 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ageGroupOptions.map(age => (
-                        <SelectItem key={age.value} value={age.value}>{age.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 신급 */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">신급</label>
-                  <Select value={formData.spiritual_grade} onValueChange={(value) => setFormData(prev => ({ ...prev, spiritual_grade: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="신급 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {spiritualGradeOptions.map(grade => (
-                        <SelectItem key={grade.value} value={grade.value}>{grade.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 마지막 연락일 */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">마지막 연락일</label>
-                  <DatePicker
-                    value={formData.last_contact_date}
-                    onChange={(value) => setFormData(prev => ({ ...prev, last_contact_date: value }))}
-                    placeholder="마지막 연락일 선택"
                   />
                 </div>
               </div>

@@ -231,6 +231,7 @@ Deno.serve(async (req) => {
       if (body.email !== undefined) insertData.email = body.email
       if (body.gender !== undefined) insertData.gender = body.gender
       if (body.birthdate !== undefined) insertData.birthdate = body.birthdate
+      if (body.birthdate_type !== undefined) insertData.birthdate_type = body.birthdate_type
 
       // 사역 정보
       if (body.position !== undefined) insertData.position = body.position
@@ -385,6 +386,7 @@ Deno.serve(async (req) => {
       if (body.email !== undefined) updateData.email = body.email
       if (body.gender !== undefined) updateData.gender = body.gender
       if (body.birthdate !== undefined) updateData.birthdate = body.birthdate
+      if (body.birthdate_type !== undefined) updateData.birthdate_type = body.birthdate_type
       if (body.profile_photo_url !== undefined) updateData.profile_photo_url = body.profile_photo_url
 
       // 사역 정보

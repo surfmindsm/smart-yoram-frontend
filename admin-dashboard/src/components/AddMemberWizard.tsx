@@ -471,6 +471,14 @@ const AddMemberWizard: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="서울시 강남구 역삼동 123-45"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -768,8 +776,8 @@ const AddMemberWizard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 자녀 정보 (기혼일 경우에만 표시) */}
-                  {formData.marital_status === '기혼' && (
+                  {/* 자녀 정보 (기혼, 이혼, 사별인 경우 표시) */}
+                  {['기혼', '이혼', '사별'].includes(formData.marital_status) && (
                     <div className="border-t pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="text-sm font-semibold text-foreground">자녀 정보</h4>
@@ -884,18 +892,6 @@ const AddMemberWizard: React.FC = () => {
                 </div>
               </div>
 
-              {/* 주소 정보 */}
-              <div className="bg-yellow-50/50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  주소 정보
-                </h3>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">주소</label>
-                  <Textarea value={formData.address} onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))} placeholder="상세 주소 입력" rows={3} />
-                </div>
-              </div>
-              
               {/* 차량 정보 */}
               <div className="bg-orange-50/50 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
