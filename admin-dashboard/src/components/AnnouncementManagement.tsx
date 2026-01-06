@@ -9,7 +9,6 @@ import { Badge } from "./ui";
 import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
-import { Checkbox } from "./ui";
 import {
   Dialog,
   DialogContent,
@@ -59,9 +58,6 @@ const AnnouncementManagement: React.FC = () => {
     priority: 'normal' as 'urgent' | 'important' | 'normal',
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
-    target_audience: 'all',
-    is_pinned: false,
-    is_active: true,
   });
 
   useEffect(() => {
@@ -137,9 +133,6 @@ const AnnouncementManagement: React.FC = () => {
       priority: 'normal' as 'urgent' | 'important' | 'normal',
       start_date: new Date().toISOString().split('T')[0],
       end_date: '',
-      target_audience: 'all',
-      is_pinned: false,
-      is_active: true,
     });
     setShowModal(true);
   };
@@ -153,9 +146,6 @@ const AnnouncementManagement: React.FC = () => {
       priority: announcement.priority,
       start_date: announcement.start_date ? announcement.start_date.split('T')[0] : '',
       end_date: announcement.end_date ? announcement.end_date.split('T')[0] : '',
-      target_audience: announcement.target_audience || 'all',
-      is_pinned: announcement.is_pinned || false,
-      is_active: announcement.is_active,
     });
     setShowModal(true);
   };
@@ -207,7 +197,10 @@ const AnnouncementManagement: React.FC = () => {
         ...formData,
         church_id: churchId,
         author_id: 1,
-        author_name: '관리자'
+        author_name: '관리자',
+        target_audience: 'all',
+        is_pinned: false,
+        is_active: true,
       };
 
       if (selectedAnnouncement) {
@@ -429,51 +422,6 @@ const AnnouncementManagement: React.FC = () => {
                     <SelectItem value="event">행사/공지</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="target">대상</Label>
-                  <Select
-                    value={formData.target_audience}
-                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
-                  >
-                    <SelectTrigger id="target">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">전체</SelectItem>
-                      <SelectItem value="member">일반 교인</SelectItem>
-                      <SelectItem value="youth">청소년부</SelectItem>
-                      <SelectItem value="leader">리더</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3 pt-8">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="pinned"
-                      checked={formData.is_pinned}
-                      onCheckedChange={(checked) => 
-                        setFormData({ ...formData, is_pinned: checked as boolean })
-                      }
-                    />
-                    <Label htmlFor="pinned" className="text-sm font-normal cursor-pointer">
-                      상단 고정
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => 
-                        setFormData({ ...formData, is_active: checked as boolean })
-                      }
-                    />
-                    <Label htmlFor="active" className="text-sm font-normal cursor-pointer">
-                      활성화
-                    </Label>
-                  </div>
-                </div>
               </div>
             </div>
             <DialogFooter>
