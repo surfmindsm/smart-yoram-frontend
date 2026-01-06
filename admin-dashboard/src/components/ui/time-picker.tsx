@@ -72,6 +72,43 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
     onChange(`${String(newHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`)
   }
 
+  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    if (inputValue === '') {
+      onChange(`00:${String(minutes).padStart(2, '0')}`)
+      return
+    }
+
+    const newHour = parseInt(inputValue, 10)
+    if (isNaN(newHour)) return
+
+    // 12시간 형식 입력 (1-12)
+    if (newHour < 1 || newHour > 12) return
+
+    // 24시간 형식으로 변환
+    let hour24 = newHour
+    if (isPM && newHour !== 12) {
+      hour24 = newHour + 12
+    } else if (!isPM && newHour === 12) {
+      hour24 = 0
+    }
+
+    onChange(`${String(hour24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`)
+  }
+
+  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    if (inputValue === '') {
+      onChange(`${String(hours).padStart(2, '0')}:00`)
+      return
+    }
+
+    const newMinute = parseInt(inputValue, 10)
+    if (isNaN(newMinute) || newMinute < 0 || newMinute > 59) return
+
+    onChange(`${String(hours).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`)
+  }
+
   const formatDisplayTime = () => {
     if (!value) return "-- --:--"
     return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
@@ -106,9 +143,14 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
             >
               <ChevronUp className="h-3 w-3" />
             </Button>
-            <div className="text-sm font-medium w-7 text-center py-0.5">
-              {String(displayHours).padStart(2, '0')}
-            </div>
+            <input
+              type="number"
+              min="1"
+              max="12"
+              value={displayHours}
+              onChange={handleHourChange}
+              className="text-sm font-medium w-10 text-center py-0.5 border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+            />
             <Button
               type="button"
               variant="ghost"
@@ -133,9 +175,14 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
             >
               <ChevronUp className="h-3 w-3" />
             </Button>
-            <div className="text-sm font-medium w-7 text-center py-0.5">
-              {String(minutes).padStart(2, '0')}
-            </div>
+            <input
+              type="number"
+              min="0"
+              max="59"
+              value={String(minutes).padStart(2, '0')}
+              onChange={handleMinuteChange}
+              className="text-sm font-medium w-10 text-center py-0.5 border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+            />
             <Button
               type="button"
               variant="ghost"
