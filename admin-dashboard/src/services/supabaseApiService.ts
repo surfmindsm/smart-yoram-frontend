@@ -4028,7 +4028,7 @@ export const supabaseApiService = {
   smsInvitation: {
     send: async (memberId: number, phone: string, username: string, email?: string, churchName: string = '요람교회') => {
       try {
-        // console.log('📱📧 [초대] 발송 시작:', { memberId, phone, username, email });
+        console.log('📱📧 [초대] 발송 시작:', { memberId, phone, username, email });
 
         // 임시 비밀번호 생성 (8자리: 대소문자 + 숫자)
         const generateTempPassword = (): string => {
@@ -4041,31 +4041,100 @@ export const supabaseApiService = {
         };
 
         const temporaryPassword = generateTempPassword();
+        let isExistingUser = false;
+
+        // 1. 먼저 invite-user Edge Function 호출하여 기존 사용자 여부 확인
+        if (email) {
+          try {
+            // 먼저 member 정보 조회
+            const { data: memberData } = await supabase
+              .from('members')
+              .select('name, email, church_id')
+              .eq('id', memberId)
+              .single();
+
+            if (memberData) {
+              console.log('👤 [invite-user] Edge Function 호출');
+              // invite-user Edge Function 호출
+              const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
+                body: {
+                  email: email,
+                  temporaryPassword: temporaryPassword,
+                  memberData: {
+                    name: memberData.name || username,
+                    church_id: memberData.church_id || 0,
+                    member_id: memberId
+                  }
+                }
+              });
+
+              if (inviteError) {
+                console.error('👤 [invite-user] 실패:', inviteError);
+                throw new Error('사용자 계정 생성 실패: ' + inviteError.message);
+              }
+
+              console.log('✅ [invite-user] 성공:', inviteData);
+
+              // 기존 사용자 여부 확인
+              if (inviteData?.is_existing_user === true) {
+                console.log('⚠️ 기존 사용자 감지 - SMS/이메일 발송 건너뛰기');
+                isExistingUser = true;
+
+                // DB 업데이트 (기존 사용자는 이미 연결됨)
+                await supabase
+                  .from('members')
+                  .update({
+                    invitation_status: 'active', // 기존 사용자이므로 즉시 활성
+                    invited_at: new Date().toISOString()
+                  })
+                  .eq('id', memberId);
+
+                return {
+                  temporaryPassword: null,
+                  success: true,
+                  smsSuccess: false,
+                  emailSuccess: false,
+                  isExistingUser: true,
+                  message: '기존 사용자 계정과 연결되었습니다. 사용자는 기존 비밀번호로 로그인할 수 있습니다.'
+                };
+              }
+            }
+          } catch (userCreateError: any) {
+            console.error('👤 [사용자 생성] 실패:', userCreateError);
+            throw new Error('사용자 계정 생성 실패: ' + userCreateError.message);
+          }
+        }
+
+        // 2. 신규 사용자인 경우에만 SMS와 이메일 발송
         let smsSuccess = false;
         let emailSuccess = false;
 
-        // SMS 발송
-        try {
-          const { data: smsData, error: smsError } = await supabase.functions.invoke('send-sms', {
-            body: {
-              phone,
-              username,
-              temporaryPassword,
-              churchName
-            }
-          });
+        console.log('📤 신규 사용자 - SMS/이메일 발송 진행');
 
-          if (smsError) {
-            console.error('📱 [SMS 초대] 발송 오류:', smsError);
-          } else {
-            // console.log('✅ [SMS 초대] 발송 성공');
-            smsSuccess = true;
+        // SMS 발송
+        if (phone) {
+          try {
+            const { data: smsData, error: smsError } = await supabase.functions.invoke('send-sms', {
+              body: {
+                phone,
+                username,
+                temporaryPassword,
+                churchName
+              }
+            });
+
+            if (smsError) {
+              console.error('📱 [SMS 초대] 발송 오류:', smsError);
+            } else {
+              console.log('✅ [SMS 초대] 발송 성공');
+              smsSuccess = true;
+            }
+          } catch (error) {
+            console.error('📱 [SMS 초대] 발송 실패:', error);
           }
-        } catch (error) {
-          console.error('📱 [SMS 초대] 발송 실패:', error);
         }
 
-        // 이메일 발송 (이메일이 제공된 경우)
+        // 이메일 발송 (신규 사용자인 경우에만)
         if (email) {
           try {
             const { data: emailData, error: emailError } = await supabase.functions.invoke('send-temp-password', {
@@ -4080,7 +4149,7 @@ export const supabaseApiService = {
             if (emailError) {
               console.error('📧 [이메일 초대] 발송 오류:', emailError);
             } else {
-              // console.log('✅ [이메일 초대] 발송 성공');
+              console.log('✅ [이메일 초대] 발송 성공');
               emailSuccess = true;
             }
           } catch (error) {
@@ -4116,59 +4185,17 @@ export const supabaseApiService = {
           console.error('📱📧 [초대] DB 업데이트 오류:', updateError);
         }
 
-        // invite-user Edge Function을 통해 auth.users와 users 테이블에 사용자 생성
-        try {
-          // 먼저 member 정보 조회
-          const { data: memberData } = await supabase
-            .from('members')
-            .select('name, email, church_id')
-            .eq('id', memberId)
-            .single();
-
-          if (memberData && email) {
-
-            // invite-user Edge Function 호출
-            const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
-              body: {
-                email: email,
-                temporaryPassword: temporaryPassword,
-                memberData: {
-                  name: memberData.name || username,
-                  church_id: memberData.church_id || 0,
-                  member_id: memberId
-                }
-              }
-            });
-
-            if (inviteError) {
-              // console.error('👤 [invite-user Edge Function] 실패:', inviteError);
-              // console.error('👤 [invite-user Edge Function] 에러 메시지:', inviteError.message);
-              // console.error('👤 [invite-user Edge Function] 에러 상세:', JSON.stringify(inviteError, null, 2));
-              // console.error('👤 [invite-user Edge Function] 응답 데이터:', inviteData);
-
-              // Edge Function에서 반환한 에러 상세 확인
-              // if (inviteData && typeof inviteData === 'object') {
-              //   console.error('👤 [invite-user Edge Function] 에러 응답 내용:', JSON.stringify(inviteData, null, 2));
-              // }
-            } else {
-              // console.log('✅ [invite-user Edge Function] 성공:', inviteData);
-            }
-          }
-        } catch (userCreateError) {
-          // console.error('👤 [사용자 생성] 전체 실패:', userCreateError);
-          // 사용자 생성 실패는 초대 전체를 실패로 처리하지 않음 (SMS/이메일 발송은 성공했으므로)
-        }
-
         const successMessage = [];
         if (smsSuccess) successMessage.push('SMS');
         if (emailSuccess) successMessage.push('이메일');
 
-        // console.log(`✅ [초대] ${successMessage.join(', ')} 발송 및 DB 업데이트 성공`);
+        console.log(`✅ [초대] ${successMessage.join(', ')} 발송 및 DB 업데이트 성공`);
         return {
           temporaryPassword,
           success: true,
           smsSuccess,
           emailSuccess,
+          isExistingUser: false,
           message: `${successMessage.join(', ')} 발송 완료`
         };
 

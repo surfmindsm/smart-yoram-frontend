@@ -40,6 +40,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   onOpenChange,
   onMemberAdded
 }) => {
+  console.log('🔥 AddMemberModal 컴포넌트 로드됨');
   const [loading, setLoading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
@@ -51,6 +52,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [showInviteMessage, setShowInviteMessage] = useState(false);
   const [inviteMessageData, setInviteMessageData] = useState({ email: '', name: '' });
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isExistingUser, setIsExistingUser] = useState(false);
   
   const [formData, setFormData] = useState({
     // 기본 정보
@@ -291,11 +293,15 @@ Church Round 앱에 초대되셨습니다.
   const handleCloseInviteMessage = () => {
     setShowInviteMessage(false);
     setCopySuccess(false);
+    setIsExistingUser(false);
     handleClose();
     if (onMemberAdded) onMemberAdded();
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit 함수 시작');
+    console.log('📋 formData:', formData);
+
     if (!isFormValid()) {
       alert('필수 정보를 입력해주세요.');
       return;
@@ -483,23 +489,37 @@ Church Round 앱에 초대되셨습니다.
             throw new Error('사용자 계정 생성 실패: ' + inviteError.message);
           }
           console.log('✅ [invite-user] 성공:', inviteData);
+          console.log('📊 [invite-user] 응답 데이터 전체:', JSON.stringify(inviteData, null, 2));
 
-          // 3. send-temp-password Edge Function 호출 - 이메일 발송
-          console.log('📧 [send-temp-password] Edge Function 호출');
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-temp-password', {
-            body: {
-              email: formData.email,
-              temporary_password: temporaryPassword,
-              contact_person: formData.name,
-              organization_name: 'Church Round' // TODO: 실제 교회명으로 교체
-            }
-          });
+          // 기존 사용자 계정과 연결된 경우 체크 (플래그 우선, 메시지는 fallback)
+          const isExisting = inviteData?.is_existing_user === true ||
+                            inviteData?.message?.includes('기존 사용자 계정과 연결');
 
-          if (emailError) {
-            console.error('📧 [send-temp-password] 실패:', emailError);
-            console.warn('이메일 발송 실패했지만 사용자 계정은 생성됨');
+          if (isExisting) {
+            console.log('⚠️ 이미 users 테이블에 존재하는 사용자입니다.');
+            console.log('⚠️ 기존 계정이므로 임시 비밀번호 이메일을 발송하지 않습니다.');
+            setIsExistingUser(true);
           } else {
-            console.log('✅ [send-temp-password] 성공:', emailData);
+            console.log('✅ 신규 사용자 생성 → 임시 비밀번호 이메일 발송');
+            setIsExistingUser(false);
+
+            // 3. send-temp-password Edge Function 호출 - 이메일 발송 (신규 사용자만)
+            console.log('📧 [send-temp-password] Edge Function 호출');
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-temp-password', {
+              body: {
+                email: formData.email,
+                temporary_password: temporaryPassword,
+                contact_person: formData.name,
+                organization_name: 'Church Round' // TODO: 실제 교회명으로 교체
+              }
+            });
+
+            if (emailError) {
+              console.error('📧 [send-temp-password] 실패:', emailError);
+              console.warn('이메일 발송 실패했지만 사용자 계정은 생성됨');
+            } else {
+              console.log('✅ [send-temp-password] 성공:', emailData);
+            }
           }
         } catch (inviteError) {
           console.error('❌ [교인 초대] 전체 실패:', inviteError);
@@ -1208,42 +1228,71 @@ Church Round 앱에 초대되셨습니다.
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">✅ 교인 정보가 성공적으로 등록되었습니다!</p>
-              <p className="text-sm text-green-700 mt-1">이메일로 임시 비밀번호가 발송되었습니다.</p>
-            </div>
+            {isExistingUser ? (
+              <>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-green-800 font-medium">✅ 교인 정보가 성공적으로 등록되었습니다!</p>
+                  <p className="text-sm text-green-700 mt-1">기존 사용자 계정과 연결되었습니다.</p>
+                </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-yellow-800 font-medium mb-2">📱 이메일을 확인하지 못하는 경우</p>
-              <p className="text-sm text-yellow-700">
-                아래 메시지를 복사하여 휴대폰 문자나 카카오톡으로 전달해주세요.
-              </p>
-            </div>
+                <div className="bg-orange-50 border border-orange-300 rounded-lg p-4">
+                  <p className="text-orange-900 font-semibold mb-1">⚠️ 주의: 기존 사용자 계정과 연결됨</p>
+                  <p className="text-sm text-orange-800 mb-2">
+                    이 이메일은 이미 users 테이블에 등록되어 있습니다.
+                    새로운 계정이 생성되지 않고, 기존 계정과 이 교인 정보가 연결되었습니다.
+                  </p>
+                  <p className="text-sm text-orange-800">
+                    <strong>※ 앱에서 이미 가입했거나, 이전에 초대받은 사용자입니다.</strong>
+                  </p>
+                  <p className="text-sm text-orange-800 mt-2">
+                    <strong>※ 임시 비밀번호 이메일이 발송되지 않았습니다. 사용자는 기존 비밀번호로 로그인할 수 있습니다.</strong>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 font-medium">✅ 교인 정보가 성공적으로 등록되었습니다!</p>
+                <p className="text-sm text-green-700 mt-1">이메일로 임시 비밀번호가 발송되었습니다.</p>
+              </div>
+            )}
 
-            <div className="bg-muted rounded-lg p-4 relative">
-              <pre className="text-sm whitespace-pre-wrap font-mono">
-                {generateInviteMessage(inviteMessageData.name, inviteMessageData.email)}
-              </pre>
-            </div>
+            {!isExistingUser && (
+              <>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800 font-medium mb-2">📱 이메일을 확인하지 못하는 경우</p>
+                  <p className="text-sm text-yellow-700">
+                    아래 메시지를 복사하여 휴대폰 문자나 카카오톡으로 전달해주세요.
+                  </p>
+                </div>
+
+                <div className="bg-muted rounded-lg p-4 relative">
+                  <pre className="text-sm whitespace-pre-wrap font-mono">
+                    {generateInviteMessage(inviteMessageData.name, inviteMessageData.email)}
+                  </pre>
+                </div>
+              </>
+            )}
 
             <div className="flex justify-end gap-2">
-              <Button
-                onClick={handleCopyMessage}
-                variant={copySuccess ? "default" : "outline"}
-                className="flex items-center gap-2"
-              >
-                {copySuccess ? (
-                  <>
-                    <span className="text-green-600">✓</span>
-                    복사됨!
-                  </>
-                ) : (
-                  <>
-                    <span>📋</span>
-                    메시지 복사
-                  </>
-                )}
-              </Button>
+              {!isExistingUser && (
+                <Button
+                  onClick={handleCopyMessage}
+                  variant={copySuccess ? "default" : "outline"}
+                  className="flex items-center gap-2"
+                >
+                  {copySuccess ? (
+                    <>
+                      <span className="text-green-600">✓</span>
+                      복사됨!
+                    </>
+                  ) : (
+                    <>
+                      <span>📋</span>
+                      메시지 복사
+                    </>
+                  )}
+                </Button>
+              )}
               <Button onClick={handleCloseInviteMessage}>
                 확인
               </Button>

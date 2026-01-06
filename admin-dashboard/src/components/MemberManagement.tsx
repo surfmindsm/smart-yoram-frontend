@@ -988,13 +988,18 @@ Church Round 앱에 초대되셨습니다.
       );
 
       if (result.success) {
-        // 초대 메시지 데이터 설정 및 모달 표시 (임시 비밀번호 포함)
-        setInviteMessageData({
-          email: member.email,
-          name: member.name,
-          temporaryPassword: result.temporaryPassword || '이메일을 확인해주세요'
-        });
-        setShowInviteMessage(true);
+        // 기존 사용자인 경우 경고 표시
+        if (result.isExistingUser) {
+          alert(`⚠️ 기존 사용자 계정과 연결되었습니다.\n\n${member.name}님은 이미 앱에 가입되어 있습니다.\n기존 비밀번호로 로그인할 수 있습니다.\n\n※ 임시 비밀번호 이메일과 SMS가 발송되지 않았습니다.`);
+        } else {
+          // 신규 사용자인 경우 초대 메시지 표시
+          setInviteMessageData({
+            email: member.email,
+            name: member.name,
+            temporaryPassword: result.temporaryPassword || '이메일을 확인해주세요'
+          });
+          setShowInviteMessage(true);
+        }
         // 교인 목록 새로고침
         fetchMembers();
       }

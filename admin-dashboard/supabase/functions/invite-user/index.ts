@@ -62,7 +62,8 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           message: '기존 사용자 계정과 연결되었습니다.',
-          user_id: existingUsersRecord.id
+          user_id: existingUsersRecord.id,
+          is_existing_user: true  // 명확한 플래그 추가
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -122,7 +123,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: '사용자가 성공적으로 생성되었습니다.',
-        user_id: newUsersRecord.id
+        user_id: newUsersRecord.id,
+        is_existing_user: false  // 신규 사용자 플래그
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
