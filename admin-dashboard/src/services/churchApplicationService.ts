@@ -447,7 +447,7 @@ class ChurchApplicationService {
           .from('users')
           .update({
             church_id: churchData.id,
-            role: 'church_admin',
+            role: 'church_super_admin',
             is_active: true
           })
           .eq('id', userId);
@@ -477,7 +477,7 @@ class ChurchApplicationService {
             email: data.email,
             full_name: data.pastor_name,
             church_id: churchData.id,
-            role: 'church_admin',
+            role: 'church_super_admin',
             hashed_password: temporaryPassword,
             is_active: true,
             is_first: true
