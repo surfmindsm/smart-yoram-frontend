@@ -172,7 +172,7 @@ const MemberManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [invitationStatusFilter, setInvitationStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -287,7 +287,7 @@ const MemberManagement: React.FC = () => {
       activityLogger.logPageAccess('/member-management', '교인 관리');
     }
     fetchMembers();
-  }, [appliedSearchTerm, statusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
+  }, [appliedSearchTerm, invitationStatusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
 
   // Helper function to flatten organization tree
   const flattenOrganizations = (orgs: ChurchOrganization[], level: number = 0): ChurchOrganization[] => {
@@ -394,12 +394,10 @@ const MemberManagement: React.FC = () => {
         );
       }
 
-      // Apply status filter on client side
-      if (statusFilter !== 'all') {
+      // Apply invitation status filter on client side
+      if (invitationStatusFilter !== 'all') {
         filteredData = filteredData.filter((member: any) => {
-          if (statusFilter === 'active') return member.is_active !== false;
-          if (statusFilter === 'inactive') return member.is_active === false;
-          return true;
+          return member.invitation_status === invitationStatusFilter;
         });
       }
 
@@ -1751,7 +1749,7 @@ Church Round 앱에 초대되셨습니다.
       case 'pending': return '대기중';
       case 'sent': return '발송완료';
       case 'failed': return '발송실패';
-      case 'active': return '활성화';
+      case 'active': return '등록완료';
       case null:
       case undefined:
       case '': return '미발송';
@@ -1926,16 +1924,17 @@ Church Round 앱에 초대되셨습니다.
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <label className="block text-sm font-medium text-gray-900 mb-1">초대상태</label>
+            <Select value={invitationStatusFilter} onValueChange={setInvitationStatusFilter}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="active">활동</SelectItem>
-                <SelectItem value="inactive">비활동</SelectItem>
-                <SelectItem value="transferred">이전</SelectItem>
+                <SelectItem value="pending">대기중</SelectItem>
+                <SelectItem value="sent">발송완료</SelectItem>
+                <SelectItem value="active">등록완료</SelectItem>
+                <SelectItem value="failed">발송실패</SelectItem>
               </SelectContent>
             </Select>
           </div>

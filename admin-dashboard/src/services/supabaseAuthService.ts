@@ -233,8 +233,18 @@ export const supabaseAuthService = {
         throw new Error('일반 회원은 웹 로그인이 불가능합니다. 모바일 앱을 다운로드하여 이용해주세요.');
       }
 
-      // 3. 비밀번호 검증은 현재는 skip (실제로는 bcrypt 등으로 해시 비교해야 함)
-      // TODO: 실제 환경에서는 bcrypt.compare(password, users.hashed_password) 사용
+      // 3. 비밀번호 검증
+      // 현재는 평문으로 저장되어 있으므로 단순 문자열 비교
+      // TODO: 실제 환경에서는 bcrypt로 해시화하고 bcrypt.compare(password, users.hashed_password) 사용
+      if (!user.hashed_password) {
+        console.error('❌ 비밀번호가 설정되지 않은 계정입니다.');
+        throw new Error('비밀번호가 설정되지 않은 계정입니다. 관리자에게 문의하세요.');
+      }
+
+      if (user.hashed_password !== password) {
+        console.error('❌ 비밀번호가 일치하지 않습니다.');
+        throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+      }
 
       // 4. 세션 정보 생성 (localStorage에 저장용)
       const sessionData = {

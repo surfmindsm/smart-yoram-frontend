@@ -44,18 +44,33 @@ serve(async (req) => {
       console.log('ℹ️ [초대 Edge Function] users 테이블에 이미 존재 (앱에서 가입했거나 이미 초대받음):', email)
       console.log('   → 기존 users 레코드를 유지하고 members.user_id만 연결합니다.')
 
-      // members.user_id만 업데이트 (기존 users 레코드는 건드리지 않음)
+      // members.user_id와 temporary_password 업데이트 (기존 사용자 재초대 시)
       if (memberData.member_id) {
         const { error: memberUpdateError } = await supabaseAdmin
           .from('members')
-          .update({ user_id: existingUsersRecord.id.toString() })
+          .update({
+            user_id: existingUsersRecord.id.toString(),
+            temporary_password: temporaryPassword  // 재초대 시 새로운 임시 비밀번호 저장
+          })
           .eq('id', memberData.member_id)
 
         if (memberUpdateError) {
-          console.error('⚠️ [초대 Edge Function] members.user_id 업데이트 실패:', memberUpdateError)
+          console.error('⚠️ [초대 Edge Function] members 업데이트 실패:', memberUpdateError)
         } else {
-          console.log('✅ [초대 Edge Function] members.user_id 연결 성공:', existingUsersRecord.id)
+          console.log('✅ [초대 Edge Function] members.user_id와 temporary_password 업데이트 성공:', existingUsersRecord.id)
         }
+      }
+
+      // 기존 사용자의 비밀번호도 새로운 임시 비밀번호로 업데이트 (재초대 시)
+      const { error: usersUpdateError } = await supabaseAdmin
+        .from('users')
+        .update({ hashed_password: temporaryPassword })
+        .eq('id', existingUsersRecord.id)
+
+      if (usersUpdateError) {
+        console.error('⚠️ [초대 Edge Function] users.hashed_password 업데이트 실패:', usersUpdateError)
+      } else {
+        console.log('✅ [초대 Edge Function] users.hashed_password 업데이트 성공')
       }
 
       return new Response(
@@ -106,17 +121,20 @@ serve(async (req) => {
 
     console.log('✅ [초대 Edge Function] users 테이블에 사용자 생성 성공:', newUsersRecord)
 
-    // 3. members 테이블의 user_id 업데이트 (연결)
+    // 3. members 테이블의 user_id와 temporary_password 업데이트 (연결)
     if (newUsersRecord && memberData.member_id) {
       const { error: memberUpdateError } = await supabaseAdmin
         .from('members')
-        .update({ user_id: newUsersRecord.id.toString() })
+        .update({
+          user_id: newUsersRecord.id.toString(),
+          temporary_password: temporaryPassword  // 임시 비밀번호도 members에 저장
+        })
         .eq('id', memberData.member_id)
 
       if (memberUpdateError) {
-        console.error('⚠️ [초대 Edge Function] members.user_id 업데이트 실패:', memberUpdateError)
+        console.error('⚠️ [초대 Edge Function] members 업데이트 실패:', memberUpdateError)
       } else {
-        console.log('✅ [초대 Edge Function] members.user_id 업데이트 성공:', newUsersRecord.id)
+        console.log('✅ [초대 Edge Function] members.user_id와 temporary_password 업데이트 성공:', newUsersRecord.id)
       }
     }
 
