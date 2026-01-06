@@ -4050,7 +4050,7 @@ export const supabaseApiService = {
             // 먼저 member 정보 조회
             const { data: memberData } = await supabase
               .from('members')
-              .select('name, email, church_id')
+              .select('name, email, church_id, phone')
               .eq('id', memberId)
               .single();
 
@@ -4064,7 +4064,8 @@ export const supabaseApiService = {
                   memberData: {
                     name: memberData.name || username,
                     church_id: memberData.church_id || 0,
-                    member_id: memberId
+                    member_id: memberId,
+                    phone: memberData.phone
                   }
                 }
               });

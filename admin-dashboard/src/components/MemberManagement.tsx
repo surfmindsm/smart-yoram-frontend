@@ -38,7 +38,9 @@ import {
   ArrowRightLeft,
   Car,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Loader,
+  Clock
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -153,6 +155,16 @@ interface Member {
   vehicles?: Array<{ car_type: string; plate_no: string; }>;
 }
 
+// 일괄 초대 진행 상황 타입
+interface InviteProgressItem {
+  id: number;
+  name: string;
+  email: string;
+  status: 'pending' | 'processing' | 'success' | 'failed';
+  temporaryPassword?: string;
+  errorMessage?: string;
+}
+
 const MemberManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -196,6 +208,10 @@ const MemberManagement: React.FC = () => {
   const [showBulkInviteResults, setShowBulkInviteResults] = useState(false);
   const [bulkInviteResults, setBulkInviteResults] = useState<Array<{ name: string; email: string; temporaryPassword: string; success: boolean }>>([]);
   const [bulkCopySuccess, setBulkCopySuccess] = useState(false);
+
+  // 일괄 초대 진행 상황 모달 상태
+  const [showBulkInviteProgress, setShowBulkInviteProgress] = useState(false);
+  const [bulkInviteProgress, setBulkInviteProgress] = useState<InviteProgressItem[]>([]);
 
   // View and pagination states
   const [viewType, setViewType] = useState<'grid'>('grid');
@@ -795,11 +811,30 @@ const MemberManagement: React.FC = () => {
     try {
       setIsBulkInviting(true);
 
+      // 진행 상황 초기화 (모두 pending 상태로)
+      const initialProgress: InviteProgressItem[] = validMembers.map(member => ({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        status: 'pending' as const
+      }));
+      setBulkInviteProgress(initialProgress);
+      setShowBulkInviteProgress(true);
+
       let successCount = 0;
       let failCount = 0;
       const results: Array<{ name: string; email: string; temporaryPassword: string; success: boolean }> = [];
 
-      for (const member of validMembers) {
+      for (let i = 0; i < validMembers.length; i++) {
+        const member = validMembers[i];
+
+        // 현재 교인을 processing 상태로 변경
+        setBulkInviteProgress(prev =>
+          prev.map((item, idx) =>
+            idx === i ? { ...item, status: 'processing' as const } : item
+          )
+        );
+
         try {
           const result = await supabaseApiService.smsInvitation.send(
             member.id,
@@ -817,6 +852,17 @@ const MemberManagement: React.FC = () => {
               temporaryPassword: result.temporaryPassword || '이메일 확인',
               success: true
             });
+
+            // 성공 상태로 업데이트
+            setBulkInviteProgress(prev =>
+              prev.map((item, idx) =>
+                idx === i ? {
+                  ...item,
+                  status: 'success' as const,
+                  temporaryPassword: result.temporaryPassword || '이메일 확인'
+                } : item
+              )
+            );
           } else {
             failCount++;
             results.push({
@@ -825,8 +871,19 @@ const MemberManagement: React.FC = () => {
               temporaryPassword: '',
               success: false
             });
+
+            // 실패 상태로 업데이트
+            setBulkInviteProgress(prev =>
+              prev.map((item, idx) =>
+                idx === i ? {
+                  ...item,
+                  status: 'failed' as const,
+                  errorMessage: '초대 발송 실패'
+                } : item
+              )
+            );
           }
-        } catch (error) {
+        } catch (error: any) {
           failCount++;
           results.push({
             name: member.name,
@@ -834,10 +891,25 @@ const MemberManagement: React.FC = () => {
             temporaryPassword: '',
             success: false
           });
+
+          // 실패 상태로 업데이트
+          setBulkInviteProgress(prev =>
+            prev.map((item, idx) =>
+              idx === i ? {
+                ...item,
+                status: 'failed' as const,
+                errorMessage: error.message || '초대 발송 실패'
+              } : item
+            )
+          );
         }
       }
 
-      // 일괄 초대 결과를 state에 저장하고 모달 표시
+      // 모든 처리 완료 후 1.5초 대기 (사용자가 결과를 확인할 시간)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // 진행 모달 닫고 결과 모달 표시
+      setShowBulkInviteProgress(false);
       setBulkInviteResults(results);
       setShowBulkInviteResults(true);
 
@@ -847,6 +919,7 @@ const MemberManagement: React.FC = () => {
     } catch (error) {
       console.error('대량 초대 발송 실패:', error);
       alert('초대 발송 중 오류가 발생했습니다.');
+      setShowBulkInviteProgress(false);
     } finally {
       setIsBulkInviting(false);
     }
@@ -4006,6 +4079,121 @@ Church Round 앱에 초대되셨습니다.
               <Button onClick={() => setShowInviteMessage(false)}>
                 확인
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 일괄 초대 진행 상황 모달 */}
+      <Dialog open={showBulkInviteProgress} onOpenChange={() => {}}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Loader className="w-5 h-5 animate-spin text-blue-600" />
+              일괄 초대 진행 중
+            </DialogTitle>
+            <DialogDescription>
+              초대 발송이 진행 중입니다. 잠시만 기다려주세요.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* 전체 진행률 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-blue-900">
+                  진행 상황: {bulkInviteProgress.filter(p => p.status === 'success' || p.status === 'failed').length} / {bulkInviteProgress.length}명
+                </p>
+                <p className="text-sm text-blue-700">
+                  {Math.round((bulkInviteProgress.filter(p => p.status === 'success' || p.status === 'failed').length / bulkInviteProgress.length) * 100)}%
+                </p>
+              </div>
+              {/* 프로그레스 바 */}
+              <div className="w-full bg-blue-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${(bulkInviteProgress.filter(p => p.status === 'success' || p.status === 'failed').length / bulkInviteProgress.length) * 100}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            {/* 각 교인별 처리 상태 */}
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {bulkInviteProgress.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                    item.status === 'pending' && "bg-gray-50 border-gray-200",
+                    item.status === 'processing' && "bg-blue-50 border-blue-300 shadow-sm",
+                    item.status === 'success' && "bg-green-50 border-green-300",
+                    item.status === 'failed' && "bg-red-50 border-red-300"
+                  )}
+                >
+                  {/* 상태 아이콘 */}
+                  <div className="flex-shrink-0">
+                    {item.status === 'pending' && (
+                      <Clock className="w-5 h-5 text-gray-400" />
+                    )}
+                    {item.status === 'processing' && (
+                      <Loader className="w-5 h-5 text-blue-600 animate-spin" />
+                    )}
+                    {item.status === 'success' && (
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    )}
+                    {item.status === 'failed' && (
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
+
+                  {/* 교인 정보 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={cn(
+                        "font-medium text-sm",
+                        item.status === 'pending' && "text-gray-700",
+                        item.status === 'processing' && "text-blue-900",
+                        item.status === 'success' && "text-green-900",
+                        item.status === 'failed' && "text-red-900"
+                      )}>
+                        {item.name}
+                      </p>
+                      <p className={cn(
+                        "text-xs truncate",
+                        item.status === 'pending' && "text-gray-500",
+                        item.status === 'processing' && "text-blue-700",
+                        item.status === 'success' && "text-green-700",
+                        item.status === 'failed' && "text-red-700"
+                      )}>
+                        {item.email}
+                      </p>
+                    </div>
+
+                    {/* 상태 메시지 */}
+                    <p className={cn(
+                      "text-xs mt-1",
+                      item.status === 'pending' && "text-gray-500",
+                      item.status === 'processing' && "text-blue-600 font-medium",
+                      item.status === 'success' && "text-green-600",
+                      item.status === 'failed' && "text-red-600"
+                    )}>
+                      {item.status === 'pending' && '대기 중...'}
+                      {item.status === 'processing' && '초대 발송 중...'}
+                      {item.status === 'success' && '초대 발송 완료'}
+                      {item.status === 'failed' && (item.errorMessage || '초대 발송 실패')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 안내 메시지 */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs text-yellow-800">
+                <strong>안내:</strong> 창을 닫지 마세요. 모든 초대가 완료되면 자동으로 결과가 표시됩니다.
+              </p>
             </div>
           </div>
         </DialogContent>

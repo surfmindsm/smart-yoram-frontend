@@ -86,6 +86,7 @@ serve(async (req) => {
         email: email,
         username: memberData.name, // members의 name을 username으로 사용
         full_name: memberData.name,
+        phone: memberData.phone, // members의 phone을 users에 전달
         hashed_password: temporaryPassword, // 임시 비밀번호 (해시 전)
         church_id: memberData.church_id,
         role: 'member',
