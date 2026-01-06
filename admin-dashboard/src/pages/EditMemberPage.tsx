@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "../components/ui";
 import { Input } from "../components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui";
@@ -92,6 +92,7 @@ interface Member {
 
 const EditMemberPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -302,7 +303,15 @@ const EditMemberPage: React.FC = () => {
     } catch (error) {
       console.error('교인 정보 조회 실패:', error);
       alert('교인 정보를 불러오는데 실패했습니다.');
-      navigate('/member-management');
+      const state = location.state as { returnPage?: number; returnPerPage?: number };
+      const returnPage = state?.returnPage;
+      const returnPerPage = state?.returnPerPage;
+      navigate('/member-management', {
+        state: returnPage !== undefined ? {
+          returnToPage: returnPage,
+          returnPerPage: returnPerPage
+        } : undefined
+      });
     } finally {
       setLoading(false);
     }
@@ -538,7 +547,16 @@ const EditMemberPage: React.FC = () => {
       }
 
       alert('교인 정보가 성공적으로 수정되었습니다.');
-      navigate('/member-management');
+      // 수정 페이지로 올 때 전달받은 페이지로 돌아가기
+      const state = location.state as { returnPage?: number; returnPerPage?: number };
+      const returnPage = state?.returnPage;
+      const returnPerPage = state?.returnPerPage;
+      navigate('/member-management', {
+        state: returnPage !== undefined ? {
+          returnToPage: returnPage,
+          returnPerPage: returnPerPage
+        } : undefined
+      });
     } catch (error) {
       console.error('교인 수정 실패:', error);
       alert('교인 수정에 실패했습니다.');
@@ -563,7 +581,17 @@ const EditMemberPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
-                onClick={() => navigate('/member-management')}
+                onClick={() => {
+                  const state = location.state as { returnPage?: number; returnPerPage?: number };
+                  const returnPage = state?.returnPage;
+                  const returnPerPage = state?.returnPerPage;
+                  navigate('/member-management', {
+                    state: returnPage !== undefined ? {
+                      returnToPage: returnPage,
+                      returnPerPage: returnPerPage
+                    } : undefined
+                  });
+                }}
                 variant="ghost"
                 size="sm"
                 className="flex items-center gap-2"
@@ -578,7 +606,17 @@ const EditMemberPage: React.FC = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() => navigate('/member-management')}
+                onClick={() => {
+                  const state = location.state as { returnPage?: number; returnPerPage?: number };
+                  const returnPage = state?.returnPage;
+                  const returnPerPage = state?.returnPerPage;
+                  navigate('/member-management', {
+                    state: returnPage !== undefined ? {
+                      returnToPage: returnPage,
+                      returnPerPage: returnPerPage
+                    } : undefined
+                  });
+                }}
                 variant="outline"
                 className="flex items-center gap-2"
               >

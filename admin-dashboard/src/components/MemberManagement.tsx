@@ -318,17 +318,38 @@ const MemberManagement: React.FC = () => {
   }, []);
 
   // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
+  // 수정 페이지에서 돌아왔을 때 페이지네이션 복원
   useEffect(() => {
-    const state = location.state as { memberId?: number; action?: string } | null;
+    const state = location.state as {
+      memberId?: number;
+      action?: string;
+      returnToPage?: number;
+      returnPerPage?: number;
+    } | null;
+
+    // 수정 페이지에서 돌아온 경우 페이지네이션 복원
+    if (state?.returnToPage !== undefined || state?.returnPerPage !== undefined) {
+      const returnPage = state.returnToPage;
+      const returnPerPage = state.returnPerPage;
+      setPagination(prev => ({
+        ...prev,
+        ...(returnPage !== undefined && { current_page: returnPage }),
+        ...(returnPerPage !== undefined && { per_page: returnPerPage })
+      }));
+      // state 초기화 - navigate를 사용해서 명확하게 제거
+      navigate(location.pathname, { replace: true, state: {} });
+      return; // 더 이상 진행하지 않음
+    }
+
     if (state?.memberId && members.length > 0) {
       const targetMember = members.find(m => m.id === state.memberId);
       if (targetMember) {
         handleMemberClick(targetMember);
-        // state 초기화 (뒤로가기 시 재실행 방지)
-        window.history.replaceState({}, document.title);
+        // state 초기화
+        navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [members, location.state]);
+  }, [location.state]);
 
   const fetchMembers = async () => {
     try {
@@ -2334,7 +2355,12 @@ Church Round 앱에 초대되셨습니다.
                   )}
 
                   <Button
-                    onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`)}
+                    onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`, {
+                      state: {
+                        returnPage: pagination.current_page,
+                        returnPerPage: pagination.per_page
+                      }
+                    })}
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1"
@@ -2956,7 +2982,7 @@ Church Round 앱에 초대되셨습니다.
                       <p className="text-sm text-gray-600">{selectedMember.workplace_phone || '-'}</p>
                     )}
                   </div>
-                  </div>
+                </div>
                 </div>
               </details>
 
