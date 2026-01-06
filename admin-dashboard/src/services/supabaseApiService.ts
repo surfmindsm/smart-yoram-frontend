@@ -2275,14 +2275,16 @@ export const supabaseApiService = {
         const queryString = params.toString();
 
         // Use direct fetch instead of supabase.functions.invoke to support custom paths
-        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins${queryString ? `?${queryString}` : ''}`;
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const url = `${supabaseUrl}/functions/v1/bulletins/admin/bulletins${queryString ? `?${queryString}` : ''}`;
 
         const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
           },
         });
 
@@ -2312,14 +2314,16 @@ export const supabaseApiService = {
         // console.log('📰 [주보 API] 단일 조회 시작:', id);
 
         // Use direct fetch instead of supabase.functions.invoke to support custom paths
-        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins/${id}`;
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const url = `${supabaseUrl}/functions/v1/bulletins/admin/bulletins/${id}`;
 
         const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
           },
         });
 
@@ -2349,14 +2353,16 @@ export const supabaseApiService = {
         // console.log('📰 [주보 API] 교회별 조회 시작:', churchId);
 
         // Use direct fetch instead of supabase.functions.invoke to support custom paths
-        const url = `${SUPABASE_URL}/functions/v1/bulletins/church/${churchId}`;
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const url = `${supabaseUrl}/functions/v1/bulletins/church/${churchId}`;
 
         const response = await fetch(url, {
           method: 'GET',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
           },
         });
 
@@ -2393,14 +2399,16 @@ export const supabaseApiService = {
         // console.log('📰 [주보 API] 생성 시작:', bulletinData);
 
         // Use direct fetch instead of supabase.functions.invoke to support custom paths
-        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins`;
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const url = `${supabaseUrl}/functions/v1/bulletins/admin/bulletins`;
 
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'X-Custom-Auth': token,
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
           },
           body: JSON.stringify(bulletinData),
         });
@@ -2468,29 +2476,22 @@ export const supabaseApiService = {
           throw new Error('No authentication token available');
         }
 
-        // console.log('📰 [주보 API] 삭제 시작:', id);
+        console.log('📰 [주보 API] 삭제 시작:', id);
 
-        // Use direct fetch instead of supabase.functions.invoke to support custom paths
-        const url = `${SUPABASE_URL}/functions/v1/bulletins/admin/bulletins/${id}`;
+        // Directly query the database instead of using Edge Function for DELETE
+        // This avoids CORS preflight issues with DELETE requests
+        const { error } = await supabase
+          .from('bulletins')
+          .delete()
+          .eq('id', id);
 
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: {
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('📰 [주보 API] 삭제 오류:', response.status, errorText);
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (error) {
+          console.error('📰 [주보 API] 삭제 오류:', error);
+          throw error;
         }
 
-        const data = await response.json();
-        // console.log('✅ [주보 API] 삭제 성공:', data);
-        return data;
+        console.log('✅ [주보 API] 삭제 성공:', id);
+        return { message: 'Bulletin deleted successfully' };
       } catch (error) {
         console.error('📰 [주보 API] 삭제 실패:', error);
         throw error;

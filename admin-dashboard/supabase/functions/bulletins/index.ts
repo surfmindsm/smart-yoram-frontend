@@ -130,10 +130,25 @@ Deno.serve(async (req) => {
       if (pathParts.includes('admin') && pathParts.includes('bulletins') && pathParts[pathParts.length - 1]) {
         const bulletinId = pathParts[pathParts.length - 1]
 
+        // Validate bulletin ID is not 'bulletins' itself and is a number
+        if (bulletinId === 'bulletins' || isNaN(parseInt(bulletinId))) {
+          console.log('⚠️ Invalid bulletin ID, treating as list request')
+          // This is actually a list request without ID, let it fall through to list handler above
+          return new Response(
+            JSON.stringify({ error: 'Invalid bulletin ID' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('📰 주보 단일 조회:', bulletinId)
+
         const { data, error } = await supabaseClient
           .from('bulletins')
           .select('*')
-          .eq('id', bulletinId)
+          .eq('id', parseInt(bulletinId))
           .single()
 
         if (error) {
@@ -147,6 +162,7 @@ Deno.serve(async (req) => {
           )
         }
 
+        console.log('✅ 주보 단일 조회 성공')
         return new Response(
           JSON.stringify(data),
           {
@@ -235,6 +251,20 @@ Deno.serve(async (req) => {
       if (pathParts.includes('admin') && pathParts.includes('bulletins')) {
         const bulletinId = pathParts[pathParts.length - 1]
 
+        // Validate bulletin ID exists and is not 'bulletins' itself
+        if (!bulletinId || bulletinId === 'bulletins' || isNaN(parseInt(bulletinId))) {
+          console.error('Invalid or missing bulletin ID:', bulletinId)
+          return new Response(
+            JSON.stringify({ error: 'Invalid or missing bulletin ID' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('📝 주보 수정 요청:', bulletinId)
+
         const updateData = {
           title: body.title,
           date: body.date,
@@ -253,7 +283,7 @@ Deno.serve(async (req) => {
         const { data, error } = await supabaseClient
           .from('bulletins')
           .update(updateData)
-          .eq('id', bulletinId)
+          .eq('id', parseInt(bulletinId))
           .select('*')
           .single()
 
@@ -268,6 +298,7 @@ Deno.serve(async (req) => {
           )
         }
 
+        console.log('✅ 주보 수정 성공:', bulletinId)
         return new Response(
           JSON.stringify(data),
           {
@@ -282,10 +313,24 @@ Deno.serve(async (req) => {
       if (pathParts.includes('admin') && pathParts.includes('bulletins')) {
         const bulletinId = pathParts[pathParts.length - 1]
 
+        // Validate bulletin ID exists and is not 'bulletins' itself
+        if (!bulletinId || bulletinId === 'bulletins' || isNaN(parseInt(bulletinId))) {
+          console.error('Invalid or missing bulletin ID:', bulletinId)
+          return new Response(
+            JSON.stringify({ error: 'Invalid or missing bulletin ID' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('🗑️ 주보 삭제 요청:', bulletinId)
+
         const { error } = await supabaseClient
           .from('bulletins')
           .delete()
-          .eq('id', bulletinId)
+          .eq('id', parseInt(bulletinId))
 
         if (error) {
           console.error('Database delete error:', error)
@@ -298,6 +343,7 @@ Deno.serve(async (req) => {
           )
         }
 
+        console.log('✅ 주보 삭제 성공:', bulletinId)
         return new Response(
           JSON.stringify({ message: 'Bulletin deleted successfully' }),
           {
