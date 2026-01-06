@@ -29,6 +29,7 @@ export const POSITION_DETAIL = {
   EVANGELIST: 'EVANGELIST',                           // 전도사
   INTERN_EVANGELIST: 'INTERN_EVANGELIST',             // 전임전도사(수련과정)
   EDUCATION_EVANGELIST: 'EDUCATION_EVANGELIST',       // 교육담당전도사
+  PASTOR_WIFE: 'PASTOR_WIFE',                         // 사모
 
   // 장로 계열
   ACTIVE_ELDER: 'ACTIVE_ELDER',                       // 시무장로
@@ -83,6 +84,7 @@ export const POSITION_DETAIL_LABELS: Record<PositionDetail, string> = {
   EVANGELIST: '전도사',
   INTERN_EVANGELIST: '전임전도사',
   EDUCATION_EVANGELIST: '교육담당전도사',
+  PASTOR_WIFE: '사모',
 
   // 장로
   ACTIVE_ELDER: '시무장로',
@@ -126,6 +128,7 @@ export const POSITION_HIERARCHY: Record<PositionMain, PositionDetail[]> = {
     POSITION_DETAIL.EVANGELIST,
     POSITION_DETAIL.INTERN_EVANGELIST,
     POSITION_DETAIL.EDUCATION_EVANGELIST,
+    POSITION_DETAIL.PASTOR_WIFE,
   ],
   ELDER: [
     POSITION_DETAIL.ACTIVE_ELDER,
@@ -201,6 +204,7 @@ export const ADMIN_POSITION_OPTIONS = [
       { value: POSITION_DETAIL.EVANGELIST, label: '전도사' },
       { value: POSITION_DETAIL.INTERN_EVANGELIST, label: '전임전도사' },
       { value: POSITION_DETAIL.EDUCATION_EVANGELIST, label: '교육담당전도사' },
+      { value: POSITION_DETAIL.PASTOR_WIFE, label: '사모' },
     ]
   },
   {
