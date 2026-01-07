@@ -1,19 +1,19 @@
 -- ============================================================
--- 심방 신청 상태 변경 푸시 알림 설정 SQL
+-- 심방 신청 푸시 알림 트리거 수동 적용
 -- ============================================================
--- pastoral_care_requests 테이블의 상태가 변경될 때 자동으로 푸시 알림 발송
--- 특히 승인(approved), 예정(scheduled), 완료(completed) 상태 변경 시
+-- Supabase Dashboard → SQL Editor에서 이 파일을 실행하세요
 -- ============================================================
 
--- ============================================================
--- 1. pg_net 확장 설치 확인 (HTTP 요청용)
--- ============================================================
+-- 1. 기존 트리거 삭제 (있다면)
+DROP TRIGGER IF EXISTS on_pastoral_care_status_changed ON public.pastoral_care_requests;
+
+-- 2. 기존 함수 삭제 (있다면)
+DROP FUNCTION IF EXISTS notify_pastoral_care_status_change();
+
+-- 3. pg_net 확장 확인
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- ============================================================
--- 2. Edge Function 호출용 Trigger Function
--- ============================================================
--- 주의: 이 함수는 SECURITY DEFINER로 실행되어 서비스 키를 안전하게 보호합니다.
+-- 4. Trigger Function 생성
 CREATE OR REPLACE FUNCTION notify_pastoral_care_status_change()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -21,11 +21,10 @@ DECLARE
   service_role_key TEXT;
   should_notify BOOLEAN;
 BEGIN
-  -- Edge Function URL 설정
-  -- 프로젝트 ID: adzhdsajdamrflvybhxq
+  -- Edge Function URL
   function_url := 'https://adzhdsajdamrflvybhxq.supabase.co/functions/v1/send-pastoral-care-notification';
 
-  -- Service Role Key (SECURITY DEFINER로 보호됨)
+  -- Service Role Key
   service_role_key := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkemhkc2FqZGFtcmZsdnliaHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Mzg0ODk4MSwiZXhwIjoyMDY5NDI0OTgxfQ.qkS6gZgLlV7-NytGEgFAIMOYuYpv442Qx_gkDeD3z0s';
 
   -- 알림을 발송할지 결정
@@ -94,58 +93,34 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ============================================================
--- 3. 심방 신청 INSERT/UPDATE 시 Trigger 발동
--- ============================================================
-DROP TRIGGER IF EXISTS on_pastoral_care_status_changed ON public.pastoral_care_requests;
-
+-- 5. Trigger 생성
 CREATE TRIGGER on_pastoral_care_status_changed
   AFTER INSERT OR UPDATE OF status ON public.pastoral_care_requests
   FOR EACH ROW
   EXECUTE FUNCTION notify_pastoral_care_status_change();
 
--- ============================================================
--- 완료 메시지
--- ============================================================
+-- 6. 확인
+SELECT
+  'Trigger Created' as status,
+  t.tgname AS trigger_name,
+  p.proname AS function_name,
+  c.relname AS table_name
+FROM pg_trigger t
+JOIN pg_proc p ON t.tgfoid = p.oid
+JOIN pg_class c ON t.tgrelid = c.oid
+WHERE t.tgname = 'on_pastoral_care_status_changed';
+
+-- 7. 완료 메시지
 DO $$
 BEGIN
   RAISE NOTICE '=================================================';
-  RAISE NOTICE '🏥 심방 신청 푸시 알림 설정이 완료되었습니다! ✅';
+  RAISE NOTICE '✅ 심방 신청 푸시 알림 트리거가 생성되었습니다!';
   RAISE NOTICE '=================================================';
   RAISE NOTICE '';
-  RAISE NOTICE '✅ 완료된 설정:';
-  RAISE NOTICE '   1. pg_net 확장 확인';
-  RAISE NOTICE '   2. Trigger Function 생성 (notify_pastoral_care_status_change)';
-  RAISE NOTICE '   3. Trigger 생성 (on_pastoral_care_status_changed)';
+  RAISE NOTICE '다음 단계:';
+  RAISE NOTICE '1. 심방 신청 상태를 approved로 변경';
+  RAISE NOTICE '2. Edge Function 로그 확인:';
+  RAISE NOTICE '   https://supabase.com/dashboard/project/adzhdsajdamrflvybhxq/functions/send-pastoral-care-notification';
   RAISE NOTICE '';
-  RAISE NOTICE '📝 다음 단계:';
-  RAISE NOTICE '';
-  RAISE NOTICE '1️⃣ Edge Function 배포:';
-  RAISE NOTICE '   cd admin-dashboard';
-  RAISE NOTICE '   supabase functions deploy send-pastoral-care-notification';
-  RAISE NOTICE '';
-  RAISE NOTICE '2️⃣ 설정 확인:';
-  RAISE NOTICE '   SELECT * FROM pg_extension WHERE extname = ''pg_net'';';
-  RAISE NOTICE '   SELECT * FROM pg_trigger WHERE tgname = ''on_pastoral_care_status_changed'';';
-  RAISE NOTICE '';
-  RAISE NOTICE '3️⃣ 테스트:';
-  RAISE NOTICE '   - 관리자 대시보드에서 심방 신청 상태 변경';
-  RAISE NOTICE '   - 앱에서 푸시 알림 수신 확인';
-  RAISE NOTICE '';
-  RAISE NOTICE '4️⃣ Edge Function Logs 확인:';
-  RAISE NOTICE '   https://supabase.com/dashboard/project/adzhdsajdamrflvybhxq/functions';
-  RAISE NOTICE '';
-  RAISE NOTICE '=================================================';
-  RAISE NOTICE '💡 동작 방식:';
-  RAISE NOTICE '   심방 신청 상태 변경 (approved/scheduled/completed/cancelled)';
-  RAISE NOTICE '   → Trigger 발동 → Edge Function 호출';
-  RAISE NOTICE '   → member_id로 user_id 조회 → FCM 푸시 발송';
-  RAISE NOTICE '=================================================';
-  RAISE NOTICE '';
-  RAISE NOTICE '📋 알림 발송 대상 상태:';
-  RAISE NOTICE '   - approved: 승인됨';
-  RAISE NOTICE '   - scheduled: 예정됨';
-  RAISE NOTICE '   - completed: 완료됨';
-  RAISE NOTICE '   - cancelled: 취소됨';
   RAISE NOTICE '=================================================';
 END $$;

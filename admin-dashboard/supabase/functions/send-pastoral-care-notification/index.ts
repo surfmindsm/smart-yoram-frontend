@@ -283,6 +283,35 @@ serve(async (req) => {
       }
     }
 
+    // 4. notifications 테이블에 알림 저장 (앱 내 알림 목록용)
+    console.log('💾 알림 테이블에 저장 중...');
+    const { error: notificationInsertError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: memberData.user_id,
+        title,
+        body,
+        type: 'pastoral_care',
+        related_id: null,
+        related_type: 'pastoral_care_request',
+        data: {
+          request_id: record.id,
+          status: record.status,
+          request_type: record.request_type,
+          scheduled_date: record.scheduled_date,
+          scheduled_time: record.scheduled_time,
+          church_id: record.church_id,
+        },
+        is_read: false,
+      });
+
+    if (notificationInsertError) {
+      console.error('❌ 알림 테이블 저장 실패:', notificationInsertError);
+      // 푸시 알림은 성공했으므로 계속 진행
+    } else {
+      console.log('✅ 알림 테이블에 저장 완료');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

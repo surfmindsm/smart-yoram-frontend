@@ -659,21 +659,36 @@ const PastoralCareManagement: React.FC = () => {
 
 
   const handleApprove = async (request: PastoralCareRequest) => {
+    console.log('🏥 [심방 승인] 시작:', {
+      requestId: request.id,
+      memberId: request.memberId,
+      requesterName: request.requesterName,
+      currentStatus: request.status,
+      newStatus: 'approved'
+    });
+
     try {
+      console.log('🏥 [심방 승인] API 호출 중...');
+
       await supabaseApiService.pastoralCare.update(request.id, {
         status: 'approved',
         admin_notes: '승인됨'
       });
-      
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === request.id 
+
+      console.log('✅ [심방 승인] API 호출 성공 - 상태가 approved로 변경됨');
+      console.log('📱 [심방 승인] 데이터베이스 트리거가 발동되어 푸시 알림이 발송됩니다');
+
+      setRequests(prev =>
+        prev.map(req =>
+          req.id === request.id
             ? { ...req, status: 'approved' as const, adminNotes: '승인됨' }
             : req
         )
       );
+
+      console.log('🏥 [심방 승인] UI 업데이트 완료');
     } catch (error) {
-      console.error('Failed to approve request:', error);
+      console.error('❌ [심방 승인] 실패:', error);
     }
   };
 
