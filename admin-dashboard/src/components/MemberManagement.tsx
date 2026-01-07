@@ -58,6 +58,7 @@ import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
 import { ChurchOrganization, ORGANIZATION_TYPE_LABELS } from '../types/organization';
 import * as XLSX from 'xlsx';
+import { matchKoreanSearch } from '../utils/koreanSearch';
 import {
   ADMIN_POSITION_OPTIONS,
   getPositionMainLabel,
@@ -383,14 +384,17 @@ const MemberManagement: React.FC = () => {
 
       let filteredData = response.data;
 
-      // Apply search filter on client side for now
+      // Apply search filter on client side with Korean chosung search support
       if (appliedSearchTerm) {
-        const searchLower = appliedSearchTerm.toLowerCase();
+        const searchTerm = appliedSearchTerm.trim();
         filteredData = response.data.filter((member: any) =>
-          (member.name && member.name.toLowerCase().includes(searchLower)) ||
-          (member.full_name && member.full_name.toLowerCase().includes(searchLower)) ||
-          (member.email && member.email.toLowerCase().includes(searchLower)) ||
-          (member.phone && member.phone.toLowerCase().includes(searchLower))
+          // 이름 검색 (초성 검색 지원)
+          (member.name && matchKoreanSearch(member.name, searchTerm)) ||
+          (member.full_name && matchKoreanSearch(member.full_name, searchTerm)) ||
+          // 이메일 검색 (일반 텍스트 검색)
+          (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          // 전화번호 검색 (일반 텍스트 검색)
+          (member.phone && member.phone.includes(searchTerm))
         );
       }
 
