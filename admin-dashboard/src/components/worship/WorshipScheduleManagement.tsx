@@ -69,7 +69,7 @@ export default function WorshipScheduleManagement() {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
-    day_of_week: '',
+    day_of_week: [] as string[],
     start_time: '',
     end_time: '',
     service_type: '',
@@ -292,32 +292,63 @@ export default function WorshipScheduleManagement() {
     }
 
     try {
-      const serviceData = {
-        church_id: churchId,
-        name: formData.name,
-        location: formData.location || undefined,
-        day_of_week: formData.day_of_week ? parseInt(formData.day_of_week) : undefined,
-        start_time: formData.start_time,
-        end_time: formData.end_time || undefined,
-        service_type: formData.service_type || undefined,
-        target_group: formData.target_group || undefined,
-        is_online: formData.is_online,
-        is_active: formData.is_active,
-        order_index: formData.order_index
-      };
-
       if (editingService) {
-        // 수정
-        await supabaseApiService.worshipServices.update(editingService.id.toString(), serviceData);
-      } else {
-        // 생성
-        await supabaseApiService.worshipServices.create(serviceData as any);
-      }
+        // 수정 모드: 단일 레코드 업데이트
+        const serviceData = {
+          church_id: churchId,
+          name: formData.name,
+          location: formData.location || undefined,
+          day_of_week: formData.day_of_week.length > 0 ? parseInt(formData.day_of_week[0]) : undefined,
+          start_time: formData.start_time,
+          end_time: formData.end_time || undefined,
+          service_type: formData.service_type || undefined,
+          target_group: formData.target_group || undefined,
+          is_online: formData.is_online,
+          is_active: formData.is_active,
+          order_index: formData.order_index
+        };
 
-      toast({
-        title: '성공',
-        description: editingService ? '예배 일정이 수정되었습니다.' : '예배 일정이 추가되었습니다.',
-      });
+        await supabaseApiService.worshipServices.update(editingService.id.toString(), serviceData);
+
+        toast({
+          title: '성공',
+          description: '예배 일정이 수정되었습니다.',
+        });
+      } else {
+        // 생성 모드: 선택된 각 요일에 대해 레코드 생성
+        if (formData.day_of_week.length === 0) {
+          toast({
+            title: '오류',
+            description: '최소 하나의 요일을 선택해주세요.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // 선택된 각 요일에 대해 레코드 생성
+        for (const dayStr of formData.day_of_week) {
+          const serviceData = {
+            church_id: churchId,
+            name: formData.name,
+            location: formData.location || undefined,
+            day_of_week: parseInt(dayStr),
+            start_time: formData.start_time,
+            end_time: formData.end_time || undefined,
+            service_type: formData.service_type || undefined,
+            target_group: formData.target_group || undefined,
+            is_online: formData.is_online,
+            is_active: formData.is_active,
+            order_index: formData.order_index
+          };
+
+          await supabaseApiService.worshipServices.create(serviceData as any);
+        }
+
+        toast({
+          title: '성공',
+          description: `예배 일정이 ${formData.day_of_week.length}개 추가되었습니다.`,
+        });
+      }
 
       setIsDialogOpen(false);
       resetForm();
@@ -361,7 +392,7 @@ export default function WorshipScheduleManagement() {
     setFormData({
       name: service.name,
       location: service.location || '',
-      day_of_week: service.day_of_week?.toString() || '',
+      day_of_week: service.day_of_week !== undefined ? [service.day_of_week.toString()] : [],
       start_time: service.start_time,
       end_time: service.end_time || '',
       service_type: service.service_type || '',
@@ -378,7 +409,7 @@ export default function WorshipScheduleManagement() {
     setFormData({
       name: '',
       location: '',
-      day_of_week: '',
+      day_of_week: [],
       start_time: '',
       end_time: '',
       service_type: '',
@@ -594,22 +625,35 @@ export default function WorshipScheduleManagement() {
             </div>
 
             <div>
-              <Label htmlFor="day_of_week">요일</Label>
-              <Select
-                value={formData.day_of_week}
-                onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="요일 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS_OF_WEEK.map((day, index) => (
-                    <SelectItem key={index} value={index.toString()}>
+              <Label>요일 (중복 선택 가능)</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {DAYS_OF_WEEK.map((day, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`day-${index}`}
+                      checked={formData.day_of_week.includes(index.toString())}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            day_of_week: [...formData.day_of_week, index.toString()]
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            day_of_week: formData.day_of_week.filter(d => d !== index.toString())
+                          });
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <Label htmlFor={`day-${index}`} className="cursor-pointer font-normal">
                       {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
