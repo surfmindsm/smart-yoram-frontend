@@ -886,6 +886,27 @@ export const supabaseApiService = {
         console.error('Failed to assign pastor:', error);
         throw error;
       }
+    },
+
+    delete: async (id: any) => {
+      try {
+        const { data, error } = await supabase
+          .from('pastoral_care_requests')
+          .delete()
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Database delete error:', error);
+          throw new Error(error.message || 'Failed to delete pastoral care request');
+        }
+
+        return { data };
+      } catch (error) {
+        console.error('Failed to delete pastoral care request:', error);
+        throw error;
+      }
     }
   },
 

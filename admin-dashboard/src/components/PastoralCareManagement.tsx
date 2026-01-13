@@ -13,13 +13,13 @@ import { Combobox } from "./ui";
 import { SimpleTabs } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { DatePicker } from "./ui/date-picker";
-import { 
-  Search, 
-  Filter, 
-  Calendar, 
-  Eye, 
-  FileText, 
-  Clock, 
+import {
+  Search,
+  Filter,
+  Calendar,
+  Eye,
+  FileText,
+  Clock,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -37,7 +37,8 @@ import {
   Map,
   Zap,
   Info,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -898,6 +899,44 @@ const PastoralCareManagement: React.FC = () => {
     }
   };
 
+  // 심방 신청 삭제 함수
+  const handleDelete = async (request: PastoralCareRequest) => {
+    if (!window.confirm(`${request.requesterName}님의 심방 신청을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      await supabaseApiService.pastoralCare.delete(request.id);
+
+      // 신청 목록에서 삭제된 항목 제거
+      setRequests(prev => prev.filter(req => req.id !== request.id));
+
+      alert('심방 신청이 삭제되었습니다.');
+    } catch (error: any) {
+      console.error('❌ 심방 신청 삭제 실패:', error);
+      alert(`심방 신청 삭제에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  // 심방 기록 삭제 함수
+  const handleDeleteRecord = async (record: PastoralCareRecord) => {
+    if (!window.confirm(`${record.requesterName}님의 심방 기록을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      await supabaseApiService.pastoralCare.delete(record.id);
+
+      // 기록 목록에서 삭제된 항목 제거
+      setCompletedRecords(prev => prev.filter(rec => rec.id !== record.id));
+
+      alert('심방 기록이 삭제되었습니다.');
+    } catch (error: any) {
+      console.error('❌ 심방 기록 삭제 실패:', error);
+      alert(`심방 기록 삭제에 실패했습니다.\n에러: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
   // 🆕 관리자 직접 등록 함수
   const handleAdminRegistration = async () => {
     try {
@@ -1409,6 +1448,16 @@ const PastoralCareManagement: React.FC = () => {
                           >
                             재배정
                           </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(request);
+                            }}
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            삭제
+                          </button>
                         </>
                       )}
                       {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
@@ -1440,6 +1489,16 @@ const PastoralCareManagement: React.FC = () => {
                             className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             카드인쇄
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(request);
+                            }}
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            삭제
                           </button>
                         </>
                       )}
@@ -1584,14 +1643,28 @@ const PastoralCareManagement: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRecordDetail(record)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            상세보기
-                          </Button>
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRecordDetail(record)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              상세보기
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteRecord(record);
+                              }}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              삭제
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))
