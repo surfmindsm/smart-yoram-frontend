@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -169,7 +169,7 @@ interface InviteProgressItem {
 const MemberManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>([]); // 현재 페이지 데이터
   const [allMembers, setAllMembers] = useState<Member[]>([]); // 원본 데이터 캐시
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -318,8 +318,8 @@ const MemberManagement: React.FC = () => {
     }
   };
 
-  // 클라이언트 사이드 필터링 (즉시 실행, 서버 요청 없음)
-  const filterMembers = () => {
+  // useMemo로 필터링 및 정렬된 데이터 캐싱 (검색어, 필터, 정렬 옵션이 변경될 때만 재계산)
+  const filteredAndSortedMembers = useMemo(() => {
     let filteredData = [...allMembers];
 
     // Apply search filter with Korean chosung search support
@@ -343,17 +343,9 @@ const MemberManagement: React.FC = () => {
       });
     }
 
-    const actualTotalCount = filteredData.length;
-
-    // Apply pagination
-    const startIndex = (pagination.current_page - 1) * pagination.per_page;
-    const endIndex = startIndex + pagination.per_page;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-
-    // Sort paginated data
-    let sortedData = [...paginatedData];
+    // Sort all filtered data (before pagination)
     if (sortField) {
-      sortedData.sort((a, b) => {
+      filteredData.sort((a, b) => {
         const aVal = a[sortField] || '';
         const bVal = b[sortField] || '';
         if (sortOrder === 'asc') {
@@ -364,32 +356,67 @@ const MemberManagement: React.FC = () => {
       });
     }
 
-    setMembers(sortedData);
+    return filteredData;
+  }, [allMembers, searchTerm, invitationStatusFilter, sortField, sortOrder]);
 
-    // Update pagination state
-    const totalPages = Math.ceil(actualTotalCount / pagination.per_page);
-    setPagination(prev => ({
-      ...prev,
+  // useMemo로 페이지네이션된 데이터 캐싱 (페이지가 변경될 때만 재계산)
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (pagination.current_page - 1) * pagination.per_page;
+    const endIndex = startIndex + pagination.per_page;
+    return filteredAndSortedMembers.slice(startIndex, endIndex);
+  }, [filteredAndSortedMembers, pagination.current_page, pagination.per_page]);
+
+  // 페이지네이션 메타데이터 계산 (useMemo로 캐싱)
+  const paginationMeta = useMemo(() => {
+    const actualTotalCount = filteredAndSortedMembers.length;
+    const totalPages = Math.ceil(actualTotalCount / pagination.per_page) || 1;
+
+    // current_page가 totalPages를 초과하는 경우 조정
+    let adjustedCurrentPage = pagination.current_page;
+    if (totalPages > 0 && pagination.current_page > totalPages) {
+      adjustedCurrentPage = totalPages;
+    }
+
+    return {
+      current_page: adjustedCurrentPage,
       total_count: actualTotalCount,
       total_pages: totalPages,
-      has_prev: prev.current_page > 1,
-      has_next: prev.current_page < totalPages
-    }));
+      has_prev: adjustedCurrentPage > 1,
+      has_next: adjustedCurrentPage < totalPages
+    };
+  }, [filteredAndSortedMembers.length, pagination.current_page, pagination.per_page]);
 
-    // 검색 로그 기록 (실제 결과와 함께)
-    if (searchTerm.trim()) {
-      activityLogger.logMemberSearch(searchTerm, actualTotalCount);
-    }
-  };
-
-  // 클라이언트 사이드 검색 및 필터링 (서버 요청 없이 즉시 실행)
+  // 페이지네이션 메타데이터가 변경되면 상태 업데이트
   useEffect(() => {
+    if (
+      pagination.total_count !== paginationMeta.total_count ||
+      pagination.total_pages !== paginationMeta.total_pages ||
+      pagination.has_prev !== paginationMeta.has_prev ||
+      pagination.has_next !== paginationMeta.has_next ||
+      pagination.current_page !== paginationMeta.current_page
+    ) {
+      setPagination(prev => ({
+        ...prev,
+        ...paginationMeta
+      }));
+    }
+  }, [paginationMeta]);
+
+  // paginatedMembers를 members 상태로 동기화
+  useEffect(() => {
+    setMembers(paginatedMembers);
+  }, [paginatedMembers]);
+
+  // 검색 로그 기록 (debounced)
+  useEffect(() => {
+    if (!searchTerm.trim()) return;
+
     const timer = setTimeout(() => {
-      filterMembers();
-    }, 300); // 300ms debounce
+      activityLogger.logMemberSearch(searchTerm, filteredAndSortedMembers.length);
+    }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, invitationStatusFilter, allMembers, sortField, sortOrder, pagination.current_page, pagination.per_page]);
+  }, [searchTerm, filteredAndSortedMembers.length]);
 
   // 서버에서 데이터 가져오기 (초기 로드 시에만)
   useEffect(() => {
@@ -432,6 +459,7 @@ const MemberManagement: React.FC = () => {
 
   // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
   // 수정 페이지에서 돌아왔을 때 페이지네이션 복원
+  const processedStateRef = useRef<string | null>(null);
   useEffect(() => {
     const state = location.state as {
       memberId?: number;
@@ -439,6 +467,11 @@ const MemberManagement: React.FC = () => {
       returnToPage?: number;
       returnPerPage?: number;
     } | null;
+
+    // location.key를 사용하여 동일한 state를 중복 처리하지 않도록 방지
+    if (processedStateRef.current === location.key) {
+      return;
+    }
 
     // 수정 페이지에서 돌아온 경우 페이지네이션 복원
     if (state?.returnToPage !== undefined || state?.returnPerPage !== undefined) {
@@ -449,20 +482,22 @@ const MemberManagement: React.FC = () => {
         ...(returnPage !== undefined && { current_page: returnPage }),
         ...(returnPerPage !== undefined && { per_page: returnPerPage })
       }));
+      processedStateRef.current = location.key;
       // state 초기화 - navigate를 사용해서 명확하게 제거
       navigate(location.pathname, { replace: true, state: {} });
       return; // 더 이상 진행하지 않음
     }
 
-    if (state?.memberId && members.length > 0) {
-      const targetMember = members.find(m => m.id === state.memberId);
+    if (state?.memberId && allMembers.length > 0) {
+      const targetMember = allMembers.find(m => m.id === state.memberId);
       if (targetMember) {
         handleMemberClick(targetMember);
+        processedStateRef.current = location.key;
         // state 초기화
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [location.state]);
+  }, [location.state, location.key]);
 
   const handleClearSearch = () => {
     setSearchTerm('');
@@ -471,8 +506,11 @@ const MemberManagement: React.FC = () => {
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      // Enter 키는 즉시 검색 실행 (debounce 무시)
-      filterMembers();
+      // useMemo로 자동 필터링되므로 별도 처리 불필요
+      // 검색 로그만 즉시 기록
+      if (searchTerm.trim()) {
+        activityLogger.logMemberSearch(searchTerm, filteredAndSortedMembers.length);
+      }
     }
   };
 
@@ -579,13 +617,13 @@ const MemberManagement: React.FC = () => {
       });
 
       // Update member in list
-      const updatedMembers = members.map(m =>
+      const updatedMembers = allMembers.map(m =>
         m.id === selectedMember.id
           ? { ...m, profile_photo_url: publicUrl }
           : m
       );
 
-      setMembers(updatedMembers);
+      setAllMembers(updatedMembers);
 
       // Also update selectedMember for immediate UI feedback
       setSelectedMember(prev => prev ? { ...prev, profile_photo_url: publicUrl } : prev);
@@ -738,8 +776,8 @@ const MemberManagement: React.FC = () => {
       activityLogger.logMemberUpdate(selectedMember.id, selectedMember.name, updatedFields);
       
       // Update member in list
-      setMembers(members.map(m => 
-        m.id === selectedMember.id 
+      setAllMembers(allMembers.map(m =>
+        m.id === selectedMember.id
           ? { ...m, ...response.data }
           : m
       ));
@@ -764,7 +802,7 @@ const MemberManagement: React.FC = () => {
       activityLogger.logMemberDelete(selectedMember.id, selectedMember.name);
       
       // Remove member from list
-      setMembers(members.filter(m => m.id !== selectedMember.id));
+      setAllMembers(allMembers.filter(m => m.id !== selectedMember.id));
       setShowDetailModal(false);
       setShowDeleteConfirm(false);
       setSelectedMember(null);
@@ -1280,7 +1318,7 @@ Church Round 앱에 초대되셨습니다.
   };
 
   const downloadMembersExcel = () => {
-    if (members.length === 0) {
+    if (filteredAndSortedMembers.length === 0) {
       alert('다운로드할 교인 데이터가 없습니다.');
       return;
     }
@@ -1319,8 +1357,8 @@ Church Round 앱에 초대되셨습니다.
       '일상활동'
     ];
 
-    // 교인 데이터를 엑셀 행으로 변환
-    const data = members.map(member => [
+    // 교인 데이터를 엑셀 행으로 변환 (필터링/정렬된 전체 데이터)
+    const data = filteredAndSortedMembers.map(member => [
       member.name || '',
       member.name_eng || '',
       member.email || '',
@@ -2072,6 +2110,7 @@ Church Round 앱에 초대되셨습니다.
                             className="h-10 w-10 rounded-full object-cover"
                             src={cleanPhotoUrl(member.profile_photo_url)!}
                             alt={member.name}
+                            loading="lazy"
                             onError={(e) => {
                               const target = e.currentTarget as HTMLImageElement;
                               target.style.display = 'none';
@@ -2121,7 +2160,7 @@ Church Round 앱에 초대되셨습니다.
         </div>
       </Card>
 
-      {members.length === 0 && (
+      {members.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-600">등록된 교인이 없습니다.</p>
         </div>
@@ -2259,6 +2298,7 @@ Church Round 앱에 초대되셨습니다.
                   src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                   alt={selectedMember.name}
                   className="h-32 w-32 rounded-full object-cover mx-auto mb-2"
+                  loading="lazy"
                   onError={(e) => {
                     console.error('Modal image load error:', e);
                     alert('사진을 불러올 수 없습니다.');
@@ -2486,6 +2526,7 @@ Church Round 앱에 초대되셨습니다.
                       src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                       alt={selectedMember.name}
                       className="h-32 w-32 rounded-full object-cover mx-auto border-4 border-gray-200"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="h-32 w-32 rounded-full bg-gray-100 flex items-center justify-center mx-auto border-4 border-gray-200">
