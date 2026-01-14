@@ -5962,6 +5962,57 @@ export const supabaseApiService = {
 
   // Birthday Management (생일 관리)
   birthdays: {
+    // 모든 생일자 조회 (캐싱용)
+    getAll: async () => {
+      try {
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다');
+        }
+
+        const churchId = currentUser.user.church_id;
+        if (!churchId) {
+          throw new Error('사용자의 교회 정보를 찾을 수 없습니다');
+        }
+
+        const { data: members, error } = await supabase
+          .from('members')
+          .select(`
+            id,
+            name,
+            phone,
+            birthdate,
+            position_main,
+            position_detail,
+            department,
+            organization_id,
+            church_organizations:organization_id (
+              id,
+              name
+            )
+          `)
+          .eq('church_id', churchId)
+          .not('birthdate', 'is', null);
+
+        if (error) {
+          console.error('생일자 조회 실패:', error);
+          throw error;
+        }
+
+        const transformedMembers = members?.map(member => ({
+          ...member,
+          church_organizations: Array.isArray(member.church_organizations)
+            ? member.church_organizations[0]
+            : member.church_organizations
+        })) || [];
+
+        return { data: transformedMembers };
+      } catch (error) {
+        console.error('생일자 조회 실패:', error);
+        throw error;
+      }
+    },
+
     // 특정 월의 모든 생일자 조회
     getByMonth: async (year: number, month: number) => {
       try {
@@ -6025,6 +6076,56 @@ export const supabaseApiService = {
 
   // 일정 관리
   importantDates: {
+    // 모든 활성 일정 조회 (캐싱용)
+    getAll: async (): Promise<{ data: any[] }> => {
+      try {
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다');
+        }
+
+        const churchId = currentUser.user.church_id;
+        if (!churchId) {
+          throw new Error('사용자의 교회 정보를 찾을 수 없습니다');
+        }
+
+        const { data: dates, error } = await supabase
+          .from('important_dates')
+          .select(`
+            id, title, event_date, description,
+            enable_dday_alert, alert_days_before,
+            is_active, is_completed, notes,
+            member_id,
+            members:member_id (id, name, phone)
+          `)
+          .eq('church_id', churchId)
+          .eq('is_active', true);
+
+        if (error) throw error;
+
+        const transformedDates = (dates || []).map((date: any) => ({
+          id: date.id,
+          title: date.title,
+          event_date: date.event_date,
+          description: date.description,
+          enable_dday_alert: date.enable_dday_alert,
+          alert_days_before: date.alert_days_before,
+          is_active: date.is_active,
+          is_completed: date.is_completed,
+          notes: date.notes,
+          member_id: date.member_id,
+          members: Array.isArray(date.members) && date.members.length > 0
+            ? date.members[0]
+            : undefined
+        }));
+
+        return { data: transformedDates };
+      } catch (error) {
+        console.error('일정 조회 실패:', error);
+        throw error;
+      }
+    },
+
     // 월별 일정 조회
     getByMonth: async (year: number, month: number): Promise<{ data: any[] }> => {
       try {

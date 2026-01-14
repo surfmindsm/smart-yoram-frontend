@@ -58,18 +58,16 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
   const [allDates, setAllDates] = useState<ImportantDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 월이 변경될 때마다 해당 월의 생일자 & 일정 데이터 fetch
+  // 컴포넌트 마운트 시 전체 데이터를 한 번만 fetch (캐싱)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const year = getYear(currentMonth);
-        const month = getMonth(currentMonth) + 1; // 0-based to 1-based
 
-        // 생일자와 일정 데이터 동시 fetch
+        // 전체 생일자와 일정 데이터를 한 번에 fetch
         const [birthdaysResult, datesResult] = await Promise.all([
-          supabaseApiService.birthdays.getByMonth(year, month),
-          supabaseApiService.importantDates.getByMonth(year, month),
+          supabaseApiService.birthdays.getAll(),
+          supabaseApiService.importantDates.getAll(),
         ]);
 
         setAllBirthdays(birthdaysResult.data || []);
@@ -84,7 +82,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     };
 
     fetchData();
-  }, [currentMonth]);
+  }, []); // 빈 배열: 마운트 시 한 번만 실행
 
   // 현재 월에 생일이 있는 날짜 목록 생성
   const birthdayDates = useMemo(() => {
@@ -117,11 +115,12 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     allDates.forEach((event) => {
       if (event.event_date) {
         const eventDate = new Date(event.event_date);
+        const eventYear = getYear(eventDate);
         const eventMonth = getMonth(eventDate);
         const eventDay = eventDate.getDate();
 
-        // 현재 보고 있는 월과 일정 월이 같으면 추가
-        if (eventMonth === currentMonthNum) {
+        // 현재 보고 있는 년월과 일정 년월이 같으면 추가
+        if (eventYear === currentYear && eventMonth === currentMonthNum) {
           dates.push(new Date(currentYear, currentMonthNum, eventDay));
         }
       }
@@ -138,19 +137,22 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     return allBirthdays.filter((member) => {
       if (!member.birthdate) return false;
       const birthDate = new Date(member.birthdate);
+      // 생일은 년도 상관없이 월과 일만 비교
       return getMonth(birthDate) === month && birthDate.getDate() === day;
     });
   };
 
   // 특정 날짜의 일정 목록 가져오기
   const getEventsForDate = (date: Date) => {
+    const year = getYear(date);
     const month = getMonth(date);
     const day = date.getDate();
 
     return allDates.filter((event) => {
       if (!event.event_date) return false;
       const eventDate = new Date(event.event_date);
-      return getMonth(eventDate) === month && eventDate.getDate() === day;
+      // 일정은 년월일 모두 비교
+      return getYear(eventDate) === year && getMonth(eventDate) === month && eventDate.getDate() === day;
     });
   };
 
@@ -184,26 +186,36 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     setCurrentMonth(new Date());
   };
 
-  // 현재 월의 생일자 수
-  const currentMonthBirthdayCount = useMemo(() => {
+  // 현재 월의 생일자 목록
+  const currentMonthBirthdays = useMemo(() => {
     const currentMonthNum = getMonth(currentMonth);
     return allBirthdays.filter((member) => {
       if (!member.birthdate) return false;
       const birthDate = new Date(member.birthdate);
       return getMonth(birthDate) === currentMonthNum;
-    }).length;
+    });
   }, [allBirthdays, currentMonth]);
+
+  // 현재 월의 생일자 수
+  const currentMonthBirthdayCount = currentMonthBirthdays.length;
 
   // 날짜가 있는 일정 (현재 월)
   const datedEvents = useMemo(() => {
+    const currentMonthNum = getMonth(currentMonth);
+    const currentYear = getYear(currentMonth);
+
     return allDates
-      .filter((event) => event.event_date && !event.is_completed)
+      .filter((event) => {
+        if (!event.event_date || event.is_completed) return false;
+        const eventDate = new Date(event.event_date);
+        return getMonth(eventDate) === currentMonthNum && getYear(eventDate) === currentYear;
+      })
       .sort((a, b) => {
         const dateA = new Date(a.event_date!);
         const dateB = new Date(b.event_date!);
         return dateA.getDate() - dateB.getDate();
       });
-  }, [allDates]);
+  }, [allDates, currentMonth]);
 
   // 날짜가 없는 일정 (할일)
   const undatedTodos = useMemo(() => {
@@ -383,7 +395,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                       </h4>
                       {currentMonthBirthdayCount > 0 ? (
                         <div className="space-y-2">
-                          {allBirthdays
+                          {currentMonthBirthdays
                             .sort((a, b) => {
                               const dateA = new Date(a.birthdate);
                               const dateB = new Date(b.birthdate);
@@ -398,7 +410,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center justify-center w-10 h-10 bg-red-500/10 rounded-full">
                                     <span className="text-sm font-bold text-red-600">
-                                      {new Date(member.birthdate).getDate()}일
+                                      {new Date(member.birthdate).getDate()}
                                     </span>
                                   </div>
                                   <div>
@@ -445,7 +457,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                               <div className="flex items-start gap-2">
                                 <div className="flex items-center justify-center w-10 h-10 bg-blue-500/10 rounded-full flex-shrink-0">
                                   <span className="text-sm font-bold text-blue-600">
-                                    {new Date(event.event_date!).getDate()}일
+                                    {new Date(event.event_date!).getDate()}
                                   </span>
                                 </div>
                                 <div className="flex-1">
