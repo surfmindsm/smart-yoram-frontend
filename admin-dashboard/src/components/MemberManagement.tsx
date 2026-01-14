@@ -170,9 +170,9 @@ const MemberManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [members, setMembers] = useState<Member[]>([]);
+  const [allMembers, setAllMembers] = useState<Member[]>([]); // 원본 데이터 캐시
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [invitationStatusFilter, setInvitationStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -282,14 +282,6 @@ const MemberManagement: React.FC = () => {
     district: ''
   });
 
-  useEffect(() => {
-    // 페이지 접근 로그 (최초 마운트 시에만)
-    if (pagination.current_page === 1 && !appliedSearchTerm) {
-      activityLogger.logPageAccess('/member-management', '교인 관리');
-    }
-    fetchMembers();
-  }, [appliedSearchTerm, invitationStatusFilter, pagination.current_page, pagination.per_page, sortField, sortOrder]);
-
   // Helper function to flatten organization tree
   const flattenOrganizations = (orgs: ChurchOrganization[], level: number = 0): ChurchOrganization[] => {
     let result: ChurchOrganization[] = [];
@@ -301,6 +293,110 @@ const MemberManagement: React.FC = () => {
     });
     return result;
   };
+
+  // 서버에서 원본 데이터 가져오기 (캐싱)
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+
+      // 현재 사용자의 church_id 가져오기
+      const currentUserData = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUserData?.user?.church_id || 9998; // 기본값 9998
+
+      // 현재 사용자 정보를 상태에 저장
+      setCurrentUser(currentUserData?.user);
+
+      // Use Supabase Edge Function for members data
+      const response = await supabaseApiService.members.getAll();
+
+      // 원본 데이터 저장 (캐시)
+      setAllMembers(response.data);
+    } catch (error) {
+      console.error('교인 목록 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 클라이언트 사이드 필터링 (즉시 실행, 서버 요청 없음)
+  const filterMembers = () => {
+    let filteredData = [...allMembers];
+
+    // Apply search filter with Korean chosung search support
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim();
+      filteredData = filteredData.filter((member: any) =>
+        // 이름 검색 (초성 검색 지원)
+        (member.name && matchKoreanSearch(member.name, term)) ||
+        (member.full_name && matchKoreanSearch(member.full_name, term)) ||
+        // 이메일 검색 (일반 텍스트 검색)
+        (member.email && member.email.toLowerCase().includes(term.toLowerCase())) ||
+        // 전화번호 검색 (일반 텍스트 검색)
+        (member.phone && member.phone.includes(term))
+      );
+    }
+
+    // Apply invitation status filter
+    if (invitationStatusFilter !== 'all') {
+      filteredData = filteredData.filter((member: any) => {
+        return member.invitation_status === invitationStatusFilter;
+      });
+    }
+
+    const actualTotalCount = filteredData.length;
+
+    // Apply pagination
+    const startIndex = (pagination.current_page - 1) * pagination.per_page;
+    const endIndex = startIndex + pagination.per_page;
+    const paginatedData = filteredData.slice(startIndex, endIndex);
+
+    // Sort paginated data
+    let sortedData = [...paginatedData];
+    if (sortField) {
+      sortedData.sort((a, b) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        if (sortOrder === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+    }
+
+    setMembers(sortedData);
+
+    // Update pagination state
+    const totalPages = Math.ceil(actualTotalCount / pagination.per_page);
+    setPagination(prev => ({
+      ...prev,
+      total_count: actualTotalCount,
+      total_pages: totalPages,
+      has_prev: prev.current_page > 1,
+      has_next: prev.current_page < totalPages
+    }));
+
+    // 검색 로그 기록 (실제 결과와 함께)
+    if (searchTerm.trim()) {
+      activityLogger.logMemberSearch(searchTerm, actualTotalCount);
+    }
+  };
+
+  // 클라이언트 사이드 검색 및 필터링 (서버 요청 없이 즉시 실행)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      filterMembers();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, invitationStatusFilter, allMembers, sortField, sortOrder, pagination.current_page, pagination.per_page]);
+
+  // 서버에서 데이터 가져오기 (초기 로드 시에만)
+  useEffect(() => {
+    // 페이지 접근 로그 (최초 마운트 시에만)
+    activityLogger.logPageAccess('/member-management', '교인 관리');
+    fetchMembers();
+  }, []); // 한 번만 실행
 
   // 조직 목록 및 부서 목록 불러오기
   useEffect(() => {
@@ -368,107 +464,15 @@ const MemberManagement: React.FC = () => {
     }
   }, [location.state]);
 
-  const fetchMembers = async () => {
-    try {
-      setLoading(true);
-
-      // 현재 사용자의 church_id 가져오기
-      const currentUserData = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUserData?.user?.church_id || 9998; // 기본값 9998
-
-      // 현재 사용자 정보를 상태에 저장
-      setCurrentUser(currentUserData?.user);
-
-      // Use Supabase Edge Function for members data
-      const response = await supabaseApiService.members.getAll();
-
-      let filteredData = response.data;
-
-      // Apply search filter on client side with Korean chosung search support
-      if (appliedSearchTerm) {
-        const searchTerm = appliedSearchTerm.trim();
-        filteredData = response.data.filter((member: any) =>
-          // 이름 검색 (초성 검색 지원)
-          (member.name && matchKoreanSearch(member.name, searchTerm)) ||
-          (member.full_name && matchKoreanSearch(member.full_name, searchTerm)) ||
-          // 이메일 검색 (일반 텍스트 검색)
-          (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          // 전화번호 검색 (일반 텍스트 검색)
-          (member.phone && member.phone.includes(searchTerm))
-        );
-      }
-
-      // Apply invitation status filter on client side
-      if (invitationStatusFilter !== 'all') {
-        filteredData = filteredData.filter((member: any) => {
-          return member.invitation_status === invitationStatusFilter;
-        });
-      }
-
-      const actualTotalCount = filteredData.length;
-
-      // Apply pagination on client side
-      const startIndex = (pagination.current_page - 1) * pagination.per_page;
-      const endIndex = startIndex + pagination.per_page;
-      const paginatedData = filteredData.slice(startIndex, endIndex);
-
-      // Sort paginated data on client side
-      let sortedData = [...paginatedData];
-      if (sortField) {
-        sortedData.sort((a, b) => {
-          const aVal = a[sortField] || '';
-          const bVal = b[sortField] || '';
-          if (sortOrder === 'asc') {
-            return aVal > bVal ? 1 : -1;
-          } else {
-            return aVal < bVal ? 1 : -1;
-          }
-        });
-      }
-
-      setMembers(sortedData);
-
-      // Update pagination state
-      const totalPages = Math.ceil(actualTotalCount / pagination.per_page);
-      setPagination(prev => ({
-        ...prev,
-        total_count: actualTotalCount,
-        total_pages: totalPages,
-        has_prev: prev.current_page > 1,
-        has_next: prev.current_page < totalPages
-      }));
-      
-      // 검색 로그 기록 (실제 결과와 함께)
-      if (appliedSearchTerm) {
-        activityLogger.logMemberSearch(appliedSearchTerm, actualTotalCount);
-      }
-    } catch (error) {
-      console.error('교인 목록 조회 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = () => {
-    setPagination(prev => ({ ...prev, current_page: 1 })); // Reset to first page on new search
-    setAppliedSearchTerm(searchTerm);
-
-    // 검색 로그 기록 (실제 검색 수행 후에 결과 개수와 함께 기록)
-    if (searchTerm.trim()) {
-      // 검색 로그는 fetchMembers에서 실제 결과 개수를 알 수 있을 때 기록
-      console.log('🔍 Search initiated for:', searchTerm);
-    }
-  };
-
   const handleClearSearch = () => {
     setSearchTerm('');
-    setAppliedSearchTerm('');
     setPagination(prev => ({ ...prev, current_page: 1 }));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      // Enter 키는 즉시 검색 실행 (debounce 무시)
+      filterMembers();
     }
   };
 
@@ -1894,20 +1898,13 @@ Church Round 앱에 초대되셨습니다.
             <div className="flex gap-2">
               <Input
                 type="text"
-                placeholder="이름 또는 전화번호 (초성 검색 가능: ㄱㅊㅅ)"
+                placeholder="이름 또는 전화번호 (초성 실시간 검색: ㄱㅊㅅ)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="flex-1"
               />
-              <Button
-                onClick={handleSearch}
-                className="flex items-center gap-2"
-              >
-                <Search className="w-4 h-4" />
-                검색
-              </Button>
-              {appliedSearchTerm && (
+              {searchTerm && (
                 <Button
                   onClick={handleClearSearch}
                   variant="outline"
