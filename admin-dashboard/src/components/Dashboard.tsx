@@ -474,10 +474,9 @@ const Dashboard = React.memo(() => {
         />
       </div>
 
-      {/* Todo List */}
-      <div className="mb-8">
+      {/* Todo List - 주석처리 (BirthdayCalendar로 통합됨) */}
+      {/* <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
-          {/* <Calendar className="h-5 w-5" /> */}
           <h3 className="text-lg font-semibold text-foreground">할 일 목록</h3>
           {(todos.todayBirthdays.length + todos.upcomingBirthdays.length +
             todos.todayPastoralCare.length + todos.upcomingPastoralCare.length +
@@ -501,7 +500,7 @@ const Dashboard = React.memo(() => {
           onImportantDateClick={handleImportantDateClick}
           onPastoralCareNavigate={handlePastoralCareNavigate}
         />
-      </div>
+      </div> */}
 
       {/* Quick Actions */}
       <div className="mb-8">

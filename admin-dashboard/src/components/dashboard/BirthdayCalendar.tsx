@@ -1,13 +1,15 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DayPicker } from 'react-day-picker';
 import { format, getMonth, getYear, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import 'react-day-picker/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui';
 import { Button } from '../ui';
-import { ChevronLeft, ChevronRight, Cake } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle } from 'lucide-react';
 import { Badge } from '../ui';
 import { supabaseApiService } from '../../services/supabaseApiService';
+import { useToast } from '../../hooks/use-toast';
 
 interface Member {
   id: number;
@@ -24,6 +26,24 @@ interface Member {
   };
 }
 
+interface ImportantDate {
+  id: number;
+  title: string;
+  event_date: string | null;
+  description?: string;
+  enable_dday_alert: boolean;
+  alert_days_before: number;
+  is_active: boolean;
+  is_completed: boolean;
+  notes?: string;
+  member_id?: number;
+  members?: {
+    id: number;
+    name: string;
+    phone?: string;
+  };
+}
+
 interface BirthdayCalendarProps {
   onMemberClick?: (member: Member) => void;
 }
@@ -31,29 +51,39 @@ interface BirthdayCalendarProps {
 const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
   onMemberClick,
 }) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [allBirthdays, setAllBirthdays] = useState<Member[]>([]);
+  const [allDates, setAllDates] = useState<ImportantDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 월이 변경될 때마다 해당 월의 생일자 데이터 fetch
+  // 월이 변경될 때마다 해당 월의 생일자 & 일정 데이터 fetch
   useEffect(() => {
-    const fetchBirthdays = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         const year = getYear(currentMonth);
         const month = getMonth(currentMonth) + 1; // 0-based to 1-based
 
-        const { data } = await supabaseApiService.birthdays.getByMonth(year, month);
-        setAllBirthdays(data || []);
+        // 생일자와 일정 데이터 동시 fetch
+        const [birthdaysResult, datesResult] = await Promise.all([
+          supabaseApiService.birthdays.getByMonth(year, month),
+          supabaseApiService.importantDates.getByMonth(year, month),
+        ]);
+
+        setAllBirthdays(birthdaysResult.data || []);
+        setAllDates(datesResult.data || []);
       } catch (error) {
-        console.error('생일자 데이터 조회 실패:', error);
+        console.error('데이터 조회 실패:', error);
         setAllBirthdays([]);
+        setAllDates([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBirthdays();
+    fetchData();
   }, [currentMonth]);
 
   // 현재 월에 생일이 있는 날짜 목록 생성
@@ -78,6 +108,28 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     return dates;
   }, [allBirthdays, currentMonth]);
 
+  // 현재 월에 일정이 있는 날짜 목록 생성
+  const eventDates = useMemo(() => {
+    const dates: Date[] = [];
+    const currentYear = getYear(currentMonth);
+    const currentMonthNum = getMonth(currentMonth);
+
+    allDates.forEach((event) => {
+      if (event.event_date) {
+        const eventDate = new Date(event.event_date);
+        const eventMonth = getMonth(eventDate);
+        const eventDay = eventDate.getDate();
+
+        // 현재 보고 있는 월과 일정 월이 같으면 추가
+        if (eventMonth === currentMonthNum) {
+          dates.push(new Date(currentYear, currentMonthNum, eventDay));
+        }
+      }
+    });
+
+    return dates;
+  }, [allDates, currentMonth]);
+
   // 특정 날짜의 생일자 목록 가져오기
   const getBirthdayMembersForDate = (date: Date) => {
     const month = getMonth(date);
@@ -90,10 +142,25 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     });
   };
 
-  // 선택된 날짜의 생일자 목록
+  // 특정 날짜의 일정 목록 가져오기
+  const getEventsForDate = (date: Date) => {
+    const month = getMonth(date);
+    const day = date.getDate();
+
+    return allDates.filter((event) => {
+      if (!event.event_date) return false;
+      const eventDate = new Date(event.event_date);
+      return getMonth(eventDate) === month && eventDate.getDate() === day;
+    });
+  };
+
+  // 선택된 날짜의 생일자 & 일정 목록
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const selectedBirthdays = selectedDate
     ? getBirthdayMembersForDate(selectedDate)
+    : [];
+  const selectedEvents = selectedDate
+    ? getEventsForDate(selectedDate)
     : [];
 
   // 월 변경 핸들러
@@ -127,6 +194,53 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     }).length;
   }, [allBirthdays, currentMonth]);
 
+  // 날짜가 있는 일정 (현재 월)
+  const datedEvents = useMemo(() => {
+    return allDates
+      .filter((event) => event.event_date && !event.is_completed)
+      .sort((a, b) => {
+        const dateA = new Date(a.event_date!);
+        const dateB = new Date(b.event_date!);
+        return dateA.getDate() - dateB.getDate();
+      });
+  }, [allDates]);
+
+  // 날짜가 없는 일정 (할일)
+  const undatedTodos = useMemo(() => {
+    return allDates.filter((event) => !event.event_date && !event.is_completed);
+  }, [allDates]);
+
+  // 일정 완료/미완료 토글
+  const handleToggleComplete = async (event: ImportantDate, e: React.MouseEvent) => {
+    e.stopPropagation(); // 부모 클릭 이벤트 방지
+
+    try {
+      const newStatus = !event.is_completed;
+
+      // 낙관적 업데이트
+      setAllDates(prev => prev.map(d =>
+        d.id === event.id ? { ...d, is_completed: newStatus } : d
+      ));
+
+      await supabaseApiService.importantDates.toggleComplete(event.id, newStatus);
+
+      toast({
+        title: newStatus ? '완료 처리' : '미완료로 변경',
+        description: newStatus ? '일정이 완료되었습니다' : '일정이 미완료로 변경되었습니다',
+      });
+    } catch (error) {
+      console.error('일정 상태 변경 실패:', error);
+      // 롤백
+      setAllDates(prev => prev.map(d =>
+        d.id === event.id ? event : d
+      ));
+      toast({
+        title: '상태 변경 실패',
+        description: '일정 상태 변경에 실패했습니다',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <Card className="border-muted">
@@ -168,9 +282,11 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                 locale={ko}
                 modifiers={{
                   birthday: birthdayDates,
+                  event: eventDates,
                 }}
                 modifiersClassNames={{
                   birthday: 'has-birthday',
+                  event: 'has-event',
                 }}
                 showOutsideDays={false}
               />
@@ -189,101 +305,197 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                     </h3>
                   </div>
 
+                  {/* 생일자 섹션 */}
                   <div className="border-t border-border pt-6">
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Cake className="h-4 w-4" />
+                      생일자
+                    </h4>
                     {selectedBirthdays.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-3 mb-6">
                         {selectedBirthdays.map((member) => (
                           <div
                             key={member.id}
-                            className="cursor-pointer hover:bg-muted/50 p-4 rounded-lg transition-colors"
+                            className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
                             onClick={() => onMemberClick?.(member)}
                           >
-                            <div className="flex items-start gap-3 mb-2">
-                              <span className="font-bold text-foreground min-w-[80px]">기간안내</span>
-                              <span className="text-muted-foreground">생일입니다.</span>
-                            </div>
-                            <div className="flex items-start gap-3 mb-2">
-                              <span className="font-bold text-foreground min-w-[80px]">예약문의</span>
-                              <span className="text-muted-foreground">{member.name}</span>
-                            </div>
-                            {member.phone && (
-                              <div className="flex items-start gap-3 mb-2">
-                                <span className="font-bold text-foreground min-w-[80px]">계좌번호</span>
-                                <span className="text-muted-foreground">{member.phone}</span>
-                              </div>
+                            <p className="font-medium">{member.name}</p>
+                            {member.department && (
+                              <p className="text-xs text-muted-foreground">{member.department}</p>
                             )}
-                            <div className="flex items-start gap-3">
-                              <span className="font-bold text-foreground min-w-[80px]">기타사항</span>
-                              <span className="text-muted-foreground">
-                                {member.department || '부서 정보 없음'}
-                              </span>
+                            {member.phone && (
+                              <p className="text-xs text-muted-foreground">{member.phone}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mb-6">생일자가 없습니다</p>
+                    )}
+
+                    {/* 일정 섹션 */}
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 border-t border-border pt-6">
+                      <Calendar className="h-4 w-4" />
+                      일정
+                    </h4>
+                    {selectedEvents.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={(e) => handleToggleComplete(event, e)}
+                          >
+                            <div className="flex items-start gap-2">
+                              {event.is_completed ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              )}
+                              <div className="flex-1">
+                                <p className={`font-medium ${event.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+                                  {event.title}
+                                </p>
+                                {event.members && (
+                                  <p className="text-xs text-muted-foreground">{event.members.name}</p>
+                                )}
+                                {event.notes && (
+                                  <p className="text-xs text-muted-foreground mt-1">{event.notes}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12">
-                        <Cake className="h-16 w-16 mx-auto mb-3 opacity-20" />
-                        <p className="text-muted-foreground">이 날짜에 생일자가 없습니다.</p>
-                      </div>
+                      <p className="text-sm text-muted-foreground">일정이 없습니다</p>
                     )}
                   </div>
                 </div>
               ) : (
-                <div>
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold">
-                      {format(currentMonth, 'yyyy년 M월', { locale: ko })} 생일자
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      총 {currentMonthBirthdayCount}명
-                    </p>
-                  </div>
+                <div className="space-y-6">
+                  <div className="max-h-[500px] overflow-y-auto custom-scrollbar pr-2 space-y-6">
+                    {/* 생일자 섹션 */}
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Cake className="h-4 w-4" />
+                        생일자 ({currentMonthBirthdayCount}명)
+                      </h4>
+                      {currentMonthBirthdayCount > 0 ? (
+                        <div className="space-y-2">
+                          {allBirthdays
+                            .sort((a, b) => {
+                              const dateA = new Date(a.birthdate);
+                              const dateB = new Date(b.birthdate);
+                              return dateA.getDate() - dateB.getDate();
+                            })
+                            .map((member) => (
+                              <div
+                                key={member.id}
+                                className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors flex items-center justify-between"
+                                onClick={() => onMemberClick?.(member)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-10 h-10 bg-red-500/10 rounded-full">
+                                    <span className="text-sm font-bold text-red-600">
+                                      {new Date(member.birthdate).getDate()}일
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{member.name}</p>
+                                    {member.department && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {member.department}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">생일자가 없습니다</p>
+                      )}
+                    </div>
 
-                  <div className="border-t border-border pt-6">
-                    {currentMonthBirthdayCount > 0 ? (
-                      <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
-                        {allBirthdays
-                          .sort((a, b) => {
-                            const dateA = new Date(a.birthdate);
-                            const dateB = new Date(b.birthdate);
-                            return dateA.getDate() - dateB.getDate();
-                          })
-                          .map((member) => (
+                    {/* 일정 섹션 */}
+                    <div className="border-t border-border pt-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          일정 ({datedEvents.length}건)
+                        </h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate('/important-dates')}
+                          className="text-xs"
+                        >
+                          더보기
+                        </Button>
+                      </div>
+                      {datedEvents.length > 0 ? (
+                        <div className="space-y-2">
+                          {datedEvents.map((event) => (
                             <div
-                              key={member.id}
-                              className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors flex items-center justify-between"
-                              onClick={() => onMemberClick?.(member)}
+                              key={event.id}
+                              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                              onClick={(e) => handleToggleComplete(event, e)}
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-full">
-                                  <span className="text-sm font-bold">
-                                    {new Date(member.birthdate).getDate()}일
+                              <div className="flex items-start gap-2">
+                                <div className="flex items-center justify-center w-10 h-10 bg-blue-500/10 rounded-full flex-shrink-0">
+                                  <span className="text-sm font-bold text-blue-600">
+                                    {new Date(event.event_date!).getDate()}일
                                   </span>
                                 </div>
-                                <div>
-                                  <p className="font-medium">{member.name}</p>
-                                  {member.department && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {member.department}
-                                    </p>
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{event.title}</p>
+                                  {event.members && (
+                                    <p className="text-xs text-muted-foreground">{event.members.name}</p>
                                   )}
                                 </div>
                               </div>
-                              {member.phone && (
-                                <p className="text-sm text-muted-foreground">
-                                  {member.phone}
-                                </p>
-                              )}
                             </div>
                           ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <Cake className="h-16 w-16 mx-auto mb-3 opacity-20" />
-                        <p className="text-muted-foreground">이번 달 생일자가 없습니다.</p>
-                      </div>
-                    )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">일정이 없습니다</p>
+                      )}
+                    </div>
+
+                    {/* 할일 섹션 (날짜 미정) */}
+                    <div className="border-t border-border pt-6">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Circle className="h-4 w-4" />
+                        할일 ({undatedTodos.length}건)
+                      </h4>
+                      {undatedTodos.length > 0 ? (
+                        <div className="space-y-2">
+                          {undatedTodos.map((todo) => (
+                            <div
+                              key={todo.id}
+                              className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                              onClick={(e) => handleToggleComplete(todo, e)}
+                            >
+                              <div className="flex items-start gap-2">
+                                <Circle className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{todo.title}</p>
+                                  {todo.members && (
+                                    <p className="text-xs text-muted-foreground">{todo.members.name}</p>
+                                  )}
+                                  {todo.notes && (
+                                    <p className="text-xs text-muted-foreground mt-1">{todo.notes}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">할일이 없습니다</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -328,11 +540,11 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         }
 
         .birthday-calendar-wrapper .rdp-weekday {
-          font-size: 0.875rem;
+          font-size: 1rem;
           font-weight: 500;
           color: hsl(var(--foreground));
           padding: 0.75rem 0;
-          width: 3.5rem;
+          width: 4.5rem;
         }
 
         /* 일요일 빨간색 */
@@ -350,16 +562,16 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         }
 
         .birthday-calendar-wrapper .rdp-day {
-          width: 3.5rem;
-          height: 3.5rem;
+          width: 4.5rem;
+          height: 4.5rem;
           padding: 0;
         }
 
         .birthday-calendar-wrapper .rdp-day_button {
-          width: 3.5rem;
-          height: 3.5rem;
+          width: 4.5rem;
+          height: 4.5rem;
           border-radius: 50%;
-          font-size: 1rem;
+          font-size: 1.125rem;
           font-weight: 400;
           border: none;
           background: transparent;
@@ -387,7 +599,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
           font-weight: 600;
         }
 
-        /* 생일이 있는 날짜 - 빨간 뱃지 */
+        /* 생일 배지 - 기본 (가운데) */
         .birthday-calendar-wrapper .has-birthday .rdp-day_button {
           position: relative;
         }
@@ -395,13 +607,42 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         .birthday-calendar-wrapper .has-birthday .rdp-day_button::after {
           content: '';
           position: absolute;
-          bottom: 0.25rem;
+          bottom: 0.5rem;
           left: 50%;
           transform: translateX(-50%);
-          width: 0.375rem;
-          height: 0.375rem;
+          width: 0.4rem;
+          height: 0.4rem;
           background-color: #ef4444;
           border-radius: 50%;
+        }
+
+        /* 생일과 일정이 둘 다 있을 때 - 생일 배지 왼쪽으로 */
+        .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::after {
+          left: 50%;
+          transform: translateX(-0.5rem);
+        }
+
+        /* 일정 배지 - 기본 (가운데) */
+        .birthday-calendar-wrapper .has-event .rdp-day_button {
+          position: relative;
+        }
+
+        .birthday-calendar-wrapper .has-event .rdp-day_button::before {
+          content: '';
+          position: absolute;
+          bottom: 0.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0.4rem;
+          height: 0.4rem;
+          background-color: #3b82f6;
+          border-radius: 50%;
+        }
+
+        /* 생일과 일정이 둘 다 있을 때 - 일정 배지 오른쪽으로 */
+        .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::before {
+          left: 50%;
+          transform: translateX(0.5rem);
         }
 
         .birthday-calendar-wrapper .rdp-outside {

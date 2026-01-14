@@ -6023,6 +6023,90 @@ export const supabaseApiService = {
     },
   },
 
+  // 일정 관리
+  importantDates: {
+    // 월별 일정 조회
+    getByMonth: async (year: number, month: number): Promise<{ data: any[] }> => {
+      try {
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다');
+        }
+
+        const churchId = currentUser.user.church_id;
+        if (!churchId) {
+          throw new Error('사용자의 교회 정보를 찾을 수 없습니다');
+        }
+
+        // 해당 월의 시작일과 마지막일 계산
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
+        const { data: dates, error } = await supabase
+          .from('important_dates')
+          .select(`
+            id, title, event_date, description,
+            enable_dday_alert, alert_days_before,
+            is_active, is_completed, notes,
+            member_id,
+            members:member_id (id, name, phone)
+          `)
+          .eq('church_id', churchId)
+          .eq('is_active', true)
+          .or(`event_date.gte.${startDate.toISOString().split('T')[0]},event_date.lte.${endDate.toISOString().split('T')[0]},event_date.is.null`);
+
+        if (error) throw error;
+
+        // members 배열을 단일 객체로 변환
+        const transformedDates = (dates || []).map((date: any) => ({
+          id: date.id,
+          title: date.title,
+          event_date: date.event_date,
+          description: date.description,
+          enable_dday_alert: date.enable_dday_alert,
+          alert_days_before: date.alert_days_before,
+          is_active: date.is_active,
+          is_completed: date.is_completed,
+          notes: date.notes,
+          member_id: date.member_id,
+          members: Array.isArray(date.members) && date.members.length > 0
+            ? date.members[0]
+            : undefined
+        }));
+
+        return { data: transformedDates };
+      } catch (error) {
+        console.error('월별 일정 조회 실패:', error);
+        throw error;
+      }
+    },
+
+    // 일정 완료/미완료 토글
+    toggleComplete: async (id: number, isCompleted: boolean) => {
+      try {
+        const token = await supabaseAuthService.getToken();
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/important-dates/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token || '',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ is_completed: isCompleted })
+        });
+
+        if (!response.ok) throw new Error('일정 상태 변경 실패');
+
+        const data = await response.json();
+        return { data };
+      } catch (error) {
+        console.error('일정 상태 변경 실패:', error);
+        throw error;
+      }
+    },
+  },
 
 };
 
