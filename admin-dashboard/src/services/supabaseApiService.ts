@@ -6041,6 +6041,8 @@ export const supabaseApiService = {
         // 해당 월의 시작일과 마지막일 계산
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0);
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
 
         const { data: dates, error } = await supabase
           .from('important_dates')
@@ -6053,7 +6055,7 @@ export const supabaseApiService = {
           `)
           .eq('church_id', churchId)
           .eq('is_active', true)
-          .or(`event_date.gte.${startDate.toISOString().split('T')[0]},event_date.lte.${endDate.toISOString().split('T')[0]},event_date.is.null`);
+          .or(`and(event_date.gte.${startDateStr},event_date.lte.${endDateStr}),event_date.is.null`);
 
         if (error) throw error;
 
