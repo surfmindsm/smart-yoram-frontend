@@ -230,14 +230,61 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <Cake className="h-16 w-16 mx-auto mb-3 opacity-20" />
-                  <p className="text-muted-foreground mb-2">날짜를 선택해주세요</p>
-                  {currentMonthBirthdayCount > 0 && (
-                    <p className="text-sm text-primary-500 font-medium">
-                      이번 달 생일자 {currentMonthBirthdayCount}명
+                <div>
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-bold">
+                      {format(currentMonth, 'yyyy년 M월', { locale: ko })} 생일자
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      총 {currentMonthBirthdayCount}명
                     </p>
-                  )}
+                  </div>
+
+                  <div className="border-t border-border pt-6">
+                    {currentMonthBirthdayCount > 0 ? (
+                      <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                        {allBirthdays
+                          .sort((a, b) => {
+                            const dateA = new Date(a.birthdate);
+                            const dateB = new Date(b.birthdate);
+                            return dateA.getDate() - dateB.getDate();
+                          })
+                          .map((member) => (
+                            <div
+                              key={member.id}
+                              className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors flex items-center justify-between"
+                              onClick={() => onMemberClick?.(member)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-full">
+                                  <span className="text-sm font-bold">
+                                    {new Date(member.birthdate).getDate()}일
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="font-medium">{member.name}</p>
+                                  {member.department && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {member.department}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              {member.phone && (
+                                <p className="text-sm text-muted-foreground">
+                                  {member.phone}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Cake className="h-16 w-16 mx-auto mb-3 opacity-20" />
+                        <p className="text-muted-foreground">이번 달 생일자가 없습니다.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
