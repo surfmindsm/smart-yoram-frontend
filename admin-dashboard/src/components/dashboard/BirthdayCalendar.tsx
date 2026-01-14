@@ -6,7 +6,7 @@ import { ko } from 'date-fns/locale';
 import 'react-day-picker/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui';
 import { Button } from '../ui';
-import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle, Flag } from 'lucide-react';
 import { Badge } from '../ui';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import { useToast } from '../../hooks/use-toast';
@@ -44,9 +44,37 @@ interface ImportantDate {
   };
 }
 
+interface Holiday {
+  date: string; // YYYY-MM-DD 형식
+  name: string;
+  isLunar?: boolean;
+}
+
 interface BirthdayCalendarProps {
   onMemberClick?: (member: Member) => void;
 }
+
+// 한국 공휴일 데이터 (2026년 기준)
+const HOLIDAYS_2026: Holiday[] = [
+  { date: '2026-01-01', name: '신정' },
+  { date: '2026-02-16', name: '설날 전날', isLunar: true },
+  { date: '2026-02-17', name: '설날', isLunar: true },
+  { date: '2026-02-18', name: '설날 다음날', isLunar: true },
+  { date: '2026-03-01', name: '삼일절' },
+  { date: '2026-05-05', name: '어린이날' },
+  { date: '2026-05-24', name: '부처님오신날', isLunar: true },
+  { date: '2026-05-25', name: '부처님오신날 대체공휴일' },
+  { date: '2026-06-06', name: '현충일' },
+  { date: '2026-08-15', name: '광복절' },
+  { date: '2026-08-17', name: '광복절 대체공휴일' },
+  { date: '2026-10-03', name: '개천절' },
+  { date: '2026-10-04', name: '추석 전날', isLunar: true },
+  { date: '2026-10-05', name: '추석', isLunar: true },
+  { date: '2026-10-06', name: '추석 다음날', isLunar: true },
+  { date: '2026-10-07', name: '추석 대체공휴일' },
+  { date: '2026-10-09', name: '한글날' },
+  { date: '2026-12-25', name: '성탄절' },
+];
 
 const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
   onMemberClick,
@@ -83,6 +111,32 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
     fetchData();
   }, []); // 빈 배열: 마운트 시 한 번만 실행
+
+  // 현재 월의 공휴일 목록
+  const currentMonthHolidays = useMemo(() => {
+    const currentMonthNum = getMonth(currentMonth);
+    const currentYear = getYear(currentMonth);
+
+    return HOLIDAYS_2026.filter((holiday) => {
+      const holidayDate = new Date(holiday.date);
+      return getYear(holidayDate) === currentYear && getMonth(holidayDate) === currentMonthNum;
+    });
+  }, [currentMonth]);
+
+  // 현재 월에 공휴일이 있는 날짜 목록 생성
+  const holidayDates = useMemo(() => {
+    const dates: Date[] = [];
+    const currentYear = getYear(currentMonth);
+    const currentMonthNum = getMonth(currentMonth);
+
+    currentMonthHolidays.forEach((holiday) => {
+      const holidayDate = new Date(holiday.date);
+      const holidayDay = holidayDate.getDate();
+      dates.push(new Date(currentYear, currentMonthNum, holidayDay));
+    });
+
+    return dates;
+  }, [currentMonthHolidays, currentMonth]);
 
   // 현재 월에 생일이 있는 날짜 목록 생성
   const birthdayDates = useMemo(() => {
@@ -295,10 +349,12 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                 modifiers={{
                   birthday: birthdayDates,
                   event: eventDates,
+                  holiday: holidayDates,
                 }}
                 modifiersClassNames={{
                   birthday: 'has-birthday',
                   event: 'has-event',
+                  holiday: 'has-holiday',
                 }}
                 showOutsideDays={false}
               />
@@ -508,6 +564,42 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                         <p className="text-sm text-muted-foreground">할일이 없습니다</p>
                       )}
                     </div>
+
+                    {/* 공휴일 섹션 */}
+                    <div className="border-t border-border pt-6">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Flag className="h-4 w-4 text-red-600" />
+                        공휴일 ({currentMonthHolidays.length}건)
+                      </h4>
+                      {currentMonthHolidays.length > 0 ? (
+                        <div className="space-y-2">
+                          {currentMonthHolidays
+                            .sort((a, b) => new Date(a.date).getDate() - new Date(b.date).getDate())
+                            .map((holiday, index) => (
+                              <div
+                                key={index}
+                                className="p-3 rounded-lg bg-red-500/5 border border-red-200"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center justify-center w-10 h-10 bg-red-500/10 rounded-full flex-shrink-0">
+                                    <span className="text-sm font-bold text-red-600">
+                                      {new Date(holiday.date).getDate()}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm text-red-700">{holiday.name}</p>
+                                    {holiday.isLunar && (
+                                      <p className="text-xs text-red-600">음력</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">공휴일이 없습니다</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -655,6 +747,11 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::before {
           left: 50%;
           transform: translateX(0.5rem);
+        }
+
+        /* 공휴일 - 날짜 텍스트 색상 빨간색 (일요일과 동일) */
+        .birthday-calendar-wrapper .has-holiday .rdp-day_button {
+          color: #ef4444 !important;
         }
 
         .birthday-calendar-wrapper .rdp-outside {
