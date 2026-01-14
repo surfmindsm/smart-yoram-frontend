@@ -5960,6 +5960,69 @@ export const supabaseApiService = {
     },
   },
 
+  // Birthday Management (생일 관리)
+  birthdays: {
+    // 특정 월의 모든 생일자 조회
+    getByMonth: async (year: number, month: number) => {
+      try {
+        // 현재 사용자 정보 가져오기 (JWT 토큰 기반)
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증되지 않은 사용자입니다');
+        }
+
+        const churchId = currentUser.user.church_id;
+        if (!churchId) {
+          throw new Error('사용자의 교회 정보를 찾을 수 없습니다');
+        }
+
+        // 해당 교회의 모든 멤버 조회 (church_id 필터링)
+        const { data: members, error } = await supabase
+          .from('members')
+          .select(`
+            id,
+            name,
+            phone,
+            birthdate,
+            position_main,
+            position_detail,
+            department,
+            organization_id,
+            church_organizations:organization_id (
+              id,
+              name
+            )
+          `)
+          .eq('church_id', churchId)
+          .not('birthdate', 'is', null);
+
+        if (error) {
+          console.error('생일자 조회 실패:', error);
+          throw error;
+        }
+
+        // 클라이언트에서 월별로 필터링 및 데이터 변환
+        const filteredMembers = members?.filter(member => {
+          if (!member.birthdate) return false;
+          const birthDate = new Date(member.birthdate);
+          const birthMonth = birthDate.getMonth() + 1; // 0-based to 1-based
+          return birthMonth === month;
+        }).map(member => ({
+          ...member,
+          // church_organizations 배열을 단일 객체로 변환
+          church_organizations: Array.isArray(member.church_organizations)
+            ? member.church_organizations[0]
+            : member.church_organizations
+        })) || [];
+
+        return { data: filteredMembers };
+      } catch (error) {
+        console.error('월별 생일자 조회 실패:', error);
+        throw error;
+      }
+    },
+  },
+
 
 };
 

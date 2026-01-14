@@ -45,6 +45,7 @@ import QuickActionCard from './dashboard/QuickActionCard';
 import TodoList from './dashboard/TodoList';
 import PasswordChangeModal from './PasswordChangeModal';
 import QuickActionsCustomizer from './dashboard/QuickActionsCustomizer';
+import BirthdayCalendar from './dashboard/BirthdayCalendar';
 import { useToast } from '../hooks/use-toast';
 import { AVAILABLE_QUICK_ACTIONS, DEFAULT_QUICK_ACTIONS, QuickAction } from '../constants/quickActions';
 
@@ -465,6 +466,13 @@ const Dashboard = React.memo(() => {
   return (
     <PageContainer>
       <PageHeader title="대시보드" />
+
+      {/* 생일자 캘린더 */}
+      <div className="mb-8">
+        <BirthdayCalendar
+          onMemberClick={handleMemberClick}
+        />
+      </div>
 
       {/* Todo List */}
       <div className="mb-8">
