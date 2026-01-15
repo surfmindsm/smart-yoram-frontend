@@ -143,15 +143,32 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
   // 음력 생일을 양력으로 변환하는 함수
   const convertLunarToSolar = (lunarDate: string, targetYear: number): Date | null => {
     try {
-      const birthDate = new Date(lunarDate);
-      const lunarMonth = birthDate.getMonth() + 1; // 0-based to 1-based
-      const lunarDay = birthDate.getDate();
+      // lunarDate는 "1990-01-15" 형식의 문자열 (음력 날짜를 나타냄)
+      // new Date()로 파싱하면 양력으로 해석되므로, 문자열을 직접 파싱
+      const parts = lunarDate.split('-');
+      if (parts.length !== 3) {
+        console.error('잘못된 날짜 형식:', lunarDate);
+        return null;
+      }
+
+      const lunarMonth = parseInt(parts[1], 10); // 월 (1-12)
+      const lunarDay = parseInt(parts[2], 10);   // 일 (1-31)
 
       // 음력을 양력으로 변환
       const lunar = Lunar.fromYmd(targetYear, lunarMonth, lunarDay);
       const solar = lunar.getSolar();
 
-      return new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay());
+      // _p 속성에서 실제 데이터 추출
+      const p = solar._p;
+      const resultDate = new Date(p.year, p.month - 1, p.day);
+
+      // 디버깅: 변환 결과 로그
+      console.log('🌙 음력→양력 변환:', {
+        입력: `음력 ${targetYear}년 ${lunarMonth}월 ${lunarDay}일`,
+        결과: `양력 ${p.year}년 ${p.month}월 ${p.day}일`
+      });
+
+      return resultDate;
     } catch (error) {
       console.error('음력 변환 실패:', error);
       return null;
@@ -166,25 +183,41 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
     allBirthdays.forEach((member) => {
       if (member.birthdate) {
-        let birthMonth: number;
-        let birthDay: number;
-
         if (member.birthdate_type === '음력') {
-          // 음력 생일: 현재 년도의 양력 날짜로 변환
-          const solarDate = convertLunarToSolar(member.birthdate, currentYear);
-          if (!solarDate) return;
-          birthMonth = getMonth(solarDate);
-          birthDay = solarDate.getDate();
+          // 음력 생일: 음력 11-12월은 다음 해 1-2월에 해당하므로 년도 조정 필요
+          const parts = member.birthdate.split('-');
+          const lunarMonth = parseInt(parts[1], 10);
+
+          // 음력 11-12월이고 현재 양력 1-3월이면 전년도 음력을 사용
+          let yearToUse = currentYear;
+          if (lunarMonth >= 11 && currentMonthNum <= 2) {
+            yearToUse = currentYear - 1;
+          }
+
+          // 조정된 년도로 변환
+          let solarDate = convertLunarToSolar(member.birthdate, yearToUse);
+          if (solarDate && getMonth(solarDate) === currentMonthNum) {
+            dates.push(new Date(currentYear, currentMonthNum, solarDate.getDate()));
+            return;
+          }
+
+          // 위에서 못 찾았으면 반대 경우도 시도 (음력 1-10월이고 양력 11-12월인 경우)
+          if (lunarMonth <= 10 && currentMonthNum >= 10) {
+            const nextYearSolar = convertLunarToSolar(member.birthdate, currentYear + 1);
+            if (nextYearSolar && getMonth(nextYearSolar) === currentMonthNum) {
+              dates.push(new Date(currentYear, currentMonthNum, nextYearSolar.getDate()));
+            }
+          }
         } else {
           // 양력 생일: 그대로 사용
           const birthDate = new Date(member.birthdate);
-          birthMonth = getMonth(birthDate);
-          birthDay = birthDate.getDate();
-        }
+          const birthMonth = getMonth(birthDate);
+          const birthDay = birthDate.getDate();
 
-        // 현재 보고 있는 월과 생일 월이 같으면 추가
-        if (birthMonth === currentMonthNum) {
-          dates.push(new Date(currentYear, currentMonthNum, birthDay));
+          // 현재 보고 있는 월과 생일 월이 같으면 추가
+          if (birthMonth === currentMonthNum) {
+            dates.push(new Date(currentYear, currentMonthNum, birthDay));
+          }
         }
       }
     });
@@ -225,10 +258,31 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
       if (!member.birthdate) return false;
 
       if (member.birthdate_type === '음력') {
-        // 음력 생일: 해당 년도의 양력 날짜로 변환하여 비교
-        const solarDate = convertLunarToSolar(member.birthdate, targetYear);
-        if (!solarDate) return false;
-        return getMonth(solarDate) === month && solarDate.getDate() === day;
+        // 음력 생일: 음력 11-12월은 다음 해 1-2월에 해당하므로 년도 조정 필요
+        const parts = member.birthdate.split('-');
+        const lunarMonth = parseInt(parts[1], 10);
+
+        // 음력 11-12월이고 양력 1-3월이면 전년도 음력을 사용
+        let yearToUse = targetYear;
+        if (lunarMonth >= 11 && month <= 2) {
+          yearToUse = targetYear - 1;
+        }
+
+        // 조정된 년도로 변환
+        let solarDate = convertLunarToSolar(member.birthdate, yearToUse);
+        if (solarDate && getMonth(solarDate) === month && solarDate.getDate() === day) {
+          return true;
+        }
+
+        // 위에서 못 찾았으면 반대 경우도 시도 (음력 1-10월이고 양력 11-12월인 경우)
+        if (lunarMonth <= 10 && month >= 10) {
+          const nextYearSolar = convertLunarToSolar(member.birthdate, targetYear + 1);
+          if (nextYearSolar && getMonth(nextYearSolar) === month && nextYearSolar.getDate() === day) {
+            return true;
+          }
+        }
+
+        return false;
       } else {
         // 양력 생일: 월과 일만 비교
         const birthDate = new Date(member.birthdate);
@@ -290,10 +344,31 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
       if (!member.birthdate) return false;
 
       if (member.birthdate_type === '음력') {
-        // 음력 생일: 현재 년도의 양력 날짜로 변환하여 비교
-        const solarDate = convertLunarToSolar(member.birthdate, currentYear);
-        if (!solarDate) return false;
-        return getMonth(solarDate) === currentMonthNum;
+        // 음력 생일: 음력 11-12월은 다음 해 1-2월에 해당하므로 년도 조정 필요
+        const parts = member.birthdate.split('-');
+        const lunarMonth = parseInt(parts[1], 10);
+
+        // 음력 11-12월이고 양력 1-3월이면 전년도 음력을 사용
+        let yearToUse = currentYear;
+        if (lunarMonth >= 11 && currentMonthNum <= 2) {
+          yearToUse = currentYear - 1;
+        }
+
+        // 조정된 년도로 변환
+        const solarDate = convertLunarToSolar(member.birthdate, yearToUse);
+        if (solarDate && getMonth(solarDate) === currentMonthNum) {
+          return true;
+        }
+
+        // 위에서 못 찾았으면 반대 경우도 시도 (음력 1-10월이고 양력 11-12월인 경우)
+        if (lunarMonth <= 10 && currentMonthNum >= 10) {
+          const nextYearSolar = convertLunarToSolar(member.birthdate, currentYear + 1);
+          if (nextYearSolar && getMonth(nextYearSolar) === currentMonthNum) {
+            return true;
+          }
+        }
+
+        return false;
       } else {
         // 양력 생일: 월만 비교
         const birthDate = new Date(member.birthdate);
@@ -311,8 +386,31 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
     if (member.birthdate_type === '음력') {
       const currentYear = getYear(currentMonth);
-      const solarDate = convertLunarToSolar(member.birthdate, currentYear);
-      return solarDate ? solarDate.getDate() : 0;
+      const currentMonthNum = getMonth(currentMonth);
+      const parts = member.birthdate.split('-');
+      const lunarMonth = parseInt(parts[1], 10);
+
+      // 음력 11-12월이고 양력 1-3월이면 전년도 음력을 사용
+      let yearToUse = currentYear;
+      if (lunarMonth >= 11 && currentMonthNum <= 2) {
+        yearToUse = currentYear - 1;
+      }
+
+      // 조정된 년도로 변환
+      let solarDate = convertLunarToSolar(member.birthdate, yearToUse);
+      if (solarDate && getMonth(solarDate) === currentMonthNum) {
+        return solarDate.getDate();
+      }
+
+      // 위에서 못 찾았으면 반대 경우도 시도 (음력 1-10월이고 양력 11-12월인 경우)
+      if (lunarMonth <= 10 && currentMonthNum >= 10) {
+        const nextYearSolar = convertLunarToSolar(member.birthdate, currentYear + 1);
+        if (nextYearSolar && getMonth(nextYearSolar) === currentMonthNum) {
+          return nextYearSolar.getDate();
+        }
+      }
+
+      return 0;
     } else {
       return new Date(member.birthdate).getDate();
     }
