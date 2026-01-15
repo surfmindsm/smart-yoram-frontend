@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
         )
       }
 
-      // GET /announcements/admin/announcements/{id} - Get specific announcement
+      // GET /announcements/admin/announcements/{id} - Get specific announcement (no view count increment for admin)
       if (pathParts.includes('admin') && pathParts.includes('announcements') && pathParts[pathParts.length - 1]) {
         const announcementId = pathParts[pathParts.length - 1]
 
@@ -201,6 +201,50 @@ Deno.serve(async (req) => {
             }
           )
         }
+
+        return new Response(
+          JSON.stringify(data),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      // GET /announcements/{id} - Get single announcement and increment view count (for mobile app)
+      if (pathParts.length === 2 && pathParts[0] === 'announcements' && !isNaN(Number(pathParts[1]))) {
+        const announcementId = pathParts[1]
+        console.log('📢 공지사항 상세 조회 (조회수 증가):', announcementId)
+
+        // Increment view count first
+        const { error: updateError } = await supabaseClient
+          .from('announcements')
+          .update({ view_count: supabaseClient.raw('view_count + 1') })
+          .eq('id', announcementId)
+
+        if (updateError) {
+          console.error('View count increment error:', updateError)
+          // Continue even if increment fails
+        }
+
+        // Get the announcement with updated view count
+        const { data, error } = await supabaseClient
+          .from('announcements')
+          .select('*')
+          .eq('id', announcementId)
+          .single()
+
+        if (error) {
+          console.error('Single announcement query error:', error)
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch announcement', details: error.message }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('✅ 조회수 증가 완료. 현재 조회수:', data.view_count)
 
         return new Response(
           JSON.stringify(data),

@@ -59,6 +59,7 @@ const AnnouncementManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<LocalAnnouncement | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -140,6 +141,11 @@ const AnnouncementManagement: React.FC = () => {
       end_date: '',
     });
     setShowModal(true);
+  };
+
+  const handleViewDetail = (announcement: LocalAnnouncement) => {
+    setSelectedAnnouncement(announcement);
+    setShowDetailModal(true);
   };
 
   const handleEdit = (announcement: LocalAnnouncement) => {
@@ -359,7 +365,8 @@ const AnnouncementManagement: React.FC = () => {
                     {filteredAnnouncements.map((announcement) => (
                       <TableRow
                         key={announcement.id}
-                        className={`${announcement.is_pinned ? 'bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+                        className={`cursor-pointer ${announcement.is_pinned ? 'bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+                        onClick={() => handleViewDetail(announcement)}
                       >
                         <TableCell>
                           {announcement.is_pinned && (
@@ -383,7 +390,7 @@ const AnnouncementManagement: React.FC = () => {
                         <TableCell className="text-center">
                           {announcement.view_count?.toLocaleString() || 0}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex gap-1 justify-end">
                             <Button
                               variant="ghost"
@@ -419,7 +426,7 @@ const AnnouncementManagement: React.FC = () => {
         </>
       )}
 
-      {/* Modal */}
+      {/* Edit/Create Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-[625px]">
           <form onSubmit={handleSubmit}>
@@ -475,6 +482,69 @@ const AnnouncementManagement: React.FC = () => {
               <Button type="submit">저장</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail View Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              {selectedAnnouncement?.is_pinned && (
+                <Pin className="w-5 h-5 text-yellow-600 fill-current" />
+              )}
+              <DialogTitle className="text-2xl">{selectedAnnouncement?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="flex items-center gap-3 text-sm pt-2">
+              <Badge variant="secondary" className="bg-primary-100 text-primary-800">
+                {getCategoryLabel(selectedAnnouncement?.category)}
+              </Badge>
+              <span>작성자: {selectedAnnouncement?.author_name || '관리자'}</span>
+              <span>·</span>
+              <span>{selectedAnnouncement?.created_at ? new Date(selectedAnnouncement.created_at).toLocaleDateString('ko-KR') : ''}</span>
+              <span>·</span>
+              <span>조회수: {selectedAnnouncement?.view_count?.toLocaleString() || 0}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="prose max-w-none">
+              <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                {selectedAnnouncement?.content}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selectedAnnouncement) {
+                    setShowDetailModal(false);
+                    handleEdit(selectedAnnouncement);
+                  }
+                }}
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                수정
+              </Button>
+              <Button
+                variant="outline"
+                className="text-red-600 hover:text-red-700"
+                onClick={() => {
+                  if (selectedAnnouncement) {
+                    setShowDetailModal(false);
+                    handleDelete(selectedAnnouncement.id);
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                삭제
+              </Button>
+            </div>
+            <Button variant="default" onClick={() => setShowDetailModal(false)}>
+              닫기
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageContainer>
