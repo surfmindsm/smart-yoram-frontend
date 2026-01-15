@@ -886,7 +886,12 @@ const Dashboard = React.memo(() => {
               {selectedMember.birthdate && (
                 <div>
                   <p className="text-sm text-muted-foreground">생년월일</p>
-                  <p className="font-medium">{selectedMember.birthdate}</p>
+                  <p className="font-medium">
+                    {selectedMember.birthdate}
+                    {selectedMember.birthdate_type && (
+                      <span className="text-xs text-muted-foreground ml-2">({selectedMember.birthdate_type})</span>
+                    )}
+                  </p>
                 </div>
               )}
               {selectedMember.daysUntil !== undefined && (

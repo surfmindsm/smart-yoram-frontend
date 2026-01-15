@@ -10,12 +10,14 @@ import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle, Flag } 
 import { Badge } from '../ui';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import { useToast } from '../../hooks/use-toast';
+import { Lunar, Solar } from 'lunar-javascript';
 
 interface Member {
   id: number;
   name: string;
   phone?: string;
   birthdate: string;
+  birthdate_type?: string; // 생년월일 구분 (양력/음력)
   position_main?: string;
   position_detail?: string;
   department?: string;
@@ -138,6 +140,24 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     return dates;
   }, [currentMonthHolidays, currentMonth]);
 
+  // 음력 생일을 양력으로 변환하는 함수
+  const convertLunarToSolar = (lunarDate: string, targetYear: number): Date | null => {
+    try {
+      const birthDate = new Date(lunarDate);
+      const lunarMonth = birthDate.getMonth() + 1; // 0-based to 1-based
+      const lunarDay = birthDate.getDate();
+
+      // 음력을 양력으로 변환
+      const lunar = Lunar.fromYmd(targetYear, lunarMonth, lunarDay);
+      const solar = lunar.getSolar();
+
+      return new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay());
+    } catch (error) {
+      console.error('음력 변환 실패:', error);
+      return null;
+    }
+  };
+
   // 현재 월에 생일이 있는 날짜 목록 생성
   const birthdayDates = useMemo(() => {
     const dates: Date[] = [];
@@ -146,9 +166,21 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
     allBirthdays.forEach((member) => {
       if (member.birthdate) {
-        const birthDate = new Date(member.birthdate);
-        const birthMonth = getMonth(birthDate);
-        const birthDay = birthDate.getDate();
+        let birthMonth: number;
+        let birthDay: number;
+
+        if (member.birthdate_type === '음력') {
+          // 음력 생일: 현재 년도의 양력 날짜로 변환
+          const solarDate = convertLunarToSolar(member.birthdate, currentYear);
+          if (!solarDate) return;
+          birthMonth = getMonth(solarDate);
+          birthDay = solarDate.getDate();
+        } else {
+          // 양력 생일: 그대로 사용
+          const birthDate = new Date(member.birthdate);
+          birthMonth = getMonth(birthDate);
+          birthDay = birthDate.getDate();
+        }
 
         // 현재 보고 있는 월과 생일 월이 같으면 추가
         if (birthMonth === currentMonthNum) {
@@ -185,14 +217,23 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
   // 특정 날짜의 생일자 목록 가져오기
   const getBirthdayMembersForDate = (date: Date) => {
+    const targetYear = getYear(date);
     const month = getMonth(date);
     const day = date.getDate();
 
     return allBirthdays.filter((member) => {
       if (!member.birthdate) return false;
-      const birthDate = new Date(member.birthdate);
-      // 생일은 년도 상관없이 월과 일만 비교
-      return getMonth(birthDate) === month && birthDate.getDate() === day;
+
+      if (member.birthdate_type === '음력') {
+        // 음력 생일: 해당 년도의 양력 날짜로 변환하여 비교
+        const solarDate = convertLunarToSolar(member.birthdate, targetYear);
+        if (!solarDate) return false;
+        return getMonth(solarDate) === month && solarDate.getDate() === day;
+      } else {
+        // 양력 생일: 월과 일만 비교
+        const birthDate = new Date(member.birthdate);
+        return getMonth(birthDate) === month && birthDate.getDate() === day;
+      }
     });
   };
 
@@ -242,16 +283,40 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
   // 현재 월의 생일자 목록
   const currentMonthBirthdays = useMemo(() => {
+    const currentYear = getYear(currentMonth);
     const currentMonthNum = getMonth(currentMonth);
+
     return allBirthdays.filter((member) => {
       if (!member.birthdate) return false;
-      const birthDate = new Date(member.birthdate);
-      return getMonth(birthDate) === currentMonthNum;
+
+      if (member.birthdate_type === '음력') {
+        // 음력 생일: 현재 년도의 양력 날짜로 변환하여 비교
+        const solarDate = convertLunarToSolar(member.birthdate, currentYear);
+        if (!solarDate) return false;
+        return getMonth(solarDate) === currentMonthNum;
+      } else {
+        // 양력 생일: 월만 비교
+        const birthDate = new Date(member.birthdate);
+        return getMonth(birthDate) === currentMonthNum;
+      }
     });
   }, [allBirthdays, currentMonth]);
 
   // 현재 월의 생일자 수
   const currentMonthBirthdayCount = currentMonthBirthdays.length;
+
+  // 교인의 실제 표시 날짜 계산 (음력인 경우 변환된 양력 날짜 반환)
+  const getDisplayDate = (member: Member): number => {
+    if (!member.birthdate) return 0;
+
+    if (member.birthdate_type === '음력') {
+      const currentYear = getYear(currentMonth);
+      const solarDate = convertLunarToSolar(member.birthdate, currentYear);
+      return solarDate ? solarDate.getDate() : 0;
+    } else {
+      return new Date(member.birthdate).getDate();
+    }
+  };
 
   // 날짜가 있는 일정 (현재 월)
   const datedEvents = useMemo(() => {
@@ -453,9 +518,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                         <div className="space-y-2">
                           {currentMonthBirthdays
                             .sort((a, b) => {
-                              const dateA = new Date(a.birthdate);
-                              const dateB = new Date(b.birthdate);
-                              return dateA.getDate() - dateB.getDate();
+                              return getDisplayDate(a) - getDisplayDate(b);
                             })
                             .map((member) => (
                               <div
@@ -466,7 +529,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center justify-center w-10 h-10 bg-red-500/10 rounded-full">
                                     <span className="text-sm font-bold text-red-600">
-                                      {new Date(member.birthdate).getDate()}
+                                      {getDisplayDate(member)}
                                     </span>
                                   </div>
                                   <div>
