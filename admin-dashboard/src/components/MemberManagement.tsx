@@ -728,32 +728,22 @@ const MemberManagement: React.FC = () => {
 
   const loadMemberRelations = async (memberId: number) => {
     try {
-      // 연락처 조회
-      const { data: contacts } = await supabase
-        .from('member_contacts')
-        .select('*')
-        .eq('member_id', memberId);
+      // 모든 관계 데이터를 병렬로 조회 (성능 최적화)
+      const [
+        { data: contacts },
+        { data: sacraments },
+        { data: transfers },
+        { data: vehicles }
+      ] = await Promise.all([
+        supabase.from('member_contacts').select('*').eq('member_id', memberId),
+        supabase.from('sacraments').select('*').eq('member_id', memberId),
+        supabase.from('transfers').select('*').eq('member_id', memberId),
+        supabase.from('member_vehicles').select('*').eq('member_id', memberId)
+      ]);
+
       setMemberContacts(contacts || []);
-
-      // 성례 기록 조회
-      const { data: sacraments } = await supabase
-        .from('sacraments')
-        .select('*')
-        .eq('member_id', memberId);
       setMemberSacraments(sacraments || []);
-
-      // 이명 기록 조회
-      const { data: transfers } = await supabase
-        .from('transfers')
-        .select('*')
-        .eq('member_id', memberId);
       setMemberTransfers(transfers || []);
-
-      // 차량 정보 조회
-      const { data: vehicles } = await supabase
-        .from('member_vehicles')
-        .select('*')
-        .eq('member_id', memberId);
       setMemberVehicles(vehicles || []);
     } catch (error) {
       console.error('관계 데이터 로드 실패:', error);
