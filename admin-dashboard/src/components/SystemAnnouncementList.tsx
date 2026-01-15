@@ -212,7 +212,7 @@ const SystemAnnouncementList: React.FC = () => {
 
       {/* 상세보기 다이얼로그 */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
           {selectedAnnouncement && (
             <div className="space-y-6">
               {/* 헤더 */}

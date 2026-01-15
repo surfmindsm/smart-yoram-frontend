@@ -142,7 +142,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
           )}
         </div>
       }
-      size="md"
+      size="2xl"
       footer={
         <div className="flex items-center justify-between w-full">
           {/* 네비게이션 버튼 */}
@@ -190,7 +190,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ className = '' })
         </div>
       }
     >
-      <div>
+      <div className="max-h-[60vh] overflow-y-auto pr-2">
           {/* 제목 */}
           <div className="mb-3">
             <h3 className="font-medium text-base mb-2">
