@@ -101,7 +101,7 @@ const mapLegacyStatus = (status) => {
 - [ ] 무료 나눔 목록 API에서 `sharing`/`completed` 상태 반환
 - [ ] 상태별 필터링 정상 동작
 - [ ] 기존 데이터가 올바른 상태로 마이그레이션
-- [ ] 새 게시글 생성 시 기본값 `sharing`로 설정 
+- [ ] 새 게시글 생성 시 기본값 `sharing`로 설정  
 
 ### API 테스트 명령어
 ```bash
