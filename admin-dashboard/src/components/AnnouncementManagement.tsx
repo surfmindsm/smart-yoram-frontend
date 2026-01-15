@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Pin, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
 import { useToast } from "./ui";
@@ -182,23 +182,6 @@ const AnnouncementManagement: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (id: number, currentActive: boolean) => {
-    try {
-      await supabaseApiService.announcements.update(id.toString(), { is_active: !currentActive });
-      toast({
-        title: '성공',
-        description: '상태가 변경되었습니다.',
-      });
-      fetchAnnouncements();
-    } catch (err) {
-      toast({
-        title: '오류',
-        description: '상태 변경에 실패했습니다.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -352,7 +335,6 @@ const AnnouncementManagement: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]"></TableHead>
                       <TableHead className="min-w-[200px]">제목</TableHead>
                       <TableHead className="w-[120px]">카테고리</TableHead>
                       <TableHead className="w-[100px]">작성자</TableHead>
@@ -365,14 +347,9 @@ const AnnouncementManagement: React.FC = () => {
                     {filteredAnnouncements.map((announcement) => (
                       <TableRow
                         key={announcement.id}
-                        className={`cursor-pointer ${announcement.is_pinned ? 'bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+                        className={`cursor-pointer ${!announcement.is_active ? 'opacity-60' : ''}`}
                         onClick={() => handleViewDetail(announcement)}
                       >
-                        <TableCell>
-                          {announcement.is_pinned && (
-                            <Pin className="w-4 h-4 text-yellow-600 fill-current" />
-                          )}
-                        </TableCell>
                         <TableCell className="font-medium">
                           {announcement.title}
                         </TableCell>
@@ -398,13 +375,6 @@ const AnnouncementManagement: React.FC = () => {
                               onClick={() => handleEdit(announcement)}
                             >
                               <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleToggleActive(announcement.id, announcement.is_active)}
-                            >
-                              <Pin className={`w-4 h-4 ${announcement.is_active ? 'fill-current' : ''}`} />
                             </Button>
                             <Button
                               variant="ghost"
@@ -489,12 +459,7 @@ const AnnouncementManagement: React.FC = () => {
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <div className="flex items-center gap-2">
-              {selectedAnnouncement?.is_pinned && (
-                <Pin className="w-5 h-5 text-yellow-600 fill-current" />
-              )}
-              <DialogTitle className="text-2xl">{selectedAnnouncement?.title}</DialogTitle>
-            </div>
+            <DialogTitle className="text-2xl">{selectedAnnouncement?.title}</DialogTitle>
             <DialogDescription className="flex items-center gap-3 text-sm pt-2">
               <Badge variant="secondary" className="bg-primary-100 text-primary-800">
                 {getCategoryLabel(selectedAnnouncement?.category)}

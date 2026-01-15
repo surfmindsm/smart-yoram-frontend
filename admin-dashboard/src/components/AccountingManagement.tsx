@@ -69,8 +69,9 @@ const AccountingManagement: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // Add Transaction Modal
+  // Add/Edit Transaction Modal
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [newTransaction, setNewTransaction] = useState({
     type: 'expense' as 'income' | 'expense',
     category_id: '',
@@ -80,6 +81,10 @@ const AccountingManagement: React.FC = () => {
     payment_method: '',
     description: '',
   });
+
+  // Delete Confirmation Dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<number | null>(null);
 
   useEffect(() => {
     loadTransactions();
@@ -233,6 +238,7 @@ const AccountingManagement: React.FC = () => {
       if (response.ok) {
         alert('거래 내역이 추가되었습니다.');
         setShowAddModal(false);
+        setEditingTransaction(null);
         // Reset form
         setNewTransaction({
           type: 'expense',
@@ -253,6 +259,146 @@ const AccountingManagement: React.FC = () => {
       console.error('거래 내역 추가 실패:', error);
       alert('거래 내역 추가 중 오류가 발생했습니다.');
     }
+  };
+
+  const updateTransaction = async () => {
+    if (!editingTransaction) return;
+
+    // Validation
+    if (!newTransaction.category_id) {
+      alert('계정과목을 선택해주세요.');
+      return;
+    }
+    if (!newTransaction.amount || parseFloat(newTransaction.amount) <= 0) {
+      alert('금액을 입력해주세요.');
+      return;
+    }
+    if (!newTransaction.transaction_date) {
+      alert('거래 날짜를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/transactions/${editingTransaction.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: newTransaction.type,
+          category_id: parseInt(newTransaction.category_id),
+          transaction_date: newTransaction.transaction_date,
+          amount: parseFloat(newTransaction.amount),
+          vendor_name: newTransaction.vendor_name || null,
+          payment_method: newTransaction.payment_method || null,
+          description: newTransaction.description || null,
+        }),
+      });
+
+      if (response.ok) {
+        alert('거래 내역이 수정되었습니다.');
+        setShowAddModal(false);
+        setEditingTransaction(null);
+        // Reset form
+        setNewTransaction({
+          type: 'expense',
+          category_id: '',
+          transaction_date: new Date().toISOString().split('T')[0],
+          amount: '',
+          vendor_name: '',
+          payment_method: '',
+          description: '',
+        });
+        await loadTransactions();
+        await loadSummary();
+      } else {
+        const error = await response.json();
+        alert(`거래 내역 수정 실패: ${error.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('거래 내역 수정 실패:', error);
+      alert('거래 내역 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const deleteTransaction = async () => {
+    if (!deletingTransactionId) return;
+
+    try {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/transactions/${deletingTransactionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert('거래 내역이 삭제되었습니다.');
+        setShowDeleteDialog(false);
+        setDeletingTransactionId(null);
+        await loadTransactions();
+        await loadSummary();
+      } else {
+        const error = await response.json();
+        alert(`거래 내역 삭제 실패: ${error.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('거래 내역 삭제 실패:', error);
+      alert('거래 내역 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setNewTransaction({
+      type: transaction.type,
+      category_id: transaction.category_id.toString(),
+      transaction_date: transaction.transaction_date,
+      amount: transaction.amount.toString(),
+      vendor_name: transaction.vendor_name || '',
+      payment_method: transaction.payment_method || '',
+      description: transaction.description || '',
+    });
+    // 계정과목 목록 미리 로드
+    if (incomeCategories.length === 0 && expenseCategories.length === 0) {
+      loadCategories();
+    }
+    setShowAddModal(true);
+  };
+
+  const handleDelete = (transactionId: number) => {
+    setDeletingTransactionId(transactionId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingTransaction(null);
+    setNewTransaction({
+      type: 'expense',
+      category_id: '',
+      transaction_date: new Date().toISOString().split('T')[0],
+      amount: '',
+      vendor_name: '',
+      payment_method: '',
+      description: '',
+    });
+    // 계정과목 목록 미리 로드
+    if (incomeCategories.length === 0 && expenseCategories.length === 0) {
+      loadCategories();
+    }
+    setShowAddModal(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -420,13 +566,7 @@ const AccountingManagement: React.FC = () => {
               엑셀 다운로드
             </Button>
             <Button
-              onClick={() => {
-                // 계정과목 목록 미리 로드
-                if (incomeCategories.length === 0 && expenseCategories.length === 0) {
-                  loadCategories();
-                }
-                setShowAddModal(true);
-              }}
+              onClick={handleAddNew}
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -458,6 +598,7 @@ const AccountingManagement: React.FC = () => {
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">금액</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">결제수단</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">작업</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -492,6 +633,26 @@ const AccountingManagement: React.FC = () => {
                           <td className="px-4 py-3 text-sm text-gray-600 text-center">
                             {getPaymentMethodLabel(transaction.payment_method)}
                           </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(transaction)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(transaction.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -507,11 +668,11 @@ const AccountingManagement: React.FC = () => {
           )}
       </div>
 
-      {/* Add Transaction Modal */}
+      {/* Add/Edit Transaction Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>거래 내역 추가</DialogTitle>
+            <DialogTitle>{editingTransaction ? '거래 내역 수정' : '거래 내역 추가'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -634,15 +795,51 @@ const AccountingManagement: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingTransaction(null);
+                }}
               >
                 취소
               </Button>
               <Button
                 type="button"
-                onClick={addTransaction}
+                onClick={editingTransaction ? updateTransaction : addTransaction}
               >
-                저장
+                {editingTransaction ? '수정' : '저장'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>거래 내역 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-gray-600">
+              이 거래 내역을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setDeletingTransactionId(null);
+                }}
+              >
+                취소
+              </Button>
+              <Button
+                type="button"
+                onClick={deleteTransaction}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                삭제
               </Button>
             </div>
           </div>
