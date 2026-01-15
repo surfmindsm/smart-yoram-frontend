@@ -889,7 +889,9 @@ const Dashboard = React.memo(() => {
                   <p className="font-medium">
                     {selectedMember.birthdate}
                     {selectedMember.birthdate_type && (
-                      <span className="text-xs text-muted-foreground ml-2">({selectedMember.birthdate_type})</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 ml-2">
+                        {selectedMember.birthdate_type}
+                      </span>
                     )}
                   </p>
                 </div>

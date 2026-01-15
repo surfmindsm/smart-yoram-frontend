@@ -452,7 +452,14 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                             className="cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
                             onClick={() => onMemberClick?.(member)}
                           >
-                            <p className="font-medium">{member.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{member.name}</p>
+                              {member.birthdate_type && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                  {member.birthdate_type}
+                                </span>
+                              )}
+                            </div>
                             {member.department && (
                               <p className="text-xs text-muted-foreground">{member.department}</p>
                             )}
@@ -533,7 +540,14 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                                     </span>
                                   </div>
                                   <div>
-                                    <p className="font-medium text-sm">{member.name}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-sm">{member.name}</p>
+                                      {member.birthdate_type && (
+                                        <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                          {member.birthdate_type}
+                                        </span>
+                                      )}
+                                    </div>
                                     {member.department && (
                                       <p className="text-xs text-muted-foreground">
                                         {member.department}

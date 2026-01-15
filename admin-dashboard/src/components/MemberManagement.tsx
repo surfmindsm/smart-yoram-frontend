@@ -275,6 +275,7 @@ const MemberManagement: React.FC = () => {
     email: '',
     gender: '남',
     birthdate: '',
+    birthdate_type: '양력',
     phone: '',
     address: '',
     position_main: '',
@@ -567,6 +568,7 @@ const MemberManagement: React.FC = () => {
         email: '',
         gender: '남',
         birthdate: '',
+        birthdate_type: '양력',
         phone: '',
         address: '',
         position_main: '',
@@ -2268,6 +2270,19 @@ Church Round 앱에 초대되셨습니다.
                 fromYear={1920}
                 toYear={new Date().getFullYear()}
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-1">생년월일 구분</label>
+              <Select
+                value={newMember.birthdate_type || '양력'}
+                onValueChange={(value) => setNewMember({...newMember, birthdate_type: value})}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="양력">양력</SelectItem>
+                  <SelectItem value="음력">음력</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-1">전화번호 *</label>
