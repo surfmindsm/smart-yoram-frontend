@@ -74,27 +74,42 @@ Deno.serve(async (req) => {
 
         const offset = (page - 1) * limit
 
-        // Build query
+        // Build base query for count
+        let countQuery = supabaseClient
+          .from('announcements')
+          .select('*', { count: 'exact', head: true })
+
+        // Apply filters to count query
+        if (churchId) {
+          countQuery = countQuery.eq('church_id', parseInt(churchId))
+        }
+        if (isActive !== null) {
+          countQuery = countQuery.eq('is_active', isActive === 'true')
+        }
+        if (isPinned !== null) {
+          countQuery = countQuery.eq('is_pinned', isPinned === 'true')
+        }
+        if (category) {
+          countQuery = countQuery.eq('category', category)
+        }
+
+        const { count } = await countQuery
+
+        // Get announcements data
         let query = supabaseClient
           .from('announcements')
-          .select('*', { count: 'exact' })
+          .select('*')
 
-        // Apply church filter if specified
+        // Apply filters
         if (churchId) {
           query = query.eq('church_id', parseInt(churchId))
         }
-
-        // Apply active filter if specified
         if (isActive !== null) {
           query = query.eq('is_active', isActive === 'true')
         }
-
-        // Apply pinned filter if specified
         if (isPinned !== null) {
           query = query.eq('is_pinned', isPinned === 'true')
         }
-
-        // Apply category filter if specified
         if (category) {
           query = query.eq('category', category)
         }
@@ -105,7 +120,7 @@ Deno.serve(async (req) => {
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1)
 
-        const { data, error, count } = await query
+        const { data, error } = await query
 
         if (error) {
           console.error('Announcements list query error:', error)
@@ -120,9 +135,41 @@ Deno.serve(async (req) => {
 
         console.log('Query successful, found announcements:', count)
 
+        // Get unique author IDs
+        const authorIds = [...new Set(data?.map(a => a.author_id).filter(id => id))]
+
+        // Fetch author names from users table
+        let authorNames = {}
+        if (authorIds.length > 0) {
+          const { data: users, error: usersError } = await supabaseClient
+            .from('users')
+            .select('id, full_name')
+            .in('id', authorIds)
+
+          console.log('Users query result:', { users, usersError, authorIds })
+
+          if (users) {
+            authorNames = users.reduce((acc, user) => {
+              // Use full_name
+              acc[user.id] = user.full_name || '관리자'
+              return acc
+            }, {})
+          }
+        }
+
+        console.log('Author names mapping:', authorNames)
+
+        // Map author names to announcements
+        const enrichedData = (data || []).map(announcement => ({
+          ...announcement,
+          author_name: announcement.author_id && authorNames[announcement.author_id]
+            ? authorNames[announcement.author_id]
+            : announcement.author_name || '관리자'
+        }))
+
         return new Response(
           JSON.stringify({
-            data: data || [],
+            data: enrichedData,
             count: count || 0,
             page,
             limit,

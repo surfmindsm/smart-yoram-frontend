@@ -10,6 +10,14 @@ import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -37,6 +45,7 @@ interface LocalAnnouncement {
   end_date?: string;
   created_at: string;
   updated_at: string;
+  view_count: number;
   // UI용 추가 필드 (기본값 제공)
   author_name?: string;
   is_pinned?: boolean;
@@ -48,7 +57,7 @@ const AnnouncementManagement: React.FC = () => {
   const [filteredAnnouncements, setFilteredAnnouncements] = useState<LocalAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'pinned'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<LocalAnnouncement | null>(null);
   const [formData, setFormData] = useState({
@@ -66,7 +75,7 @@ const AnnouncementManagement: React.FC = () => {
 
   useEffect(() => {
     filterAnnouncements();
-  }, [announcements, filter]);
+  }, [announcements, categoryFilter]);
 
   const { toast } = useToast();
 
@@ -111,16 +120,12 @@ const AnnouncementManagement: React.FC = () => {
 
   const filterAnnouncements = () => {
     let filtered = [...announcements];
-    
-    switch (filter) {
-      case 'active':
-        filtered = announcements.filter(a => a.is_active);
-        break;
-      case 'pinned':
-        filtered = announcements.filter(a => a.is_pinned);
-        break;
+
+    // 카테고리 필터 적용
+    if (categoryFilter && categoryFilter !== 'all') {
+      filtered = filtered.filter(a => a.category === categoryFilter);
     }
-    
+
     setFilteredAnnouncements(filtered);
   };
 
@@ -193,11 +198,42 @@ const AnnouncementManagement: React.FC = () => {
 
     try {
       const churchId = getChurchId();
+
+      // 현재 로그인한 사용자 정보 가져오기
+      const getUserInfo = () => {
+        try {
+          const sessionStr = localStorage.getItem('supabase_session');
+          if (sessionStr) {
+            const session = JSON.parse(sessionStr);
+            return {
+              id: session?.user?.id,
+              name: session?.user?.name || session?.user?.user_metadata?.name
+            };
+          }
+
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            return {
+              id: user?.id,
+              name: user?.name || user?.username
+            };
+          }
+
+          return { id: 1, name: '관리자' };
+        } catch (error) {
+          console.error('사용자 정보 가져오기 실패:', error);
+          return { id: 1, name: '관리자' };
+        }
+      };
+
+      const userInfo = getUserInfo();
+
       const submitData = {
         ...formData,
         church_id: churchId,
-        author_id: 1,
-        author_name: '관리자',
+        author_id: userInfo.id,
+        author_name: userInfo.name,
         target_audience: 'all',
         is_pinned: false,
         is_active: true,
@@ -277,29 +313,24 @@ const AnnouncementManagement: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* Filter Buttons */}
-          <div className="mb-6 flex gap-2">
-            <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-              size="sm"
+          {/* Category Filter */}
+          <div className="mb-6">
+            <Label htmlFor="category-filter" className="mb-2 block">카테고리 필터</Label>
+            <Select
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
             >
-              전체
-            </Button>
-            <Button
-              variant={filter === 'active' ? 'default' : 'outline'}
-              onClick={() => setFilter('active')}
-              size="sm"
-            >
-              활성
-            </Button>
-            <Button
-              variant={filter === 'pinned' ? 'default' : 'outline'}
-              onClick={() => setFilter('pinned')}
-              size="sm"
-            >
-              고정
-            </Button>
+              <SelectTrigger id="category-filter" className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                <SelectItem value="worship">예배/모임</SelectItem>
+                <SelectItem value="member_news">교우 소식</SelectItem>
+                <SelectItem value="event">행사/공지</SelectItem>
+                <SelectItem value="general">일반</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Announcements List */}
@@ -310,67 +341,80 @@ const AnnouncementManagement: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {filteredAnnouncements.map((announcement) => (
-                <Card
-                  key={announcement.id}
-                  className={`group ${announcement.is_pinned ? 'border-yellow-400 bg-yellow-50/30' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="flex items-center gap-2 text-gray-900">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="min-w-[200px]">제목</TableHead>
+                      <TableHead className="w-[120px]">카테고리</TableHead>
+                      <TableHead className="w-[100px]">작성자</TableHead>
+                      <TableHead className="w-[120px]">작성일</TableHead>
+                      <TableHead className="w-[80px]">조회수</TableHead>
+                      <TableHead className="w-[120px] text-right">작업</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAnnouncements.map((announcement) => (
+                      <TableRow
+                        key={announcement.id}
+                        className={`${announcement.is_pinned ? 'bg-yellow-50/50' : ''} ${!announcement.is_active ? 'opacity-60' : ''}`}
+                      >
+                        <TableCell>
                           {announcement.is_pinned && (
                             <Pin className="w-4 h-4 text-yellow-600 fill-current" />
                           )}
+                        </TableCell>
+                        <TableCell className="font-medium">
                           {announcement.title}
-                          {!announcement.is_active && (
-                            <Badge variant="secondary">비활성</Badge>
-                          )}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="secondary" className="bg-primary-100 text-primary-800">
                             {getCategoryLabel(announcement.category)}
                           </Badge>
-                          <span>작성자: {announcement.author_name || '관리자'}</span>
-                          <span>·</span>
-                          <span>{new Date(announcement.created_at).toLocaleDateString('ko-KR')}</span>
-                          <span>·</span>
-                          <span>대상: {getTargetAudienceText(announcement.target_audience || 'all')}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(announcement)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleActive(announcement.id, announcement.is_active)}
-                        >
-                          <Pin className={`w-4 h-4 ${announcement.is_active ? 'fill-current' : ''}`} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(announcement.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-gray-700 whitespace-pre-wrap">{announcement.content}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        </TableCell>
+                        <TableCell>
+                          {announcement.author_name || '관리자'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {announcement.view_count?.toLocaleString() || 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(announcement)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleToggleActive(announcement.id, announcement.is_active)}
+                            >
+                              <Pin className={`w-4 h-4 ${announcement.is_active ? 'fill-current' : ''}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(announcement.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
