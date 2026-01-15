@@ -901,7 +901,14 @@ const PastoralCareManagement: React.FC = () => {
 
   // 심방 신청 삭제 함수
   const handleDelete = async (request: PastoralCareRequest) => {
-    if (!window.confirm(`${request.requesterName}님의 심방 신청을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+    const confirmMessage = `⚠️ 경고: 심방 신청 완전 삭제\n\n` +
+      `신청자: ${request.requesterName}님\n` +
+      `상태: ${getStatusText(request.status)}\n\n` +
+      `이 작업은 되돌릴 수 없으며, 모든 기록이 영구적으로 삭제됩니다.\n\n` +
+      `💡 참고: 기록을 보존하려면 "반려" 기능을 사용하세요.\n\n` +
+      `정말로 삭제하시겠습니까?`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -920,7 +927,13 @@ const PastoralCareManagement: React.FC = () => {
 
   // 심방 기록 삭제 함수
   const handleDeleteRecord = async (record: PastoralCareRecord) => {
-    if (!window.confirm(`${record.requesterName}님의 심방 기록을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+    const confirmMessage = `⚠️ 경고: 심방 기록 완전 삭제\n\n` +
+      `신청자: ${record.requesterName}님\n` +
+      `완료일: ${record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '정보 없음'}\n\n` +
+      `이 작업은 되돌릴 수 없으며, 모든 심방 기록이 영구적으로 삭제됩니다.\n\n` +
+      `정말로 삭제하시겠습니까?`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -1400,15 +1413,27 @@ const PastoralCareManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <div className="flex items-center justify-center space-x-2" onClick={(e) => e.stopPropagation()}>
                       {request.status === 'pending' && !request.assignedPastor && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAssignPastor(request);
-                          }}
-                          className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          담당자 배정
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssignPastor(request);
+                            }}
+                            className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            담당자 배정
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(request);
+                            }}
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            삭제
+                          </button>
+                        </>
                       )}
                       {request.status === 'pending' && request.assignedPastor && (
                         <>
@@ -1501,6 +1526,18 @@ const PastoralCareManagement: React.FC = () => {
                             삭제
                           </button>
                         </>
+                      )}
+                      {(request.status === 'completed' || request.status === 'cancelled') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(request);
+                          }}
+                          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          삭제
+                        </button>
                       )}
                     </div>
                   </td>
