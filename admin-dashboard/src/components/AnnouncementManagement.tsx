@@ -249,9 +249,8 @@ const AnnouncementManagement: React.FC = () => {
       'worship': '예배/모임',
       'member_news': '교우 소식',
       'event': '행사/공지',
-      'general': '일반',
     };
-    return map[category || ''] || '일반';
+    return map[category || ''] || '행사/공지';
   };
 
   const getTargetAudienceText = (audience: string) => {
@@ -309,7 +308,6 @@ const AnnouncementManagement: React.FC = () => {
                 <SelectItem value="worship">예배/모임</SelectItem>
                 <SelectItem value="member_news">교우 소식</SelectItem>
                 <SelectItem value="event">행사/공지</SelectItem>
-                <SelectItem value="general">일반</SelectItem>
               </SelectContent>
             </Select>
           </div>
