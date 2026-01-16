@@ -10,14 +10,6 @@ import { Input } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -324,72 +316,75 @@ const AnnouncementManagement: React.FC = () => {
 
           {/* Announcements List */}
           {filteredAnnouncements.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
+            <Card>
+              <CardContent className="text-center py-12">
                 <p className="text-gray-600">공지사항이 없습니다.</p>
               </CardContent>
             </Card>
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[200px]">제목</TableHead>
-                      <TableHead className="w-[120px]">카테고리</TableHead>
-                      <TableHead className="w-[100px]">작성자</TableHead>
-                      <TableHead className="w-[120px]">작성일</TableHead>
-                      <TableHead className="w-[80px]">조회수</TableHead>
-                      <TableHead className="w-[120px] text-right">작업</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAnnouncements.map((announcement) => (
-                      <TableRow
-                        key={announcement.id}
-                        className={`cursor-pointer ${!announcement.is_active ? 'opacity-60' : ''}`}
-                        onClick={() => handleViewDetail(announcement)}
-                      >
-                        <TableCell className="font-medium">
-                          {announcement.title}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="bg-primary-100 text-primary-800">
-                            {getCategoryLabel(announcement.category)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {announcement.author_name || '관리자'}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {announcement.view_count?.toLocaleString() || 0}
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(announcement)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(announcement.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">제목</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">카테고리</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">작성자</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">작성일</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[80px]">조회수</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredAnnouncements.map((announcement) => (
+                        <tr
+                          key={announcement.id}
+                          className={`hover:bg-gray-50 cursor-pointer ${!announcement.is_active ? 'opacity-60' : ''}`}
+                          onClick={() => handleViewDetail(announcement)}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            {announcement.title}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <Badge variant="secondary" className="bg-primary-100 text-primary-800">
+                              {getCategoryLabel(announcement.category)}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {announcement.author_name || '관리자'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                            {announcement.view_count?.toLocaleString() || 0}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(announcement)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(announcement.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           )}

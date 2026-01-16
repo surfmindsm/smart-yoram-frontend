@@ -708,21 +708,23 @@ const AccountingManagement: React.FC = () => {
             {/* 계정과목 */}
             <div className="space-y-2">
               <Label htmlFor="category_id">계정과목 *</Label>
-              <select
-                id="category_id"
+              <Select
                 value={newTransaction.category_id}
-                onChange={(e) => setNewTransaction({ ...newTransaction, category_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, category_id: value })}
               >
-                <option value="">계정과목 선택</option>
-                {(newTransaction.type === 'income' ? incomeCategories : expenseCategories)
-                  .filter(c => !c.parent_id)  // 부모 카테고리만 선택 가능 (예산과 일치)
-                  .map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="계정과목 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(newTransaction.type === 'income' ? incomeCategories : expenseCategories)
+                    .filter(c => !c.parent_id)  // 부모 카테고리만 선택 가능 (예산과 일치)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 거래 날짜 */}
@@ -764,18 +766,20 @@ const AccountingManagement: React.FC = () => {
             {/* 결제수단 */}
             <div className="space-y-2">
               <Label htmlFor="payment_method">결제수단</Label>
-              <select
-                id="payment_method"
+              <Select
                 value={newTransaction.payment_method}
-                onChange={(e) => setNewTransaction({ ...newTransaction, payment_method: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, payment_method: value })}
               >
-                <option value="">선택</option>
-                <option value="cash">현금</option>
-                <option value="transfer">계좌이체</option>
-                <option value="card">카드</option>
-                <option value="other">기타</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">현금</SelectItem>
+                  <SelectItem value="transfer">계좌이체</SelectItem>
+                  <SelectItem value="card">카드</SelectItem>
+                  <SelectItem value="other">기타</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 내용 */}

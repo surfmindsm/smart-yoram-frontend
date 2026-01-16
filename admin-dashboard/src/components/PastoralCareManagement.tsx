@@ -1286,29 +1286,30 @@ const PastoralCareManagement: React.FC = () => {
         <div className="flex items-center space-x-4 mb-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
+            <Input
               type="text"
               placeholder="신청자 이름 또는 내용으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           {/* 기본 필터들 - 항상 표시 */}
-          <select
-            className="px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px]"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">모든 상태</option>
-            <option value="pending">대기중</option>
-            <option value="approved">승인됨</option>
-            <option value="scheduled">예정됨</option>
-            <option value="in_progress">진행중</option>
-            <option value="completed">완료됨</option>
-            <option value="cancelled">취소됨</option>
-          </select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="min-w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">모든 상태</SelectItem>
+              <SelectItem value="pending">대기중</SelectItem>
+              <SelectItem value="approved">승인됨</SelectItem>
+              <SelectItem value="scheduled">예정됨</SelectItem>
+              <SelectItem value="in_progress">진행중</SelectItem>
+              <SelectItem value="completed">완료됨</SelectItem>
+              <SelectItem value="cancelled">취소됨</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Button
             onClick={() => setShowAdminRegistrationModal(true)}
@@ -2695,29 +2696,37 @@ const PastoralCareManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">심방 유형</label>
-                  <select
+                  <Select
                     value={newRequest.requestType}
-                    onChange={(e) => setNewRequest({...newRequest, requestType: e.target.value as 'general' | 'urgent' | 'hospital' | 'counseling'})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onValueChange={(value) => setNewRequest({...newRequest, requestType: value as 'general' | 'urgent' | 'hospital' | 'counseling'})}
                   >
-                    <option value="general">일반 심방</option>
-                    <option value="urgent">긴급 심방</option>
-                    <option value="hospital">병원 심방</option>
-                    <option value="counseling">상담</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">일반 심방</SelectItem>
+                      <SelectItem value="urgent">긴급 심방</SelectItem>
+                      <SelectItem value="hospital">병원 심방</SelectItem>
+                      <SelectItem value="counseling">상담</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">우선순위</label>
-                  <select
+                  <Select
                     value={newRequest.priority}
-                    onChange={(e) => setNewRequest({...newRequest, priority: e.target.value as 'urgent' | 'high' | 'normal' | 'low'})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onValueChange={(value) => setNewRequest({...newRequest, priority: value as 'urgent' | 'high' | 'normal' | 'low'})}
                   >
-                    <option value="low">낮음</option>
-                    <option value="normal">보통</option>
-                    <option value="high">높음</option>
-                    <option value="urgent">긴급</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">낮음</SelectItem>
+                      <SelectItem value="normal">보통</SelectItem>
+                      <SelectItem value="high">높음</SelectItem>
+                      <SelectItem value="urgent">긴급</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

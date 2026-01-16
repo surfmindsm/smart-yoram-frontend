@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, MapPin, Users, Monitor } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, MapPin, Monitor } from 'lucide-react';
 import { Button } from "../ui";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui";
+import { Card, CardContent } from "../ui";
 import { Input } from "../ui";
 import { Label } from "../ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
@@ -420,17 +420,26 @@ export default function WorshipScheduleManagement() {
     });
   };
 
-  const groupServicesByType = () => {
-    const grouped: Record<string, WorshipService[]> = {};
-    services.forEach(service => {
-      const type = service.service_type || 'other';
-      if (!grouped[type]) {
-        grouped[type] = [];
+  // 예배 시간 정렬: 요일 순 -> 시간 순
+  const sortedServices = [...services].sort((a, b) => {
+    // 1. 요일로 정렬 (월요일=0 ~ 일요일=6)
+    if (a.day_of_week !== undefined && b.day_of_week !== undefined) {
+      if (a.day_of_week !== b.day_of_week) {
+        return a.day_of_week - b.day_of_week;
       }
-      grouped[type].push(service);
-    });
-    return grouped;
-  };
+    } else if (a.day_of_week !== undefined) {
+      return -1;
+    } else if (b.day_of_week !== undefined) {
+      return 1;
+    }
+
+    // 2. 같은 요일이면 시작 시간으로 정렬
+    if (a.start_time && b.start_time) {
+      return a.start_time.localeCompare(b.start_time);
+    }
+
+    return 0;
+  });
 
   return (
     <PageContainer>
@@ -485,45 +494,187 @@ export default function WorshipScheduleManagement() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {Object.entries(groupServicesByType()).map(([type, typeServices]) => (
-              <div key={type} className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-900">{type || '미분류'}</h3>
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="divide-y">
-                      {typeServices.map(service => (
-                        <ServiceCard
-                          key={service.id}
-                          service={service}
-                          onEdit={handleEdit}
-                          onDelete={handleDelete}
-                        />
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {sortedServices.map(service => (
+                        <tr key={service.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            <div className="flex items-center gap-2">
+                              {service.name}
+                              {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {service.service_type || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {service.day_of_week !== undefined ?
+                              (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])
+                              : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{service.start_time}</span>
+                              {service.end_time && <span>- {service.end_time}</span>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {service.location ? (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{service.location}</span>
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {service.target_group ?
+                              TARGET_GROUPS.find(g => g.value === service.target_group)?.label
+                              : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              service.is_active
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {service.is_active ? '활성' : '비활성'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(service)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(service.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="sunday" className="space-y-4">
             <Card>
               <CardContent className="p-0">
-                <div className="divide-y">
-                  {services
-                    .filter(s => s.service_type === '주일예배')
-                    .map(service => (
-                      <ServiceCard
-                        key={service.id}
-                        service={service}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  {services.filter(s => s.service_type === '주일예배').length === 0 && (
-                    <p className="text-center text-gray-500 py-8">주일예배가 등록되지 않았습니다.</p>
-                  )}
-                </div>
+                {services.filter(s => s.service_type === '주일예배').length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">주일예배가 등록되지 않았습니다.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {sortedServices
+                          .filter(s => s.service_type === '주일예배')
+                          .map(service => (
+                            <tr key={service.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  {service.name}
+                                  {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.day_of_week !== undefined ?
+                                  (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{service.start_time}</span>
+                                  {service.end_time && <span>- {service.end_time}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.location ? (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{service.location}</span>
+                                  </div>
+                                ) : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.target_group ?
+                                  TARGET_GROUPS.find(g => g.value === service.target_group)?.label
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  service.is_active
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {service.is_active ? '활성' : '비활성'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(service)}
+                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(service.id)}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -531,21 +682,97 @@ export default function WorshipScheduleManagement() {
           <TabsContent value="weekday" className="space-y-4">
             <Card>
               <CardContent className="p-0">
-                <div className="divide-y">
-                  {services
-                    .filter(s => s.service_type !== '주일예배' && s.service_type)
-                    .map(service => (
-                      <ServiceCard
-                        key={service.id}
-                        service={service}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  {services.filter(s => s.service_type !== '주일예배' && s.service_type).length === 0 && (
-                    <p className="text-center text-gray-500 py-8">주중예배가 등록되지 않았습니다.</p>
-                  )}
-                </div>
+                {services.filter(s => s.service_type !== '주일예배' && s.service_type).length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">주중예배가 등록되지 않았습니다.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {sortedServices
+                          .filter(s => s.service_type !== '주일예배' && s.service_type)
+                          .map(service => (
+                            <tr key={service.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  {service.name}
+                                  {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.service_type || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.day_of_week !== undefined ?
+                                  (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{service.start_time}</span>
+                                  {service.end_time && <span>- {service.end_time}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.location ? (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{service.location}</span>
+                                  </div>
+                                ) : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.target_group ?
+                                  TARGET_GROUPS.find(g => g.value === service.target_group)?.label
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  service.is_active
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {service.is_active ? '활성' : '비활성'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(service)}
+                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(service.id)}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -553,21 +780,97 @@ export default function WorshipScheduleManagement() {
           <TabsContent value="online" className="space-y-4">
             <Card>
               <CardContent className="p-0">
-                <div className="divide-y">
-                  {services
-                    .filter(s => s.is_online)
-                    .map(service => (
-                      <ServiceCard
-                        key={service.id}
-                        service={service}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  {services.filter(s => s.is_online).length === 0 && (
-                    <p className="text-center text-gray-500 py-8">온라인 예배가 등록되지 않았습니다.</p>
-                  )}
-                </div>
+                {services.filter(s => s.is_online).length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">온라인 예배가 등록되지 않았습니다.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {sortedServices
+                          .filter(s => s.is_online)
+                          .map(service => (
+                            <tr key={service.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  {service.name}
+                                  <Monitor className="h-4 w-4 text-primary-600" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.service_type || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.day_of_week !== undefined ?
+                                  (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{service.start_time}</span>
+                                  {service.end_time && <span>- {service.end_time}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.location ? (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{service.location}</span>
+                                  </div>
+                                ) : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {service.target_group ?
+                                  TARGET_GROUPS.find(g => g.value === service.target_group)?.label
+                                  : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  service.is_active
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {service.is_active ? '활성' : '비활성'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(service)}
+                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(service.id)}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -803,61 +1106,5 @@ export default function WorshipScheduleManagement() {
         </DialogContent>
       </Dialog>
     </PageContainer>
-  );
-}
-
-function ServiceCard({
-  service,
-  onEdit,
-  onDelete
-}: {
-  service: WorshipService;
-  onEdit: (service: WorshipService) => void;
-  onDelete: (id: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between p-4 hover:bg-gray-50 group">
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-gray-900">{service.name}</h4>
-          {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
-          {!service.is_active && <span className="text-xs text-gray-500">(비활성)</span>}
-        </div>
-        <div className="mt-1 space-y-1 text-sm text-gray-600">
-          <div className="flex items-center gap-4">
-            {service.day_of_week !== undefined && (
-              <span>{DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week]}</span>
-            )}
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <span>{service.start_time}</span>
-              {service.end_time && <span>- {service.end_time}</span>}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {service.location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{service.location}</span>
-              </div>
-            )}
-            {service.target_group && (
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                <span>{TARGET_GROUPS.find(g => g.value === service.target_group)?.label}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button size="sm" variant="ghost" onClick={() => onEdit(service)}>
-          <Edit2 className="h-4 w-4" />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => onDelete(service.id)} className="text-red-600 hover:text-red-700">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
   );
 }

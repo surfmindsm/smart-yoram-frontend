@@ -254,7 +254,7 @@ const Bulletins: React.FC = () => {
         }
       />
 
-      {/* Bulletins Grid */}
+      {/* Bulletins Table */}
       {isLoading ? (
         <Card>
           <CardContent className="text-center py-12">
@@ -273,60 +273,78 @@ const Bulletins: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bulletins.map((bulletin) => (
-            <Card key={bulletin.id} className="group hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{bulletin.title}</h3>
-                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(bulletin.date).toLocaleDateString('ko-KR')}
-                    </p>
-                  </div>
-
-                  {bulletin.content && (
-                    <p className="text-sm text-gray-600 line-clamp-3">{bulletin.content}</p>
-                  )}
-
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    {bulletin.file_url ? (
-                      <a
-                        href={bulletin.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary-600 hover:underline text-sm flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3" />
-                        파일 보기
-                      </a>
-                    ) : (
-                      <span className="text-gray-500 text-sm">첨부파일 없음</span>
-                    )}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(bulletin)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(bulletin.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">제목</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[150px]">날짜</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">파일</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {bulletins.map((bulletin) => (
+                    <tr key={bulletin.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {bulletin.title}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {new Date(bulletin.date).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {bulletin.content ? (
+                          <span className="line-clamp-2">{bulletin.content}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center">
+                        {bulletin.file_url ? (
+                          <a
+                            href={bulletin.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-600 hover:underline inline-flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FileText className="w-4 h-4" />
+                            보기
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(bulletin)}
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(bulletin.id)}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Add/Edit Modal */}
