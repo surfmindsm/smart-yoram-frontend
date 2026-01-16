@@ -79,6 +79,35 @@ serve(async (req) => {
       console.error('❌ 프로필 조회 실패:', profileError.message);
     }
 
+    // 로그인 성공 시 상태 업데이트
+    if (userProfile?.id) {
+      // 1. members.invitation_status를 'active'로 업데이트
+      const { error: memberUpdateError } = await supabaseClient
+        .from('members')
+        .update({ invitation_status: 'active' })
+        .eq('user_id', userProfile.id);
+
+      if (memberUpdateError) {
+        console.error('⚠️ invitation_status 업데이트 실패:', memberUpdateError.message);
+      } else {
+        console.log('✅ invitation_status를 active로 업데이트 완료');
+      }
+
+      // 2. users.is_first를 false로 업데이트 (첫 로그인 완료 표시)
+      if (userProfile.is_first === true) {
+        const { error: userUpdateError } = await supabaseClient
+          .from('users')
+          .update({ is_first: false })
+          .eq('id', userProfile.id);
+
+        if (userUpdateError) {
+          console.error('⚠️ is_first 업데이트 실패:', userUpdateError.message);
+        } else {
+          console.log('✅ is_first를 false로 업데이트 완료 (첫 로그인)');
+        }
+      }
+    }
+
     // JWT 토큰 생성
     const payload = {
       sub: authData.user.id,

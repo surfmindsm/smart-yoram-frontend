@@ -310,21 +310,9 @@ const MemberManagement: React.FC = () => {
       // Use Supabase Edge Function for members data
       const response = await supabaseApiService.members.getAll();
 
-      // user_id 기반으로 실제 invitation_status 계산
-      const membersWithCorrectedStatus = response.data.map((member: any) => {
-        // user_id가 있으면 실제로 등록 완료된 것으로 간주 (user_id는 integer 타입)
-        if (member.user_id !== null && member.user_id !== undefined) {
-          return {
-            ...member,
-            invitation_status: 'active'
-          };
-        }
-        // user_id가 없는 경우 기존 invitation_status 유지
-        return member;
-      });
-
       // 원본 데이터 저장 (캐시)
-      setAllMembers(membersWithCorrectedStatus);
+      // invitation_status 필드가 정확하므로 그대로 사용
+      setAllMembers(response.data);
     } catch (error) {
       console.error('교인 목록 조회 실패:', error);
     } finally {
