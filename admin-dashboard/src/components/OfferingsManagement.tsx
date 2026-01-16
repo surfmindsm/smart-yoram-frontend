@@ -16,7 +16,9 @@ import {
   BarChart3,
   X,
   CalendarDays,
-  Users
+  Users,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { Button } from './ui';
 import { cn } from '../lib/utils';
@@ -78,11 +80,17 @@ const OfferingsManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOffering, setSelectedOffering] = useState<Offering | null>(null);
 
+  // 헌금 유형 검색 상태
+  const [fundTypeSearchCreate, setFundTypeSearchCreate] = useState('');
+  const [fundTypeSearchEdit, setFundTypeSearchEdit] = useState('');
+  const [showFundTypeDropdownCreate, setShowFundTypeDropdownCreate] = useState(false);
+  const [showFundTypeDropdownEdit, setShowFundTypeDropdownEdit] = useState(false);
+
   // 새 헌금 폼 데이터
   const [newOffering, setNewOffering] = useState({
     memberId: '',
     offeredOn: new Date().toISOString().split('T')[0],
-    fundType: '주일헌금',
+    fundType: '주일헌금', // 기본값
     amount: '',
     note: ''
   });
@@ -230,7 +238,7 @@ const OfferingsManagement: React.FC = () => {
       setFundTypes(Array.isArray(types) ? types : []);
     } catch (error) {
       console.error('Failed to load fund types:', error);
-      setFundTypes(['주일헌금', '감사헌금', '십일조', '건축헌금', '선교헌금', '기타']); // 기본값
+      setFundTypes(['감사절', '감사헌금', '건축헌금', '구제헌금', '기타', '맥추감사절', '부활절', '선교헌금', '성탄절', '십일조', '신년헌금', '연말감사헌금', '일천번제', '장학헌금', '주일헌금', '특별헌금']); // 기본값 (가나다 순)
     }
   };
 
@@ -672,19 +680,70 @@ const OfferingsManagement: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   헌금 유형 *
                 </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={newOffering.fundType}
-                  onChange={(e) => setNewOffering({ ...newOffering, fundType: e.target.value })}
-                >
-                  {fundTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowFundTypeDropdownCreate(!showFundTypeDropdownCreate)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-left flex items-center justify-between bg-white"
+                  >
+                    <span className={newOffering.fundType ? 'text-gray-900' : 'text-gray-400'}>
+                      {newOffering.fundType || '헌금 유형 선택'}
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-gray-400 transition-transform",
+                      showFundTypeDropdownCreate && "transform rotate-180"
+                    )} />
+                  </button>
+
+                  {showFundTypeDropdownCreate && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+                      <div className="p-2 border-b border-gray-200">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <input
+                            type="text"
+                            placeholder="헌금 유형 검색..."
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                            value={fundTypeSearchCreate}
+                            onChange={(e) => setFundTypeSearchCreate(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {fundTypes
+                          .filter(type => type.toLowerCase().includes(fundTypeSearchCreate.toLowerCase()))
+                          .map(type => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                setNewOffering({ ...newOffering, fundType: type });
+                                setShowFundTypeDropdownCreate(false);
+                                setFundTypeSearchCreate('');
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                            >
+                              <span className="text-sm text-gray-900">{type}</span>
+                              {newOffering.fundType === type && (
+                                <Check className="h-4 w-4 text-primary-600" />
+                              )}
+                            </button>
+                          ))
+                        }
+                        {fundTypes.filter(type => type.toLowerCase().includes(fundTypeSearchCreate.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                            검색 결과가 없습니다
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -863,19 +922,70 @@ const OfferingsManagement: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   헌금 유형 *
                 </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={editOffering.fundType}
-                  onChange={(e) => setEditOffering({ ...editOffering, fundType: e.target.value })}
-                >
-                  {fundTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowFundTypeDropdownEdit(!showFundTypeDropdownEdit)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-left flex items-center justify-between bg-white"
+                  >
+                    <span className={editOffering.fundType ? 'text-gray-900' : 'text-gray-400'}>
+                      {editOffering.fundType || '헌금 유형 선택'}
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-gray-400 transition-transform",
+                      showFundTypeDropdownEdit && "transform rotate-180"
+                    )} />
+                  </button>
+
+                  {showFundTypeDropdownEdit && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+                      <div className="p-2 border-b border-gray-200">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <input
+                            type="text"
+                            placeholder="헌금 유형 검색..."
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                            value={fundTypeSearchEdit}
+                            onChange={(e) => setFundTypeSearchEdit(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {fundTypes
+                          .filter(type => type.toLowerCase().includes(fundTypeSearchEdit.toLowerCase()))
+                          .map(type => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                setEditOffering({ ...editOffering, fundType: type });
+                                setShowFundTypeDropdownEdit(false);
+                                setFundTypeSearchEdit('');
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                            >
+                              <span className="text-sm text-gray-900">{type}</span>
+                              {editOffering.fundType === type && (
+                                <Check className="h-4 w-4 text-primary-600" />
+                              )}
+                            </button>
+                          ))
+                        }
+                        {fundTypes.filter(type => type.toLowerCase().includes(fundTypeSearchEdit.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                            검색 결과가 없습니다
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>

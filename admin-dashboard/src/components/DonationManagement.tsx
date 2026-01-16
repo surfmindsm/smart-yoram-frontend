@@ -136,16 +136,24 @@ interface Donation {
   inputUserId: number;
 }
 
-// 헌금 유형 옵션
+// 헌금 유형 옵션 (가나다 순)
 const FUND_TYPES = [
-  '십일조',
-  '주일헌금',
+  '감사절',
   '감사헌금',
-  '선교헌금',
   '건축헌금',
-  '절기헌금',
-  '특별헌금',
-  '기타'
+  '구제헌금',
+  '기타',
+  '맥추감사절',
+  '부활절',
+  '선교헌금',
+  '성탄절',
+  '십일조',
+  '신년헌금',
+  '연말감사헌금',
+  '일천번제',
+  '장학헌금',
+  '주일헌금',
+  '특별헌금'
 ];
 
 const DonationManagement: React.FC = () => {
@@ -234,7 +242,7 @@ const DonationManagement: React.FC = () => {
   const [newDonation, setNewDonation] = useState({
     donorId: '',
     offeredOn: new Date().toISOString().split('T')[0],
-    fundType: '십일조',
+    fundType: '주일헌금',
     amount: 0,
     note: '',
     isAnonymous: false
@@ -539,7 +547,7 @@ const DonationManagement: React.FC = () => {
         setNewDonation({
           donorId: '',
           offeredOn: new Date().toISOString().split('T')[0],
-          fundType: '십일조',
+          fundType: '주일헌금',
           amount: 0,
           note: '',
           isAnonymous: false
@@ -561,7 +569,7 @@ const DonationManagement: React.FC = () => {
 
   // 일괄 입력 관련 함수들
   const addBulkRow = () => {
-    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
+    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '주일헌금', note: '', isAnonymous: false }]);
   };
 
   const removeBulkRow = (index: number) => {
@@ -758,31 +766,52 @@ const DonationManagement: React.FC = () => {
       '비고'
     ];
 
-    // 샘플 데이터
+    // 샘플 데이터 (여러 헌금 유형 예시)
     const sampleData = [
-      '홍길동',
-      '2024-01-07',
-      '십일조',
-      '100000',
-      '감사합니다'
+      ['홍길동', '2024-01-07', '십일조', '100000', '감사합니다'],
+      ['김철수', '2024-01-07', '주일헌금', '50000', ''],
+      ['이영희', '2024-01-07', '감사헌금', '30000', ''],
+      ['무명', '2024-01-07', '건축헌금', '200000', '무명처리']
     ];
 
     // 워크시트 생성
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, sampleData]);
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
 
     // 열 너비 설정
     const columnWidths = [
       { wch: 15 }, // 기부자명
       { wch: 12 }, // 헌금일
-      { wch: 12 }, // 헌금유형
+      { wch: 15 }, // 헌금유형
       { wch: 12 }, // 금액
       { wch: 20 }  // 비고
     ];
     worksheet['!cols'] = columnWidths;
 
+    // 헌금 유형 가이드 시트 생성
+    const guideHeaders = ['헌금 유형', '설명'];
+    const guideData = FUND_TYPES.map(type => [type, '']);
+
+    const guideWorksheet = XLSX.utils.aoa_to_sheet([
+      guideHeaders,
+      ...guideData,
+      [],
+      ['※ 안내사항'],
+      ['1. 위의 헌금 유형 중 하나를 선택하여 입력해주세요.'],
+      ['2. 헌금일 형식: YYYY-MM-DD (예: 2024-01-07)'],
+      ['3. 금액은 숫자만 입력해주세요. (예: 100000)'],
+      ['4. 무명 헌금의 경우 기부자명에 "무명"을 입력해주세요.']
+    ]);
+
+    // 가이드 시트 열 너비 설정
+    guideWorksheet['!cols'] = [
+      { wch: 20 }, // 헌금 유형
+      { wch: 50 }  // 설명
+    ];
+
     // 워크북 생성
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '헌금정보');
+    XLSX.utils.book_append_sheet(workbook, guideWorksheet, '헌금유형 가이드');
 
     // 엑셀 파일 다운로드
     XLSX.writeFile(workbook, '헌금내역_엑셀템플릿.xlsx');
@@ -1876,15 +1905,15 @@ const DonationManagement: React.FC = () => {
                           )}
                         </td>
                         <td className="py-2 px-3">
-                          <select
+                          <Combobox
+                            options={FUND_TYPES.map(type => ({ label: type, value: type }))}
                             value={bulk.fundType}
-                            onChange={(e) => updateBulkRow(index, 'fundType', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                          >
-                            {FUND_TYPES.map((type) => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
+                            onChange={(value) => updateBulkRow(index, 'fundType', value)}
+                            placeholder="헌금 유형 선택..."
+                            searchPlaceholder="헌금 유형 검색..."
+                            emptyMessage="검색 결과가 없습니다"
+                            className="text-sm"
+                          />
                         </td>
                         <td className="py-2 px-3">
                           <Input
@@ -2025,21 +2054,14 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
-                <Select
+                <Combobox
+                  options={FUND_TYPES.map(type => ({ label: type, value: type }))}
                   value={newDonation.fundType}
-                  onValueChange={(value) => setNewDonation({ ...newDonation, fundType: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="헌금 유형 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FUND_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setNewDonation({ ...newDonation, fundType: value })}
+                  placeholder="헌금 유형 선택..."
+                  searchPlaceholder="헌금 유형 검색..."
+                  emptyMessage="검색 결과가 없습니다"
+                />
               </div>
 
               <div>
@@ -2107,21 +2129,14 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
-                <Select
+                <Combobox
+                  options={FUND_TYPES.map(type => ({ label: type, value: type }))}
                   value={editingDonation.fundType}
-                  onValueChange={(value) => setEditingDonation({ ...editingDonation, fundType: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="헌금 유형 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FUND_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setEditingDonation({ ...editingDonation, fundType: value })}
+                  placeholder="헌금 유형 선택..."
+                  searchPlaceholder="헌금 유형 검색..."
+                  emptyMessage="검색 결과가 없습니다"
+                />
               </div>
 
               <div>

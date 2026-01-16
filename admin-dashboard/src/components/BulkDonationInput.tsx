@@ -29,14 +29,22 @@ interface BulkDonationRow {
 }
 
 const FUND_TYPES = [
-  '십일조',
-  '주일헌금',
+  '감사절',
   '감사헌금',
-  '선교헌금',
   '건축헌금',
-  '절기헌금',
-  '특별헌금',
-  '기타'
+  '구제헌금',
+  '기타',
+  '맥추감사절',
+  '부활절',
+  '선교헌금',
+  '성탄절',
+  '십일조',
+  '신년헌금',
+  '연말감사헌금',
+  '일천번제',
+  '장학헌금',
+  '주일헌금',
+  '특별헌금'
 ];
 
 const BulkDonationInput: React.FC = () => {
@@ -46,7 +54,7 @@ const BulkDonationInput: React.FC = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   const [bulkDonations, setBulkDonations] = useState<BulkDonationRow[]>([
-    { donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }
+    { donorId: '', amount: 0, fundType: '주일헌금', note: '', isAnonymous: false }
   ]);
   const [bulkSettings, setBulkSettings] = useState({
     offeredOn: new Date().toISOString().split('T')[0]
@@ -92,7 +100,7 @@ const BulkDonationInput: React.FC = () => {
   };
 
   const addBulkRow = () => {
-    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '십일조', note: '', isAnonymous: false }]);
+    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '주일헌금', note: '', isAnonymous: false }]);
   };
 
   const removeBulkRow = (index: number) => {
@@ -277,15 +285,15 @@ const BulkDonationInput: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <select
+                    <Combobox
+                      options={FUND_TYPES.map(type => ({ label: type, value: type }))}
                       value={bulk.fundType}
-                      onChange={(e) => updateBulkRow(index, 'fundType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                    >
-                      {FUND_TYPES.map((type) => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
+                      onChange={(value) => updateBulkRow(index, 'fundType', value)}
+                      placeholder="헌금 유형 선택..."
+                      searchPlaceholder="헌금 유형 검색..."
+                      emptyMessage="검색 결과가 없습니다"
+                      className="text-sm"
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <Input

@@ -18,7 +18,6 @@ UPDATE public.members m
 SET invitation_status = 'sent'
 FROM public.users u
 WHERE m.user_id = u.id
-  AND u.is_first = true  -- Not logged in yet
   AND m.temporary_password IS NOT NULL
   AND TRIM(m.temporary_password) != '';
 
