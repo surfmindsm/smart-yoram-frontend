@@ -162,12 +162,6 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
       const p = solar._p;
       const resultDate = new Date(p.year, p.month - 1, p.day);
 
-      // 디버깅: 변환 결과 로그
-      console.log('🌙 음력→양력 변환:', {
-        입력: `음력 ${targetYear}년 ${lunarMonth}월 ${lunarDay}일`,
-        결과: `양력 ${p.year}년 ${p.month}월 ${p.day}일`
-      });
-
       return resultDate;
     } catch (error) {
       console.error('음력 변환 실패:', error);

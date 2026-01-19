@@ -97,6 +97,12 @@ const AdminRoleManagement: React.FC = () => {
         return;
       }
 
+      // 자기 자신의 권한은 변경할 수 없음
+      if (userId === currentUser.id) {
+        alert('자기 자신의 권한은 변경할 수 없습니다.');
+        return;
+      }
+
       // Church Super Admin은 자신보다 높은 권한을 부여할 수 없음
       if (isChurchSuperAdmin(currentUser) &&
           (newRole === ROLES.SUPER_ADMIN || newRole === ROLES.CHURCH_SUPER_ADMIN)) {
@@ -327,7 +333,7 @@ const AdminRoleManagement: React.FC = () => {
                             size="sm"
                             className="text-primary hover:text-primary/80 h-8 w-8 p-0"
                             disabled={user.id === currentUser.id}
-                            title="역할 변경"
+                            title={user.id === currentUser.id ? "자기 자신의 권한은 변경할 수 없습니다" : "역할 변경"}
                           >
                             <Edit3 className="w-4 h-4" />
                           </Button>

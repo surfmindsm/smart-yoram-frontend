@@ -4394,6 +4394,17 @@ export const supabaseApiService = {
       try {
         // console.log('👤 [사용자 API] 역할 변경 시작:', { userId, newRole });
 
+        // 현재 사용자 정보 가져오기
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증 정보를 찾을 수 없습니다.');
+        }
+
+        // 자기 자신의 권한은 변경할 수 없음
+        if (userId === currentUser.user.id) {
+          throw new Error('자기 자신의 권한은 변경할 수 없습니다.');
+        }
+
         const { data, error } = await supabase
           .from('users')
           .update({ role: newRole })
@@ -4419,6 +4430,17 @@ export const supabaseApiService = {
       try {
         // console.log('👤 [사용자 API] 이메일로 역할 변경 시작:', { email, newRole });
 
+        // 현재 사용자 정보 가져오기
+        const currentUser = await supabaseAuthService.getCurrentUser();
+        if (!currentUser?.user) {
+          throw new Error('인증 정보를 찾을 수 없습니다.');
+        }
+
+        // 자기 자신의 이메일인지 확인
+        if (email === currentUser.user.email) {
+          throw new Error('자기 자신의 권한은 변경할 수 없습니다.');
+        }
+
         // 1. 먼저 이메일로 users 테이블에서 사용자 찾기
         const { data: users, error: findError } = await supabase
           .from('users')
@@ -4433,6 +4455,11 @@ export const supabaseApiService = {
 
         const user = users[0];
         // console.log('✅ [사용자 API] 사용자 찾음:', user);
+
+        // 추가 검증: ID로도 확인
+        if (user.id === currentUser.user.id) {
+          throw new Error('자기 자신의 권한은 변경할 수 없습니다.');
+        }
 
         // 2. 역할 업데이트
         const { data, error } = await supabase
