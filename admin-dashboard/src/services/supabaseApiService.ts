@@ -4093,6 +4093,12 @@ export const supabaseApiService = {
 
               if (inviteError) {
                 console.error('👤 [invite-user] 실패:', inviteError);
+                console.error('📊 [invite-user] 에러 상세:', {
+                  message: inviteError.message,
+                  context: inviteError.context,
+                  details: inviteError.details,
+                  name: inviteError.name
+                });
                 throw new Error('사용자 계정 생성 실패: ' + inviteError.message);
               }
 
