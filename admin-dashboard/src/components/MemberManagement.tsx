@@ -392,7 +392,6 @@ const MemberManagement: React.FC = () => {
   useEffect(() => {
     // 페이지 복원 중이면 자동 조정하지 않음
     if (isRestoringPaginationRef.current) {
-      console.log('🔒 Skipping pagination meta update during restoration');
       return;
     }
 
@@ -403,7 +402,6 @@ const MemberManagement: React.FC = () => {
       pagination.has_next !== paginationMeta.has_next ||
       pagination.current_page !== paginationMeta.current_page
     ) {
-      console.log('🔄 Updating pagination from meta:', { current: pagination, meta: paginationMeta });
       setPagination(prev => ({
         ...prev,
         ...paginationMeta
@@ -466,11 +464,6 @@ const MemberManagement: React.FC = () => {
     fetchOrganizationsAndDepartments();
   }, []);
 
-  // pagination 상태 변경 추적
-  useEffect(() => {
-    console.log('📊 Pagination state changed:', pagination);
-  }, [pagination]);
-
   // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
   // 수정 페이지에서 돌아왔을 때 페이지네이션 복원
   const processedStateRef = useRef<string | null>(null);
@@ -483,11 +476,8 @@ const MemberManagement: React.FC = () => {
       returnPerPage?: number;
     } | null;
 
-    console.log('🔍 Location state changed:', { state, locationKey: location.key, processed: processedStateRef.current });
-
     // location.key를 사용하여 동일한 state를 중복 처리하지 않도록 방지
     if (processedStateRef.current === location.key) {
-      console.log('⏭️ Already processed this location key, skipping');
       return;
     }
 
@@ -495,7 +485,6 @@ const MemberManagement: React.FC = () => {
     if (state?.returnToPage !== undefined || state?.returnPerPage !== undefined) {
       const returnPage = state.returnToPage;
       const returnPerPage = state.returnPerPage;
-      console.log('📄 Restoring pagination:', { returnPage, returnPerPage });
 
       // 복원 중임을 표시
       isRestoringPaginationRef.current = true;
@@ -506,7 +495,6 @@ const MemberManagement: React.FC = () => {
           ...(returnPage !== undefined && { current_page: returnPage }),
           ...(returnPerPage !== undefined && { per_page: returnPerPage })
         };
-        console.log('✨ setPagination called with:', { prev, newPagination });
         return newPagination;
       });
       processedStateRef.current = location.key;
@@ -514,7 +502,6 @@ const MemberManagement: React.FC = () => {
       // 복원 완료 후 플래그 해제 (다음 렌더링 사이클에서)
       setTimeout(() => {
         isRestoringPaginationRef.current = false;
-        console.log('✅ Pagination restoration complete');
       }, 100);
 
       // state 초기화 - navigate를 사용해서 명확하게 제거
