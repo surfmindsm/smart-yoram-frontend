@@ -46,6 +46,7 @@ import TodoList from './dashboard/TodoList';
 import PasswordChangeModal from './PasswordChangeModal';
 import QuickActionsCustomizer from './dashboard/QuickActionsCustomizer';
 import BirthdayCalendar from './dashboard/BirthdayCalendar';
+import OnlineUsers from './dashboard/OnlineUsers';
 import { useToast } from '../hooks/use-toast';
 import { AVAILABLE_QUICK_ACTIONS, DEFAULT_QUICK_ACTIONS, QuickAction } from '../constants/quickActions';
 
@@ -472,6 +473,11 @@ const Dashboard = React.memo(() => {
         <BirthdayCalendar
           onMemberClick={handleMemberClick}
         />
+      </div>
+
+      {/* 실시간 접속자 */}
+      <div className="mb-8">
+        <OnlineUsers />
       </div>
 
       {/* Todo List - 주석처리 (BirthdayCalendar로 통합됨) */}
