@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         )
       }
 
-      // GET /bulletins/admin/bulletins/{id} - Get specific bulletin
+      // GET /bulletins/admin/bulletins/{id} - Get specific bulletin (no view count increment for admin)
       if (pathParts.includes('admin') && pathParts.includes('bulletins') && pathParts[pathParts.length - 1]) {
         const bulletinId = pathParts[pathParts.length - 1]
 
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
           )
         }
 
-        console.log('📰 주보 단일 조회:', bulletinId)
+        console.log('📰 주보 단일 조회 (관리자, 조회수 증가 없음):', bulletinId)
 
         const { data, error } = await supabaseClient
           .from('bulletins')
@@ -163,6 +163,50 @@ Deno.serve(async (req) => {
         }
 
         console.log('✅ 주보 단일 조회 성공')
+        return new Response(
+          JSON.stringify(data),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      // GET /bulletins/{id} - Get single bulletin and increment view count (for mobile app)
+      if (pathParts.length === 2 && pathParts[0] === 'bulletins' && !isNaN(Number(pathParts[1]))) {
+        const bulletinId = pathParts[1]
+        console.log('📰 주보 상세 조회 (조회수 증가):', bulletinId)
+
+        // Increment view count first
+        const { error: updateError } = await supabaseClient
+          .from('bulletins')
+          .update({ view_count: supabaseClient.raw('view_count + 1') })
+          .eq('id', parseInt(bulletinId))
+
+        if (updateError) {
+          console.error('View count increment error:', updateError)
+          // Continue even if increment fails
+        }
+
+        // Get the bulletin with updated view count
+        const { data, error } = await supabaseClient
+          .from('bulletins')
+          .select('*')
+          .eq('id', parseInt(bulletinId))
+          .single()
+
+        if (error) {
+          console.error('Single bulletin query error:', error)
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch bulletin', details: error.message }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+
+        console.log('✅ 조회수 증가 완료. 현재 조회수:', data.view_count)
+
         return new Response(
           JSON.stringify(data),
           {

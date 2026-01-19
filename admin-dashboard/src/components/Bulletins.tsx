@@ -16,6 +16,7 @@ interface Bulletin {
   content?: string;
   file_url?: string;
   created_at: string;
+  view_count: number;
 }
 
 const Bulletins: React.FC = () => {
@@ -283,6 +284,7 @@ const Bulletins: React.FC = () => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[150px]">날짜</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">파일</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[80px]">조회수</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
                   </tr>
                 </thead>
@@ -317,6 +319,9 @@ const Bulletins: React.FC = () => {
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                        {bulletin.view_count?.toLocaleString() || 0}
                       </td>
                       <td className="px-4 py-3 text-sm text-center">
                         <div className="flex items-center justify-center gap-2">
