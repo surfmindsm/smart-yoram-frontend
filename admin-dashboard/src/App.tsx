@@ -106,6 +106,9 @@ const ChurchApplicationManagement = lazy(() => import('./components/ChurchApplic
 // Admin Role Management
 const AdminRoleManagement = lazy(() => import('./components/AdminRoleManagement'));
 
+// Permission Group Management
+const PermissionGroupManagement = lazy(() => import('./components/PermissionGroupManagement'));
+
 // Church Management
 const ChurchManagement = lazy(() => import('./components/ChurchManagement'));
 const GptLicenseManagement = lazy(() => import('./components/GptLicenseManagement'));
@@ -543,6 +546,11 @@ function App() {
           <Route path="admin-roles" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminRoleManagement />
+            </Suspense>
+          } />
+          <Route path="permission-groups" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PermissionGroupManagement />
             </Suspense>
           } />
           <Route path="church-management" element={

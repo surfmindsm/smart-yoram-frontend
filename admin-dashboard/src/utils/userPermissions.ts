@@ -7,6 +7,19 @@ export interface User {
   role?: string;
 }
 
+export interface MenuPermission {
+  menu_id: string;
+  can_use: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  menu?: {
+    code: string;
+    name: string;
+    path?: string;
+  };
+}
+
 export interface Church {
   id: number;
   name: string;
@@ -328,3 +341,114 @@ export const getCommunityMenus = () => [
     icon: 'User'
   }
 ];
+
+/**
+ * 권한 그룹 기반 권한 체크 함수들
+ */
+
+/**
+ * church_super_admin은 항상 true 반환, church_admin은 권한 체크
+ */
+const shouldCheckPermissions = (user: User): boolean => {
+  return isChurchAdmin(user) && !isChurchSuperAdmin(user) && !isSuperAdmin(user);
+};
+
+/**
+ * 특정 메뉴 경로에 대한 권한 찾기
+ */
+export const findPermissionByPath = (
+  permissions: MenuPermission[],
+  menuPath: string
+): MenuPermission | undefined => {
+  return permissions.find(p => p.menu?.path === menuPath);
+};
+
+/**
+ * 메뉴 사용 권한 체크
+ */
+export const canUseMenu = (
+  user: User,
+  userPermissions: MenuPermission[],
+  menuPath: string
+): boolean => {
+  // church_super_admin과 super_admin은 모든 메뉴 사용 가능
+  if (!shouldCheckPermissions(user)) {
+    return true;
+  }
+
+  // church_admin은 권한 체크
+  const permission = findPermissionByPath(userPermissions, menuPath);
+  return permission?.can_use || false;
+};
+
+/**
+ * 등록 권한 체크
+ */
+export const canCreate = (
+  user: User,
+  userPermissions: MenuPermission[],
+  menuPath: string
+): boolean => {
+  // church_super_admin과 super_admin은 모든 기능 사용 가능
+  if (!shouldCheckPermissions(user)) {
+    return true;
+  }
+
+  // church_admin은 권한 체크
+  const permission = findPermissionByPath(userPermissions, menuPath);
+  return permission?.can_create || false;
+};
+
+/**
+ * 수정 권한 체크
+ */
+export const canEdit = (
+  user: User,
+  userPermissions: MenuPermission[],
+  menuPath: string
+): boolean => {
+  // church_super_admin과 super_admin은 모든 기능 사용 가능
+  if (!shouldCheckPermissions(user)) {
+    return true;
+  }
+
+  // church_admin은 권한 체크
+  const permission = findPermissionByPath(userPermissions, menuPath);
+  return permission?.can_edit || false;
+};
+
+/**
+ * 삭제 권한 체크
+ */
+export const canDelete = (
+  user: User,
+  userPermissions: MenuPermission[],
+  menuPath: string
+): boolean => {
+  // church_super_admin과 super_admin은 모든 기능 사용 가능
+  if (!shouldCheckPermissions(user)) {
+    return true;
+  }
+
+  // church_admin은 권한 체크
+  const permission = findPermissionByPath(userPermissions, menuPath);
+  return permission?.can_delete || false;
+};
+
+/**
+ * 사용자가 접근 가능한 메뉴 경로 목록 반환
+ */
+export const getAccessibleMenuPaths = (
+  user: User,
+  userPermissions: MenuPermission[]
+): string[] => {
+  // church_super_admin과 super_admin은 모든 메뉴 접근 가능
+  if (!shouldCheckPermissions(user)) {
+    return []; // 빈 배열 반환 = 제한 없음
+  }
+
+  // church_admin은 can_use가 true인 메뉴만
+  return userPermissions
+    .filter(p => p.can_use && p.menu?.path)
+    .map(p => p.menu!.path!);
+};

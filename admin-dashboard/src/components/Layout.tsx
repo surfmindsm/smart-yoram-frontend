@@ -73,8 +73,12 @@ import {
   canAccessAdminDashboard,
   isMember,
   isChurchSuperAdmin,
-  isChurchAdmin
+  isChurchAdmin,
+  MenuPermission,
+  getAccessibleMenuPaths
 } from '../utils/userPermissions';
+import { permissionGroupService } from '../services/permissionGroupService';
+import { PermissionProvider } from '../contexts/PermissionContext';
 
 interface MenuGroup {
   title: string;
@@ -87,8 +91,9 @@ interface MenuGroup {
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string} | null>(null);
+  const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string, id?: string} | null>(null);
   const [churchInfo, setChurchInfo] = useState<{gpt_licenses_active?: number, gpt_api_key?: string} | null>(null);
+  const [userPermissions, setUserPermissions] = useState<MenuPermission[]>([]);
   const [recentLogin, setRecentLogin] = useState<any>(null);
   const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
@@ -213,11 +218,27 @@ const Layout: React.FC = () => {
           name: user.full_name || user.name || user.username || '사용자',
           email: user.email,
           church_id: user.church_id,
-          role: normalizeRole(user.role) // 역할 정규화
+          role: normalizeRole(user.role), // 역할 정규화
+          id: user.id
         };
         // console.log('📝 처리된 사용자 정보:', processedUser);
 
         setUserInfo(processedUser);
+
+        // church_admin인 경우 권한 그룹 기반 권한 조회
+        if (processedUser.role === 'church_admin' && processedUser.id) {
+          try {
+            const permissionsResult = await permissionGroupService.getUserPermissions(processedUser.id);
+            setUserPermissions(permissionsResult.data || []);
+            // console.log('✅ 사용자 권한 조회 성공:', permissionsResult.data);
+          } catch (permError) {
+            console.error('❌ 사용자 권한 조회 실패:', permError);
+            setUserPermissions([]);
+          }
+        } else {
+          // church_super_admin과 super_admin은 권한 체크 불필요
+          setUserPermissions([]);
+        }
 
         // 교회 정보 가져오기 (GPT 권한 확인용)
         if (user.church_id) {
@@ -366,8 +387,25 @@ const Layout: React.FC = () => {
     },
   ];
 
+  // 접근 가능한 메뉴 경로 목록
+  const accessiblePaths = React.useMemo(() => {
+    if (!userInfo) return [];
+    return getAccessibleMenuPaths(userInfo, userPermissions);
+  }, [userInfo, userPermissions]);
+
+  // 메뉴 아이템 필터링 함수
+  const filterMenuItems = (items: MenuGroup['items']): MenuGroup['items'] => {
+    // church_admin이 아니거나 권한 체크가 필요없는 경우 모든 메뉴 표시
+    if (!userInfo || !isChurchAdmin(userInfo) || accessiblePaths.length === 0) {
+      return items;
+    }
+
+    // church_admin인 경우 권한이 있는 메뉴만 표시
+    return items.filter(item => accessiblePaths.includes(item.path));
+  };
+
   // 일반 교회/슈퍼어드민 메뉴 그룹
-  const defaultMenuGroups: MenuGroup[] = [
+  const defaultMenuGroups: MenuGroup[] = React.useMemo(() => [
     {
       title: '대시보드 & 분석',
       items: [
@@ -376,43 +414,43 @@ const Layout: React.FC = () => {
     },
     {
       title: '교인 관리',
-      items: [
+      items: filterMenuItems([
         { path: '/member-management', name: '교인 관리', Icon: Users },
         { path: '/organization-management', name: '조직 관리', Icon: Building2 },
         // { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
-      ],
+      ]),
     },
     {
       title: '재정 관리',
-      items: [
+      items: filterMenuItems([
         { path: '/accounting', name: '회계 관리', Icon: Calculator },
         { path: '/account-categories', name: '계정 과목 관리', Icon: ListChecks },
         { path: '/budget', name: '예산 관리', Icon: TrendingUp },
         { path: '/settlement', name: '결산 관리', Icon: ChartLine },
         { path: '/donations', name: '헌금 관리', Icon: DollarSign },
-      ],
+      ]),
     },
     {
       title: '예배 & 소식',
-      items: [
+      items: filterMenuItems([
         // { path: '/daily-verses', name: '오늘의 말씀', Icon: BookOpen },
         { path: '/worship-schedule', name: '예배 시간', Icon: Clock },
         { path: '/bulletins', name: '주보 관리', Icon: FileText },
         ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
         { path: '/message-sending', name: '메시지 보내기', Icon: Bell },
-      ],
+      ]),
     },
     {
       title: '교회 운영 & 설정',
-      items: [
+      items: filterMenuItems([
         { path: '/church', name: '교회 정보', Icon: Church },
         { path: '/important-dates', name: '일정 관리', Icon: Calendar },
         // { path: '/excel', name: '엑셀 관리', Icon: FileSpreadsheet },
         // { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
         // { path: '/qr-codes', name: 'QR 코드', Icon: QrCode },
-      ],
+      ]),
     },
     // GPT 권한이 있는 경우에만 AI 기능 메뉴 표시
     ...(hasGPTAccess() ? [{
@@ -456,13 +494,21 @@ const Layout: React.FC = () => {
           { path: '/gpt-license-management', name: 'GPT 라이선스 관리', Icon: Key }
         ] : []),
         // Church Super Admin에게만 권한 관리 메뉴 표시
-        ...(userInfo && isChurchSuperAdmin(userInfo) ? [{ path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield }] : []),
+        ...(userInfo && isChurchSuperAdmin(userInfo) ? [
+          { path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield },
+          { path: '/permission-groups', name: '권한 그룹 관리', Icon: UserCog }
+        ] : []),
       ],
     },
-  ];
+  ], [userInfo, isSystemAdmin, hasGPTAccess, filterMenuItems]);
 
-  // 사용자 권한에 따라 메뉴 그룹 선택
-  const menuGroups = isCommunityOnlyUser ? communityMenuGroups : defaultMenuGroups;
+  // 사용자 권한에 따라 메뉴 그룹 선택하고, 비어있는 그룹 제거
+  const menuGroups = React.useMemo(() => {
+    const baseMenuGroups = isCommunityOnlyUser ? communityMenuGroups : defaultMenuGroups;
+
+    // items가 비어있는 그룹은 제거
+    return baseMenuGroups.filter(group => group.items && group.items.length > 0);
+  }, [isCommunityOnlyUser, communityMenuGroups, defaultMenuGroups]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -704,7 +750,10 @@ const Layout: React.FC = () => {
               {/* 공지사항 모달 */}
               <AnnouncementModal />
 
-              <Outlet />
+              {/* Permission Provider로 Outlet 감싸기 */}
+              <PermissionProvider user={userInfo} permissions={userPermissions}>
+                <Outlet />
+              </PermissionProvider>
             </div>
           </div>
         </main>

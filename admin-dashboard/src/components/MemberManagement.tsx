@@ -48,6 +48,7 @@ import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Card, CardContent } from "./ui";
 import { Badge } from "./ui";
+import { usePermissions } from '../contexts/PermissionContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "./ui";
 import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
@@ -169,6 +170,13 @@ interface InviteProgressItem {
 const MemberManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const permissions = usePermissions();
+
+  // 권한 체크 (교인 관리 페이지 경로: /member-management)
+  const canCreateMember = permissions.canCreate('/member-management');
+  const canEditMember = permissions.canEdit('/member-management');
+  const canDeleteMember = permissions.canDelete('/member-management');
+
   const [members, setMembers] = useState<Member[]>([]); // 현재 페이지 데이터
   const [allMembers, setAllMembers] = useState<Member[]>([]); // 원본 데이터 캐시
   const [loading, setLoading] = useState(true);
@@ -1920,21 +1928,25 @@ Church Round 앱에 초대되셨습니다.
               <Download className="w-4 h-4" />
               엑셀 템플릿 다운로드
             </Button>
-            <Button
-              onClick={() => setShowExcelImportModal(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              엑셀 일괄 등록
-            </Button>
-            <Button
-              onClick={() => navigate('/member-management/add')}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              교인 추가
-            </Button>
+            {canCreateMember && (
+              <>
+                <Button
+                  onClick={() => setShowExcelImportModal(true)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  엑셀 일괄 등록
+                </Button>
+                <Button
+                  onClick={() => navigate('/member-management/add')}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  교인 추가
+                </Button>
+              </>
+            )}
           </>
         }
       />
@@ -2492,29 +2504,33 @@ Church Round 앱에 초대되셨습니다.
                     </Button>
                   )}
 
-                  <Button
-                    onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`, {
-                      state: {
-                        returnPage: pagination.current_page,
-                        returnPerPage: pagination.per_page
-                      }
-                    })}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    수정
-                  </Button>
-                  <Button
-                    onClick={handleDeleteClick}
-                    variant="destructive"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    삭제
-                  </Button>
+                  {canEditMember && (
+                    <Button
+                      onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`, {
+                        state: {
+                          returnPage: pagination.current_page,
+                          returnPerPage: pagination.per_page
+                        }
+                      })}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      수정
+                    </Button>
+                  )}
+                  {canDeleteMember && (
+                    <Button
+                      onClick={handleDeleteClick}
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      삭제
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
