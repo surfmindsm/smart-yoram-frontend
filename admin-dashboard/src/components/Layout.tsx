@@ -480,12 +480,17 @@ const Layout: React.FC = () => {
     {
       title: '보안 & 시스템',
       items: [
-        { path: '/security-logs', name: '보안 로그', Icon: Shield },
-        // 일반 교회 관리자에게는 조회만 가능한 시스템 공지사항 표시
-        ...(!isSystemAdmin ? [
+        // church_super_admin에게만 보안 로그 표시
+        ...(userInfo && isChurchSuperAdmin(userInfo) ? [
+          { path: '/security-logs', name: '보안 로그', Icon: Shield }
+        ] : []),
+        // church_admin에게는 시스템 공지사항만 표시
+        ...(userInfo && isChurchAdmin(userInfo) && !isSystemAdmin ? [
           { path: '/system-announcements-list', name: '시스템 공지사항', Icon: Megaphone }
         ] : []),
+        // super_admin에게는 모든 관리 메뉴 표시
         ...(isSystemAdmin ? [
+          { path: '/security-logs', name: '보안 로그', Icon: Shield },
           { path: '/system-announcements', name: '시스템 공지사항 관리', Icon: Megaphone },
           { path: '/sermons', name: '명설교 관리', Icon: Video },
           { path: '/church-applications', name: '교회 가입 신청 관리', Icon: Church },
