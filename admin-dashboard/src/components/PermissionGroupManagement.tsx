@@ -436,7 +436,7 @@ const PermissionGroupManagement: React.FC = () => {
                       <label className="text-sm font-medium text-gray-500">코드</label>
                       <div className="mt-1">{selectedGroup.code}</div>
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <label className="text-sm font-medium text-gray-500">권한그룹명</label>
                       <div className="mt-1">{selectedGroup.name}</div>
                     </div>
