@@ -316,7 +316,8 @@ const MemberManagement: React.FC = () => {
       setCurrentUser(currentUserData?.user);
 
       // Use Supabase Edge Function for members data
-      const response = await supabaseApiService.members.getAll();
+      // limit을 10000으로 설정하여 모든 교인 데이터를 가져옴
+      const response = await supabaseApiService.members.getAll({ limit: 10000 });
 
       // 원본 데이터 저장 (캐시)
       // invitation_status 필드가 정확하므로 그대로 사용
