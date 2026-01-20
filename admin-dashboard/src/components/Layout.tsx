@@ -484,8 +484,8 @@ const Layout: React.FC = () => {
         ...(userInfo && isChurchSuperAdmin(userInfo) ? [
           { path: '/security-logs', name: '보안 로그', Icon: Shield }
         ] : []),
-        // church_admin에게는 시스템 공지사항만 표시
-        ...(userInfo && isChurchAdmin(userInfo) && !isSystemAdmin ? [
+        // church_admin과 church_super_admin에게 시스템 공지사항 표시
+        ...((userInfo && (isChurchAdmin(userInfo) || isChurchSuperAdmin(userInfo)) && !isSystemAdmin) ? [
           { path: '/system-announcements-list', name: '시스템 공지사항', Icon: Megaphone }
         ] : []),
         // super_admin에게는 모든 관리 메뉴 표시
