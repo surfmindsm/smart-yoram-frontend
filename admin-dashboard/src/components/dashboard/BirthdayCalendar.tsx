@@ -469,29 +469,29 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     <Card className="border-muted">
       <CardContent className="pt-6">
         {/* 월 네비게이션 - 중앙 정렬 */}
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-4 mb-5">
           <Button
             variant="ghost"
             size="sm"
             onClick={handlePreviousMonth}
-            className="h-10 w-10 p-0 rounded-full hover:bg-muted"
+            className="h-9 w-9 p-0 rounded-full hover:bg-muted"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h3 className="text-2xl font-bold min-w-[180px] text-center">
+          <h3 className="text-xl font-bold min-w-[160px] text-center">
             {format(currentMonth, 'yyyy년 M월', { locale: ko })}
           </h3>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleNextMonth}
-            className="h-10 w-10 p-0 rounded-full hover:bg-muted"
+            className="h-9 w-9 p-0 rounded-full hover:bg-muted"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 좌측: 캘린더 */}
           <div className="flex justify-center">
             {/* 캘린더 */}
@@ -519,8 +519,8 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
           </div>
 
           {/* 우측: 선택된 날짜 정보 */}
-          <div className="border-l border-border pl-8">
-            <div className="bg-muted/30 rounded-lg p-6 min-h-[400px]">
+          <div className="border-l border-border pl-6">
+            <div className="bg-muted/30 rounded-lg p-5 min-h-[320px]">
               {selectedDate ? (
                 <div>
                   <div className="text-center mb-6">
@@ -784,7 +784,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
           margin: 0;
           background-color: hsl(var(--muted) / 0.3);
           border-radius: 0.75rem;
-          padding: 1.5rem;
+          padding: 1rem;
         }
 
         .birthday-calendar-wrapper .rdp-month_caption {
@@ -813,11 +813,11 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         }
 
         .birthday-calendar-wrapper .rdp-weekday {
-          font-size: 1rem;
+          font-size: 0.875rem;
           font-weight: 500;
           color: hsl(var(--foreground));
-          padding: 0.75rem 0;
-          width: 4.5rem;
+          padding: 0.5rem 0;
+          width: 3.5rem;
         }
 
         /* 일요일 빨간색 */
@@ -835,16 +835,16 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         }
 
         .birthday-calendar-wrapper .rdp-day {
-          width: 4.5rem;
-          height: 4.5rem;
+          width: 3.5rem;
+          height: 3.5rem;
           padding: 0;
         }
 
         .birthday-calendar-wrapper .rdp-day_button {
-          width: 4.5rem;
-          height: 4.5rem;
+          width: 3.5rem;
+          height: 3.5rem;
           border-radius: 50%;
-          font-size: 1.125rem;
+          font-size: 1rem;
           font-weight: 400;
           border: none;
           background: transparent;

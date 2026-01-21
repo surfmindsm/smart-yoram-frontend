@@ -468,16 +468,16 @@ const Dashboard = React.memo(() => {
     <PageContainer>
       <PageHeader title="대시보드" />
 
-      {/* 생일자 캘린더 */}
-      <div className="mb-8">
-        <BirthdayCalendar
-          onMemberClick={handleMemberClick}
-        />
-      </div>
-
-      {/* 실시간 접속자 */}
-      <div className="mb-8">
-        <OnlineUsers />
+      {/* 생일자 캘린더 & 실시간 접속자 */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <div className="xl:col-span-2">
+          <BirthdayCalendar
+            onMemberClick={handleMemberClick}
+          />
+        </div>
+        <div>
+          <OnlineUsers />
+        </div>
       </div>
 
       {/* Todo List - 주석처리 (BirthdayCalendar로 통합됨) */}
@@ -509,9 +509,9 @@ const Dashboard = React.memo(() => {
       </div> */}
 
       {/* Quick Actions */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">빠른 작업</h3>
+          <h2 className="text-xl font-bold text-foreground">빠른 작업</h2>
           <Button
             variant="outline"
             size="sm"
@@ -522,7 +522,7 @@ const Dashboard = React.memo(() => {
             커스터마이징
           </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {quickActions.map((action, index) => (
             <QuickActionCard
               key={`action-${action.title}-${index}`}
@@ -537,9 +537,9 @@ const Dashboard = React.memo(() => {
       </div>
 
       {/* Stats Grid - 교인 통계 카드 */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-foreground mb-4">교인 통계 카드</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-foreground mb-4">교인 통계</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {stats.map((stat, index) => (
             <StatCard
               key={`stat-${index}`}
@@ -554,9 +554,9 @@ const Dashboard = React.memo(() => {
       </div>
 
       {/* Statistics Charts */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-foreground">통계 분석</h3>
+          <h2 className="text-xl font-bold text-foreground">통계 분석</h2>
           {(!demographics || !memberGrowth) && (
             <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
               <AlertTriangle className="w-4 h-4" />
@@ -565,13 +565,13 @@ const Dashboard = React.memo(() => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* 성별 분포 */}
           {demographics && (
             <Card className="border-muted">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Users className="h-4 w-4" />
                   성별 분포
                 </CardTitle>
               </CardHeader>
@@ -632,9 +632,9 @@ const Dashboard = React.memo(() => {
           {/* 연령 분포 */}
           {demographics && (
             <Card className="border-muted">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
                   연령 분포
                 </CardTitle>
               </CardHeader>
@@ -696,24 +696,24 @@ const Dashboard = React.memo(() => {
         </div>
 
         {/* 교인 증가 추이 및 심방 신청 통계 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* 교인 증가 추이 */}
           {memberGrowth && (
             <Card className="border-muted">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <UserPlus className="h-5 w-5" />
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
                     교인 증가 추이 (최근 12개월)
                   </CardTitle>
-                  <div className="text-sm text-muted-foreground flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      현재 교인: {memberGrowth.total_current_members}명
+                  <div className="text-xs text-muted-foreground flex flex-col gap-1 text-right">
+                    <span className="flex items-center gap-1 justify-end">
+                      <Users className="h-3 w-3" />
+                      현재: {memberGrowth.total_current_members}명
                     </span>
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4" />
-                      조회 기간: {memberGrowth.period_months}개월
+                    <span className="flex items-center gap-1 justify-end">
+                      <TrendingUp className="h-3 w-3" />
+                      {memberGrowth.period_months}개월
                     </span>
                   </div>
                 </div>
@@ -793,9 +793,9 @@ const Dashboard = React.memo(() => {
           {/* 심방 신청 통계 */}
           {pastoralCareStats && (
             <Card className="border-muted">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
                   심방 신청 현황
                 </CardTitle>
               </CardHeader>
