@@ -96,11 +96,14 @@ export const announcementService = {
   createSystemAnnouncement: async (announcement: AnnouncementCreate): Promise<Announcement> => {
     try {
       // target_church_ids를 JSON 문자열로 변환
-      const payload = {
+      const payload: any = {
         ...announcement,
         target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
       };
       delete payload.target_church_ids; // 백엔드 필드명과 맞추기
+      delete payload.category; // category는 system_announcements 테이블에 없음
+      delete payload.subcategory; // subcategory도 테이블에 없음
+      delete payload.type; // type도 테이블에 없음
 
       // Use Supabase API
       const response = await supabaseApiService.systemAnnouncements.create(payload);
@@ -114,11 +117,14 @@ export const announcementService = {
   // 시스템 공지사항 수정 (시스템 관리자용)
   updateSystemAnnouncement: async (id: number, announcement: AnnouncementUpdate): Promise<Announcement> => {
     try {
-      const payload = {
+      const payload: any = {
         ...announcement,
         target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
       };
       delete payload.target_church_ids;
+      delete payload.category; // category는 system_announcements 테이블에 없음
+      delete payload.subcategory; // subcategory도 테이블에 없음
+      delete payload.type; // type도 테이블에 없음
 
       // Use Supabase API
       const response = await supabaseApiService.systemAnnouncements.update(id, payload);

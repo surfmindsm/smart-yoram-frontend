@@ -31,7 +31,6 @@ const SystemAnnouncementManagement: React.FC = () => {
   const [formData, setFormData] = useState<AnnouncementCreate>({
     title: '',
     content: '',
-    category: 'system',
     priority: 'normal',
     target_type: 'all',
     start_date: new Date().toISOString().split('T')[0],
@@ -91,7 +90,6 @@ const SystemAnnouncementManagement: React.FC = () => {
     setFormData({
       title: announcement.title,
       content: announcement.content,
-      category: announcement.category,
       priority: announcement.priority,
       target_type: announcement.target_type,
       target_church_ids: announcement.target_church_ids,
@@ -131,7 +129,6 @@ const SystemAnnouncementManagement: React.FC = () => {
     setFormData({
       title: '',
       content: '',
-      category: 'system',
       priority: 'normal',
       target_type: 'all',
       start_date: new Date().toISOString().split('T')[0],
