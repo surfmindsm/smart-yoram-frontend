@@ -370,10 +370,19 @@ const AccountCategoryManagement: React.FC = () => {
               </div>
             ) : (
               <div className="divide-y">
-                {expenseCategories.filter(c => !c.parent_id).map((category) => (
+                {expenseCategories.map((category) => (
                   <div key={category.id} className="flex items-center justify-between py-3 group hover:bg-gray-50">
                     <div>
-                      <p className="font-medium text-gray-900">{category.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-gray-900 ${category.parent_id ? 'font-medium' : 'font-semibold'}`}>
+                          {category.name}
+                        </p>
+                        {category.parent_id && (
+                          <span className="text-xs text-gray-500">
+                            (하위 항목)
+                          </span>
+                        )}
+                      </div>
                       {category.code && <p className="text-sm text-gray-500">{category.code}</p>}
                     </div>
                     <Button
@@ -386,7 +395,7 @@ const AccountCategoryManagement: React.FC = () => {
                     </Button>
                   </div>
                 ))}
-                {expenseCategories.filter(c => !c.parent_id).length === 0 && (
+                {expenseCategories.length === 0 && (
                   <p className="text-center text-gray-500 py-4">등록된 지출 계정과목이 없습니다.</p>
                 )}
               </div>
