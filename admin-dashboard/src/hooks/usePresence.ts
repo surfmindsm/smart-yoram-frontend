@@ -14,6 +14,7 @@ export const usePresence = (channelName: string = 'online-users') => {
   const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [currentUserChurchId, setCurrentUserChurchId] = useState<number | null>(null);
 
   // Presence 상태 동기화 핸들러
   const handlePresenceSync = useCallback((channelInstance: RealtimeChannel) => {
@@ -27,8 +28,13 @@ export const usePresence = (channelName: string = 'online-users') => {
       });
     });
 
-    setOnlineUsers(users);
-  }, []);
+    // 현재 사용자의 교회 ID와 동일한 사용자만 필터링
+    const filteredUsers = currentUserChurchId
+      ? users.filter(user => user.church_id === currentUserChurchId)
+      : users;
+
+    setOnlineUsers(filteredUsers);
+  }, [currentUserChurchId]);
 
   // Presence 채널 초기화
   useEffect(() => {
@@ -44,6 +50,9 @@ export const usePresence = (channelName: string = 'online-users') => {
           console.log('사용자 정보가 없어 Presence를 초기화하지 않습니다.');
           return;
         }
+
+        // 현재 사용자의 교회 ID 저장
+        setCurrentUserChurchId(currentUser.user.church_id || null);
 
         // Realtime 채널 생성
         channelInstance = supabase.channel(channelName, {

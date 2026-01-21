@@ -101,6 +101,7 @@ export const announcementService = {
         target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
       };
       delete payload.target_church_ids; // 백엔드 필드명과 맞추기
+      delete payload.target_type; // target_type은 system_announcements 테이블에 없음
       delete payload.category; // category는 system_announcements 테이블에 없음
       delete payload.subcategory; // subcategory도 테이블에 없음
       delete payload.type; // type도 테이블에 없음
@@ -122,6 +123,7 @@ export const announcementService = {
         target_churches: announcement.target_church_ids ? JSON.stringify(announcement.target_church_ids) : null
       };
       delete payload.target_church_ids;
+      delete payload.target_type; // target_type은 system_announcements 테이블에 없음
       delete payload.category; // category는 system_announcements 테이블에 없음
       delete payload.subcategory; // subcategory도 테이블에 없음
       delete payload.type; // type도 테이블에 없음
