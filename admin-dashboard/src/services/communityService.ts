@@ -99,7 +99,7 @@ const getUserNameById = async (authorId: number): Promise<string | null> => {
       if (apiError.response?.status === 403) {
         // console.log('👥 403 에러로 Supabase members 시도...');
         const { supabaseApiService } = await import('./supabaseApiService');
-        const membersResponse = await supabaseApiService.members.getAll();
+        const membersResponse = await supabaseApiService.members.getAll({ limit: 10000 });
         // console.log('👥 Supabase members 응답:', membersResponse);
 
         if (membersResponse && Array.isArray(membersResponse.data)) {

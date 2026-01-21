@@ -67,7 +67,7 @@ const BulkDonationInput: React.FC = () => {
 
   const loadMembers = async () => {
     try {
-      const response = await supabaseApiService.members.getAll();
+      const response = await supabaseApiService.members.getAll({ limit: 10000 });
       const membersData = response.data || response;
       setMembers(membersData);
     } catch (error) {

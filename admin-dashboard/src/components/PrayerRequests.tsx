@@ -159,7 +159,7 @@ const PrayerRequests: React.FC = () => {
         const currentUser = await supabaseAuthService.getCurrentUser();
         const userChurchId = currentUser?.user?.church_id || 9998;
 
-        const response = await supabaseApiService.members.getAll({ church_id: userChurchId });
+        const response = await supabaseApiService.members.getAll({ church_id: userChurchId, limit: 10000 });
 
         const membersData = response?.data || response || [];
 
