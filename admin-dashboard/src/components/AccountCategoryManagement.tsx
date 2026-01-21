@@ -147,10 +147,6 @@ const AccountCategoryManagement: React.FC = () => {
   };
 
   const deleteCategory = async (id: number) => {
-    if (!window.confirm('이 계정과목을 삭제하시겠습니까?')) {
-      return;
-    }
-
     try {
       const token = await supabaseAuthService.getToken();
       if (!token) {
@@ -162,6 +158,42 @@ const AccountCategoryManagement: React.FC = () => {
       if (!supabaseUrl) {
         alert('Supabase URL이 설정되지 않았습니다.');
         console.error('REACT_APP_SUPABASE_URL이 환경변수에 없습니다.');
+        return;
+      }
+
+      // 삭제 전 사용 여부 확인
+      const checkUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories/${id}/usage`;
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (checkResponse.ok) {
+        const usage = await checkResponse.json();
+        const { budgetCount = 0, transactionCount = 0, offeringCount = 0 } = usage;
+
+        if (budgetCount > 0 || transactionCount > 0 || offeringCount > 0) {
+          const usageDetails = [];
+          if (budgetCount > 0) usageDetails.push(`예산 ${budgetCount}건`);
+          if (transactionCount > 0) usageDetails.push(`회계거래 ${transactionCount}건`);
+          if (offeringCount > 0) usageDetails.push(`헌금 ${offeringCount}건`);
+
+          alert(
+            `⚠️ 이 계정과목은 현재 사용 중입니다.\n\n` +
+            `${usageDetails.join(', ')}\n\n` +
+            `사용 중인 계정과목은 삭제할 수 없습니다.\n` +
+            `먼저 관련 데이터를 다른 계정과목으로 이동하거나 삭제해주세요.`
+          );
+          return;
+        }
+      }
+
+      // 사용 중이 아니면 삭제 확인
+      if (!window.confirm('이 계정과목을 삭제하시겠습니까?')) {
         return;
       }
 
@@ -186,7 +218,17 @@ const AccountCategoryManagement: React.FC = () => {
       } else {
         const error = await response.json();
         console.error('서버 응답 에러:', error);
-        alert(`계정과목 삭제 실패: ${error.error || '알 수 없는 오류'}`);
+
+        // 외래 키 제약 조건 오류 메시지 개선
+        if (error.error && error.error.includes('foreign key constraint')) {
+          alert(
+            `⚠️ 이 계정과목은 현재 사용 중입니다.\n\n` +
+            `예산, 회계거래, 또는 헌금 데이터에서 참조되고 있어 삭제할 수 없습니다.\n\n` +
+            `먼저 관련 데이터를 다른 계정과목으로 이동하거나 삭제해주세요.`
+          );
+        } else {
+          alert(`계정과목 삭제 실패: ${error.error || '알 수 없는 오류'}`);
+        }
       }
     } catch (error) {
       console.error('계정과목 삭제 실패 (전체 에러):', error);
@@ -279,45 +321,46 @@ const AccountCategoryManagement: React.FC = () => {
                             {category.code && <p className="text-sm text-gray-500">{category.code}</p>}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteCategory(category.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {/* 헌금 상위 카테고리는 삭제 버튼 숨김 */}
+                        {!(category.name === '헌금' && !category.parent_id) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteCategory(category.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
 
                       {/* 하위 항목들 */}
                       {incomeCategories
                         .filter(c => c.parent_id === category.id)
-                        .map((child) => (
-                          <div key={child.id} className="flex items-center justify-between py-2 pl-6 group hover:bg-gray-50 border-l-2 border-gray-200">
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <div className="flex items-center gap-2">
+                        .map((child) => {
+                          const isOfferingChild = category.name === '헌금' && !category.parent_id;
+                          return (
+                            <div key={child.id} className="flex items-center justify-between py-2 pl-6 group hover:bg-gray-50 border-l-2 border-gray-200">
+                              <div className="flex items-center gap-2">
+                                <div>
                                   <p className="font-medium text-gray-700 text-sm">{child.name}</p>
-                                  {child.is_offering && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      <DollarSign className="w-3 h-3" />
-                                      헌금
-                                    </span>
-                                  )}
+                                  {child.code && <p className="text-xs text-gray-500">{child.code}</p>}
                                 </div>
-                                {child.code && <p className="text-xs text-gray-500">{child.code}</p>}
                               </div>
+                              {/* 헌금 하위 항목은 삭제 버튼 숨김 */}
+                              {!isOfferingChild && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteCategory(child.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteCategory(child.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </React.Fragment>
                   ))}
                 {incomeCategories.filter(c => !c.parent_id).length === 0 && (

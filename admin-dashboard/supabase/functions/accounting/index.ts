@@ -211,6 +211,57 @@ Deno.serve(async (req) => {
         )
       }
 
+      // GET /accounting/admin/categories/:id/usage - 사용 여부 확인
+      if (req.method === 'GET' && pathParts[pathParts.length - 1] === 'usage') {
+        const categoryId = parseInt(pathParts[pathParts.length - 2])
+
+        // 예산에서 사용 여부 확인 (금액이 0이 아닌 것만)
+        const { count: budgetCount } = await supabaseClient
+          .from('budgets')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', categoryId)
+          .eq('church_id', userChurchId)
+          .neq('budgeted_amount', 0)
+
+        // 회계거래에서 사용 여부 확인 (금액이 0이 아닌 것만)
+        const { count: transactionCount } = await supabaseClient
+          .from('accounting_transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', categoryId)
+          .eq('church_id', userChurchId)
+          .neq('amount', 0)
+
+        // 헌금에서 사용 여부 확인 (간접 참조, 금액이 0이 아닌 것만)
+        const { data: offeringData } = await supabaseClient
+          .from('offerings')
+          .select('id, accounting_transaction_id')
+          .eq('church_id', userChurchId)
+          .not('accounting_transaction_id', 'is', null)
+
+        let offeringCount = 0
+        if (offeringData && offeringData.length > 0) {
+          const transactionIds = offeringData.map(o => o.accounting_transaction_id)
+          const { count } = await supabaseClient
+            .from('accounting_transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', categoryId)
+            .in('id', transactionIds)
+            .neq('amount', 0)
+
+          offeringCount = count || 0
+        }
+
+        console.log('✅ 계정과목 사용 여부 확인:', { categoryId, budgetCount, transactionCount, offeringCount })
+        return new Response(
+          JSON.stringify({
+            budgetCount: budgetCount || 0,
+            transactionCount: transactionCount || 0,
+            offeringCount: offeringCount || 0,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       // GET /accounting/admin/categories/:id
       if (req.method === 'GET' && categoryId) {
         const { data, error } = await supabaseClient
@@ -306,6 +357,67 @@ Deno.serve(async (req) => {
 
       // DELETE /accounting/admin/categories/:id
       if (req.method === 'DELETE' && categoryId) {
+        // 0. 헌금 계정과목인지 확인
+        const { data: categoryData } = await supabaseClient
+          .from('account_categories')
+          .select('name, parent_id')
+          .eq('id', categoryId)
+          .eq('church_id', userChurchId)
+          .single()
+
+        if (categoryData) {
+          // 헌금 상위 카테고리 확인
+          if (categoryData.name === '헌금' && !categoryData.parent_id) {
+            console.log('❌ 헌금 상위 카테고리는 삭제할 수 없습니다')
+            return new Response(
+              JSON.stringify({ error: '헌금 상위 카테고리는 삭제할 수 없습니다.' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          // 헌금 하위 항목인지 확인
+          if (categoryData.parent_id) {
+            const { data: parentData } = await supabaseClient
+              .from('account_categories')
+              .select('name')
+              .eq('id', categoryData.parent_id)
+              .single()
+
+            if (parentData && parentData.name === '헌금') {
+              console.log('❌ 헌금 하위 항목은 삭제할 수 없습니다')
+              return new Response(
+                JSON.stringify({ error: '헌금 유형은 삭제할 수 없습니다.' }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+          }
+        }
+
+        // 1. 먼저 금액이 0인 예산 데이터 삭제
+        const { error: budgetDeleteError } = await supabaseClient
+          .from('budgets')
+          .delete()
+          .eq('category_id', categoryId)
+          .eq('church_id', userChurchId)
+          .eq('budgeted_amount', 0)
+
+        if (budgetDeleteError) {
+          console.log('⚠️ 예산 데이터 삭제 실패 (무시):', budgetDeleteError)
+        }
+
+        // 2. 금액이 0인 회계거래 데이터 삭제
+        const { error: transactionDeleteError } = await supabaseClient
+          .from('accounting_transactions')
+          .delete()
+          .eq('category_id', categoryId)
+          .eq('church_id', userChurchId)
+          .eq('amount', 0)
+
+        if (transactionDeleteError) {
+          console.log('⚠️ 회계거래 데이터 삭제 실패 (무시):', transactionDeleteError)
+        }
+
+        // 3. 계정과목 삭제
         const { error } = await supabaseClient
           .from('account_categories')
           .delete()
