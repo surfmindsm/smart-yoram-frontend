@@ -6,7 +6,7 @@ import { ko } from 'date-fns/locale';
 import 'react-day-picker/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui';
 import { Button } from '../ui';
-import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Cake, Calendar, CheckCircle, Circle, Flag, Heart } from 'lucide-react';
 import { Badge } from '../ui';
 import { supabaseApiService } from '../../services/supabaseApiService';
 import { useToast } from '../../hooks/use-toast';
@@ -52,6 +52,22 @@ interface Holiday {
   isLunar?: boolean;
 }
 
+interface PastoralCare {
+  id: number;
+  scheduled_date: string | null;
+  scheduled_time?: string;
+  status?: string;
+  member_id?: number;
+  requester_name?: string;
+  requester_phone?: string;
+  address?: string;
+  members?: {
+    id: number;
+    name: string;
+    phone?: string;
+  };
+}
+
 interface BirthdayCalendarProps {
   onMemberClick?: (member: Member) => void;
 }
@@ -86,6 +102,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [allBirthdays, setAllBirthdays] = useState<Member[]>([]);
   const [allDates, setAllDates] = useState<ImportantDate[]>([]);
+  const [allPastoralCare, setAllPastoralCare] = useState<PastoralCare[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // 컴포넌트 마운트 시 전체 데이터를 한 번만 fetch (캐싱)
@@ -94,18 +111,21 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
       try {
         setIsLoading(true);
 
-        // 전체 생일자와 일정 데이터를 한 번에 fetch
-        const [birthdaysResult, datesResult] = await Promise.all([
+        // 전체 생일자, 일정, 심방 데이터를 한 번에 fetch
+        const [birthdaysResult, datesResult, pastoralCareResult] = await Promise.all([
           supabaseApiService.birthdays.getAll(),
           supabaseApiService.importantDates.getAll(),
+          supabaseApiService.pastoralCare.getAll().catch(() => ({ data: [] })),
         ]);
 
         setAllBirthdays(birthdaysResult.data || []);
         setAllDates(datesResult.data || []);
+        setAllPastoralCare(pastoralCareResult.data || []);
       } catch (error) {
         console.error('데이터 조회 실패:', error);
         setAllBirthdays([]);
         setAllDates([]);
+        setAllPastoralCare([]);
       } finally {
         setIsLoading(false);
       }
@@ -242,6 +262,29 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     return dates;
   }, [allDates, currentMonth]);
 
+  // 현재 월에 심방 일정이 있는 날짜 목록 생성
+  const pastoralCareDates = useMemo(() => {
+    const dates: Date[] = [];
+    const currentYear = getYear(currentMonth);
+    const currentMonthNum = getMonth(currentMonth);
+
+    allPastoralCare.forEach((care) => {
+      if (care.scheduled_date) {
+        const careDate = new Date(care.scheduled_date);
+        const careYear = getYear(careDate);
+        const careMonth = getMonth(careDate);
+        const careDay = careDate.getDate();
+
+        // 현재 보고 있는 년월과 심방 년월이 같으면 추가
+        if (careYear === currentYear && careMonth === currentMonthNum) {
+          dates.push(new Date(currentYear, currentMonthNum, careDay));
+        }
+      }
+    });
+
+    return dates;
+  }, [allPastoralCare, currentMonth]);
+
   // 특정 날짜의 생일자 목록 가져오기
   const getBirthdayMembersForDate = (date: Date) => {
     const targetYear = getYear(date);
@@ -299,13 +342,30 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     });
   };
 
-  // 선택된 날짜의 생일자 & 일정 목록
+  // 특정 날짜의 심방 일정 목록 가져오기
+  const getPastoralCareForDate = (date: Date) => {
+    const year = getYear(date);
+    const month = getMonth(date);
+    const day = date.getDate();
+
+    return allPastoralCare.filter((care) => {
+      if (!care.scheduled_date) return false;
+      const careDate = new Date(care.scheduled_date);
+      // 심방 일정은 년월일 모두 비교
+      return getYear(careDate) === year && getMonth(careDate) === month && careDate.getDate() === day;
+    });
+  };
+
+  // 선택된 날짜의 생일자 & 일정 & 심방 목록
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const selectedBirthdays = selectedDate
     ? getBirthdayMembersForDate(selectedDate)
     : [];
   const selectedEvents = selectedDate
     ? getEventsForDate(selectedDate)
+    : [];
+  const selectedPastoralCare = selectedDate
+    ? getPastoralCareForDate(selectedDate)
     : [];
 
   // 월 변경 핸들러
@@ -433,6 +493,24 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
     return allDates.filter((event) => !event.event_date && !event.is_completed);
   }, [allDates]);
 
+  // 날짜가 있는 심방 일정 (현재 월)
+  const datedPastoralCare = useMemo(() => {
+    const currentMonthNum = getMonth(currentMonth);
+    const currentYear = getYear(currentMonth);
+
+    return allPastoralCare
+      .filter((care) => {
+        if (!care.scheduled_date) return false;
+        const careDate = new Date(care.scheduled_date);
+        return getMonth(careDate) === currentMonthNum && getYear(careDate) === currentYear;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.scheduled_date!);
+        const dateB = new Date(b.scheduled_date!);
+        return dateA.getDate() - dateB.getDate();
+      });
+  }, [allPastoralCare, currentMonth]);
+
   // 일정 완료/미완료 토글
   const handleToggleComplete = async (event: ImportantDate, e: React.MouseEvent) => {
     e.stopPropagation(); // 부모 클릭 이벤트 방지
@@ -506,11 +584,13 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                 modifiers={{
                   birthday: birthdayDates,
                   event: eventDates,
+                  pastoralCare: pastoralCareDates,
                   holiday: holidayDates,
                 }}
                 modifiersClassNames={{
                   birthday: 'has-birthday',
                   event: 'has-event',
+                  pastoralCare: 'has-pastoral-care',
                   holiday: 'has-holiday',
                 }}
                 showOutsideDays={false}
@@ -601,6 +681,45 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">일정이 없습니다</p>
+                    )}
+
+                    {/* 심방 일정 섹션 */}
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 border-t border-border pt-6">
+                      <Heart className="h-4 w-4" />
+                      심방 일정
+                    </h4>
+                    {selectedPastoralCare.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedPastoralCare.map((care) => (
+                          <div
+                            key={care.id}
+                            className="p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer"
+                            onClick={() => navigate('/pastoral-care')}
+                          >
+                            <div className="flex items-start gap-2">
+                              <Heart className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <p className="font-medium text-green-900">
+                                  {care.members?.name || care.requester_name}
+                                </p>
+                                {care.scheduled_time && (
+                                  <p className="text-xs text-green-700">{care.scheduled_time}</p>
+                                )}
+                                {care.address && (
+                                  <p className="text-xs text-green-700 mt-1">{care.address}</p>
+                                )}
+                                {care.status && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800 mt-1 inline-block">
+                                    {care.status}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">심방 일정이 없습니다</p>
                     )}
                   </div>
                 </div>
@@ -731,6 +850,56 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">할일이 없습니다</p>
+                      )}
+                    </div>
+
+                    {/* 심방 일정 섹션 */}
+                    <div className="border-t border-border pt-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <Heart className="h-4 w-4" />
+                          심방 일정 ({datedPastoralCare.length}건)
+                        </h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate('/pastoral-care')}
+                          className="text-xs"
+                        >
+                          더보기
+                        </Button>
+                      </div>
+                      {datedPastoralCare.length > 0 ? (
+                        <div className="space-y-2">
+                          {datedPastoralCare.map((care) => (
+                            <div
+                              key={care.id}
+                              className="p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer"
+                              onClick={() => navigate('/pastoral-care')}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className="flex items-center justify-center w-10 h-10 bg-green-500/10 rounded-full flex-shrink-0">
+                                  <span className="text-sm font-bold text-green-600">
+                                    {new Date(care.scheduled_date!).getDate()}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm text-green-900">
+                                    {care.members?.name || care.requester_name}
+                                  </p>
+                                  {care.scheduled_time && (
+                                    <p className="text-xs text-green-700">{care.scheduled_time}</p>
+                                  )}
+                                  {care.address && (
+                                    <p className="text-xs text-green-700 mt-0.5">{care.address}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">심방 일정이 없습니다</p>
                       )}
                     </div>
 
@@ -916,6 +1085,35 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
         .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::before {
           left: 50%;
           transform: translateX(0.5rem);
+        }
+
+        /* 심방 배지 - border-bottom 사용 (가운데) */
+        .birthday-calendar-wrapper .has-pastoral-care .rdp-day_button {
+          position: relative;
+          border-bottom: 3px solid #22c55e;
+        }
+
+        /* 생일과 심방이 둘 다 있을 때 - 생일 배지 왼쪽, 심방은 border 유지 */
+        .birthday-calendar-wrapper .has-birthday.has-pastoral-care .rdp-day_button::after {
+          left: 50%;
+          transform: translateX(-0.5rem);
+        }
+
+        /* 일정과 심방이 둘 다 있을 때 - 일정 배지 왼쪽, 심방은 border 유지 */
+        .birthday-calendar-wrapper .has-event.has-pastoral-care .rdp-day_button::before {
+          left: 50%;
+          transform: translateX(-0.5rem);
+        }
+
+        /* 생일+일정+심방이 모두 있을 때 - 생일 왼쪽, 일정 오른쪽, 심방은 border */
+        .birthday-calendar-wrapper .has-birthday.has-event.has-pastoral-care .rdp-day_button::after {
+          left: 50%;
+          transform: translateX(-0.75rem);
+        }
+
+        .birthday-calendar-wrapper .has-birthday.has-event.has-pastoral-care .rdp-day_button::before {
+          left: 50%;
+          transform: translateX(0.75rem);
         }
 
         /* 공휴일 - 날짜 텍스트 색상 빨간색 (일요일과 동일) */
