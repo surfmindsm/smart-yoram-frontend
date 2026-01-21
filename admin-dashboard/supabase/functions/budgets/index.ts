@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
           .from('budgets')
           .select(`
             *,
-            category:account_categories(id, name, type)
+            category:account_categories(id, name, type, parent_id)
           `)
           .eq('church_id', userChurchId)
           .eq('year', year)
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
             // 카테고리 정보 조회
             const { data: categoryData } = await supabaseClient
               .from('account_categories')
-              .select('id, name, type')
+              .select('id, name, type, parent_id')
               .eq('id', actual.category_id)
               .single()
 

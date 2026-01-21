@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
       // GET /accounting/admin/categories
       if (req.method === 'GET' && !categoryId) {
         const type = url.searchParams.get('type') // 'income' or 'expense'
+        const isOffering = url.searchParams.get('is_offering') // 'true' or 'false'
 
         let query = supabaseClient
           .from('account_categories')
@@ -89,6 +90,10 @@ Deno.serve(async (req) => {
 
         if (type) {
           query = query.eq('type', type)
+        }
+
+        if (isOffering !== null && isOffering !== undefined) {
+          query = query.eq('is_offering', isOffering === 'true')
         }
 
         const { data, error } = await query
@@ -138,6 +143,7 @@ Deno.serve(async (req) => {
                 type: item.type,
                 parent_id: null,
                 is_active: item.is_active,
+                is_offering: item.is_offering ?? false,
                 display_order: item.display_order,
               })
               .select()
@@ -164,6 +170,7 @@ Deno.serve(async (req) => {
                   type: item.type,
                   parent_id: newParentId,
                   is_active: item.is_active,
+                  is_offering: item.is_offering ?? false,
                   display_order: item.display_order,
                 })
                 .select()
@@ -240,6 +247,7 @@ Deno.serve(async (req) => {
             type: body.type,
             parent_id: body.parent_id || null,
             is_active: body.is_active ?? true,
+            is_offering: body.is_offering ?? false,
             display_order: body.display_order || 0,
           })
           .select()
@@ -269,6 +277,7 @@ Deno.serve(async (req) => {
         if (body.type !== undefined) updateData.type = body.type
         if (body.parent_id !== undefined) updateData.parent_id = body.parent_id
         if (body.is_active !== undefined) updateData.is_active = body.is_active
+        if (body.is_offering !== undefined) updateData.is_offering = body.is_offering
         if (body.display_order !== undefined) updateData.display_order = body.display_order
         updateData.updated_at = new Date().toISOString()
 

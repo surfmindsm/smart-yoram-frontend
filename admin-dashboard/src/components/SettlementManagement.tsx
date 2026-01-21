@@ -230,54 +230,185 @@ const SettlementManagement: React.FC = () => {
                         if (a.type !== b.type) {
                           return a.type === 'income' ? -1 : 1;
                         }
+
+                        // 헌금 카테고리의 parent_id 찾기
+                        const offeringParentId = budgetVsActual.find(item =>
+                          item.category?.name === '헌금' && !item.category.parent_id
+                        )?.category_id;
+
+                        // 헌금의 하위 항목들은 함께 그룹화
+                        const aIsOfferingChild = a.category?.parent_id === offeringParentId;
+                        const bIsOfferingChild = b.category?.parent_id === offeringParentId;
+
+                        if (aIsOfferingChild && !bIsOfferingChild) return -1;
+                        if (!aIsOfferingChild && bIsOfferingChild) return 1;
+
                         return (a.category?.name || '').localeCompare(b.category?.name || '', 'ko-KR');
                       })
-                      .map((item) => (
-                      <tr key={`${item.category_id}_${item.type}`} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {item.category?.name || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            item.type === 'income'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {item.type === 'income' ? '수입' : '지출'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">
-                          {formatCurrency(item.budgeted_amount)}
-                        </td>
-                        <td className={`px-4 py-3 text-sm text-right font-medium ${
-                          item.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatCurrency(item.actual_amount)}
-                        </td>
-                        <td className={`px-4 py-3 text-sm text-right font-medium ${
-                          item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-600'
-                        }`}>
-                          {item.difference > 0 ? '+' : ''}{formatCurrency(item.difference)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className={`font-medium ${
-                              item.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
-                            }`}>
-                              {item.execution_rate.toFixed(1)}%
-                            </span>
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  item.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
-                                }`}
-                                style={{ width: `${Math.min(item.execution_rate, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                      .reduce((acc, item, index, array) => {
+                        const isOfferingParent = item.category?.name === '헌금' && !item.category?.parent_id;
+
+                        // 헌금 상위 항목인 경우, 하위 항목들의 합계 계산
+                        if (isOfferingParent) {
+                          const offeringChildren = array.filter(i => i.category?.parent_id === item.category_id);
+                          const totalBudget = offeringChildren.reduce((sum, i) => sum + i.budgeted_amount, 0);
+                          const totalActual = offeringChildren.reduce((sum, i) => sum + i.actual_amount, 0);
+                          const totalDifference = totalActual - totalBudget;
+                          const totalExecutionRate = totalBudget > 0 ? (totalActual / totalBudget) * 100 : (totalActual > 0 ? 999.9 : 0);
+
+                          // 헌금 상위 카테고리 행 추가
+                          acc.push(
+                            <tr key={`parent_${item.category_id}_${item.type}`} className="bg-gray-50 font-semibold">
+                              <td className="px-4 py-3 text-sm text-gray-900">{item.category?.name}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  item.type === 'income'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {item.type === 'income' ? '수입' : '지출'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                {formatCurrency(totalBudget)}
+                              </td>
+                              <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                item.type === 'income' ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {formatCurrency(totalActual)}
+                              </td>
+                              <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                totalDifference > 0 ? 'text-green-600' : totalDifference < 0 ? 'text-red-600' : 'text-gray-600'
+                              }`}>
+                                {totalDifference > 0 ? '+' : ''}{formatCurrency(totalDifference)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className={`font-medium ${
+                                    totalExecutionRate > 100 ? 'text-orange-600' : 'text-primary-600'
+                                  }`}>
+                                    {totalExecutionRate.toFixed(1)}%
+                                  </span>
+                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full ${
+                                        totalExecutionRate > 100 ? 'bg-orange-600' : 'bg-primary-600'
+                                      }`}
+                                      style={{ width: `${Math.min(totalExecutionRate, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+
+                          // 헌금 하위 항목들 추가
+                          offeringChildren.forEach(child => {
+                            acc.push(
+                              <tr key={`${child.category_id}_${child.type}`} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm text-gray-600 pl-8">
+                                  ∙ {child.category?.name || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    child.type === 'income'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {child.type === 'income' ? '수입' : '지출'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                  {formatCurrency(child.budgeted_amount)}
+                                </td>
+                                <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                  child.type === 'income' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {formatCurrency(child.actual_amount)}
+                                </td>
+                                <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                  child.difference > 0 ? 'text-green-600' : child.difference < 0 ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                  {child.difference > 0 ? '+' : ''}{formatCurrency(child.difference)}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className={`font-medium ${
+                                      child.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
+                                    }`}>
+                                      {child.execution_rate.toFixed(1)}%
+                                    </span>
+                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className={`h-2 rounded-full ${
+                                          child.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
+                                        }`}
+                                        style={{ width: `${Math.min(child.execution_rate, 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        } else {
+                          // 헌금의 하위 항목이 아니면서 상위 항목도 아닌 경우만 개별 표시
+                          const offeringParentId = array.find(i =>
+                            i.category?.name === '헌금' && !i.category?.parent_id
+                          )?.category_id;
+
+                          if (item.category?.parent_id !== offeringParentId) {
+                            acc.push(
+                              <tr key={`${item.category_id}_${item.type}`} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {item.category?.name || '-'}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    item.type === 'income'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {item.type === 'income' ? '수입' : '지출'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                  {formatCurrency(item.budgeted_amount)}
+                                </td>
+                                <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                  item.type === 'income' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {formatCurrency(item.actual_amount)}
+                                </td>
+                                <td className={`px-4 py-3 text-sm text-right font-medium ${
+                                  item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                  {item.difference > 0 ? '+' : ''}{formatCurrency(item.difference)}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className={`font-medium ${
+                                      item.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
+                                    }`}>
+                                      {item.execution_rate.toFixed(1)}%
+                                    </span>
+                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className={`h-2 rounded-full ${
+                                          item.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
+                                        }`}
+                                        style={{ width: `${Math.min(item.execution_rate, 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          }
+                        }
+
+                        return acc;
+                      }, [] as React.ReactElement[])}
                   </tbody>
                 </table>
                 {budgetVsActual.length === 0 && (

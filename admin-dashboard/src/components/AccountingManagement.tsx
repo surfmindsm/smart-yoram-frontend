@@ -717,10 +717,9 @@ const AccountingManagement: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {(newTransaction.type === 'income' ? incomeCategories : expenseCategories)
-                    .filter(c => !c.parent_id)  // 부모 카테고리만 선택 가능 (예산과 일치)
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
+                        {category.parent_id ? `  ∙ ${category.name}` : category.name}
                       </SelectItem>
                     ))}
                 </SelectContent>

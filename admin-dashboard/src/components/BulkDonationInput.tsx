@@ -28,33 +28,17 @@ interface BulkDonationRow {
   isAnonymous: boolean;
 }
 
-const FUND_TYPES = [
-  '감사절',
-  '감사헌금',
-  '건축헌금',
-  '구제헌금',
-  '기타',
-  '맥추감사절',
-  '부활절',
-  '선교헌금',
-  '성탄절',
-  '십일조',
-  '신년헌금',
-  '연말감사헌금',
-  '일천번제',
-  '장학헌금',
-  '주일헌금',
-  '특별헌금'
-];
+// 헌금 유형은 계정과목 API에서 동적으로 로드됩니다
 
 const BulkDonationInput: React.FC = () => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
+  const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
 
   const [bulkDonations, setBulkDonations] = useState<BulkDonationRow[]>([
-    { donorId: '', amount: 0, fundType: '주일헌금', note: '', isAnonymous: false }
+    { donorId: '', amount: 0, fundType: '', note: '', isAnonymous: false }
   ]);
   const [bulkSettings, setBulkSettings] = useState({
     offeredOn: new Date().toISOString().split('T')[0]
@@ -63,6 +47,7 @@ const BulkDonationInput: React.FC = () => {
   useEffect(() => {
     loadMembers();
     loadChurchInfo();
+    loadFundTypes();
   }, []);
 
   const loadMembers = async () => {
@@ -99,8 +84,75 @@ const BulkDonationInput: React.FC = () => {
     }
   };
 
+  // 헌금 유형을 계정과목 API에서 로드하는 함수
+  const loadFundTypes = async () => {
+    try {
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id;
+      if (!userChurchId) {
+        console.error('교회 ID를 찾을 수 없습니다.');
+        return;
+      }
+
+      const token = await supabaseAuthService.getToken();
+      if (!token) {
+        console.error('토큰을 가져올 수 없습니다.');
+        return;
+      }
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+
+      // 수입(income) 타입의 모든 계정과목 가져오기
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/accounting/admin/categories?type=income&church_id=${userChurchId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const categories = Array.isArray(data) ? data : (data?.data || []);
+
+        // "헌금" 상위 카테고리 찾기
+        const offeringParent = categories.find(
+          (cat: any) => cat.name === '헌금' && !cat.parent_id
+        );
+
+        if (offeringParent) {
+          // "헌금"의 하위 항목 필터링
+          const offeringChildren = categories.filter(
+            (cat: any) => cat.parent_id === offeringParent.id
+          );
+
+          // 이름만 추출하여 정렬
+          const fundTypeNames = offeringChildren
+            .map((cat: any) => cat.name)
+            .sort();
+
+          setFundTypes(fundTypeNames);
+          console.log('✅ 헌금 유형 로드 완료:', fundTypeNames);
+        } else {
+          console.warn('⚠️ "헌금" 상위 카테고리를 찾을 수 없습니다.');
+          setFundTypes([]);
+        }
+      } else {
+        console.error('헌금 유형 로드 실패:', response.status);
+        setFundTypes([]);
+      }
+    } catch (error) {
+      console.error('헌금 유형 로드 중 오류:', error);
+      setFundTypes([]);
+    }
+  };
+
   const addBulkRow = () => {
-    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '주일헌금', note: '', isAnonymous: false }]);
+    setBulkDonations([...bulkDonations, { donorId: '', amount: 0, fundType: '', note: '', isAnonymous: false }]);
   };
 
   const removeBulkRow = (index: number) => {
@@ -286,7 +338,7 @@ const BulkDonationInput: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <Combobox
-                      options={FUND_TYPES.map(type => ({ label: type, value: type }))}
+                      options={fundTypes.map(type => ({ label: type, value: type }))}
                       value={bulk.fundType}
                       onChange={(value) => updateBulkRow(index, 'fundType', value)}
                       placeholder="헌금 유형 선택..."

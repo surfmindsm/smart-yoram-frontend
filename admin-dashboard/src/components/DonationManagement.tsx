@@ -136,25 +136,7 @@ interface Donation {
   inputUserId: number;
 }
 
-// 헌금 유형 옵션 (가나다 순)
-const FUND_TYPES = [
-  '감사절',
-  '감사헌금',
-  '건축헌금',
-  '구제헌금',
-  '기타',
-  '맥추감사절',
-  '부활절',
-  '선교헌금',
-  '성탄절',
-  '십일조',
-  '신년헌금',
-  '연말감사헌금',
-  '일천번제',
-  '장학헌금',
-  '주일헌금',
-  '특별헌금'
-];
+// 헌금 유형은 계정과목 API에서 동적으로 로드됩니다
 
 const DonationManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -164,7 +146,7 @@ const DonationManagement: React.FC = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [donors, setDonors] = useState<Donor[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [fundTypes, setFundTypes] = useState<FundType[]>([]);
+  const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
@@ -414,8 +396,10 @@ const DonationManagement: React.FC = () => {
 
       setOfferings(allOfferings);
       setDonors([]); // donors 비워둔 (members로 대체)
-      setFundTypes([]);
       setReceipts(receiptsWithMemberInfo);
+
+      // 헌금 유형을 계정과목 API에서 로드
+      await loadFundTypes(userChurchId);
 
       // 모든 Offerings를 Donations로 변환
       if (allOfferings.length > 0) {
@@ -438,6 +422,80 @@ const DonationManagement: React.FC = () => {
       setReceipts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 헌금 유형을 계정과목 API에서 로드하는 함수
+  const loadFundTypes = async (userChurchId: number) => {
+    try {
+      const token = await supabaseAuthService.getToken();
+      if (!token) {
+        console.error('토큰을 가져올 수 없습니다.');
+        return;
+      }
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+
+      // 수입(income) 타입의 모든 계정과목 가져오기
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/accounting/admin/categories?type=income&church_id=${userChurchId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const categories = Array.isArray(data) ? data : (data?.data || []);
+
+        console.log('📊 API 응답 categories:', categories);
+
+        // "헌금" 상위 카테고리 찾기
+        const offeringParent = categories.find(
+          (cat: any) => cat.name === '헌금' && !cat.parent_id
+        );
+
+        console.log('🔍 헌금 상위 카테고리:', offeringParent);
+
+        if (offeringParent) {
+          // 모든 하위 항목 확인 (필터링 전)
+          const allChildren = categories.filter(
+            (cat: any) => cat.parent_id === offeringParent.id
+          );
+          console.log('📌 parent_id가 일치하는 모든 하위 항목:', allChildren);
+
+          // "헌금"의 하위 항목 필터링
+          // parent_id만으로 필터링 (is_offering 필드가 설정되지 않을 수 있음)
+          const offeringChildren = categories.filter(
+            (cat: any) => cat.parent_id === offeringParent.id
+          );
+
+          console.log('👶 헌금 하위 항목들 (is_offering 체크 제거):', offeringChildren);
+
+          // 이름만 추출하여 정렬
+          const fundTypeNames = offeringChildren
+            .map((cat: any) => cat.name)
+            .sort();
+
+          setFundTypes(fundTypeNames);
+          console.log('✅ 헌금 유형 로드 완료:', fundTypeNames);
+        } else {
+          console.warn('⚠️ "헌금" 상위 카테고리를 찾을 수 없습니다.');
+          console.log('📋 전체 카테고리 목록:', categories.map((c: any) => ({ name: c.name, parent_id: c.parent_id })));
+          setFundTypes([]);
+        }
+      } else {
+        console.error('헌금 유형 로드 실패:', response.status);
+        setFundTypes([]);
+      }
+    } catch (error) {
+      console.error('헌금 유형 로드 중 오류:', error);
+      setFundTypes([]);
     }
   };
 
@@ -789,7 +847,7 @@ const DonationManagement: React.FC = () => {
 
     // 헌금 유형 가이드 시트 생성
     const guideHeaders = ['헌금 유형', '설명'];
-    const guideData = FUND_TYPES.map(type => [type, '']);
+    const guideData = fundTypes.map(type => [type, '']);
 
     const guideWorksheet = XLSX.utils.aoa_to_sheet([
       guideHeaders,
@@ -1906,7 +1964,7 @@ const DonationManagement: React.FC = () => {
                         </td>
                         <td className="py-2 px-3">
                           <Combobox
-                            options={FUND_TYPES.map(type => ({ label: type, value: type }))}
+                            options={fundTypes.map(type => ({ label: type, value: type }))}
                             value={bulk.fundType}
                             onChange={(value) => updateBulkRow(index, 'fundType', value)}
                             placeholder="헌금 유형 선택..."
@@ -2055,7 +2113,7 @@ const DonationManagement: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
                 <Combobox
-                  options={FUND_TYPES.map(type => ({ label: type, value: type }))}
+                  options={fundTypes.map(type => ({ label: type, value: type }))}
                   value={newDonation.fundType}
                   onChange={(value) => setNewDonation({ ...newDonation, fundType: value })}
                   placeholder="헌금 유형 선택..."
@@ -2130,7 +2188,7 @@ const DonationManagement: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">헌금 유형</label>
                 <Combobox
-                  options={FUND_TYPES.map(type => ({ label: type, value: type }))}
+                  options={fundTypes.map(type => ({ label: type, value: type }))}
                   value={editingDonation.fundType}
                   onChange={(value) => setEditingDonation({ ...editingDonation, fundType: value })}
                   placeholder="헌금 유형 선택..."

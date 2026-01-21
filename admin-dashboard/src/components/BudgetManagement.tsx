@@ -129,8 +129,8 @@ const BudgetManagement: React.FC = () => {
 
         const allBudgets: Budget[] = [];
 
-        // 수입 카테고리
-        incomeCategories.filter(c => !c.parent_id).forEach(category => {
+        // 수입 카테고리 (모든 항목 포함)
+        incomeCategories.forEach(category => {
           const existing = annualBudgets.find(b => b.category_id === category.id && b.type === 'income');
           if (existing) {
             allBudgets.push(existing);
@@ -151,8 +151,8 @@ const BudgetManagement: React.FC = () => {
           }
         });
 
-        // 지출 카테고리
-        expenseCategories.filter(c => !c.parent_id).forEach(category => {
+        // 지출 카테고리 (모든 항목 포함)
+        expenseCategories.forEach(category => {
           const existing = annualBudgets.find(b => b.category_id === category.id && b.type === 'expense');
           if (existing) {
             allBudgets.push(existing);
@@ -423,25 +423,77 @@ const BudgetManagement: React.FC = () => {
                   <Spinner />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {incomeCategories.filter(c => !c.parent_id).map(category => {
-                    const budget = budgets.find(b => b.category_id === category.id && b.type === 'income');
-                    return (
-                      <div key={category.id} className="flex items-center gap-2">
-                        <label className="text-sm flex-1">{category.name}</label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={budget?.budgeted_amount || ''}
-                          onChange={(e) => updateBudgetAmount(category.id, 'income', parseFloat(e.target.value) || 0)}
-                          className="w-40 text-right"
-                          min="0"
-                          step="10000"
-                        />
-                        <span className="text-sm text-gray-500 w-8">원</span>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-2">
+                  {incomeCategories
+                    .filter(c => !c.parent_id)
+                    .map(category => {
+                      const children = incomeCategories.filter(c => c.parent_id === category.id);
+                      const isOfferingCategory = category.name === '헌금';
+
+                      // 헌금 카테고리인 경우: 하위 항목의 합계만 표시
+                      if (isOfferingCategory && children.length > 0) {
+                        const childrenTotal = children.reduce((sum, child) => {
+                          const budget = budgets.find(b => b.category_id === child.id && b.type === 'income');
+                          return sum + parseFloat(budget?.budgeted_amount?.toString() || '0');
+                        }, 0);
+
+                        return (
+                          <div key={category.id} className="space-y-1">
+                            {/* 헌금 상위 카테고리 - 입력 불가, 합계만 표시 */}
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm flex-1 font-semibold text-gray-700">{category.name}</label>
+                              <Input
+                                type="number"
+                                value={childrenTotal || ''}
+                                disabled
+                                className="w-40 text-right bg-gray-100 text-gray-600 font-medium"
+                                readOnly
+                              />
+                              <span className="text-sm text-gray-500 w-8">원</span>
+                            </div>
+
+                            {/* 헌금 하위 카테고리 - 입력 가능 */}
+                            {children.map(child => {
+                              const budget = budgets.find(b => b.category_id === child.id && b.type === 'income');
+                              return (
+                                <div key={child.id} className="flex items-center gap-2 ml-4">
+                                  <label className="text-sm flex-1 text-gray-600">∙ {child.name}</label>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={budget?.budgeted_amount || ''}
+                                    onChange={(e) => updateBudgetAmount(child.id, 'income', parseFloat(e.target.value) || 0)}
+                                    className="w-40 text-right"
+                                    min="0"
+                                    step="10000"
+                                  />
+                                  <span className="text-sm text-gray-500 w-8">원</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+
+                      // 다른 카테고리들: 일반적으로 입력 가능
+                      const budget = budgets.find(b => b.category_id === category.id && b.type === 'income');
+                      return (
+                        <div key={category.id} className="flex items-center gap-2">
+                          <label className="text-sm flex-1">{category.name}</label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={budget?.budgeted_amount || ''}
+                            onChange={(e) => updateBudgetAmount(category.id, 'income', parseFloat(e.target.value) || 0)}
+                            className="w-40 text-right"
+                            min="0"
+                            step="10000"
+                          />
+                          <span className="text-sm text-gray-500 w-8">원</span>
+                        </div>
+                      );
+                    })
+                  }
                   <div className="pt-3 border-t">
                     <div className="flex justify-between font-semibold text-green-700">
                       <span>합계</span>
@@ -468,25 +520,29 @@ const BudgetManagement: React.FC = () => {
                   <Spinner />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {expenseCategories.filter(c => !c.parent_id).map(category => {
-                    const budget = budgets.find(b => b.category_id === category.id && b.type === 'expense');
-                    return (
-                      <div key={category.id} className="flex items-center gap-2">
-                        <label className="text-sm flex-1">{category.name}</label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={budget?.budgeted_amount || ''}
-                          onChange={(e) => updateBudgetAmount(category.id, 'expense', parseFloat(e.target.value) || 0)}
-                          className="w-40 text-right"
-                          min="0"
-                          step="10000"
-                        />
-                        <span className="text-sm text-gray-500 w-8">원</span>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-2">
+                  {expenseCategories
+                    .filter(c => !c.parent_id)
+                    .map(category => {
+                      // 지출은 모든 카테고리가 입력 가능
+                      const budget = budgets.find(b => b.category_id === category.id && b.type === 'expense');
+                      return (
+                        <div key={category.id} className="flex items-center gap-2">
+                          <label className="text-sm flex-1">{category.name}</label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={budget?.budgeted_amount || ''}
+                            onChange={(e) => updateBudgetAmount(category.id, 'expense', parseFloat(e.target.value) || 0)}
+                            className="w-40 text-right"
+                            min="0"
+                            step="10000"
+                          />
+                          <span className="text-sm text-gray-500 w-8">원</span>
+                        </div>
+                      );
+                    })
+                  }
                   <div className="pt-3 border-t">
                     <div className="flex justify-between font-semibold text-red-700">
                       <span>합계</span>

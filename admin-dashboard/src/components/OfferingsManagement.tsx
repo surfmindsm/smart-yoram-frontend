@@ -234,11 +234,59 @@ const OfferingsManagement: React.FC = () => {
 
   const loadFundTypes = async () => {
     try {
-      const types = await supabaseApiService.offerings.getFundTypes(6);
-      setFundTypes(Array.isArray(types) ? types : []);
+      // 계정과목 API에서 수입 계정과목 전체 가져오기
+      const currentUser = await supabaseAuthService.getCurrentUser();
+      const userChurchId = currentUser?.user?.church_id || 9998;
+
+      const token = await supabaseAuthService.getToken();
+      if (!token) {
+        console.error('No auth token available');
+        return;
+      }
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=income&church_id=${userChurchId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const categories = Array.isArray(data) ? data : (data?.data || []);
+
+        // 1. "헌금" 상위 카테고리 찾기
+        const offeringParent = categories.find(
+          (cat: any) => cat.name === '헌금' && !cat.parent_id
+        );
+
+        if (!offeringParent) {
+          console.warn('⚠️ "헌금" 상위 카테고리를 찾을 수 없습니다.');
+          setFundTypes(['십일조', '주일헌금', '감사헌금', '특별헌금']); // 기본값
+          return;
+        }
+
+        console.log('✅ 헌금 상위 카테고리 찾음:', offeringParent);
+
+        // 2. "헌금" 하위 항목들만 필터링 (parent_id가 헌금 카테고리 ID인 항목들)
+        const offeringChildren = categories.filter(
+          (cat: any) => cat.parent_id === offeringParent.id && cat.is_offering === true
+        );
+
+        const fundTypeNames = offeringChildren.map((cat: any) => cat.name).sort();
+        setFundTypes(fundTypeNames);
+        console.log('✅ 헌금 과목 로드 완료:', fundTypeNames);
+        console.log('📊 총', fundTypeNames.length, '개의 헌금 종류');
+      } else {
+        console.error('Failed to load offering categories');
+        setFundTypes(['십일조', '주일헌금', '감사헌금', '특별헌금']); // 기본값
+      }
     } catch (error) {
       console.error('Failed to load fund types:', error);
-      setFundTypes(['감사절', '감사헌금', '건축헌금', '구제헌금', '기타', '맥추감사절', '부활절', '선교헌금', '성탄절', '십일조', '신년헌금', '연말감사헌금', '일천번제', '장학헌금', '주일헌금', '특별헌금']); // 기본값 (가나다 순)
+      setFundTypes(['십일조', '주일헌금', '감사헌금', '특별헌금']); // 기본값
     }
   };
 
