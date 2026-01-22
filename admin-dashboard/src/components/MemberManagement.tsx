@@ -1439,9 +1439,36 @@ Church Round 앱에 초대되셨습니다.
     XLSX.writeFile(workbook, fileName);
   };
 
+  // 엑셀 시리얼 날짜를 YYYY-MM-DD로 변환
+  const excelSerialToDate = (serial: number): string | null => {
+    // 엑셀 시리얼 번호 범위 검증 (1900-01-01 ~ 2100-12-31 대략)
+    if (serial < 1 || serial > 73050) {
+      return null;
+    }
+
+    // 엑셀은 1900년 1월 1일을 1로 시작 (단, 1900년은 윤년이 아닌데 엑셀은 윤년으로 처리하는 버그가 있음)
+    const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+    const date = new Date(excelEpoch.getTime() + serial * 86400 * 1000);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
   // 날짜 형식 자동 변환 함수
-  const parseDateField = (dateInput: string | null | undefined): string | null => {
-    if (!dateInput || typeof dateInput !== 'string' || !dateInput.trim()) {
+  const parseDateField = (dateInput: string | number | null | undefined): string | null => {
+    if (!dateInput) {
+      return null;
+    }
+
+    // 숫자인 경우 엑셀 시리얼 날짜로 간주
+    if (typeof dateInput === 'number') {
+      return excelSerialToDate(dateInput);
+    }
+
+    if (typeof dateInput !== 'string' || !dateInput.trim()) {
       return null;
     }
 
@@ -1548,7 +1575,11 @@ Church Round 앱에 초대되셨습니다.
       const worksheet = workbook.Sheets[sheetName];
 
       // JSON으로 변환 (헤더 포함)
-      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',  // 빈 셀을 빈 문자열로 처리 (컬럼 밀림 방지)
+        raw: true    // 날짜를 숫자(엑셀 시리얼)로 읽음
+      });
 
       if (jsonData.length < 2) {
         alert('엑셀 파일에 데이터가 없습니다.');
@@ -1578,26 +1609,34 @@ Church Round 앱에 초대되셨습니다.
         if (!row[headerMap['이름']] || !String(row[headerMap['이름']]).trim()) {
           errors.push('이름은 필수입니다');
         }
-        if (!row[headerMap['전화번호']] || !String(row[headerMap['전화번호']]).trim()) {
-          errors.push('전화번호는 필수입니다');
-        }
+        // 전화번호는 선택사항 (아이들은 전화번호가 없을 수 있음)
 
         // 날짜 필드 검증
         dateFields.forEach(fieldName => {
           if (headerMap[fieldName] !== undefined) {
             const value = row[headerMap[fieldName]];
-            if (value && String(value).trim()) {
-              const parsed = parseDateField(String(value));
+            // 숫자 또는 비어있지 않은 문자열인 경우만 검증
+            const hasValue = typeof value === 'number' || (typeof value === 'string' && value.trim());
+            if (hasValue) {
+              const parsed = parseDateField(value); // 숫자 그대로 전달 (String() 제거)
               if (parsed === null) {
-                const cleanValue = String(value).trim();
-                // 알파벳이나 특수문자가 포함된 경우
-                if (/[^0-9\-\/.]/.test(cleanValue)) {
-                  errors.push(`${fieldName}: "${value}" - 잘못된 형식 (문자/특수기호 포함)`);
+                const displayValue = typeof value === 'number' ? value : String(value).trim();
+                // 숫자는 항상 엑셀 시리얼로 처리되므로, 문자열만 검증
+                if (typeof value === 'string') {
+                  const cleanValue = value.trim();
+                  if (/[^0-9\-\/.]/.test(cleanValue)) {
+                    errors.push(`${fieldName}: "${displayValue}" - 잘못된 형식 (문자/특수기호 포함)`);
+                  } else {
+                    errors.push(`${fieldName}: "${displayValue}" - 인식할 수 없는 날짜 형식`);
+                  }
                 } else {
-                  errors.push(`${fieldName}: "${value}" - 인식할 수 없는 날짜 형식`);
+                  errors.push(`${fieldName}: "${displayValue}" - 엑셀 날짜 변환 실패`);
                 }
-              } else if (parsed !== String(value).trim()) {
-                warnings.push(`${fieldName}: "${value}" → "${parsed}" 자동 변환됨`);
+              } else {
+                const originalValue = typeof value === 'number' ? value : value.trim();
+                if (parsed !== String(originalValue)) {
+                  warnings.push(`${fieldName}: "${value}" → "${parsed}" 자동 변환됨`);
+                }
               }
             }
           }
@@ -1650,8 +1689,27 @@ Church Round 앱에 초대되셨습니다.
       // 검증 결과 저장
       setValidationResults(validatedRows);
 
-      // 미리보기 데이터 저장 (헤더 + 전체 데이터)
-      setExcelPreviewData([headers, ...dataRows]);
+      // 미리보기 데이터 저장 (날짜 필드 변환)
+      const dateFieldNames = ['생년월일', '등록일', '결혼일', '임명일', '사역시작일'];
+      const dateFieldIndices = dateFieldNames
+        .map(name => headerMap[name])
+        .filter(idx => idx !== undefined);
+
+      const transformedDataRows = dataRows.map((row: any[]) => {
+        const newRow = [...row];
+        dateFieldIndices.forEach(idx => {
+          const value = row[idx];
+          if (value !== undefined && value !== null && value !== '') {
+            const parsed = parseDateField(value);
+            if (parsed) {
+              newRow[idx] = parsed; // 변환된 날짜로 교체
+            }
+          }
+        });
+        return newRow;
+      });
+
+      setExcelPreviewData([headers, ...transformedDataRows]);
     } catch (error: any) {
       console.error('파일 검증 실패:', error);
       alert(`파일을 읽는 중 오류가 발생했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
@@ -1683,7 +1741,11 @@ Church Round 앱에 초대되셨습니다.
       const worksheet = workbook.Sheets[sheetName];
 
       // JSON으로 변환 (헤더 포함)
-      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',  // 빈 셀을 빈 문자열로 처리 (컬럼 밀림 방지)
+        raw: true    // 날짜를 숫자(엑셀 시리얼)로 읽음
+      });
 
       if (jsonData.length < 2) {
         alert('엑셀 파일에 데이터가 없습니다.');

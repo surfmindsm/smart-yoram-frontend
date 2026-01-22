@@ -138,9 +138,44 @@ function findBestMatch(input: string, validValues: string[]): { match: string | 
   return { match: null, confidence: 0 };
 }
 
+// 엑셀 시리얼 날짜를 YYYY-MM-DD로 변환
+function excelSerialToDate(serial: number): string | null {
+  // 엑셀 시리얼 번호 범위 검증 (1900-01-01 ~ 2100-12-31 대략)
+  if (serial < 1 || serial > 73050) {
+    return null;
+  }
+
+  // 엑셀은 1900년 1월 1일을 1로 시작 (단, 1900년은 윤년이 아닌데 엑셀은 윤년으로 처리하는 버그가 있음)
+  const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+  const date = new Date(excelEpoch.getTime() + serial * 86400 * 1000);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 // 날짜 형식 자동 변환 함수
-function parseDate(dateInput: string | null | undefined): { date: string | null, error: string | null } {
-  if (!dateInput || !dateInput.trim()) {
+function parseDate(dateInput: string | number | null | undefined): { date: string | null, error: string | null } {
+  if (!dateInput) {
+    return { date: null, error: null };
+  }
+
+  // 숫자인 경우 엑셀 시리얼 날짜로 간주
+  if (typeof dateInput === 'number') {
+    const converted = excelSerialToDate(dateInput);
+    if (converted) {
+      return { date: converted, error: null };
+    } else {
+      return {
+        date: null,
+        error: `엑셀 날짜 값이 유효하지 않습니다: ${dateInput}`
+      };
+    }
+  }
+
+  if (typeof dateInput !== 'string' || !dateInput.trim()) {
     return { date: null, error: null };
   }
 
@@ -308,7 +343,7 @@ serve(async (req) => {
 
       // 시트 1: 교인 데이터 입력용
       const memberData = [
-        ['이름*', '영문명', '이메일', '전화번호*', '성별', '생년월일', '생년월일구분', '직분', '조직', '부서', '임명일', '안수교회', '결혼상태', '배우자이름', '결혼일', '주소', '교인구분', '입교일', '소구역', '직업분류', '구체적업무', '직책직위', '직업명', '직장명', '직장전화번호', '사역시작일', '이웃교회', '직분결정', '인도자ID', '일상활동', '자유필드1', '자유필드2', '자유필드3', '자유필드4', '자유필드5', '자유필드6', '자유필드7', '자유필드8', '자유필드9', '자유필드10', '자유필드11', '자유필드12', '특별사항'],
+        ['이름*', '영문명', '이메일', '전화번호', '성별', '생년월일', '생년월일구분', '직분', '조직', '부서', '임명일', '안수교회', '결혼상태', '배우자이름', '결혼일', '주소', '교인구분', '입교일', '소구역', '직업분류', '구체적업무', '직책직위', '직업명', '직장명', '직장전화번호', '사역시작일', '이웃교회', '직분결정', '인도자ID', '일상활동', '자유필드1', '자유필드2', '자유필드3', '자유필드4', '자유필드5', '자유필드6', '자유필드7', '자유필드8', '자유필드9', '자유필드10', '자유필드11', '자유필드12', '특별사항'],
         ['홍길동', 'Hong Gil Dong', 'hong@example.com', '010-1234-5678', '남', '1990-01-15', '양력', '시무장로', '청년부', '청년1부', '2020-01-01', '서울중앙교회', '기혼', '김영희', '2015-05-20', '서울시 강남구 테헤란로 123', '정교인', '2010-06-01', '1구역', '사무직', '소프트웨어 개발', '팀장', '회사원', '삼성전자', '02-2255-0114', '2018-01-01', '은혜교회', '장로 추천', '', '새벽기도 참석', '특기사항1', '', '', '', '', '', '', '', '', '', '', '', '건강상 주의사항 없음'],
         ['김영희', 'Kim Young Hee', 'kim@example.com', '010-9876-5432', '여', '1985-05-20', '음력', '집사', '여전도회', '여전도1부', '2019-03-15', '부산온누리교회', '기혼', '홍길동', '2015-05-20', '서울시 서초구 서초대로 456', '정교인', '2008-03-10', '2구역', '교육직', '초등학교 교사', '교사', '교사', '서울초등학교', '02-3456-7890', '2017-06-01', '사랑교회', '집사 임명', '', '구역모임 리더', '', '', '', '', '', '', '', '', '', '', '', '', '알레르기: 새우'],
         ['이민수', 'Lee Min Soo', 'lee@example.com', '010-5555-6666', '남', '2010-03-10', '양력', '초등부', '교회학교', '초등3부', '', '', '미혼', '', '', '서울시 송파구 올림픽로 789', '', '2018-05-01', '3구역', '', '', '학생', '학생', '서울초등학교', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
@@ -456,7 +491,10 @@ serve(async (req) => {
       const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        raw: true,   // 날짜를 숫자(엑셀 시리얼)로 읽음
+        defval: ''   // 빈 셀을 빈 문자열로 처리 (컬럼 밀림 방지, 나중에 null로 변환됨)
+      });
 
       console.log('📊 파싱된 행 수:', jsonData.length);
 
@@ -479,10 +517,11 @@ serve(async (req) => {
         if (!row['이름*'] || !row['이름*'].trim()) {
           errors.push('이름은 필수입니다');
         }
-        if (!row['전화번호*'] || !row['전화번호*'].trim()) {
-          errors.push('전화번호는 필수입니다');
-        } else if (!/^01[0-9]-[0-9]{3,4}-[0-9]{4}$/.test(row['전화번호*'])) {
-          warnings.push('전화번호 형식을 확인하세요 (010-1234-5678)');
+        // 전화번호는 선택사항 (아이들은 전화번호가 없을 수 있음)
+        if (row['전화번호'] && row['전화번호'].trim()) {
+          if (!/^01[0-9]-[0-9]{3,4}-[0-9]{4}$/.test(row['전화번호'])) {
+            warnings.push('전화번호 형식을 확인하세요 (010-1234-5678)');
+          }
         }
 
         // 직분 검증 및 매칭
@@ -525,12 +564,21 @@ serve(async (req) => {
         ];
 
         for (const { field, value } of dateFields) {
-          if (value && value.trim()) {
-            const result = parseDate(value);
-            if (result.error) {
-              errors.push(`${field}: ${result.error}`);
-            } else if (result.date && result.date !== value.trim()) {
-              warnings.push(`${field} "${value}"이(가) "${result.date}"로 자동 변환됩니다`);
+          if (value) {
+            // 숫자 또는 문자열 처리
+            const hasValue = typeof value === 'number' || (typeof value === 'string' && value.trim());
+            if (hasValue) {
+              const result = parseDate(value);
+              if (result.error) {
+                errors.push(`${field}: ${result.error}`);
+              } else if (result.date) {
+                // 숫자인 경우 항상 변환 메시지 표시
+                if (typeof value === 'number') {
+                  warnings.push(`${field} "${value}"이(가) "${result.date}"로 자동 변환됩니다`);
+                } else if (typeof value === 'string' && result.date !== value.trim()) {
+                  warnings.push(`${field} "${value}"이(가) "${result.date}"로 자동 변환됩니다`);
+                }
+              }
             }
           }
         }
@@ -587,7 +635,7 @@ serve(async (req) => {
             name: row['이름*'],
             name_eng: row['영문명'] || null,
             email: row['이메일'] || null,
-            phone: row['전화번호*'],
+            phone: row['전화번호'] ? row['전화번호'].trim() || null : null,
             gender: row['성별'] || null,
             birthdate: parseDate(row['생년월일']).date,
             birthdate_type: row['생년월일구분'] || '양력',
@@ -627,13 +675,29 @@ serve(async (req) => {
             special_notes: row['특별사항'] || null,
           };
 
-          // 전화번호로 기존 교인 확인
-          const { data: existing } = await supabaseClient
-            .from('members')
-            .select('id')
-            .eq('church_id', churchId)
-            .eq('phone', memberData.phone)
-            .single();
+          // 기존 교인 확인 (전화번호가 있으면 전화번호로, 없으면 이름+생년월일로)
+          let existing = null;
+          if (memberData.phone) {
+            // 전화번호가 있으면 전화번호로 중복 확인
+            const { data } = await supabaseClient
+              .from('members')
+              .select('id')
+              .eq('church_id', churchId)
+              .eq('phone', memberData.phone)
+              .single();
+            existing = data;
+          } else if (memberData.birthdate) {
+            // 전화번호가 없으면 이름 + 생년월일로 중복 확인
+            const { data } = await supabaseClient
+              .from('members')
+              .select('id')
+              .eq('church_id', churchId)
+              .eq('name', memberData.name)
+              .eq('birthdate', memberData.birthdate)
+              .single();
+            existing = data;
+          }
+          // 전화번호도 생년월일도 없으면 항상 신규 등록
 
           if (existing) {
             // 업데이트
