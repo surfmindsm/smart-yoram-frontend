@@ -215,6 +215,11 @@ const BulkDonationInput: React.FC = () => {
 
       // 모든 헌금을 병렬로 등록
       const offeringPromises = validDonations.map(async (bulk) => {
+        // 무명이 아닌 경우 기부자가 선택되었는지 확인
+        if (!bulk.isAnonymous && (!bulk.donorId || bulk.donorId.trim() === '')) {
+          throw new Error('무명이 아닌 경우 기부자를 선택해야 합니다.');
+        }
+
         const memberId = bulk.isAnonymous ? null : Number(bulk.donorId);
 
         // 무명이 아닌 경우 교인 정보 확인
