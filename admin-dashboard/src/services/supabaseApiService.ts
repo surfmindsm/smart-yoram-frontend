@@ -1416,18 +1416,8 @@ export const supabaseApiService = {
 
           // 헌금 유형이 변경되었으면 계정과목도 업데이트
           if (updateData.fund_type) {
-            // 헌금 유형을 회계 계정과목명으로 매핑
-            const fundTypeMapping: { [key: string]: string } = {
-              '십일조': '십일조',
-              '주일헌금': '주일헌금',
-              '감사헌금': '감사헌금',
-              '선교헌금': '선교헌금',
-              '건축헌금': '건축헌금',
-              '절기헌금': '절기헌금',
-              '특별헌금': '특별헌금',
-              '기타': '기타헌금',
-            };
-            const categoryName = fundTypeMapping[updateData.fund_type] || '기타헌금';
+            // 헌금 유형을 그대로 계정과목명으로 사용 (offerings Edge Function과 동일한 방식)
+            const categoryName = updateData.fund_type;
 
             const { data: categoryData } = await supabase
               .from('account_categories')
@@ -1435,7 +1425,8 @@ export const supabaseApiService = {
               .eq('church_id', existingOffering.church_id)
               .eq('name', categoryName)
               .eq('type', 'income')
-              .single();
+              .limit(1)
+              .maybeSingle();
 
             if (categoryData) {
               accountingUpdateData.category_id = categoryData.id;

@@ -361,7 +361,8 @@ Deno.serve(async (req) => {
           .eq('church_id', insertData.church_id)
           .eq('name', categoryName)
           .eq('type', 'income')
-          .single()
+          .limit(1)
+          .maybeSingle()
 
         if (categoryError) {
           console.log('⚠️ 계정과목 조회 오류:', categoryError)
@@ -547,7 +548,8 @@ Deno.serve(async (req) => {
               .eq('church_id', existingOffering.church_id)
               .eq('name', categoryName)
               .eq('type', 'income')
-              .single()
+              .limit(1)
+              .maybeSingle()
 
             if (categoryData) {
               accountingUpdateData.category_id = categoryData.id
