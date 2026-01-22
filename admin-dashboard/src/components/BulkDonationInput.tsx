@@ -178,6 +178,28 @@ const BulkDonationInput: React.FC = () => {
       return;
     }
 
+    // 헌금 유형 검증
+    const invalidRows: string[] = [];
+    validDonations.forEach((donation, index) => {
+      const actualIndex = bulkDonations.indexOf(donation) + 1; // 1-based index for display
+
+      if (!donation.fundType || donation.fundType.trim() === '') {
+        invalidRows.push(`${actualIndex}번째 행: 헌금 유형이 선택되지 않았습니다.`);
+      } else if (!fundTypes.includes(donation.fundType)) {
+        invalidRows.push(`${actualIndex}번째 행: "${donation.fundType}"는 유효하지 않은 헌금 유형입니다.`);
+      }
+    });
+
+    if (invalidRows.length > 0) {
+      alert(
+        '⚠️ 헌금 유형 검증 실패\n\n' +
+        invalidRows.join('\n') +
+        '\n\n계정과목 관리에서 등록된 헌금 항목만 사용할 수 있습니다.\n' +
+        '(수입 > 헌금 > 세부헌금항목)'
+      );
+      return;
+    }
+
     setSubmitLoading(true);
 
     try {
