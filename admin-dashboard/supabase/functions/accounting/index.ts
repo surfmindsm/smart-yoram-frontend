@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
 
       // DELETE /accounting/admin/categories/:id
       if (req.method === 'DELETE' && categoryId) {
-        // 0. 헌금 계정과목인지 확인
+        // 0. 헌금 상위 카테고리인지 확인
         const { data: categoryData } = await supabaseClient
           .from('account_categories')
           .select('name, parent_id')
@@ -366,30 +366,13 @@ Deno.serve(async (req) => {
           .single()
 
         if (categoryData) {
-          // 헌금 상위 카테고리 확인
+          // 헌금 상위 카테고리만 삭제 방지 (하위 항목은 삭제 가능)
           if (categoryData.name === '헌금' && !categoryData.parent_id) {
             console.log('❌ 헌금 상위 카테고리는 삭제할 수 없습니다')
             return new Response(
               JSON.stringify({ error: '헌금 상위 카테고리는 삭제할 수 없습니다.' }),
               { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
-          }
-
-          // 헌금 하위 항목인지 확인
-          if (categoryData.parent_id) {
-            const { data: parentData } = await supabaseClient
-              .from('account_categories')
-              .select('name')
-              .eq('id', categoryData.parent_id)
-              .single()
-
-            if (parentData && parentData.name === '헌금') {
-              console.log('❌ 헌금 하위 항목은 삭제할 수 없습니다')
-              return new Response(
-                JSON.stringify({ error: '헌금 유형은 삭제할 수 없습니다.' }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              )
-            }
           }
         }
 
