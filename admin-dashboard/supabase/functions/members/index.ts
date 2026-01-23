@@ -530,6 +530,43 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 📞 전화번호 변경 시 users 테이블 동기화
+      if (body.phone !== undefined && data) {
+        console.log('📞 전화번호 변경: users 테이블 동기화 시작')
+
+        try {
+          // 1. member의 email로 users 테이블에서 사용자 찾기
+          if (data.email) {
+            const { data: usersData, error: findUsersError } = await supabaseClient
+              .from('users')
+              .select('id')
+              .eq('email', data.email)
+              .limit(1)
+
+            if (!findUsersError && usersData && usersData.length > 0) {
+              // 2. users 테이블의 phone 업데이트
+              const { error: usersUpdateError } = await supabaseClient
+                .from('users')
+                .update({ phone: body.phone })
+                .eq('id', usersData[0].id)
+
+              if (usersUpdateError) {
+                console.error('⚠️ users 테이블 전화번호 업데이트 실패:', usersUpdateError)
+              } else {
+                console.log('✅ users 테이블 전화번호 업데이트 성공')
+              }
+            } else {
+              console.log('ℹ️ users 테이블에 해당 사용자 없음 (초대받지 않은 교인)')
+            }
+          }
+
+          console.log('✅ 전화번호 동기화 완료')
+        } catch (syncError) {
+          console.error('❌ 전화번호 동기화 중 오류:', syncError)
+          // 전화번호 동기화 실패해도 members 업데이트는 성공으로 처리
+        }
+      }
+
       return new Response(
         JSON.stringify(data),
         {
