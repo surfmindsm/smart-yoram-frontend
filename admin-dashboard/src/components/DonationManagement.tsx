@@ -272,7 +272,7 @@ const DonationManagement: React.FC = () => {
         // Supabase API 병렬 호출 (receipts 추가)
         const [offeringsResult, membersResult, receiptsResult] = await Promise.allSettled([
           supabaseApiService.offerings.getAll({ church_id: userChurchId }),
-          supabaseApiService.members.getAll({ limit: 10000 }),
+          supabaseApiService.members.getAll({ limit: 500 }),
           supabaseApiService.receipts.getAll({ church_id: userChurchId })
         ]);
 

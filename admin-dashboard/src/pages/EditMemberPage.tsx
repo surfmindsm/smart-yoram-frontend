@@ -33,11 +33,11 @@ interface Member {
   id: number;
   name: string;
   name_eng?: string;
-  email: string;
+  email?: string;
   gender: string;
   birthdate: string | null;
   birthdate_type?: string;
-  phone: string;
+  phone?: string;
   address: string | null;
   position_main?: string | null;
   position_detail?: string | null;
@@ -172,7 +172,7 @@ const EditMemberPage: React.FC = () => {
   ];
 
   const isFormValid = () => {
-    return formData.name && formData.email && formData.phone;
+    return formData.name;
   };
 
   const handlePhotoUpload = (file: File) => {
@@ -365,7 +365,8 @@ const EditMemberPage: React.FC = () => {
           .select('id, name')
           .eq('church_id', result.user.church_id)
           .eq('status', 'active')
-          .order('name', { ascending: true });
+          .order('name', { ascending: true})
+          .limit(500);  // 최대 500명으로 제한
 
         if (error) {
           console.error('Error loading members:', error);
@@ -725,7 +726,7 @@ const EditMemberPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
                   <Input
                     type="email"
                     value={formData.email}
@@ -735,7 +736,7 @@ const EditMemberPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
                   <Input
                     type="tel"
                     value={formData.phone}

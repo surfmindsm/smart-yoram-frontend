@@ -120,7 +120,7 @@ const AddMemberPage: React.FC = () => {
   ];
 
   const isFormValid = () => {
-    return formData.name && formData.email && formData.phone;
+    return formData.name;
   };
 
   // 초대 메시지 생성 함수
@@ -239,7 +239,8 @@ Church Round 앱에 초대되셨습니다.
           .select('id, name')
           .eq('church_id', result.user.church_id)
           .eq('status', 'active')
-          .order('name', { ascending: true });
+          .order('name', { ascending: true})
+          .limit(500);  // 최대 500명으로 제한
 
         if (error) {
           console.error('Error loading members:', error);
@@ -571,7 +572,7 @@ Church Round 앱에 초대되셨습니다.
 
                 {/* 이메일 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
                   <Input
                     type="email"
                     value={formData.email}
@@ -583,7 +584,7 @@ Church Round 앱에 초대되셨습니다.
 
                 {/* 전화번호 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
                   <Input
                     type="tel"
                     value={formData.phone}

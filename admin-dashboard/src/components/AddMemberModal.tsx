@@ -128,7 +128,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   ];
 
   const isFormValid = () => {
-    return formData.name && formData.email && formData.phone;
+    return formData.name;
   };
 
   // 초대 메시지 생성 함수
@@ -668,19 +668,19 @@ Church Round 앱에 초대되셨습니다.
 
                   {/* 이메일 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">이메일 *</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">이메일</label>
                     <Input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="example@email.com"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
+                    <p className="text-xs text-muted-foreground mt-1">이메일이 있는 경우 앱 초대 시 임시 비밀번호가 발송됩니다.</p>
                   </div>
 
                   {/* 전화번호 */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">전화번호 *</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">전화번호</label>
                     <Input
                       type="tel"
                       value={formData.phone}

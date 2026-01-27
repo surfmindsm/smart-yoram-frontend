@@ -76,11 +76,11 @@ interface Member {
   id: number;
   name: string;
   name_eng?: string;
-  email: string;
+  email?: string;
   gender: string;
   birthdate: string | null;
   birthdate_type?: string;
-  phone: string;
+  phone?: string;
   address: string | null;
   position_main?: string | null;  // 직분 대분류
   position_detail?: string | null; // 직분 세부
@@ -316,8 +316,8 @@ const MemberManagement: React.FC = () => {
       setCurrentUser(currentUserData?.user);
 
       // Use Supabase Edge Function for members data
-      // limit을 10000으로 설정하여 모든 교인 데이터를 가져옴
-      const response = await supabaseApiService.members.getAll({ limit: 10000 });
+      // limit을 1000으로 설정 (성능 최적화)
+      const response = await supabaseApiService.members.getAll({ limit: 1000 });
 
       // 원본 데이터 저장 (캐시)
       // invitation_status 필드가 정확하므로 그대로 사용
@@ -880,7 +880,7 @@ const MemberManagement: React.FC = () => {
       const initialProgress: InviteProgressItem[] = validMembers.map(member => ({
         id: member.id,
         name: member.name,
-        email: member.email,
+        email: member.email!,
         status: 'pending' as const
       }));
       setBulkInviteProgress(initialProgress);
@@ -904,8 +904,8 @@ const MemberManagement: React.FC = () => {
           const result = await supabaseApiService.smsInvitation.send(
             member.id,
             member.phone || '',
-            member.name || member.email,
-            member.email,
+            member.name || member.email!,
+            member.email!,
             '요람교회'
           );
 
@@ -913,7 +913,7 @@ const MemberManagement: React.FC = () => {
             successCount++;
             results.push({
               name: member.name,
-              email: member.email,
+              email: member.email!,
               temporaryPassword: result.temporaryPassword || '이메일 확인',
               success: true
             });
@@ -932,7 +932,7 @@ const MemberManagement: React.FC = () => {
             failCount++;
             results.push({
               name: member.name,
-              email: member.email,
+              email: member.email!,
               temporaryPassword: '',
               success: false
             });
@@ -952,7 +952,7 @@ const MemberManagement: React.FC = () => {
           failCount++;
           results.push({
             name: member.name,
-            email: member.email,
+            email: member.email!,
             temporaryPassword: '',
             success: false
           });
@@ -1609,7 +1609,7 @@ Church Round 앱에 초대되셨습니다.
         if (!row[headerMap['이름']] || !String(row[headerMap['이름']]).trim()) {
           errors.push('이름은 필수입니다');
         }
-        // 전화번호는 선택사항 (아이들은 전화번호가 없을 수 있음)
+        // 전화번호와 이메일은 선택사항
 
         // 날짜 필드 검증
         dateFields.forEach(fieldName => {
@@ -1763,7 +1763,7 @@ Church Round 앱에 초대되셨습니다.
       });
 
       // 필수 헤더 확인
-      const requiredHeaders = ['이름', '전화번호', '이메일'];
+      const requiredHeaders = ['이름'];
       const missingHeaders = requiredHeaders.filter(h => !(h in headerMap));
 
       if (missingHeaders.length > 0) {
@@ -1773,7 +1773,7 @@ Church Round 앱에 초대되셨습니다.
 
       // 교인 데이터 변환
       const membersToImport = rows
-        .filter((row: any[]) => row[headerMap['이름']] && row[headerMap['전화번호']]) // 이름과 전화번호가 있는 행만
+        .filter((row: any[]) => row[headerMap['이름']]) // 이름만 필수
         .map((row: any[]) => ({
           name: row[headerMap['이름']] || '',
           name_eng: row[headerMap['영문명']] || null,
@@ -2291,15 +2291,14 @@ Church Round 앱에 초대되셨습니다.
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">이메일 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
               <Input
                 type="email"
-                required
                 placeholder="example@email.com"
                 value={newMember.email}
                 onChange={(e) => setNewMember({...newMember, email: e.target.value})}
               />
-              <p className="text-xs text-gray-600 mt-1">이메일로 임시 비밀번호가 발송됩니다.</p>
+              <p className="text-xs text-gray-600 mt-1">이메일이 있는 경우 앱 초대 시 임시 비밀번호가 발송됩니다.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
@@ -2338,10 +2337,9 @@ Church Round 앱에 초대되셨습니다.
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">전화번호 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
               <Input
                 type="tel"
-                required
                 placeholder="010-1234-5678"
                 value={newMember.phone}
                 onChange={(e) => setNewMember({...newMember, phone: e.target.value})}

@@ -239,7 +239,7 @@ const PastoralCareManagement: React.FC = () => {
       // 심방 신청과 교인 데이터를 병렬로 로드
       const [response, membersResult] = await Promise.allSettled([
         supabaseApiService.pastoralCare.getAll(params),
-        supabaseApiService.members.getAll({ church_id: userChurchId, limit: 10000 })
+        supabaseApiService.members.getAll({ church_id: userChurchId, limit: 500 })
       ]);
 
       // 교인 데이터 설정
