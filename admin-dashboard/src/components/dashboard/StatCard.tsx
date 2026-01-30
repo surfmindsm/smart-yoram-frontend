@@ -9,9 +9,10 @@ interface StatCardProps {
   Icon: LucideIcon;
   color: string;
   loading?: boolean;
+  subtitle?: string;
 }
 
-const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading = false }) => {
+const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading = false, subtitle }) => {
   return (
     <Card className="border-muted">
       <CardContent className="p-4">
@@ -19,7 +20,7 @@ const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading
           <div className={cn("p-2 rounded-lg", color.replace('bg-', 'bg-') + '/10')}>
             <Icon className={cn("h-5 w-5", color.replace('bg-', 'text-'))} />
           </div>
-          <div className="ml-3">
+          <div className="ml-3 flex-1">
             <p className="text-xs font-medium text-muted-foreground">{title}</p>
             <div className="text-2xl font-bold text-foreground mt-0.5">
               {loading ? (
@@ -28,6 +29,9 @@ const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading
                 value
               )}
             </div>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+            )}
           </div>
         </div>
       </CardContent>

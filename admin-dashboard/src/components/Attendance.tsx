@@ -1,12 +1,11 @@
-import React, { useState, useEffect, memo } from 'react';
-import { attendanceService, memberService, authService } from '../services/api';
-import { Calendar, Users, User, Check, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { supabaseAuthService } from '../services/supabaseAuthService';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { Button } from "./ui";
-import { Input } from "./ui";
+import { Card, CardContent } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 interface Member {
   id: number;
@@ -25,359 +24,506 @@ interface AttendanceRecord {
   notes?: string;
 }
 
-interface MemberCardProps {
-  member: Member;
-  attendance?: AttendanceRecord;
-  isUpdating: boolean;
-  onToggle: (member: Member) => void;
-}
+// Date 객체를 로컬 타임존의 YYYY-MM-DD 문자열로 변환 (타임존 버그 방지)
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-const MemberCard = memo(({ member, attendance, isUpdating, onToggle }: MemberCardProps) => {
-  const isChecked = attendance?.present || false;
-  
-  return (
-    <Card
-      className={cn(
-        "cursor-pointer transition-all relative",
-        isChecked
-          ? 'ring-2 ring-green-500 bg-green-50 border-green-200'
-          : 'hover:shadow-md hover:bg-muted/50 border-muted',
-        isUpdating && 'opacity-50 cursor-wait'
-      )}
-      onClick={() => !isUpdating && onToggle(member)}
-    >
-      {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/75 rounded-lg z-10">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      )}
-      <CardContent className="p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-2 flex items-center justify-center relative">
-            <User className="h-8 w-8 text-muted-foreground" />
-            {isChecked && (
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <Check className="h-4 w-4 text-white" />
-              </div>
-            )}
-          </div>
-          <h3 className="font-medium text-foreground">{member.name}</h3>
-          <p className="text-sm text-muted-foreground">{member.position || '교인'}</p>
-          <div className="mt-2">
-            {isChecked ? (
-              <Badge variant="success" className="text-xs">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                출석
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-xs">
-                <XCircle className="h-3 w-3 mr-1" />
-                결석
-              </Badge>
-            )}
-          </div>
-          {attendance?.check_in_time && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {new Date(attendance.check_in_time).toLocaleTimeString('ko-KR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
+// 해당 월의 모든 주일(일요일) 날짜를 반환하는 함수
+const getSundaysInMonth = (year: number, month: number): Date[] => {
+  const sundays: Date[] = [];
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  let currentDate = new Date(firstDay);
+  while (currentDate <= lastDay) {
+    if (currentDate.getDay() === 0) {
+      sundays.push(new Date(currentDate));
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return sundays;
+};
 
 const Attendance: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
-  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedService, setSelectedService] = useState('sunday_morning');
-  const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState<number | null>(null);
   const [churchId, setChurchId] = useState<number>(1);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const serviceTypes = [
-    { value: 'sunday_morning', label: '주일 오전예배' },
-    { value: 'sunday_evening', label: '주일 오후예배' },
-    { value: 'wednesday', label: '수요예배' },
-    { value: 'friday', label: '금요기도회' },
-    { value: 'dawn', label: '새벽기도' },
-  ];
+  // 주별 출석 현황용 상태
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [weeklyAttendances, setWeeklyAttendances] = useState<AttendanceRecord[]>([]);
+  const [loadingWeekly, setLoadingWeekly] = useState(false);
+  const [updatingWeekly, setUpdatingWeekly] = useState<string | null>(null); // "memberId_date" 형식
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setCurrentUser(user);
-        if (user.church_id) {
-          setChurchId(user.church_id);
-        }
-      } catch (error) {
-        console.error('Failed to get current user:', error);
-      }
-    };
-    init();
-    loadMembers();
+  // 년도 옵션 (현재 년도 기준 ±2년)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  // 초기화 완료 플래그 및 캐시
+  const initializedRef = useRef(false);
+  const membersLoadedRef = useRef(false);
+  const tokenCacheRef = useRef<string | null>(null);
+  const loadingWeeklyRef = useRef(false);
+  const attendanceCacheRef = useRef<Map<string, AttendanceRecord[]>>(new Map());
+
+  // 토큰 가져오기 헬퍼 (캐싱)
+  const getToken = useCallback(async () => {
+    if (tokenCacheRef.current) {
+      return tokenCacheRef.current;
+    }
+
+    let token = await supabaseAuthService.getToken();
+    if (!token) {
+      token = localStorage.getItem('access_token');
+    }
+
+    if (token) {
+      tokenCacheRef.current = token;
+    }
+
+    return token;
   }, []);
 
-  useEffect(() => {
-    loadAttendances();
-  }, [selectedDate, selectedService]);
-
-  const loadMembers = async () => {
-    try {
-      const data = await memberService.getMembers();
-      setMembers(data);
-    } catch (error) {
-      console.error('Failed to load members:', error);
+  const loadMembers = useCallback(async () => {
+    if (membersLoadedRef.current) {
+      console.log('>>> Members already loaded, skipping');
+      return;
     }
-  };
 
-  const loadAttendances = async () => {
+    console.log('>>> loadMembers 시작 (Supabase Edge Function)');
     try {
-      setLoading(true);
-      const data = await attendanceService.getAttendances({
-        service_date: selectedDate,
-        service_type: selectedService,
-      });
-      // Ensure we only set valid attendance records
-      setAttendances(Array.isArray(data) ? data.filter(Boolean) : []);
+      const token = await getToken();
+
+      if (!token) {
+        console.error('>>> No auth token');
+        setMembers([]);
+        return;
+      }
+
+      console.log('>>> Using token:', token.substring(0, 20) + '...');
+
+      const response = await fetch(
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/members?limit=1000`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('>>> Members API error:', response.status, errorText);
+        setMembers([]);
+        return;
+      }
+
+      const result = await response.json();
+      const memberList = result.data || [];
+      console.log('>>> Members loaded:', memberList.length);
+      setMembers(memberList);
+      membersLoadedRef.current = true;
+    } catch (error: any) {
+      console.error('>>> Failed to load members:', error);
+      setMembers([]);
+    }
+  }, [getToken]);
+
+  const loadWeeklyAttendances = useCallback(async () => {
+    // 이미 로딩 중이면 중복 호출 방지
+    if (loadingWeeklyRef.current) {
+      console.log('>>> Already loading attendances, skipping');
+      return;
+    }
+
+    const cacheKey = `${selectedYear}-${selectedMonth}`;
+
+    // 캐시에 있으면 캐시 사용
+    if (attendanceCacheRef.current.has(cacheKey)) {
+      console.log('>>> Using cached attendances for', cacheKey);
+      setWeeklyAttendances(attendanceCacheRef.current.get(cacheKey) || []);
+      return;
+    }
+
+    try {
+      loadingWeeklyRef.current = true;
+      setLoadingWeekly(true);
+      const sundays = getSundaysInMonth(selectedYear, selectedMonth);
+      console.log('>>> Sundays in', selectedYear, selectedMonth + 1, ':', sundays.length);
+
+      if (sundays.length === 0) {
+        console.log('>>> No sundays in this month');
+        setWeeklyAttendances([]);
+        attendanceCacheRef.current.set(cacheKey, []);
+        return;
+      }
+
+      const token = await getToken();
+
+      if (!token) {
+        console.error('>>> No auth token');
+        setWeeklyAttendances([]);
+        return;
+      }
+
+      // 첫 주일과 마지막 주일 사이의 모든 출석 데이터 조회
+      const firstSunday = formatLocalDate(sundays[0]);
+      const lastSunday = formatLocalDate(sundays[sundays.length - 1]);
+
+      const response = await fetch(
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${firstSunday}&end_date=${lastSunday}${churchId ? `&church_id=${churchId}` : ''}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('>>> Weekly attendances API error:', response.status, errorText);
+        setWeeklyAttendances([]);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('>>> Weekly attendance results:', data.length || 0);
+      setWeeklyAttendances(data || []);
+
+      // 캐시에 저장
+      attendanceCacheRef.current.set(cacheKey, data || []);
     } catch (error) {
-      console.error('Failed to load attendances:', error);
-      setAttendances([]);
+      console.error('>>> Failed to load weekly attendances:', error);
+      setWeeklyAttendances([]);
     } finally {
-      setLoading(false);
+      loadingWeeklyRef.current = false;
+      setLoadingWeekly(false);
     }
-  };
+  }, [selectedYear, selectedMonth, getToken]);
 
-  const handleToggleAttendance = async (member: Member) => {
-    if (updating) return; // Prevent multiple simultaneous updates
-    
-    setUpdating(member.id);
-    const existingAttendance = attendances.find(a => a.member_id === member.id);
-    
+  // 초기화: 한 번만 실행
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    const init = async () => {
+      console.log('=== Attendance Component Init (Supabase) ===');
+
+      try {
+        const user = await supabaseAuthService.getCurrentUser();
+        console.log('>>> Current user:', user);
+        setCurrentUser(user?.user || null);
+        if (user?.user?.church_id) {
+          setChurchId(user.user.church_id);
+        }
+      } catch (error: any) {
+        console.error('>>> Failed to get current user:', error);
+      }
+
+      // 교인 목록과 출석 데이터를 병렬로 로드
+      await Promise.all([loadMembers(), loadWeeklyAttendances()]);
+
+      console.log('✅ 초기화 완료');
+    };
+
+    init();
+  }, [loadMembers, loadWeeklyAttendances]);
+
+  // 년도/월 변경 시 출석 데이터만 다시 로드
+  useEffect(() => {
+    if (!initializedRef.current) return; // 초기화 완료 후에만 실행
+    loadWeeklyAttendances();
+  }, [selectedYear, selectedMonth, loadWeeklyAttendances]);
+
+  const handleToggleAttendance = async (memberId: number, sunday: Date) => {
+    const dateStr = formatLocalDate(sunday);
+    const updateKey = `${memberId}_${dateStr}`;
+
+    if (updatingWeekly) return;
+
+    setUpdatingWeekly(updateKey);
+    const existingAttendance = weeklyAttendances.find(
+      a => a.member_id === memberId && a.service_date === dateStr
+    );
+
     try {
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error('인증 토큰이 없습니다.');
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+        'X-Custom-Auth': token,
+        'Content-Type': 'application/json',
+      };
+
+      let updatedAttendances = [...weeklyAttendances];
+
       if (existingAttendance) {
         if (existingAttendance.present) {
-          // Delete attendance (mark as absent)
-          await attendanceService.deleteAttendance(existingAttendance.id);
-          // Update local state immediately
-          setAttendances(attendances.filter(a => a.id !== existingAttendance.id));
+          // 출석 삭제
+          const response = await fetch(
+            `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?id=${existingAttendance.id}`,
+            {
+              method: 'DELETE',
+              headers,
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || '출석 삭제 실패');
+          }
+
+          updatedAttendances = weeklyAttendances.filter(a => a.id !== existingAttendance.id);
         } else {
-          // Update existing attendance to present
-          const updatedAttendance = await attendanceService.updateAttendance(existingAttendance.id, {
-            present: true,
-            check_in_time: new Date().toISOString()
-          });
-          // Update local state immediately
-          setAttendances(attendances.map(a => 
-            a.id === existingAttendance.id 
-              ? { ...a, present: true, check_in_time: new Date().toISOString() }
-              : a
-          ));
+          // 출석 업데이트
+          const response = await fetch(
+            `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances`,
+            {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                id: existingAttendance.id,
+                present: true,
+                check_in_time: new Date().toISOString()
+              })
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || '출석 업데이트 실패');
+          }
+
+          const data = await response.json();
+          updatedAttendances = weeklyAttendances.map(a =>
+            a.id === existingAttendance.id ? data : a
+          );
         }
       } else {
-        // Create new attendance
-        const newAttendance = await attendanceService.createAttendance({
-          member_id: member.id,
-          church_id: churchId,
-          service_date: selectedDate,
-          service_type: selectedService,
-          present: true,
-          check_in_method: 'manual',
-          check_in_time: new Date().toISOString()
-        });
-        // Add to local state immediately
-        setAttendances([...attendances, {
-          id: Date.now(), // Temporary ID
-          member_id: member.id,
-          service_date: selectedDate,
-          service_type: selectedService,
-          present: true,
-          check_in_time: new Date().toISOString()
-        }]);
+        // 새로 출석 생성
+        const response = await fetch(
+          `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances`,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              member_id: memberId,
+              church_id: churchId,
+              service_date: dateStr,
+              service_type: 'sunday_morning',
+              present: true,
+              check_in_method: 'manual',
+              check_in_time: new Date().toISOString()
+            })
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || '출석 생성 실패');
+        }
+
+        const data = await response.json();
+        updatedAttendances = [...weeklyAttendances, data];
       }
+
+      // 상태 업데이트 및 캐시 업데이트
+      setWeeklyAttendances(updatedAttendances);
+      const cacheKey = `${selectedYear}-${selectedMonth}`;
+      attendanceCacheRef.current.set(cacheKey, updatedAttendances);
     } catch (error: any) {
       console.error('Failed to update attendance:', error);
-      alert(error.response?.data?.detail || '출석 체크 중 오류가 발생했습니다.');
-      // On error, reload to sync with server
-      await loadAttendances();
+      alert(error.message || '출석 체크 중 오류가 발생했습니다.');
+      // 캐시 무효화 후 재로딩
+      const cacheKey = `${selectedYear}-${selectedMonth}`;
+      attendanceCacheRef.current.delete(cacheKey);
+      await loadWeeklyAttendances();
     } finally {
-      setUpdating(null);
+      setUpdatingWeekly(null);
     }
   };
 
-  const isPresent = (memberId: number) => {
-    const attendance = attendances.find(a => a.member_id === memberId);
-    return attendance ? attendance.present : false;
-  };
-
-  const getAttendanceStats = () => {
-    const present = attendances.filter(a => a && a.present).length;
-    const total = members.length;
-    const percentage = total > 0 ? (present / total * 100).toFixed(1) : 0;
-    return { present, total, percentage };
-  };
-
-  const stats = getAttendanceStats();
-
-  const handleMarkAllPresent = async () => {
-    if (updating || !window.confirm('모든 교인을 출석으로 표시하시겠습니까?')) return;
-    
-    setUpdating(-1); // Use -1 to indicate bulk update
-    try {
-      const checkInTime = new Date().toISOString();
-      const newAttendances: AttendanceRecord[] = [];
-      const updatedAttendances: AttendanceRecord[] = [];
-      
-      // Prepare attendance data for members without attendance
-      const attendancesToCreate = members
-        .filter(member => !attendances.find(a => a.member_id === member.id && a.present))
-        .map(member => ({
-          member_id: member.id,
-          church_id: churchId,
-          service_date: selectedDate,
-          service_type: selectedService,
-          present: true,
-          check_in_method: 'manual',
-          check_in_time: checkInTime
-        }));
-
-      if (attendancesToCreate.length > 0) {
-        await attendanceService.createBulkAttendance(attendancesToCreate);
-        // Create temporary attendance records for local state
-        attendancesToCreate.forEach((data, index) => {
-          newAttendances.push({
-            id: Date.now() + index, // Temporary ID
-            member_id: data.member_id,
-            service_date: data.service_date,
-            service_type: data.service_type,
-            present: true,
-            check_in_time: data.check_in_time
-          });
-        });
-      }
-
-      // Update existing absents to present
-      const absentsToUpdate = attendances.filter(a => !a.present);
-      const updatePromises = absentsToUpdate.map(a => 
-        attendanceService.updateAttendance(a.id, { 
-          present: true,
-          check_in_time: checkInTime
-        })
+  const getMemberAttendanceRate = (memberId: number, sundays: Date[]) => {
+    const attendedCount = sundays.filter(sunday => {
+      const dateStr = formatLocalDate(sunday);
+      const attendance = weeklyAttendances.find(
+        a => a.member_id === memberId && a.service_date === dateStr && a.present
       );
-      
-      if (updatePromises.length > 0) {
-        await Promise.all(updatePromises);
-        absentsToUpdate.forEach(a => {
-          updatedAttendances.push({ ...a, present: true, check_in_time: checkInTime });
-        });
-      }
+      return !!attendance;
+    }).length;
 
-      // Update local state - filter out any undefined values
-      const existingPresents = attendances.filter(a => a && a.present && !absentsToUpdate.find(u => u.id === a.id));
-      setAttendances([
-        ...existingPresents, // Keep existing presents
-        ...updatedAttendances, // Add updated ones
-        ...newAttendances // Add new ones
-      ].filter(Boolean)); // Remove any undefined/null values
-    } catch (error: any) {
-      console.error('Failed to mark all present:', error);
-      alert('전체 출석 처리 중 오류가 발생했습니다.');
-      // On error, reload to sync with server
-      await loadAttendances();
-    } finally {
-      setUpdating(null);
-    }
+    return sundays.length > 0 ? Math.round((attendedCount / sundays.length) * 100) : 0;
   };
+
+  const isAttended = (memberId: number, sunday: Date) => {
+    const dateStr = formatLocalDate(sunday);
+    const attendance = weeklyAttendances.find(
+      a => a.member_id === memberId && a.service_date === dateStr
+    );
+    return attendance?.present || false;
+  };
+
+  const sundays = getSundaysInMonth(selectedYear, selectedMonth);
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold tracking-tight text-foreground mb-6">출석 관리</h2>
-      
-      {/* Date and Service Selection */}
-      <Card className="border-muted mb-6">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1 flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                날짜
-              </label>
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">예배</label>
-              <Select value={selectedService} onValueChange={setSelectedService}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {serviceTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end gap-2">
-              <Card className="border-muted flex-1">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    출석률
-                  </p>
-                  <p className="text-xl font-bold text-primary">
-                    {stats.present}/{stats.total} ({stats.percentage}%)
-                  </p>
-                </CardContent>
-              </Card>
-              <Button
-                onClick={handleMarkAllPresent}
-                disabled={updating !== null}
-                variant="default"
-                className="whitespace-nowrap"
-              >
-                {updating === -1 ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2 text-primary-foreground" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                전체 출석
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">출석 관리</h2>
+        <p className="text-muted-foreground mt-2">교인들의 주일 출석 현황을 관리합니다</p>
+      </div>
 
-      {/* Members Grid */}
-      {loading ? (
-        <div className="text-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-          <p className="text-muted-foreground">로딩 중...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {members.map((member) => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              attendance={attendances.find(a => a.member_id === member.id)}
-              isUpdating={updating === member.id}
-              onToggle={handleToggleAttendance}
-            />
-          ))}
-        </div>
-      )}
+      {/* 월별 출석 현황 */}
+      <div>
+          <Card className="border-muted mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 sm:flex-none">
+                  <label className="block text-sm font-medium text-foreground mb-2">년도</label>
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map(year => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}년
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 sm:flex-none">
+                  <label className="block text-sm font-medium text-foreground mb-2">월</label>
+                  <Select
+                    value={selectedMonth.toString()}
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {i + 1}월
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <Card className="border-muted bg-primary/5">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground">조회 기간</p>
+                      <p className="text-lg font-bold text-primary">
+                        {selectedYear}년 {selectedMonth + 1}월 ({sundays.length}주차)
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {loadingWeekly ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-muted-foreground">로딩 중...</p>
+            </div>
+          ) : sundays.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">해당 월에 주일이 없습니다.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-32 sticky left-0 bg-background z-10 border-r">교인명</TableHead>
+                        {sundays.map((sunday, index) => (
+                          <TableHead key={index} className="text-center min-w-28">
+                            {sunday.getMonth() + 1}/{sunday.getDate()}
+                            <br />
+                            <span className="text-xs text-muted-foreground">(주일)</span>
+                          </TableHead>
+                        ))}
+                        <TableHead className="text-center w-24 sticky right-0 bg-background z-10 border-l">출석률</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {members.map((member) => {
+                        const attendanceRate = getMemberAttendanceRate(member.id, sundays);
+                        return (
+                          <TableRow key={member.id}>
+                            <TableCell className="font-medium sticky left-0 bg-background z-10 border-r">
+                              {member.name}
+                            </TableCell>
+                            {sundays.map((sunday, index) => {
+                              const dateStr = formatLocalDate(sunday);
+                              const updateKey = `${member.id}_${dateStr}`;
+                              const attended = isAttended(member.id, sunday);
+                              const isUpdating = updatingWeekly === updateKey;
+
+                              return (
+                                <TableCell
+                                  key={index}
+                                  className={cn(
+                                    "text-center cursor-pointer transition-colors relative",
+                                    attended ? "bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50" : "hover:bg-gray-50 dark:hover:bg-gray-800",
+                                    isUpdating && "opacity-50"
+                                  )}
+                                  onClick={() => !isUpdating && handleToggleAttendance(member.id, sunday)}
+                                >
+                                  {isUpdating ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                                  ) : attended ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mx-auto" />
+                                  ) : (
+                                    <XCircle className="h-5 w-5 text-gray-300 dark:text-gray-600 mx-auto" />
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-center sticky right-0 bg-background z-10 border-l">
+                              <Badge
+                                variant={attendanceRate >= 80 ? "success" : attendanceRate >= 50 ? "warning" : "secondary"}
+                                className="font-semibold"
+                              >
+                                {attendanceRate}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+      </div>
     </div>
   );
 };

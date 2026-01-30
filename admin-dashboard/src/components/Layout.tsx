@@ -417,7 +417,7 @@ const Layout: React.FC = () => {
       items: filterMenuItems([
         { path: '/member-management', name: '교인 관리', Icon: Users },
         { path: '/organization-management', name: '조직 관리', Icon: Building2 },
-        // { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
+        { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
         { path: '/pastoral-care', name: '심방 신청 관리', Icon: UserCheck },
         { path: '/prayer-requests', name: '중보 기도 요청', Icon: Heart },
       ]),
@@ -765,7 +765,7 @@ const Layout: React.FC = () => {
       </div>
 
       {/* 우측 하단 플로팅 도움말 버튼 */}
-      <div ref={helpMenuRef} className="fixed bottom-6 right-6 z-50">
+      <div ref={helpMenuRef} className="fixed bottom-6 right-6 z-10">
         {/* 도움말 메뉴 */}
         {showHelpMenu && (
           <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden mb-2 w-48">

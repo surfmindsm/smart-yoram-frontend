@@ -17,7 +17,8 @@ import {
   Heart,
   Calculator,
   HandCoins,
-  FileText
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "./ui";
 import { Badge } from "./ui";
@@ -95,6 +96,17 @@ const pastoralCareChartConfig = {
   },
 } satisfies ChartConfig
 
+const attendanceChartConfig = {
+  attendance: {
+    label: "출석 인원",
+    color: "hsl(var(--chart-1))",
+  },
+  attendanceRate: {
+    label: "출석률",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig
+
 
 interface Demographics {
   gender_distribution: Array<{ gender: string; count: number; percentage: number }>;
@@ -134,6 +146,29 @@ interface PastoralCareStats {
   };
 }
 
+interface AttendanceStats {
+  lastSundayAttendance: number;
+  lastSundayAttendanceRate: number;
+  totalMembers: number;
+  lastSundayDate: string;
+}
+
+interface AttendanceHistory {
+  date: string;
+  displayDate: string;
+  attendance: number;
+  attendanceRate: number;
+  totalMembers: number;
+}
+
+// Date 객체를 로컬 타임존의 YYYY-MM-DD 문자열로 변환 (타임존 버그 방지)
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({
@@ -145,6 +180,8 @@ const Dashboard = React.memo(() => {
   const [demographics, setDemographics] = useState<Demographics | null>(null);
   const [memberGrowth, setMemberGrowth] = useState<MemberGrowth | null>(null);
   const [pastoralCareStats, setPastoralCareStats] = useState<PastoralCareStats | null>(null);
+  const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceHistory[]>([]);
   const [todos, setTodos] = useState<TodoData>({
     todayBirthdays: [],
     upcomingBirthdays: [],
@@ -302,6 +339,149 @@ const Dashboard = React.memo(() => {
     }
   };
 
+  const fetchAttendanceStats = async () => {
+    try {
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const token = await supabaseAuthService.getToken();
+
+      // 가장 최근 주일 찾기
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0(일) ~ 6(토)
+
+      let lastSunday = new Date(today);
+
+      if (dayOfWeek === 0) {
+        // 오늘이 일요일이면 오늘
+        // 그대로 유지
+      } else {
+        // 월~토요일이면 지난 주 일요일
+        lastSunday.setDate(today.getDate() - dayOfWeek);
+      }
+
+      const lastSundayStr = formatLocalDate(lastSunday);
+      console.log('>>> Fetching attendance stats for:', lastSundayStr, '(dayOfWeek:', dayOfWeek, ')');
+
+      // 현재 사용자의 church_id 가져오기
+      const attendanceUser = await supabaseAuthService.getCurrentUser();
+      const attendanceChurchId = attendanceUser?.user?.church_id;
+
+      console.log('>>> User church_id:', attendanceChurchId);
+
+      // 해당 날짜의 출석 데이터 조회
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/attendances?service_date=${lastSundayStr}${attendanceChurchId ? `&church_id=${attendanceChurchId}` : ''}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token || '',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.error('>>> Attendance API error:', response.status);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const attendances = await response.json();
+      console.log('>>> Raw attendances data:', attendances);
+      console.log('>>> Attendances count:', Array.isArray(attendances) ? attendances.length : 'Not an array');
+
+      // 전체 교인 수 조회
+      const attendanceMembersResponse = await edgeApi.get(`/members/${attendanceChurchId ? `?church_id=${attendanceChurchId}` : ''}`).catch(() => ({ data: [] }));
+      const attendanceTotalMembers = attendanceMembersResponse.data.length || 0;
+      console.log('>>> Total members:', attendanceTotalMembers);
+
+      // 출석한 교인 수 (present=true)
+      const presentCount = Array.isArray(attendances) ? attendances.filter((a: any) => a.present).length : 0;
+      const attendanceRate = attendanceTotalMembers > 0 ? Math.round((presentCount / attendanceTotalMembers) * 100) : 0;
+
+      console.log('>>> Present count:', presentCount, 'Rate:', attendanceRate);
+
+      setAttendanceStats({
+        lastSundayAttendance: presentCount,
+        lastSundayAttendanceRate: attendanceRate,
+        totalMembers: attendanceTotalMembers,
+        lastSundayDate: lastSundayStr
+      });
+    } catch (error) {
+      console.error('출석 통계 조회 실패:', error);
+      setAttendanceStats(null);
+    }
+  };
+
+  const fetchAttendanceHistory = async () => {
+    try {
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const token = await supabaseAuthService.getToken();
+
+      // 현재 사용자의 church_id 가져오기
+      const historyUser = await supabaseAuthService.getCurrentUser();
+      const historyChurchId = historyUser?.user?.church_id;
+
+      // 최근 8주간의 주일 날짜 계산
+      const today = new Date();
+      const sundays: Date[] = [];
+
+      for (let i = 0; i < 8; i++) {
+        const date = new Date(today);
+        const dayOfWeek = date.getDay();
+        // i주 전의 일요일 계산
+        const daysToSubtract = dayOfWeek + (i * 7);
+        date.setDate(date.getDate() - daysToSubtract);
+        sundays.push(date);
+      }
+
+      sundays.reverse(); // 과거부터 현재 순서로
+
+      // 전체 교인 수 조회
+      const historyMembersResponse = await edgeApi.get(`/members/${historyChurchId ? `?church_id=${historyChurchId}` : ''}`).catch(() => ({ data: [] }));
+      const historyTotalMembers = historyMembersResponse.data.length || 0;
+
+      // 각 주일별 출석 데이터 조회
+      const historyData: AttendanceHistory[] = [];
+
+      for (const sunday of sundays) {
+        const sundayStr = formatLocalDate(sunday);
+
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/attendances?service_date=${sundayStr}${historyChurchId ? `&church_id=${historyChurchId}` : ''}`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+              'X-Custom-Auth': token || '',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (response.ok) {
+          const attendances = await response.json();
+          const presentCount = Array.isArray(attendances) ? attendances.filter((a: any) => a.present).length : 0;
+          const attendanceRate = historyTotalMembers > 0 ? Math.round((presentCount / historyTotalMembers) * 100) : 0;
+
+          // 날짜 표시 형식: M/D
+          const displayDate = `${sunday.getMonth() + 1}/${sunday.getDate()}`;
+
+          historyData.push({
+            date: sundayStr,
+            displayDate,
+            attendance: presentCount,
+            attendanceRate,
+            totalMembers: historyTotalMembers
+          });
+        }
+      }
+
+      setAttendanceHistory(historyData);
+    } catch (error) {
+      console.error('출석 히스토리 조회 실패:', error);
+      setAttendanceHistory([]);
+    }
+  };
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -352,7 +532,9 @@ const Dashboard = React.memo(() => {
         fetchDemographics(),
         fetchMemberGrowth(),
         fetchTodos(),
-        fetchPastoralCareStats()
+        fetchPastoralCareStats(),
+        fetchAttendanceStats(),
+        fetchAttendanceHistory()
       ]);
 
       const totalMembers = membersResponse.data.length || 0;
@@ -420,10 +602,16 @@ const Dashboard = React.memo(() => {
   // stats 배열을 useMemo로 최적화
   const stats = useMemo(() => [
     { title: '전체 교인', value: dashboardData.totalMembers.toString(), Icon: Users, color: 'bg-primary-500' },
-    // { title: '오늘 출석', value: dashboardData.todayAttendance.toString(), Icon: CheckCircle, color: 'bg-green-500' }, // 임시로 주석처리
+    {
+      title: '최근 주일 출석',
+      value: attendanceStats ? `${attendanceStats.lastSundayAttendance}명 (${attendanceStats.lastSundayAttendanceRate}%)` : '로딩 중...',
+      Icon: CheckCircle2,
+      color: 'bg-green-500',
+      subtitle: attendanceStats ? `${attendanceStats.lastSundayDate}` : undefined
+    },
     { title: '이번 주 새가족', value: dashboardData.newMembersThisWeek.toString(), Icon: UserPlus, color: 'bg-purple-500' },
     { title: '활성 사용자', value: dashboardData.activeUsers.toString(), Icon: User, color: 'bg-yellow-500' },
-  ], [dashboardData]);
+  ], [dashboardData, attendanceStats]);
 
   // quickActions를 선택된 항목으로 필터링
   const quickActions = useMemo(() => {
@@ -539,7 +727,7 @@ const Dashboard = React.memo(() => {
       {/* Stats Grid - 교인 통계 카드 */}
       <div className="mb-6">
         <h2 className="text-xl font-bold text-foreground mb-4">교인 통계</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, index) => (
             <StatCard
               key={`stat-${index}`}
@@ -548,6 +736,7 @@ const Dashboard = React.memo(() => {
               Icon={stat.Icon}
               color={stat.color}
               loading={loading}
+              subtitle={(stat as any).subtitle}
             />
           ))}
         </div>
@@ -694,6 +883,107 @@ const Dashboard = React.memo(() => {
             </Card>
           )}
         </div>
+
+        {/* 출석 통계 차트 */}
+        {attendanceHistory.length > 0 && (
+          <Card className="border-muted mb-5">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                출석 추이 (최근 8주)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={attendanceChartConfig}
+                className="h-[250px] w-full"
+              >
+                <ComposedChart
+                  data={attendanceHistory}
+                  margin={{
+                    left: 8,
+                    right: 8,
+                    top: 8,
+                    bottom: 8,
+                  }}
+                >
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="displayDate"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}명`}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent />}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="attendance"
+                    fill="var(--color-attendance)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    yAxisId="right"
+                    dataKey="attendanceRate"
+                    type="monotone"
+                    stroke="var(--color-attendanceRate)"
+                    strokeWidth={2}
+                    dot={{
+                      fill: "var(--color-attendanceRate)",
+                    }}
+                    activeDot={{
+                      r: 6,
+                    }}
+                  />
+                </ComposedChart>
+              </ChartContainer>
+
+              {/* 요약 통계 */}
+              <div className="mt-4 grid grid-cols-4 gap-3">
+                <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="text-xl font-bold text-blue-600">
+                    {attendanceHistory[attendanceHistory.length - 1]?.attendance || 0}명
+                  </div>
+                  <div className="text-xs text-blue-700">최근 출석</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                  <div className="text-xl font-bold text-green-600">
+                    {attendanceHistory[attendanceHistory.length - 1]?.attendanceRate || 0}%
+                  </div>
+                  <div className="text-xs text-green-700">최근 출석률</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
+                  <div className="text-xl font-bold text-purple-600">
+                    {Math.round(attendanceHistory.reduce((sum, item) => sum + item.attendance, 0) / attendanceHistory.length)}명
+                  </div>
+                  <div className="text-xs text-purple-700">평균 출석</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <div className="text-xl font-bold text-amber-600">
+                    {Math.round(attendanceHistory.reduce((sum, item) => sum + item.attendanceRate, 0) / attendanceHistory.length)}%
+                  </div>
+                  <div className="text-xs text-amber-700">평균 출석률</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 교인 증가 추이 및 심방 신청 통계 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
