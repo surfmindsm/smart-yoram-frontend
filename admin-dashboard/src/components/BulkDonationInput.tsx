@@ -8,7 +8,8 @@ import { Button } from "./ui";
 import { Input } from "./ui";
 import { Combobox } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
-import { Plus, X, Users, ArrowLeft } from 'lucide-react';
+import { Plus, X, Users, ArrowLeft, Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Member {
   id: number;
@@ -43,6 +44,19 @@ const BulkDonationInput: React.FC = () => {
   const [bulkSettings, setBulkSettings] = useState({
     offeredOn: new Date().toISOString().split('T')[0]
   });
+
+  // 엑셀 업로드 관련 state
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelPreviewData, setExcelPreviewData] = useState<any[] | null>(null);
+  const [validationResults, setValidationResults] = useState<Array<{
+    rowNumber: number;
+    data: any[];
+    errors: string[];
+    warnings: string[];
+    isValid: boolean;
+  }> | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [showExcelUpload, setShowExcelUpload] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -168,6 +182,187 @@ const BulkDonationInput: React.FC = () => {
 
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('ko-KR') + '원';
+  };
+
+  // 엑셀 미리보기 및 검증
+  const handleExcelPreview = async () => {
+    if (!excelFile) {
+      alert('파일을 선택해주세요.');
+      return;
+    }
+
+    setIsPreviewLoading(true);
+
+    try {
+      // 엑셀 파일 읽기
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // 첫 번째 시트 읽기
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // JSON으로 변환 (헤더 포함)
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',  // 빈 셀을 빈 문자열로 처리
+        raw: true    // 숫자를 그대로 읽음
+      });
+
+      if (jsonData.length < 2) {
+        alert('엑셀 파일에 데이터가 없습니다.');
+        setIsPreviewLoading(false);
+        return;
+      }
+
+      // 헤더와 데이터 분리
+      const headers = jsonData[0];
+      const dataRows = jsonData.slice(1);
+
+      // 헤더 인덱스 매핑
+      const headerMap: { [key: string]: number } = {};
+      headers.forEach((header: string, index: number) => {
+        headerMap[header] = index;
+      });
+
+      // 각 행 검증
+      const validatedRows = dataRows.map((row: any[], index: number) => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        const donorName = row[headerMap['기부자']];
+        const isAnonymous = row[headerMap['무명']] === '예' || row[headerMap['무명']] === 'Y' || row[headerMap['무명']] === true;
+        const fundType = row[headerMap['헌금유형']];
+        const amount = row[headerMap['금액']];
+
+        // 기부자 또는 무명 검증
+        if (!isAnonymous && (!donorName || !String(donorName).trim())) {
+          errors.push('무명이 아닌 경우 기부자는 필수입니다');
+        }
+
+        // 기부자 이름 검증 (무명이 아닌 경우에만)
+        if (!isAnonymous && donorName) {
+          const member = members.find(m => m.name === String(donorName).trim());
+          if (!member) {
+            errors.push(`기부자 "${donorName}"를 찾을 수 없습니다`);
+          }
+        }
+
+        // 헌금 유형 검증
+        if (!fundType || !String(fundType).trim()) {
+          errors.push('헌금 유형은 필수입니다');
+        } else {
+          const fundTypeStr = String(fundType).trim();
+          if (!fundTypes.includes(fundTypeStr)) {
+            errors.push(`헌금 유형 "${fundTypeStr}"는 등록되지 않은 유형입니다`);
+          }
+        }
+
+        // 금액 검증
+        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+          errors.push('금액은 0보다 큰 숫자여야 합니다');
+        }
+
+        return {
+          rowNumber: index + 2, // 엑셀 행 번호 (헤더 1 + 데이터)
+          data: row,
+          errors,
+          warnings,
+          isValid: errors.length === 0
+        };
+      });
+
+      // 검증 결과 저장
+      setValidationResults(validatedRows);
+      setExcelPreviewData([headers, ...dataRows]);
+    } catch (error: any) {
+      console.error('파일 검증 실패:', error);
+      alert(`파일을 읽는 중 오류가 발생했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  // 엑셀에서 데이터 가져오기
+  const handleExcelImport = () => {
+    if (!excelPreviewData || !validationResults) {
+      alert('먼저 파일을 검증해주세요.');
+      return;
+    }
+
+    const validRows = validationResults.filter(r => r.isValid);
+    if (validRows.length === 0) {
+      alert('가져올 수 있는 유효한 데이터가 없습니다.');
+      return;
+    }
+
+    // 헤더 인덱스 매핑
+    const headers = excelPreviewData[0];
+    const headerMap: { [key: string]: number } = {};
+    headers.forEach((header: string, index: number) => {
+      headerMap[header] = index;
+    });
+
+    // 유효한 행만 헌금 목록으로 변환
+    const importedDonations: BulkDonationRow[] = validRows.map(validRow => {
+      const row = validRow.data;
+      const donorName = row[headerMap['기부자']];
+      const isAnonymous = row[headerMap['무명']] === '예' || row[headerMap['무명']] === 'Y' || row[headerMap['무명']] === true;
+      const fundType = row[headerMap['헌금유형']];
+      const amount = Number(row[headerMap['금액']]);
+      const note = row[headerMap['적요']] || '';
+
+      let donorId = '';
+      if (!isAnonymous && donorName) {
+        const member = members.find(m => m.name === String(donorName).trim());
+        if (member) {
+          donorId = member.id.toString();
+        }
+      }
+
+      return {
+        donorId,
+        amount,
+        fundType: String(fundType).trim(),
+        note: String(note),
+        isAnonymous
+      };
+    });
+
+    // 기존 목록 대체
+    setBulkDonations(importedDonations);
+    setShowExcelUpload(false);
+    setExcelFile(null);
+    setExcelPreviewData(null);
+    setValidationResults(null);
+    alert(`${importedDonations.length}건의 헌금 데이터를 가져왔습니다.`);
+  };
+
+  // 엑셀 템플릿 다운로드
+  const downloadExcelTemplate = () => {
+    const headers = ['기부자', '무명', '헌금유형', '금액', '적요'];
+    const sampleData = [
+      ['홍길동', '아니오', '주일헌금', 50000, '주일 예배 헌금'],
+      ['', '예', '감사헌금', 100000, '감사 헌금'],
+    ];
+
+    const worksheetData = [headers, ...sampleData];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+    // 컬럼 너비 설정
+    worksheet['!cols'] = [
+      { wch: 15 },  // 기부자
+      { wch: 10 },  // 무명
+      { wch: 15 },  // 헌금유형
+      { wch: 12 },  // 금액
+      { wch: 30 },  // 적요
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '헌금목록');
+
+    // 파일 다운로드
+    XLSX.writeFile(workbook, '헌금_엑셀템플릿.xlsx');
   };
 
   const handleBulkSubmit = async () => {
@@ -296,16 +491,184 @@ const BulkDonationInput: React.FC = () => {
               <Users className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold">헌금 목록</h3>
             </div>
-            <Button
-              onClick={addBulkRow}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              행 추가
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={downloadExcelTemplate}
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                템플릿 다운로드
+              </Button>
+              <Button
+                onClick={() => setShowExcelUpload(!showExcelUpload)}
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                엑셀에서 가져오기
+              </Button>
+              <Button
+                onClick={addBulkRow}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                행 추가
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* 엑셀 업로드 섹션 */}
+        {showExcelUpload && (
+          <div className="p-6 border-b border-gray-200 bg-gray-50">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">엑셀 파일 선택</label>
+                <Input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setExcelFile(file);
+                      setExcelPreviewData(null);
+                      setValidationResults(null);
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  CSV, XLSX, XLS 파일만 가능 (헤더: 기부자, 무명, 헌금유형, 금액, 적요)
+                </p>
+              </div>
+
+              {excelFile && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <p className="text-sm text-green-800">
+                    <strong>선택된 파일:</strong> {excelFile.name}
+                  </p>
+                </div>
+              )}
+
+              {excelFile && !excelPreviewData && (
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleExcelPreview}
+                    disabled={isPreviewLoading}
+                    className="flex items-center gap-2"
+                    variant="outline"
+                  >
+                    {isPreviewLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                        검증 중...
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-4 h-4" />
+                        파일 검증 및 미리보기
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {excelPreviewData && validationResults && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      검증 결과 ({validationResults.filter(r => r.isValid).length}/{validationResults.length}건 유효)
+                    </h3>
+                    <Button
+                      onClick={() => {
+                        setExcelPreviewData(null);
+                        setValidationResults(null);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* 검증 에러 요약 */}
+                  {validationResults.some(r => !r.isValid) && (
+                    <div className="bg-red-50 border border-red-200 rounded-md p-3 max-h-40 overflow-y-auto">
+                      <h4 className="text-sm font-medium text-red-800 mb-2">❌ 오류가 있는 행</h4>
+                      {validationResults
+                        .filter(r => !r.isValid)
+                        .map((result, idx) => (
+                          <div key={idx} className="text-xs text-red-700 mb-1">
+                            <strong>행 {result.rowNumber}:</strong> {result.errors.join(', ')}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* 미리보기 테이블 */}
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-200 text-xs">
+                        <thead className="bg-gray-50 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">상태</th>
+                            {excelPreviewData[0].map((header: string, index: number) => (
+                              <th
+                                key={index}
+                                className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap"
+                              >
+                                {header}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {excelPreviewData.slice(1).map((row: any[], rowIndex: number) => {
+                            const result = validationResults[rowIndex];
+                            return (
+                              <tr
+                                key={rowIndex}
+                                className={result.isValid ? 'bg-white' : 'bg-red-50'}
+                              >
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {result.isValid ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4 text-red-600" />
+                                  )}
+                                </td>
+                                {row.map((cell: any, cellIndex: number) => (
+                                  <td key={cellIndex} className="px-3 py-2 whitespace-nowrap">
+                                    {cell}
+                                  </td>
+                                ))}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 가져오기 버튼 */}
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleExcelImport}
+                      disabled={validationResults.filter(r => r.isValid).length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {validationResults.filter(r => r.isValid).length}건 가져오기
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
