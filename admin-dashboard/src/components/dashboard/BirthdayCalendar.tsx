@@ -948,8 +948,8 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
       <style>{`
         .birthday-calendar-wrapper .rdp {
-          --rdp-accent-color: #000;
-          --rdp-background-color: #000;
+          --rdp-accent-color: hsl(var(--primary));
+          --rdp-background-color: hsl(var(--primary));
           margin: 0;
           background-color: hsl(var(--muted) / 0.3);
           border-radius: 0.75rem;
@@ -1036,8 +1036,8 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
 
         /* 선택된 날짜 */
         .birthday-calendar-wrapper .rdp-selected .rdp-day_button {
-          background-color: #000;
-          color: white;
+          background-color: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
           font-weight: 600;
         }
 
