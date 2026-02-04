@@ -37,6 +37,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabase } from '../lib/supabase';
 import { getPositionDetailLabel } from '../constants/memberPositions';
 import * as XLSX from 'xlsx';
+import { Pagination } from './common/Pagination';
 
 // 백엔드 API 응답 타입 정의
 interface Member {
@@ -151,7 +152,7 @@ const DonationManagement: React.FC = () => {
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1882,82 +1883,6 @@ const DonationManagement: React.FC = () => {
                       </tbody>
                   </table>
 
-                  {/* 페이지네이션 */}
-                  {filteredDonations.length > 0 && (
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-700">
-                          총 <span className="font-semibold">{filteredDonations.length}</span>개 중{' '}
-                          <span className="font-semibold">{startIndex + 1}</span>-
-                          <span className="font-semibold">{Math.min(endIndex, filteredDonations.length)}</span>개 표시
-                        </div>
-                        {totalPages > 1 && (
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-1"
-                          >
-                            이전
-                          </Button>
-
-                          <div className="flex items-center space-x-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1)
-                              .filter(page => {
-                                // 현재 페이지 주변 페이지만 표시
-                                return page === 1 ||
-                                       page === totalPages ||
-                                       Math.abs(page - currentPage) <= 2;
-                              })
-                              .map((page, index, array) => {
-                                // 페이지 번호 사이에 ... 표시
-                                if (index > 0 && page - array[index - 1] > 1) {
-                                  return (
-                                    <React.Fragment key={`ellipsis-${page}`}>
-                                      <span className="px-2 text-gray-500">...</span>
-                                      <button
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-3 py-1 rounded-md text-sm font-medium ${
-                                          currentPage === page
-                                            ? "bg-primary-600 text-white"
-                                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                                        }`}
-                                      >
-                                        {page}
-                                      </button>
-                                    </React.Fragment>
-                                  );
-                                }
-                                return (
-                                  <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`px-3 py-1 rounded-md text-sm font-medium ${
-                                      currentPage === page
-                                        ? "bg-primary-600 text-white"
-                                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                                    }`}
-                                  >
-                                    {page}
-                                  </button>
-                                );
-                              })}
-                          </div>
-
-                          <Button
-                            variant="outline"
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1"
-                          >
-                            다음
-                          </Button>
-                        </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 {filteredDonations.length === 0 && (
                   <div className="text-center py-8 text-gray-600">
@@ -1965,6 +1890,21 @@ const DonationManagement: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* 페이지네이션 */}
+              {filteredDonations.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredDonations.length}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={(newItemsPerPage) => {
+                    setItemsPerPage(newItemsPerPage);
+                    setCurrentPage(1);
+                  }}
+                />
+              )}
             </>
           )}
         </div>
