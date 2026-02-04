@@ -155,6 +155,7 @@ const DonationManagement: React.FC = () => {
   const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [fundTypeFilter, setFundTypeFilter] = useState('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
   const [selectedDonor, setSelectedDonor] = useState<string>('');
   const [receiptInfo, setReceiptInfo] = useState({
@@ -1274,6 +1275,9 @@ const DonationManagement: React.FC = () => {
   };
 
   const filteredDonations = donations.filter(donation => {
+    // 헌금 유형 필터
+    const matchesFundType = fundTypeFilter === 'all' || donation.fundType === fundTypeFilter;
+
     // 검색 필터
     const matchesSearch = donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          donation.fundType.includes(searchTerm);
@@ -1292,7 +1296,7 @@ const DonationManagement: React.FC = () => {
       }
     }
 
-    return matchesSearch && matchesDate;
+    return matchesFundType && matchesSearch && matchesDate;
   }).sort((a, b) => {
     // 정렬 로직
     if (!sortConfig.key) return 0;
@@ -1325,7 +1329,7 @@ const DonationManagement: React.FC = () => {
   // 필터 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, dateRange]);
+  }, [searchTerm, dateRange, fundTypeFilter]);
 
   const filteredReceipts = receipts.filter(receipt => {
     const donorName = receipt.donorName || receipt.member?.name || '';
@@ -1661,6 +1665,20 @@ const DonationManagement: React.FC = () => {
                   value={dateRange}
                   onChange={setDateRange}
                 />
+                <Select
+                  value={fundTypeFilter}
+                  onValueChange={setFundTypeFilter}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="헌금 유형 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">모든 헌금 유형</SelectItem>
+                    {fundTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div className="flex items-center gap-2">
