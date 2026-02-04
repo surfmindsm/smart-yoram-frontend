@@ -74,6 +74,10 @@ const OfferingsManagement: React.FC = () => {
   const [dateFromFilter, setDateFromFilter] = useState('');
   const [dateToFilter, setDateToFilter] = useState('');
 
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
   // 모달 상태
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -148,7 +152,7 @@ const OfferingsManagement: React.FC = () => {
       ]);
     };
     loadAllData();
-  }, [fundTypeFilter, dateFromFilter, dateToFilter]);
+  }, [dateFromFilter, dateToFilter]); // fundTypeFilter 제거 - 클라이언트 측 필터링으로 변경
 
   const loadOfferings = async () => {
     try {
@@ -162,7 +166,7 @@ const OfferingsManagement: React.FC = () => {
         church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
-      if (fundTypeFilter !== 'all') params.fund_type = fundTypeFilter;
+      // fundTypeFilter는 클라이언트 측에서 처리하므로 API 호출 시 제거
       if (dateFromFilter) params.date_from = dateFromFilter;
       if (dateToFilter) params.date_to = dateToFilter;
 
@@ -390,6 +394,12 @@ const OfferingsManagement: React.FC = () => {
   };
 
   const filteredOfferings = offerings.filter(offering => {
+    // 헌금 유형 필터링
+    if (fundTypeFilter !== 'all' && offering.fundType !== fundTypeFilter) {
+      return false;
+    }
+
+    // 검색어 필터링
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const memberName = offering.members?.name || offering.members?.full_name || '';
@@ -403,6 +413,17 @@ const OfferingsManagement: React.FC = () => {
     }
     return true;
   });
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(filteredOfferings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentOfferings = filteredOfferings.slice(startIndex, endIndex);
+
+  // 필터 변경 시 첫 페이지로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, fundTypeFilter]);
 
   const exportToCSV = () => {
     const headers = ['날짜', '헌금자', '헌금종류', '금액', '메모', '등록자', '등록일'];
@@ -615,7 +636,7 @@ const OfferingsManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOfferings.map((offering) => (
+                {currentOfferings.map((offering) => (
                   <tr key={offering.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -684,6 +705,85 @@ const OfferingsManagement: React.FC = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* 페이지네이션 */}
+            {filteredOfferings.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    총 <span className="font-semibold">{filteredOfferings.length}</span>개 중{' '}
+                    <span className="font-semibold">{startIndex + 1}</span>-
+                    <span className="font-semibold">{Math.min(endIndex, filteredOfferings.length)}</span>개 표시
+                  </div>
+                  {totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1"
+                    >
+                      이전
+                    </Button>
+
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // 현재 페이지 주변 페이지만 표시
+                          return page === 1 ||
+                                 page === totalPages ||
+                                 Math.abs(page - currentPage) <= 2;
+                        })
+                        .map((page, index, array) => {
+                          // 페이지 번호 사이에 ... 표시
+                          if (index > 0 && page - array[index - 1] > 1) {
+                            return (
+                              <React.Fragment key={`ellipsis-${page}`}>
+                                <span className="px-2 text-gray-500">...</span>
+                                <button
+                                  onClick={() => setCurrentPage(page)}
+                                  className={cn(
+                                    "px-3 py-1 rounded-md text-sm font-medium",
+                                    currentPage === page
+                                      ? "bg-primary-600 text-white"
+                                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                                  )}
+                                >
+                                  {page}
+                                </button>
+                              </React.Fragment>
+                            );
+                          }
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={cn(
+                                "px-3 py-1 rounded-md text-sm font-medium",
+                                currentPage === page
+                                  ? "bg-primary-600 text-white"
+                                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                              )}
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1"
+                    >
+                      다음
+                    </Button>
+                  </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
