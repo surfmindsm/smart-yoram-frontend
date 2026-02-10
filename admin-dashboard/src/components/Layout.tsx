@@ -90,6 +90,7 @@ const Layout: React.FC = () => {
     '커뮤니티': false,
     '보안 & 시스템': false
   });
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -478,6 +479,7 @@ const Layout: React.FC = () => {
             <div className="bg-white overflow-hidden">
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex} className={cn(
+                "relative",
                 groupIndex > 0 && "border-t border-slate-200",
                 groupIndex === menuGroups.length - 1 && "border-b border-slate-200"
               )}>
@@ -513,7 +515,14 @@ const Layout: React.FC = () => {
                   </Link>
                 ) : (
                   <button
-                    onClick={() => toggleGroup(group.title)}
+                    onClick={() => {
+                      if (!isSidebarOpen) {
+                        setIsSidebarOpen(true);
+                      }
+                      toggleGroup(group.title);
+                    }}
+                    onMouseEnter={() => !isSidebarOpen && setHoveredGroup(group.title)}
+                    onMouseLeave={() => setHoveredGroup(null)}
                     className={cn(
                       "w-full flex items-center justify-between text-sm font-medium transition-all",
                       expandedGroups[group.title]
@@ -583,6 +592,43 @@ const Layout: React.FC = () => {
                           );
                         })}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hover Popover - 축소 상태에서 호버 시 표시 */}
+                {group.title !== '대시보드 & 분석' && !isSidebarOpen && hoveredGroup === group.title && (
+                  <div
+                    className="absolute left-full top-0 ml-2 min-w-[200px] bg-white border border-slate-200 rounded-lg shadow-lg z-50"
+                    onMouseEnter={() => setHoveredGroup(group.title)}
+                    onMouseLeave={() => setHoveredGroup(null)}
+                  >
+                    {/* Popover Header */}
+                    <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                      <h3 className="text-sm font-semibold text-slate-900">{group.title}</h3>
+                    </div>
+                    {/* Popover Items */}
+                    <div className="py-1">
+                      {group.items && group.items.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        const ItemIcon = item.Icon;
+
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                              isActive
+                                ? "bg-primary-50 text-primary-700 font-medium"
+                                : "text-slate-600 hover:bg-slate-50"
+                            )}
+                          >
+                            <ItemIcon className="h-4 w-4 flex-shrink-0" />
+                            <span>{item.name}</span>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
