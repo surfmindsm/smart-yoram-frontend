@@ -1,70 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
-import { loginHistoryService } from '../services/api';
 import AnnouncementModal from './AnnouncementModal';
 import BugReportModal from './BugReportModal';
 import {
   BarChart3,
   ChartLine,
   Users,
-  MessageSquare,
-  QrCode,
-  FileSpreadsheet,
   CheckSquare,
   FileText,
   Church,
-  Menu,
   LogOut,
   Megaphone,
-  BookOpen,
-  X,
   Heart,
-  Clock,
   Bell,
   Bot,
-  Settings,
   TrendingUp,
   UserCheck,
   Wrench,
   DollarSign,
   Library,
   Shield,
-  Monitor,
-  MapPin,
   Users2,
-  Share2,
   Gift,
   HandHeart,
   Briefcase,
   UserPlus,
   Music,
-  Mic,
   Calendar,
-  Sparkles,
   Home,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   UserCheck2,
-  ShoppingCart,
-  User,
   Key,
   UserCog,
   Building2,
   Calculator,
   Video,
   AlertTriangle,
-  Copy,
-  Heart as HeartIcon,
   HelpCircle,
-  ListChecks
+  ListChecks,
+  MessageSquare,
+  Clock
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Alert, AlertDescription } from "./ui";
-import { useToast } from '../hooks/use-toast';
 import {
   isCommunityAdmin,
   isSuperAdmin,
@@ -94,12 +78,8 @@ const Layout: React.FC = () => {
   const [userInfo, setUserInfo] = useState<{name?: string, email?: string, church_id?: number, role?: string, id?: string} | null>(null);
   const [churchInfo, setChurchInfo] = useState<{gpt_licenses_active?: number, gpt_api_key?: string} | null>(null);
   const [userPermissions, setUserPermissions] = useState<MenuPermission[]>([]);
-  const [recentLogin, setRecentLogin] = useState<any>(null);
-  const [loginHistory, setLoginHistory] = useState<any[]>([]);
-  const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
-  const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
     '대시보드 & 분석': false,
     '교인 관리': false,
@@ -112,8 +92,6 @@ const Layout: React.FC = () => {
   });
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const helpMenuRef = useRef<HTMLDivElement>(null);
 
   // GPT 사용 권한 확인 함수
   const hasGPTAccess = () => {
@@ -260,15 +238,6 @@ const Layout: React.FC = () => {
             console.error('❌ 교회 정보 가져오기 오류:', churchError);
           }
         }
-
-        // 최근 로그인 기록 가져오기 (일단 스킵 - 기존 API 의존성)
-        try {
-          // const recentLoginData = await loginHistoryService.getRecentLogin();
-          // setRecentLogin(recentLoginData);
-          // console.log('📝 로그인 기록 조회는 일시적으로 비활성화됨');
-        } catch (loginError) {
-          console.error('로그인 기록 조회 실패:', loginError);
-        }
       } catch (error: unknown) {
         console.error('❌ 사용자 정보 가져오기 오류:', error);
         if (error && typeof error === 'object' && 'response' in error) {
@@ -280,31 +249,6 @@ const Layout: React.FC = () => {
     fetchUserInfo();
   }, []);
 
-  // ESC 키와 외부 클릭으로 도움말 메뉴 닫기
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showHelpMenu) {
-        setShowHelpMenu(false);
-      }
-    };
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target as Node)) {
-        setShowHelpMenu(false);
-      }
-    };
-
-    if (showHelpMenu) {
-      document.addEventListener('keydown', handleEscape);
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showHelpMenu]);
-
   const handleLogout = async () => {
     try {
       await supabaseAuthService.signOut();
@@ -312,44 +256,6 @@ const Layout: React.FC = () => {
     } catch (error) {
       console.error('로그아웃 오류:', error);
       navigate('/login'); // 오류가 있어도 로그인 페이지로 이동
-    }
-  };
-
-  // 계좌번호 복사 핸들러
-  const handleCopyAccount = async () => {
-    const accountNumber = '326-353703-02-001';
-    try {
-      await navigator.clipboard.writeText(accountNumber);
-      const toastInstance = toast({
-        title: '계좌번호가 복사되었습니다',
-        description: accountNumber,
-      });
-      // 2초 후 자동으로 닫기
-      setTimeout(() => {
-        toastInstance.dismiss();
-      }, 2000);
-    } catch (error) {
-      console.error('복사 실패:', error);
-      const toastInstance = toast({
-        title: '복사 실패',
-        description: '계좌번호 복사에 실패했습니다',
-        variant: 'destructive',
-      });
-      // 2초 후 자동으로 닫기
-      setTimeout(() => {
-        toastInstance.dismiss();
-      }, 2000);
-    }
-  };
-
-  // 로그인 히스토리 모달 열기
-  const handleOpenLoginHistory = async () => {
-    try {
-      const response = await loginHistoryService.getLoginHistory();
-      setLoginHistory(response.records || []);
-      setShowLoginHistoryModal(true);
-    } catch (error) {
-      console.error('로그인 기록 조회 실패:', error);
     }
   };
 
@@ -517,50 +423,56 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 fixed w-full top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="mr-4"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <Link to="/dashboard" className="flex items-center">
-              <img
-                src="/logo_type4_white.png"
-                alt="Church Round"
-                className="h-8 cursor-pointer hover:opacity-80 transition-opacity"
-              />
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            {/* 최근 접속 기록 버튼 */}
-            {recentLogin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2"
-                onClick={handleOpenLoginHistory}
-              >
-                <Clock className="w-4 h-4" />
-                <div className="text-sm">최근 접속 기록</div>
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Layout content */}
-      <div className="flex pt-16">
+      <div className="flex">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-transform duration-300 z-40 flex flex-col",
-          isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
+          "fixed left-0 top-0 h-screen bg-white border-r border-slate-200 transition-all duration-300 z-40 flex flex-col",
+          isSidebarOpen ? "w-64" : "w-16"
         )}>
+          {/* 상단 계정 정보 및 토글 버튼 */}
+          <div className="border-b border-slate-200 bg-white p-3">
+            {isSidebarOpen ? (
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+                  {userInfo?.name?.charAt(0) || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-slate-900 truncate">
+                    {userInfo?.name || '사용자'}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">
+                    {userInfo?.email || ''}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex-shrink-0 text-slate-600 hover:text-slate-900 h-8 w-8"
+                  title="사이드바 접기"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+                  {userInfo?.name?.charAt(0) || 'U'}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="text-slate-600 hover:text-slate-900 h-8 w-8"
+                  title="사이드바 펼치기"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
           <nav className="flex-1 overflow-y-auto">
             {/* Main Menu Groups - 전체를 하나의 아코디언으로 */}
             <div className="bg-white overflow-hidden">
@@ -575,49 +487,69 @@ const Layout: React.FC = () => {
                   <Link
                     to="/dashboard"
                     className={cn(
-                      "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
+                      "w-full flex items-center justify-between text-sm font-medium transition-all",
                       location.pathname === '/dashboard'
                         ? "bg-primary-500 text-white hover:bg-primary-600"
-                        : "text-slate-600 hover:bg-slate-50"
+                        : "text-slate-600 hover:bg-slate-50",
+                      isSidebarOpen ? "px-4 py-4" : "px-2 py-3 justify-center"
                     )}
+                    title={!isSidebarOpen ? "대시보드" : undefined}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex items-center",
+                      isSidebarOpen ? "gap-3" : "flex-col gap-1"
+                    )}>
                       {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
                       {group.items && group.items[0] && (() => {
                         const IconComponent = group.items[0].Icon;
-                        return <IconComponent className="h-5 w-5" />;
+                        return <IconComponent className={cn(isSidebarOpen ? "h-5 w-5" : "h-6 w-6")} />;
                       })()}
-                      <span>대시보드</span>
+                      {isSidebarOpen ? (
+                        <span>대시보드</span>
+                      ) : (
+                        <span className="text-[10px]">홈</span>
+                      )}
                     </div>
                   </Link>
                 ) : (
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={cn(
-                      "w-full flex items-center justify-between px-4 py-4 text-sm font-medium transition-all",
+                      "w-full flex items-center justify-between text-sm font-medium transition-all",
                       expandedGroups[group.title]
                         ? "bg-primary-500 text-white hover:bg-primary-600"
-                        : "text-slate-600 hover:bg-slate-50"
+                        : "text-slate-600 hover:bg-slate-50",
+                      isSidebarOpen ? "px-4 py-4" : "px-2 py-3 flex-col gap-1"
                     )}
+                    title={!isSidebarOpen ? group.title : undefined}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex items-center",
+                      isSidebarOpen ? "gap-3" : "flex-col gap-1"
+                    )}>
                       {/* 그룹 아이콘 - 첫 번째 아이템의 아이콘 사용 */}
                       {group.items && group.items[0] && (() => {
                         const IconComponent = group.items[0].Icon;
-                        return <IconComponent className="h-5 w-5" />;
+                        return <IconComponent className={cn(isSidebarOpen ? "h-5 w-5" : "h-6 w-6")} />;
                       })()}
-                      <span>{group.title}</span>
+                      {isSidebarOpen ? (
+                        <span>{group.title}</span>
+                      ) : (
+                        <span className="text-[10px] text-center leading-tight">{group.title.split(' ')[0]}</span>
+                      )}
                     </div>
-                    {expandedGroups[group.title] ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 -rotate-90" />
+                    {isSidebarOpen && (
+                      expandedGroups[group.title] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 -rotate-90" />
+                      )
                     )}
                   </button>
                 )}
 
-                {/* Collapsed content - 대시보드는 하위메뉴 없음 */}
-                {group.title !== '대시보드 & 분석' && (
+                {/* Collapsed content - 대시보드는 하위메뉴 없음, 최소화 시 숨김 */}
+                {group.title !== '대시보드 & 분석' && isSidebarOpen && (
                   <div
                     className={cn(
                       "bg-slate-50 grid transition-all duration-300 ease-in-out",
@@ -661,73 +593,49 @@ const Layout: React.FC = () => {
 
           {/* 하단 고정 영역 */}
           <div className="border-t border-slate-200 bg-white">
-            {/* 도네이션 카드 */}
-            <div className="p-3 border-b border-slate-200">
-              <div className="bg-gradient-to-br from-primary-50 to-indigo-50 rounded-lg p-3 border border-primary-100">
-                <div className="flex items-center gap-1.5 mb-2">
-                  {/* <HeartIcon className="h-4 w-4 text-red-500 fill-red-500" /> */}
-                  <h3 className="text-xs font-semibold text-slate-900">후원 계좌</h3>
-                </div>
-                <p className="text-[10px] text-slate-600 mb-2 leading-relaxed">
-                  Church Round의 발전을 위해 소중한 후원 부탁드립니다
-                </p>
-                <div className="bg-white rounded-md p-2 mb-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500">은행</span>
-                      <span className="text-xs font-medium text-slate-900">우리은행</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500">예금주</span>
-                      <span className="text-xs font-medium text-slate-900">이선민</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                      <span className="text-[10px] text-slate-500">계좌번호</span>
-                      <span className="text-[11px] font-mono font-medium text-slate-900">326-353703-02-001</span>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyAccount}
-                  className="w-full text-[10px] h-7 bg-white hover:bg-slate-50 border-slate-200"
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  계좌번호 복사
-                </Button>
-              </div>
-            </div>
 
-            {/* 프로필 섹션 */}
-            <div className="p-3 pb-6">
-              {userInfo ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-                    {userInfo.name?.charAt(0) || 'U'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-900 truncate">
-                      {userInfo.name}
-                    </div>
-                    <div className="text-xs text-slate-500 truncate">
-                      {userInfo.email}
-                    </div>
-                  </div>
+            {/* 문의하기 & 로그아웃 버튼 */}
+            <div className={cn("p-3 space-y-2", !isSidebarOpen && "flex flex-col items-center")}>
+              {isSidebarOpen ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowBugReportModal(true)}
+                    className="w-full justify-start text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  >
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    문의하기
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className="w-full justify-start text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    로그아웃
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowBugReportModal(true)}
+                    className="text-slate-600 hover:text-slate-900 h-10 w-10"
+                    title="문의하기"
+                  >
+                    <HelpCircle className="h-5 w-5" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleLogout}
-                    className="flex-shrink-0 text-slate-600 hover:text-slate-900 h-8 w-8"
+                    className="text-slate-600 hover:text-slate-900 h-10 w-10"
                     title="로그아웃"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-5 w-5" />
                   </Button>
-                </div>
-              ) : (
-                <div className="text-sm text-slate-400">
-                  로딩 중...
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -735,10 +643,10 @@ const Layout: React.FC = () => {
 
         {/* Main Content */}
         <main className={cn(
-          "flex-1 transition-all duration-300",
-          isSidebarOpen ? "ml-64" : "ml-0"
+          "flex-1 min-h-screen transition-all duration-300",
+          isSidebarOpen ? "ml-64" : "ml-16"
         )}>
-          <div className="p-3">
+          <div className="p-6">
             <div className="max-w-full mx-auto">
               {/* 모바일 환경 경고 */}
               {showMobileWarning && (
@@ -764,128 +672,8 @@ const Layout: React.FC = () => {
         </main>
       </div>
 
-      {/* 우측 하단 플로팅 도움말 버튼 */}
-      <div ref={helpMenuRef} className="fixed bottom-6 right-6 z-10">
-        {/* 도움말 메뉴 */}
-        {showHelpMenu && (
-          <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden mb-2 w-48">
-            <button
-              onClick={() => {
-                setShowBugReportModal(true);
-                setShowHelpMenu(false);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
-            >
-              <HelpCircle className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">문의하기</span>
-            </button>
-            {/* <div className="border-t border-slate-100" />
-            <button
-              onClick={() => {
-                window.open('https://www.naver.com', '_blank');
-                setShowHelpMenu(false);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
-            >
-              <BookOpen className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">사용자 매뉴얼</span>
-            </button> */}
-          </div>
-        )}
-
-        {/* 플로팅 버튼 */}
-        <button
-          onClick={() => setShowHelpMenu(!showHelpMenu)}
-          className="h-16 w-16 rounded-full shadow-lg bg-primary-500 hover:bg-primary-600 text-white p-0 flex items-center justify-center transition-colors cursor-pointer border-0"
-        >
-          <HelpCircle className="h-8 w-8" strokeWidth={1.4} />
-        </button>
-      </div>
-
       {/* 문의하기 모달 */}
       <BugReportModal open={showBugReportModal} onOpenChange={setShowBugReportModal} />
-
-      {/* 로그인 기록 모달 */}
-      <Dialog open={showLoginHistoryModal} onOpenChange={setShowLoginHistoryModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              로그인 기록
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {loginHistory.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-semibold text-primary-600">{loginHistory.length}</span>개의 로그인 기록이 검색되었습니다.
-                  </div>
-                </div>
-
-                {/* 테이블 형태로 변경 */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-16">번호</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-40">접속 시간</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-24">디바이스</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900 w-32">접속아이피</th>
-                          <th className="px-3 py-3 text-left font-medium text-gray-900">접속위치</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {loginHistory.map((login, index) => (
-                          <tr key={login.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-3 py-3 text-gray-900 text-center">{loginHistory.length - index}</td>
-                            <td className="px-3 py-3 text-gray-900 text-xs">
-                              {new Date(login.timestamp).toLocaleDateString('ko-KR', {
-                                month: '2-digit', day: '2-digit',
-                                hour: '2-digit', minute: '2-digit', second: '2-digit'
-                              })}
-                            </td>
-                            <td className="px-3 py-3 text-gray-600 text-center text-xs">
-                              {login.device_type || 'desktop'}
-                            </td>
-                            <td className="px-3 py-3 text-gray-600 font-mono text-xs">
-                              {login.ip_address}
-                            </td>
-                            <td className="px-3 py-3 text-gray-600 text-xs">
-                              {login.location || '위치 정보 없음'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">로그인 기록이 없습니다</p>
-                <p className="text-sm text-gray-500">백엔드 API가 연결되면 기록이 표시됩니다</p>
-              </div>
-            )}
-
-            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-primary-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-primary-900 mb-1">보안 팁</h4>
-                  <ul className="text-sm text-primary-800 space-y-1">
-                    <li>• 익숙하지 않은 로그인 기록이 있다면 즉시 비밀번호를 변경하세요</li>
-                    <li>• 공용 컴퓨터에서는 로그아웃을 반드시 해주세요</li>
-                    <li>• 정기적으로 로그인 기록을 확인하는 것을 권장합니다</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
