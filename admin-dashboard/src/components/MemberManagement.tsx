@@ -2135,8 +2135,8 @@ Church Round 앱에 초대되셨습니다.
           )}
           <div
             className={cn(
-              "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer",
-              isAdvancedSearchActive && "bg-blue-50 border-blue-300 text-blue-700"
+              "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
+              isAdvancedSearchActive && "border-blue-300 text-blue-700"
             )}
           >
             <div
@@ -2174,8 +2174,8 @@ Church Round 앱에 초대되셨습니다.
           <Popover>
             <div
               className={cn(
-                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer",
-                invitationStatusFilter.length > 0 && "bg-blue-50 border-blue-300 text-blue-700"
+                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
+                invitationStatusFilter.length > 0 && "border-blue-300 text-blue-700"
               )}
             >
               <PopoverTrigger asChild>
