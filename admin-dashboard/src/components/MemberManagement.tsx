@@ -2008,7 +2008,6 @@ Church Round 앱에 초대되셨습니다.
       <PageContainer>
         <PageHeader
           title="교인 관리"
-          description="교회 교인 정보를 관리합니다."
         />
         <Card>
           <CardContent className="text-center py-12">
@@ -2406,21 +2405,20 @@ Church Round 앱에 초대되셨습니다.
         </div>
       </Card>
 
-      {/* Total Count Display */}
-      <div className="mt-4 mb-2">
-        <div className="text-sm text-gray-600">
-          전체 {pagination.total_count.toLocaleString()}명
-        </div>
-      </div>
-
       {members.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-600">등록된 교인이 없습니다.</p>
         </div>
       )}
 
-      {/* Pagination 사용 */}
-      <div className="mt-6">
+      {/* Total Count and Pagination */}
+      <div className="flex items-center justify-between">
+        {/* Total Count Display */}
+        <div className="text-sm text-gray-600">
+          전체 {pagination.total_count.toLocaleString()}명
+        </div>
+
+        {/* Pagination */}
         <Pagination
           currentPage={pagination.current_page}
           totalPages={pagination.total_pages}
