@@ -892,7 +892,6 @@ const OrganizationManagement: React.FC = () => {
     <PageContainer>
       <PageHeader
         title="조직 관리"
-        description="교회 조직 구조와 교인 배정을 관리합니다"
         actions={
           <Button onClick={() => activeTab === 'organizations' ? setShowCreateModal(true) : openDepartmentCreateModal()}>
             <Plus className="w-4 h-4 mr-2" />
@@ -1099,6 +1098,15 @@ const OrganizationManagement: React.FC = () => {
                 </table>
               </div>
             </Card>
+          )}
+
+          {/* Total Count Display */}
+          {departments.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                전체 {departments.length.toLocaleString()}개
+              </div>
+            </div>
           )}
         </div>
       )}
