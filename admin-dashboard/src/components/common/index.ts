@@ -10,5 +10,7 @@
 export { default as CommunityPostCard } from './CommunityPostCard';
 export { default as CommunityPagination, SimplePagination, PaginationSkeleton } from './CommunityPagination';
 export { default as StatusBadge, StatusFilter, StatusStats, StatusHistory } from './StatusBadge';
+export { SearchFilterBar } from './SearchFilterBar';
 
-// 타입들은 각 컴포넌트 파일에서 직접 import하여 사용
+// 타입들
+export type { SearchFilterBarProps, Filter, FilterOption } from './SearchFilterBar';
