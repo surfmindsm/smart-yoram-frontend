@@ -2231,13 +2231,6 @@ Church Round 앱에 초대되셨습니다.
             </PopoverContent>
           </Popover>
         </div>
-          
-        {/* Total Count Display */}
-        <div className="flex justify-end items-center border-t border-gray-200 pt-4">
-          <div className="text-sm text-gray-600">
-            전체 {pagination.total_count}명
-          </div>
-        </div>
       </div>
 
       {/* Members Display */}
@@ -2412,6 +2405,13 @@ Church Round 앱에 초대되셨습니다.
           </table>
         </div>
       </Card>
+
+      {/* Total Count Display */}
+      <div className="mt-4 mb-2">
+        <div className="text-sm text-gray-600">
+          전체 {pagination.total_count.toLocaleString()}명
+        </div>
+      </div>
 
       {members.length === 0 && !loading && (
         <div className="text-center py-12">
