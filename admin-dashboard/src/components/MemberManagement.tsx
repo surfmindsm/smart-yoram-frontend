@@ -54,6 +54,8 @@ import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { PageContainer, PageHeader, FilterBar } from "./ui";
 import { DatePicker } from "./ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Checkbox } from "./ui/checkbox";
 import { isChurchSuperAdmin, isSuperAdmin, ROLES, getRoleDisplayName } from '../utils/userPermissions';
 import { StandardPagination } from '../types/community-common';
 import { organizationService } from '../services/organizationService';
@@ -69,7 +71,8 @@ import {
   normalizePositionMain,
   normalizePositionDetail,
   POSITION_MAIN_LABELS,
-  POSITION_DETAIL_LABELS
+  POSITION_DETAIL_LABELS,
+  POSITION_HIERARCHY
 } from '../constants/memberPositions';
 
 interface Member {
@@ -181,7 +184,7 @@ const MemberManagement: React.FC = () => {
   const [allMembers, setAllMembers] = useState<Member[]>([]); // 원본 데이터 캐시
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [invitationStatusFilter, setInvitationStatusFilter] = useState('all');
+  const [invitationStatusFilter, setInvitationStatusFilter] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -260,14 +263,16 @@ const MemberManagement: React.FC = () => {
     email: '',
     phone: '',
     gender: 'all',
-    position_main: '',
-    position_detail: '',
-    district: '',
+    position_main: 'all',
+    position_detail: 'all',
+    organization_id: 'all',
+    age_group: 'all',
     ageFrom: '',
     ageTo: '',
-    member_type: 'all',
-    spiritual_grade: 'all'
+    marital_status: 'all',
+    job_category: 'all'
   });
+  const [isAdvancedSearchActive, setIsAdvancedSearchActive] = useState(false);
 
   // Bulk invitation states
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
@@ -329,12 +334,25 @@ const MemberManagement: React.FC = () => {
     }
   };
 
+  // Helper function to calculate age from birthdate
+  const calculateAge = (birthdate: string | null): number | null => {
+    if (!birthdate) return null;
+    const today = new Date();
+    const birth = new Date(birthdate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // useMemo로 필터링 및 정렬된 데이터 캐싱 (검색어, 필터, 정렬 옵션이 변경될 때만 재계산)
   const filteredAndSortedMembers = useMemo(() => {
     let filteredData = [...allMembers];
 
-    // Apply search filter with Korean chosung search support
-    if (searchTerm.trim()) {
+    // Apply basic search filter with Korean chosung search support
+    if (searchTerm.trim() && !isAdvancedSearchActive) {
       const term = searchTerm.trim();
       filteredData = filteredData.filter((member: any) =>
         // 이름 검색 (초성 검색 지원)
@@ -347,10 +365,83 @@ const MemberManagement: React.FC = () => {
       );
     }
 
-    // Apply invitation status filter
-    if (invitationStatusFilter !== 'all') {
+    // Apply advanced search filters
+    if (isAdvancedSearchActive) {
       filteredData = filteredData.filter((member: any) => {
-        return member.invitation_status === invitationStatusFilter;
+        // 이름 필터
+        if (advancedSearchData.name && member.name &&
+            !member.name.toLowerCase().includes(advancedSearchData.name.toLowerCase())) {
+          return false;
+        }
+
+        // 이메일 필터
+        if (advancedSearchData.email && member.email &&
+            !member.email.toLowerCase().includes(advancedSearchData.email.toLowerCase())) {
+          return false;
+        }
+
+        // 전화번호 필터
+        if (advancedSearchData.phone && member.phone &&
+            !member.phone.includes(advancedSearchData.phone)) {
+          return false;
+        }
+
+        // 성별 필터
+        if (advancedSearchData.gender !== 'all' && member.gender !== advancedSearchData.gender) {
+          return false;
+        }
+
+        // 직분 대분류 필터
+        if (advancedSearchData.position_main !== 'all' && member.position_main !== advancedSearchData.position_main) {
+          return false;
+        }
+
+        // 직분 세부 필터
+        if (advancedSearchData.position_detail !== 'all' && member.position_detail !== advancedSearchData.position_detail) {
+          return false;
+        }
+
+        // 조직/부서 필터
+        if (advancedSearchData.organization_id !== 'all' && member.organization_id !== advancedSearchData.organization_id) {
+          return false;
+        }
+
+        // 연령대 필터
+        if (advancedSearchData.age_group !== 'all' && member.age_group !== advancedSearchData.age_group) {
+          return false;
+        }
+
+        // 나이 범위 필터
+        if (advancedSearchData.ageFrom || advancedSearchData.ageTo) {
+          const age = calculateAge(member.birthdate);
+          if (age === null) return false; // 생년월일이 없는 경우 제외
+
+          if (advancedSearchData.ageFrom && age < parseInt(advancedSearchData.ageFrom)) {
+            return false;
+          }
+          if (advancedSearchData.ageTo && age > parseInt(advancedSearchData.ageTo)) {
+            return false;
+          }
+        }
+
+        // 결혼 상태 필터
+        if (advancedSearchData.marital_status !== 'all' && member.marital_status !== advancedSearchData.marital_status) {
+          return false;
+        }
+
+        // 직업 분류 필터
+        if (advancedSearchData.job_category !== 'all' && member.job_category !== advancedSearchData.job_category) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
+    // Apply invitation status filter (OR condition for multiple selections)
+    if (invitationStatusFilter.length > 0) {
+      filteredData = filteredData.filter((member: any) => {
+        return invitationStatusFilter.includes(member.invitation_status);
       });
     }
 
@@ -368,7 +459,7 @@ const MemberManagement: React.FC = () => {
     }
 
     return filteredData;
-  }, [allMembers, searchTerm, invitationStatusFilter, sortField, sortOrder]);
+  }, [allMembers, searchTerm, invitationStatusFilter, sortField, sortOrder, isAdvancedSearchActive, advancedSearchData]);
 
   // useMemo로 페이지네이션된 데이터 캐싱 (페이지가 변경될 때만 재계산)
   const paginatedMembers = useMemo(() => {
@@ -531,6 +622,7 @@ const MemberManagement: React.FC = () => {
 
   const handleClearSearch = () => {
     setSearchTerm('');
+    setIsAdvancedSearchActive(false);
     setPagination(prev => ({ ...prev, current_page: 1 }));
   };
 
@@ -1943,7 +2035,6 @@ Church Round 앱에 초대되셨습니다.
             )}
           </div>
         }
-        description="교회 교인 정보를 관리합니다."
         actions={
           <>
             {selectedMembers.size > 0 && (
@@ -2017,53 +2108,128 @@ Church Round 앱에 초대되셨습니다.
 
       {/* Search and Filter */}
       <div className="mb-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-900 mb-1">검색</label>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="이름 또는 전화번호 (초성 실시간 검색: ㄱㅊㅅ)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="flex-1"
-              />
-              {searchTerm && (
-                <Button
-                  onClick={handleClearSearch}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  전체보기
-                </Button>
-              )}
-              <Button
-                onClick={() => setShowAdvancedSearch(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                상세검색
-              </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="text"
+            placeholder="이름 또는 전화번호 (초성 실시간 검색: ㄱㅊㅅ)"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (isAdvancedSearchActive) {
+                setIsAdvancedSearchActive(false);
+              }
+            }}
+            onKeyPress={handleKeyPress}
+            className="w-full md:w-[400px]"
+            disabled={isAdvancedSearchActive}
+          />
+          {searchTerm && !isAdvancedSearchActive && (
+            <Button
+              onClick={handleClearSearch}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              전체보기
+            </Button>
+          )}
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer",
+              isAdvancedSearchActive && "bg-blue-50 border-blue-300 text-blue-700"
+            )}
+          >
+            <div
+              onClick={() => setShowAdvancedSearch(true)}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="text-sm">상세검색</span>
             </div>
+            {isAdvancedSearchActive && (
+              <X
+                className="w-4 h-4 opacity-50 hover:opacity-100 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAdvancedSearchActive(false);
+                  setAdvancedSearchData({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    gender: 'all',
+                    position_main: 'all',
+                    position_detail: 'all',
+                    organization_id: 'all',
+                    age_group: 'all',
+                    ageFrom: '',
+                    ageTo: '',
+                    marital_status: 'all',
+                    job_category: 'all'
+                  });
+                  setPagination(prev => ({ ...prev, current_page: 1 }));
+                }}
+              />
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">초대상태</label>
-            <Select value={invitationStatusFilter} onValueChange={setInvitationStatusFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="pending">대기중</SelectItem>
-                <SelectItem value="sent">발송완료</SelectItem>
-                <SelectItem value="active">등록완료</SelectItem>
-                <SelectItem value="failed">발송실패</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Popover>
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer",
+                invitationStatusFilter.length > 0 && "bg-blue-50 border-blue-300 text-blue-700"
+              )}
+            >
+              <PopoverTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm">초대상태</span>
+                  {invitationStatusFilter.length === 0 && (
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </PopoverTrigger>
+              {invitationStatusFilter.length > 0 && (
+                <X
+                  className="h-4 w-4 opacity-50 hover:opacity-100 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setInvitationStatusFilter([]);
+                  }}
+                />
+              )}
+            </div>
+            <PopoverContent className="w-[200px] p-3" align="start">
+              <div className="space-y-2">
+                {[
+                  { value: 'pending', label: '대기중' },
+                  { value: 'sent', label: '발송완료' },
+                  { value: 'active', label: '등록완료' },
+                  { value: 'failed', label: '발송실패' }
+                ].map((option) => (
+                  <div key={option.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`status-${option.value}`}
+                      checked={invitationStatusFilter.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setInvitationStatusFilter([...invitationStatusFilter, option.value]);
+                        } else {
+                          setInvitationStatusFilter(
+                            invitationStatusFilter.filter((s) => s !== option.value)
+                          );
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`status-${option.value}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {option.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
           
         {/* Total Count Display */}
@@ -4010,70 +4176,146 @@ Church Round 앱에 초대되셨습니다.
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
-                  <Input
+                  <Select
                     value={advancedSearchData.position_main}
-                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, position_main: e.target.value }))}
-                    placeholder="교역자, 직분자, 평신도 등"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">교인구분</label>
-                  <Select value={advancedSearchData.member_type} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, member_type: value }))}>
+                    onValueChange={(value) => {
+                      setAdvancedSearchData(prev => ({
+                        ...prev,
+                        position_main: value,
+                        position_detail: 'all' // 대분류 변경 시 세부 초기화
+                      }));
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">전체</SelectItem>
-                      <SelectItem value="정교인">정교인</SelectItem>
-                      <SelectItem value="학습교인">학습교인</SelectItem>
-                      <SelectItem value="세례교인">세례교인</SelectItem>
-                      <SelectItem value="방문자">방문자</SelectItem>
+                      {Object.entries(POSITION_MAIN_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+                {advancedSearchData.position_main !== 'all' && POSITION_HIERARCHY[advancedSearchData.position_main as keyof typeof POSITION_HIERARCHY] && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">세부 직분</label>
+                    <Select
+                      value={advancedSearchData.position_detail}
+                      onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, position_detail: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="세부 직분 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        {POSITION_HIERARCHY[advancedSearchData.position_main as keyof typeof POSITION_HIERARCHY]?.map((detailKey: string) => (
+                          <SelectItem key={detailKey} value={detailKey}>
+                            {POSITION_DETAIL_LABELS[detailKey as keyof typeof POSITION_DETAIL_LABELS]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">신급</label>
-                  <Select value={advancedSearchData.spiritual_grade} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, spiritual_grade: value }))}>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">조직/부서</label>
+                  <Select value={advancedSearchData.organization_id} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, organization_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">전체</SelectItem>
-                      <SelectItem value="초신자">초신자</SelectItem>
-                      <SelectItem value="B급">B급</SelectItem>
-                      <SelectItem value="A급">A급</SelectItem>
-                      <SelectItem value="리더">리더</SelectItem>
+                      {organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
 
-            {/* 나이 범위 */}
+            {/* 개인 정보 */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">나이 범위</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="text-lg font-semibold">개인 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">최소 나이</label>
-                  <Input
-                    type="number"
-                    value={advancedSearchData.ageFrom}
-                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageFrom: e.target.value }))}
-                    placeholder="0"
-                    min="0"
-                    max="120"
-                  />
+                  <label className="block text-sm font-medium text-gray-900 mb-1">연령대</label>
+                  <Select value={advancedSearchData.age_group} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, age_group: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="어린이">어린이 (0-12세)</SelectItem>
+                      <SelectItem value="학생">학생 (13-19세)</SelectItem>
+                      <SelectItem value="청년">청년 (20-35세)</SelectItem>
+                      <SelectItem value="성인">성인 (36-65세)</SelectItem>
+                      <SelectItem value="시니어">시니어 (65세+)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">최대 나이</label>
-                  <Input
-                    type="number"
-                    value={advancedSearchData.ageTo}
-                    onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageTo: e.target.value }))}
-                    placeholder="120"
-                    min="0"
-                    max="120"
-                  />
+                  <label className="block text-sm font-medium text-gray-900 mb-1">결혼 상태</label>
+                  <Select value={advancedSearchData.marital_status} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, marital_status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="미혼">미혼</SelectItem>
+                      <SelectItem value="기혼">기혼</SelectItem>
+                      <SelectItem value="이혼">이혼</SelectItem>
+                      <SelectItem value="사별">사별</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">나이 범위</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      type="number"
+                      value={advancedSearchData.ageFrom}
+                      onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageFrom: e.target.value }))}
+                      placeholder="최소 나이"
+                      min="0"
+                      max="120"
+                    />
+                    <Input
+                      type="number"
+                      value={advancedSearchData.ageTo}
+                      onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, ageTo: e.target.value }))}
+                      placeholder="최대 나이"
+                      min="0"
+                      max="120"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 직업 정보 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">직업 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">직업 분류</label>
+                  <Select value={advancedSearchData.job_category} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, job_category: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="선택해주세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="사무직">사무직</SelectItem>
+                      <SelectItem value="교육직">교육직</SelectItem>
+                      <SelectItem value="의료진">의료진</SelectItem>
+                      <SelectItem value="서비스업">서비스업</SelectItem>
+                      <SelectItem value="자영업">자영업</SelectItem>
+                      <SelectItem value="학생">학생</SelectItem>
+                      <SelectItem value="주부">주부</SelectItem>
+                      <SelectItem value="기타">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -4087,14 +4329,16 @@ Church Round 앱에 초대되셨습니다.
                   email: '',
                   phone: '',
                   gender: 'all',
-                  position_main: '',
-                  position_detail: '',
-                  district: '',
+                  position_main: 'all',
+                  position_detail: 'all',
+                  organization_id: 'all',
+                  age_group: 'all',
                   ageFrom: '',
                   ageTo: '',
-                  member_type: 'all',
-                  spiritual_grade: 'all'
+                  marital_status: 'all',
+                  job_category: 'all'
                 });
+                setIsAdvancedSearchActive(false);
               }}
               variant="outline"
             >
@@ -4102,8 +4346,10 @@ Church Round 앱에 초대되셨습니다.
             </Button>
             <Button
               onClick={() => {
+                setIsAdvancedSearchActive(true);
                 setShowAdvancedSearch(false);
-                // TODO: 실제 상세 검색 실행 로직 구현
+                setSearchTerm(''); // 기본 검색 비활성화
+                setPagination(prev => ({ ...prev, current_page: 1 })); // 첫 페이지로 이동
               }}
               className="flex items-center gap-2"
             >
