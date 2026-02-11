@@ -6,6 +6,7 @@ import { Card, CardContent } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { PageContainer, PageHeader } from "./ui";
 
 interface Member {
   id: number;
@@ -382,11 +383,10 @@ const Attendance: React.FC = () => {
   const sundays = getSundaysInMonth(selectedYear, selectedMonth);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">출석 관리</h2>
-        <p className="text-muted-foreground mt-2">교인들의 주일 출석 현황을 관리합니다</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="출석 관리"
+      />
 
       {/* 월별 출석 현황 */}
       <div>
@@ -523,8 +523,17 @@ const Attendance: React.FC = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Total Count Display */}
+          {members.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                전체 {members.length.toLocaleString()}명
+              </div>
+            </div>
+          )}
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
