@@ -13,6 +13,8 @@ import { Combobox } from "./ui";
 import { SimpleTabs } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { DatePicker } from "./ui/date-picker";
+import { SearchFilterBar } from './common';
+import type { Filter as FilterType } from './common';
 import {
   Search,
   Filter,
@@ -134,7 +136,7 @@ const PastoralCareManagement: React.FC = () => {
   const [completedRecords, setCompletedRecords] = useState<PastoralCareRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -639,7 +641,7 @@ const PastoralCareManagement: React.FC = () => {
     const matchesSearch = request.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (request.address && request.address.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(request.status);
 
     return matchesSearch && matchesStatus;
   });
@@ -1091,7 +1093,6 @@ const PastoralCareManagement: React.FC = () => {
       <PageContainer>
         <PageHeader
           title="심방 관리"
-          description="교인 심방 요청을 관리하고 일정을 조율합니다."
         />
         <Card>
           <CardContent className="text-center py-12">
@@ -1109,7 +1110,6 @@ const PastoralCareManagement: React.FC = () => {
     <PageContainer>
       <PageHeader
         title="심방 관리"
-        description="심방 신청 관리와 완료된 심방 기록을 확인하세요"
       />
 
       <SimpleTabs
@@ -1207,7 +1207,7 @@ const PastoralCareManagement: React.FC = () => {
       {activeTab === 'records' && (
         <>
           {/* 심방 기록 통계 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-muted">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -1281,46 +1281,39 @@ const PastoralCareManagement: React.FC = () => {
       )}
 
       {/* 검색 및 필터 */}
-      <Card className="border-muted">
-        <CardContent className="p-6">
-        <div className="flex items-center space-x-4 mb-0">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              type="text"
-              placeholder="신청자 이름 또는 내용으로 검색..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* 기본 필터들 - 항상 표시 */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="min-w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 상태</SelectItem>
-              <SelectItem value="pending">대기중</SelectItem>
-              <SelectItem value="approved">승인됨</SelectItem>
-              <SelectItem value="scheduled">예정됨</SelectItem>
-              <SelectItem value="in_progress">진행중</SelectItem>
-              <SelectItem value="completed">완료됨</SelectItem>
-              <SelectItem value="cancelled">취소됨</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            onClick={() => setShowAdminRegistrationModal(true)}
-            className="flex items-center whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            직접 등록
-          </Button>
+      <div className="flex items-start gap-3">
+        <div className="flex-1">
+          <SearchFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            onClearSearch={() => setSearchTerm('')}
+            searchPlaceholder="신청자 이름 또는 내용으로 검색"
+            filters={[
+              {
+                id: 'status',
+                label: '상태',
+                value: statusFilter,
+                options: [
+                  { value: 'pending', label: '대기중' },
+                  { value: 'approved', label: '승인됨' },
+                  { value: 'scheduled', label: '예정됨' },
+                  { value: 'in_progress', label: '진행중' },
+                  { value: 'completed', label: '완료됨' },
+                  { value: 'cancelled', label: '취소됨' },
+                ],
+                onChange: setStatusFilter,
+              },
+            ]}
+          />
         </div>
-        </CardContent>
-      </Card>
+        <Button
+          onClick={() => setShowAdminRegistrationModal(true)}
+          className="flex items-center whitespace-nowrap"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          직접 등록
+        </Button>
+      </div>
 
       {/* 신청 관리 목록 */}
       {activeTab === 'requests' && (
@@ -1557,6 +1550,15 @@ const PastoralCareManagement: React.FC = () => {
         </Card>
       )}
 
+      {/* Total Count Display for Requests */}
+      {activeTab === 'requests' && filteredRequests.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            전체 {filteredRequests.length.toLocaleString()}건
+          </div>
+        </div>
+      )}
+
       {/* 심방 기록 목록 */}
       {activeTab === 'records' && (
         <>
@@ -1712,6 +1714,15 @@ const PastoralCareManagement: React.FC = () => {
             </div>
           </Card>
         </>
+      )}
+
+      {/* Total Count Display for Records */}
+      {activeTab === 'records' && filteredRecords.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            전체 {filteredRecords.length.toLocaleString()}건
+          </div>
+        </div>
       )}
 
       {/* 상세 보기 모달 */}
