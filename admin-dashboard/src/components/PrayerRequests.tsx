@@ -25,6 +25,9 @@ import { cn } from '../lib/utils';
 import { Card, CardContent } from "./ui";
 import { Button, Combobox } from "./ui";
 import { Spinner } from "./ui/spinner";
+import { PageContainer, PageHeader } from "./ui";
+import { SearchFilterBar } from './common';
+import type { Filter as FilterType } from './common';
 import { getPositionDetailLabel } from '../constants/memberPositions';
 
 interface Member {
@@ -85,8 +88,7 @@ const PrayerRequests: React.FC = () => {
   const [stats, setStats] = useState<PrayerRequestStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [urgentFilter, setUrgentFilter] = useState('all');
   const [publicFilter, setPublicFilter] = useState('all');
   const [members, setMembers] = useState<Member[]>([]);
@@ -151,7 +153,7 @@ const PrayerRequests: React.FC = () => {
       ]);
     };
     loadAllData();
-  }, [statusFilter, typeFilter, urgentFilter, publicFilter]);
+  }, [statusFilter, urgentFilter, publicFilter]);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -184,8 +186,7 @@ const PrayerRequests: React.FC = () => {
         church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
-      if (statusFilter !== 'all') params.status = statusFilter;
-      if (typeFilter !== 'all') params.prayer_type = typeFilter;
+      // 필터는 클라이언트 사이드에서 처리
       if (urgentFilter !== 'all') params.is_urgent = urgentFilter === 'true';
       if (publicFilter !== 'all') params.is_public = publicFilter === 'true';
 
@@ -315,14 +316,22 @@ const PrayerRequests: React.FC = () => {
   };
 
   const filteredRequests = requests.filter(request => {
+    // 검색 필터
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = (
         request.requesterName.toLowerCase().includes(searchLower) ||
         request.prayerContent.toLowerCase().includes(searchLower) ||
         (request.answeredTestimony && request.answeredTestimony.toLowerCase().includes(searchLower))
       );
+      if (!matchesSearch) return false;
     }
+
+    // 상태 필터
+    if (statusFilter.length > 0 && !statusFilter.includes(request.status)) {
+      return false;
+    }
+
     return true;
   });
 
@@ -356,37 +365,42 @@ const PrayerRequests: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">중보 기도 요청</h1>
-        <p className="text-gray-600">교회 공동체의 기도요청을 관리하고 중보기도를 진행합니다.</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="중보기도 관리"
+      />
 
-      {/* 필터 및 검색 */}
-      <Card className="border-muted mb-6">
-        <CardContent className="p-6">
-        <div className="flex items-center space-x-4 mb-0">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="기도 요청 내용으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            새 요청
-          </Button>
+      {/* 검색 및 필터 */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1">
+          <SearchFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            onClearSearch={() => setSearchTerm('')}
+            searchPlaceholder="기도 요청 내용으로 검색"
+            filters={[
+              {
+                id: 'status',
+                label: '상태',
+                value: statusFilter,
+                options: [
+                  { value: 'active', label: '진행중' },
+                  { value: 'answered', label: '응답됨' },
+                  { value: 'closed', label: '종료됨' },
+                ],
+                onChange: setStatusFilter,
+              },
+            ]}
+          />
         </div>
-        </CardContent>
-      </Card>
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center whitespace-nowrap"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          직접 등록
+        </Button>
+      </div>
 
       {/* 기도요청 목록 */}
       <Card className="border-muted">
@@ -502,6 +516,15 @@ const PrayerRequests: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Total Count Display */}
+      {filteredRequests.length > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-600">
+            전체 {filteredRequests.length.toLocaleString()}건
+          </div>
+        </div>
+      )}
 
       {/* 새 기도요청 생성 모달 */}
       {showCreateModal && (
@@ -766,7 +789,7 @@ const PrayerRequests: React.FC = () => {
         </div>
       )}
 
-    </div>
+    </PageContainer>
   );
 };
 

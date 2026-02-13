@@ -40,7 +40,7 @@ export const AVAILABLE_QUICK_ACTIONS: QuickAction[] = [
   },
   {
     id: 'prayer-requests',
-    title: '중보기도관리',
+    title: '중보기도 관리',
     description: '중보기도 요청을 관리합니다',
     Icon: Heart,
     link: '/prayer-requests',

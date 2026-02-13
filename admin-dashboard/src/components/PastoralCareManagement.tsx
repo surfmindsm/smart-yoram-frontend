@@ -1552,7 +1552,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* Total Count Display for Requests */}
       {activeTab === 'requests' && filteredRequests.length > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-4">
           <div className="text-sm text-gray-600">
             전체 {filteredRequests.length.toLocaleString()}건
           </div>
@@ -1718,7 +1718,7 @@ const PastoralCareManagement: React.FC = () => {
 
       {/* Total Count Display for Records */}
       {activeTab === 'records' && filteredRecords.length > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-4">
           <div className="text-sm text-gray-600">
             전체 {filteredRecords.length.toLocaleString()}건
           </div>

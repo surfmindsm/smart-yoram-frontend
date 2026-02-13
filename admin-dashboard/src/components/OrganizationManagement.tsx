@@ -1102,7 +1102,7 @@ const OrganizationManagement: React.FC = () => {
 
           {/* Total Count Display */}
           {departments.length > 0 && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-gray-600">
                 전체 {departments.length.toLocaleString()}개
               </div>

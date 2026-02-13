@@ -526,7 +526,7 @@ const Attendance: React.FC = () => {
 
           {/* Total Count Display */}
           {members.length > 0 && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-gray-600">
                 전체 {members.length.toLocaleString()}명
               </div>
