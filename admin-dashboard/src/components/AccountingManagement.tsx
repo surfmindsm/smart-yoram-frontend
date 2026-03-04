@@ -11,11 +11,14 @@ import { PageContainer, PageHeader } from "./ui";
 import { DateRangePicker } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { SearchFilterBar } from './common';
+import type { Filter as FilterType } from './common';
 import { Spinner } from "./ui/spinner";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
+import { Pagination } from './common/Pagination';
 
 interface AccountCategory {
   id: number;
@@ -66,8 +69,12 @@ const AccountingManagement: React.FC = () => {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Add/Edit Transaction Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -91,6 +98,11 @@ const AccountingManagement: React.FC = () => {
     loadSummary();
   }, [typeFilter, dateRange]);
 
+  // 검색어나 필터 변경 시 페이지를 1로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter]);
+
   const loadTransactions = async () => {
     try {
       setLoading(true);
@@ -98,7 +110,7 @@ const AccountingManagement: React.FC = () => {
       if (!token) return;
 
       const params = new URLSearchParams();
-      if (typeFilter !== 'all') params.append('type', typeFilter);
+      if (typeFilter.length === 1) params.append('type', typeFilter[0]);
       if (dateRange?.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
       if (dateRange?.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
 
@@ -461,36 +473,78 @@ const AccountingManagement: React.FC = () => {
   };
 
   const filteredTransactions = transactions.filter(t => {
+    // 검색 필터
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = (
         t.vendor_name?.toLowerCase().includes(searchLower) ||
         t.description?.toLowerCase().includes(searchLower) ||
         t.category?.name?.toLowerCase().includes(searchLower)
       );
+      if (!matchesSearch) return false;
     }
+
+    // 타입 필터 (클라이언트 사이드에서 처리)
+    if (typeFilter.length > 0 && !typeFilter.includes(t.type)) {
+      return false;
+    }
+
     return true;
   });
+
+  // 페이지네이션 처리
+  const totalItems = filteredTransactions.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
   return (
     <PageContainer>
       <PageHeader
         title="회계 관리"
-        description="교회 수입/지출 내역을 관리하고 재정 상태를 확인합니다."
+        actions={
+          <>
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="flex items-center gap-2"
+              disabled={filteredTransactions.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              엑셀 다운로드
+            </Button>
+            <Button
+              onClick={handleAddNew}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              거래 내역 추가
+            </Button>
+          </>
+        }
       />
 
-      {/* Global Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <Select value={typeFilter} onValueChange={(value: any) => setTypeFilter(value)}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="income">수입</SelectItem>
-            <SelectItem value="expense">지출</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* 검색 및 필터 */}
+      <div className="flex items-center gap-3 mb-4">
+        <SearchFilterBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onClearSearch={() => setSearchTerm('')}
+          searchPlaceholder="거래처, 내용, 계정과목 검색"
+          filters={[
+            {
+              id: 'type',
+              label: '구분',
+              value: typeFilter,
+              options: [
+                { value: 'income', label: '수입' },
+                { value: 'expense', label: '지출' },
+              ],
+              onChange: setTypeFilter,
+            },
+          ]}
+        />
         <DateRangePicker
           value={dateRange}
           onChange={setDateRange}
@@ -499,8 +553,8 @@ const AccountingManagement: React.FC = () => {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Card className="border-muted">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -513,7 +567,7 @@ const AccountingManagement: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-muted">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -526,7 +580,7 @@ const AccountingManagement: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-muted">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -545,38 +599,9 @@ const AccountingManagement: React.FC = () => {
 
       {/* Transactions */}
       <div className="space-y-4">
-          {/* Search and Actions */}
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="거래처, 내용 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              className="whitespace-nowrap"
-              disabled={filteredTransactions.length === 0}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              엑셀 다운로드
-            </Button>
-            <Button
-              onClick={handleAddNew}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              거래 내역 추가
-            </Button>
-          </div>
-
           {/* Transactions Table */}
           {loading ? (
-            <Card>
+            <Card className="border-muted">
               <CardContent className="text-center py-12">
                 <div className="flex flex-col items-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
@@ -584,87 +609,108 @@ const AccountingManagement: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">구분</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">계정과목</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">거래처</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">금액</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">결제수단</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">작업</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {filteredTransactions.map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {formatDate(transaction.transaction_date)}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              transaction.type === 'income'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {transaction.type === 'income' ? '수입' : '지출'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {transaction.category?.name || '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {transaction.vendor_name || '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {transaction.description || '-'}
-                          </td>
-                          <td className={`px-4 py-3 text-sm text-right font-medium ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {getPaymentMethodLabel(transaction.payment_method)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(transaction)}
-                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(transaction.id)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredTransactions.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      거래 내역이 없습니다.
-                    </div>
-                  )}
-                </div>
+          ) : paginatedTransactions.length === 0 ? (
+            <Card className="border-muted">
+              <CardContent className="text-center py-12">
+                <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">거래 내역이 없습니다.</p>
               </CardContent>
             </Card>
+          ) : (
+            <Card className="border-muted">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">구분</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">계정과목</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">거래처</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">내용</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">결제수단</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedTransactions.map((transaction) => (
+                      <tr key={transaction.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(transaction.transaction_date)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            transaction.type === 'income'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {transaction.type === 'income' ? '수입' : '지출'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {transaction.category?.name || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {transaction.vendor_name || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {transaction.description || '-'}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
+                          {getPaymentMethodLabel(transaction.payment_method)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(transaction)}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 w-8 p-0"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(transaction.id)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50 h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Total Count and Pagination */}
+          {!loading && filteredTransactions.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                전체 {totalItems.toLocaleString()}건
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1);
+                }}
+                itemsPerPageOptions={[10, 20, 50, 100]}
+              />
+            </div>
           )}
       </div>
 

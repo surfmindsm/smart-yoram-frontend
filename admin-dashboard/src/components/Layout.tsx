@@ -156,7 +156,7 @@ const Layout: React.FC = () => {
 
     // 현재 경로에 해당하는 그룹 찾기 및 펼치기
     // 대시보드는 하위메뉴가 없으므로 그룹 펼치기 제외
-    if (['/member-management', '/organization-management', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
+    if (['/member-management', '/organization-management', '/attendance', '/pastoral-care', '/prayer-requests'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['교인 관리'] = true;
     } else if (['/accounting', '/account-categories', '/budget', '/settlement', '/donations'].some(path => currentPath.startsWith(path))) {
       newExpandedGroups['재정 관리'] = true;
