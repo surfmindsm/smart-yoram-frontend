@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent } from "./ui";
@@ -9,16 +9,17 @@ import { Label } from "./ui";
 import { Textarea } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { DateRangePicker } from "./ui";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Checkbox } from "./ui/checkbox";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { SearchFilterBar } from './common';
-import type { Filter as FilterType } from './common';
 import { Spinner } from "./ui/spinner";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Pagination } from './common/Pagination';
+import { cn } from "../lib/utils";
 
 interface AccountCategory {
   id: number;
@@ -526,29 +527,106 @@ const AccountingManagement: React.FC = () => {
       />
 
       {/* 검색 및 필터 */}
-      <div className="flex items-center gap-3 mb-4">
-        <SearchFilterBar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          onClearSearch={() => setSearchTerm('')}
-          searchPlaceholder="거래처, 내용, 계정과목 검색"
-          filters={[
-            {
-              id: 'type',
-              label: '구분',
-              value: typeFilter,
-              options: [
-                { value: 'income', label: '수입' },
-                { value: 'expense', label: '지출' },
-              ],
-              onChange: setTypeFilter,
-            },
-          ]}
-        />
-        <DateRangePicker
-          value={dateRange}
-          onChange={setDateRange}
-        />
+      <div className="mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 검색 Input */}
+          <Input
+            type="text"
+            placeholder="거래처, 내용, 계정과목 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-[400px]"
+          />
+
+          {/* 전체보기 버튼 */}
+          {searchTerm && (
+            <Button
+              onClick={() => setSearchTerm('')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              전체보기
+            </Button>
+          )}
+
+          {/* 구분 필터 */}
+          <Popover>
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
+                typeFilter.length > 0 && "border-blue-300 text-blue-700"
+              )}
+            >
+              <PopoverTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm">구분</span>
+                  {typeFilter.length === 0 && (
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </PopoverTrigger>
+              {typeFilter.length > 0 && (
+                <X
+                  className="h-4 w-4 opacity-50 hover:opacity-100 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTypeFilter([]);
+                  }}
+                />
+              )}
+            </div>
+            <PopoverContent className="w-[200px] p-3" align="start">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="type-income"
+                    checked={typeFilter.includes('income')}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setTypeFilter([...typeFilter, 'income']);
+                      } else {
+                        setTypeFilter(typeFilter.filter((v) => v !== 'income'));
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="type-income"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    수입
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="type-expense"
+                    checked={typeFilter.includes('expense')}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setTypeFilter([...typeFilter, 'expense']);
+                      } else {
+                        setTypeFilter(typeFilter.filter((v) => v !== 'expense'));
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="type-expense"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    지출
+                  </label>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* 기간 선택 */}
+          <DateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+          />
+        </div>
       </div>
 
       {/* Summary Cards */}

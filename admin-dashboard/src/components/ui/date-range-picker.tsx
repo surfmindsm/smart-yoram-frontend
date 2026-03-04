@@ -164,7 +164,7 @@ export function DateRangePicker({
   }
 
   return (
-    <div className={cn("inline-block", className)}>
+    <div className={cn("flex items-center", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button

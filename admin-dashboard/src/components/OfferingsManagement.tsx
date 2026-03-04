@@ -13,6 +13,7 @@ import {
   Eye,
   Download,
   TrendingUp,
+  TrendingDown,
   BarChart3,
   X,
   CalendarDays,
@@ -21,9 +22,17 @@ import {
   Check
 } from 'lucide-react';
 import { Button } from './ui';
+import { Input } from './ui';
+import { Card, CardContent } from './ui';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Checkbox } from './ui/checkbox';
+import { DateRangePicker } from './ui';
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 import { cn } from '../lib/utils';
 import { Spinner } from './ui/spinner';
 import { PageContainer, PageHeader } from './ui';
+import { Pagination } from './common/Pagination';
 
 interface Offering {
   id: string;
@@ -52,6 +61,8 @@ interface Offering {
 interface OfferingStats {
   total: number;
   total_amount: number;
+  income_count?: number;
+  expense_count?: number;
   by_fund_type: {
     [key: string]: {
       count: number;
@@ -70,13 +81,12 @@ const OfferingsManagement: React.FC = () => {
   const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [fundTypeFilter, setFundTypeFilter] = useState('all');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
+  const [fundTypeFilter, setFundTypeFilter] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // 모달 상태
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -152,7 +162,7 @@ const OfferingsManagement: React.FC = () => {
       ]);
     };
     loadAllData();
-  }, [dateFromFilter, dateToFilter]); // fundTypeFilter 제거 - 클라이언트 측 필터링으로 변경
+  }, [dateRange]); // 클라이언트 측 필터링으로 변경
 
   const loadOfferings = async () => {
     try {
@@ -166,9 +176,9 @@ const OfferingsManagement: React.FC = () => {
         church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
       };
 
-      // fundTypeFilter는 클라이언트 측에서 처리하므로 API 호출 시 제거
-      if (dateFromFilter) params.date_from = dateFromFilter;
-      if (dateToFilter) params.date_to = dateToFilter;
+      // 날짜 범위 필터
+      if (dateRange?.from) params.date_from = format(dateRange.from, 'yyyy-MM-dd');
+      if (dateRange?.to) params.date_to = format(dateRange.to, 'yyyy-MM-dd');
 
       const response = await supabaseApiService.offerings.getAll(params);
 
@@ -226,8 +236,8 @@ const OfferingsManagement: React.FC = () => {
       const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
 
       const filters: any = { church_id: userChurchId };
-      if (dateFromFilter) filters.date_from = dateFromFilter;
-      if (dateToFilter) filters.date_to = dateToFilter;
+      if (dateRange?.from) filters.date_from = format(dateRange.from, 'yyyy-MM-dd');
+      if (dateRange?.to) filters.date_to = format(dateRange.to, 'yyyy-MM-dd');
 
       const statsData = await supabaseApiService.offerings.getStats(filters);
       setStats(statsData);
@@ -395,7 +405,7 @@ const OfferingsManagement: React.FC = () => {
 
   const filteredOfferings = offerings.filter(offering => {
     // 헌금 유형 필터링
-    if (fundTypeFilter !== 'all' && offering.fundType !== fundTypeFilter) {
+    if (fundTypeFilter.length > 0 && !fundTypeFilter.includes(offering.fundType)) {
       return false;
     }
 
@@ -461,56 +471,58 @@ const OfferingsManagement: React.FC = () => {
 
       {/* 통계 카드 */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">총 헌금액</p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.total_amount)}</p>
+                  <p className="text-xs text-gray-500 mt-1">{stats.total}건</p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-600" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">총 헌금액</p>
-                <p className="text-lg font-semibold text-gray-900">{formatCurrency(stats.total_amount)}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <BarChart3 className="h-5 w-5 text-primary-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">총 수입 건수</p>
+                  <p className="text-2xl font-bold text-primary-600">{stats.income_count || 0}</p>
+                  <p className="text-xs text-gray-500 mt-1">수입</p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-primary-600" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">헌금 건수</p>
-                <p className="text-lg font-semibold text-gray-900">{stats.total}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">총 지출 건수</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.expense_count || 0}</p>
+                  <p className="text-xs text-gray-500 mt-1">지출</p>
+                </div>
+                <TrendingDown className="w-8 h-8 text-red-600" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">평균 헌금액</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {stats.total > 0 ? formatCurrency(stats.total_amount / stats.total) : formatCurrency(0)}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Users className="h-5 w-5 text-orange-600" />
+          <Card className="border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">헌금 유형</p>
+                  <p className="text-2xl font-bold text-orange-600">{Object.keys(stats.by_fund_type).length}</p>
+                  <p className="text-xs text-gray-500 mt-1">종류</p>
+                </div>
+                <BarChart3 className="w-8 h-8 text-orange-600" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">헌금 유형</p>
-                <p className="text-lg font-semibold text-gray-900">{Object.keys(stats.by_fund_type).length}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -530,109 +542,159 @@ const OfferingsManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 필터 및 검색 */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="검색..."
-              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* 검색 및 필터 */}
+      <div className="mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 검색 Input */}
+          <Input
+            type="text"
+            placeholder="헌금자, 헌금유형, 메모 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-[400px]"
+          />
+
+          {/* 전체보기 버튼 */}
+          {searchTerm && (
+            <Button
+              onClick={() => setSearchTerm('')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              전체보기
+            </Button>
+          )}
+
+          {/* 헌금 유형 필터 */}
+          <Popover>
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
+                fundTypeFilter.length > 0 && "border-blue-300 text-blue-700"
+              )}
+            >
+              <PopoverTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm">헌금 유형</span>
+                  {fundTypeFilter.length === 0 && (
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </PopoverTrigger>
+              {fundTypeFilter.length > 0 && (
+                <X
+                  className="h-4 w-4 opacity-50 hover:opacity-100 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFundTypeFilter([]);
+                  }}
+                />
+              )}
+            </div>
+            <PopoverContent className="w-[200px] p-3" align="start">
+              <div className="space-y-2">
+                {fundTypes.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`fund-${type}`}
+                      checked={fundTypeFilter.includes(type)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setFundTypeFilter([...fundTypeFilter, type]);
+                        } else {
+                          setFundTypeFilter(fundTypeFilter.filter((v) => v !== type));
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`fund-${type}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {type}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* 기간 선택 */}
+          <DateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+          />
+
+          <div className="ml-auto flex gap-2">
+            <Button
+              variant="outline"
+              onClick={exportToCSV}
+              className="flex items-center gap-2"
+              disabled={filteredOfferings.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              엑셀 다운로드
+            </Button>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              새 헌금
+            </Button>
           </div>
-
-          <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={fundTypeFilter}
-            onChange={(e) => setFundTypeFilter(e.target.value)}
-          >
-            <option value="all">모든 헌금 유형</option>
-            {fundTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={dateFromFilter}
-            onChange={(e) => setDateFromFilter(e.target.value)}
-            placeholder="시작일"
-          />
-
-          <input
-            type="date"
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={dateToFilter}
-            onChange={(e) => setDateToFilter(e.target.value)}
-            placeholder="종료일"
-          />
-
-          <Button
-            variant="outline"
-            onClick={exportToCSV}
-            className="flex items-center bg-green-600 text-white hover:bg-green-700 border-green-600 hover:border-green-700"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            내보내기
-          </Button>
-
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            새 헌금
-          </Button>
         </div>
       </div>
 
       {/* 헌금 목록 */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="space-y-4">
         {loading ? (
-          <div className="p-6 text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">헌금 목록을 불러오는 중...</p>
-            </div>
-          </div>
+          <Card className="border-muted">
+            <CardContent className="text-center py-12">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                <p className="text-gray-600">헌금 목록을 불러오는 중...</p>
+              </div>
+            </CardContent>
+          </Card>
         ) : filteredOfferings.length === 0 ? (
-          <div className="p-6 text-center py-12">
-            <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">헌금 기록이 없습니다.</p>
-          </div>
+          <Card className="border-muted">
+            <CardContent className="text-center py-12">
+              <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">헌금 기록이 없습니다.</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    헌금일
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    헌금자
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    헌금 유형
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    금액
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    메모
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    등록자
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    등록일
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    작업
-                  </th>
+          <Card className="border-muted">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      헌금일
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      헌금자
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      헌금 유형
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      금액
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      메모
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      등록자
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      등록일
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      작업
+                    </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -704,86 +766,29 @@ const OfferingsManagement: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
+          </Card>
+        )}
 
-            {/* 페이지네이션 */}
-            {filteredOfferings.length > 0 && (
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
-                    총 <span className="font-semibold">{filteredOfferings.length}</span>개 중{' '}
-                    <span className="font-semibold">{startIndex + 1}</span>-
-                    <span className="font-semibold">{Math.min(endIndex, filteredOfferings.length)}</span>개 표시
-                  </div>
-                  {totalPages > 1 && (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1"
-                    >
-                      이전
-                    </Button>
-
-                    <div className="flex items-center space-x-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => {
-                          // 현재 페이지 주변 페이지만 표시
-                          return page === 1 ||
-                                 page === totalPages ||
-                                 Math.abs(page - currentPage) <= 2;
-                        })
-                        .map((page, index, array) => {
-                          // 페이지 번호 사이에 ... 표시
-                          if (index > 0 && page - array[index - 1] > 1) {
-                            return (
-                              <React.Fragment key={`ellipsis-${page}`}>
-                                <span className="px-2 text-gray-500">...</span>
-                                <button
-                                  onClick={() => setCurrentPage(page)}
-                                  className={cn(
-                                    "px-3 py-1 rounded-md text-sm font-medium",
-                                    currentPage === page
-                                      ? "bg-primary-600 text-white"
-                                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                                  )}
-                                >
-                                  {page}
-                                </button>
-                              </React.Fragment>
-                            );
-                          }
-                          return (
-                            <button
-                              key={page}
-                              onClick={() => setCurrentPage(page)}
-                              className={cn(
-                                "px-3 py-1 rounded-md text-sm font-medium",
-                                currentPage === page
-                                  ? "bg-primary-600 text-white"
-                                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                              )}
-                            >
-                              {page}
-                            </button>
-                          );
-                        })}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1"
-                    >
-                      다음
-                    </Button>
-                  </div>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* 페이지네이션 */}
+        {!loading && filteredOfferings.length > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              전체 {filteredOfferings.length.toLocaleString()}건
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredOfferings.length}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(newItemsPerPage) => {
+                setItemsPerPage(newItemsPerPage);
+                setCurrentPage(1);
+              }}
+              itemsPerPageOptions={[10, 20, 50, 100]}
+            />
           </div>
         )}
       </div>

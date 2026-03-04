@@ -113,7 +113,7 @@ const SettlementManagement: React.FC = () => {
 
       <div className="space-y-4">
         {/* Analysis Controls */}
-        <Card>
+        <Card className="border-muted">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ const SettlementManagement: React.FC = () => {
         {/* Summary Cards */}
         {budgetSummary && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            <Card className="border-muted">
               <CardContent className="p-6">
                 <h3 className="text-sm font-medium text-gray-600 mb-4">수입 현황</h3>
                 <div className="space-y-2">
@@ -170,7 +170,7 @@ const SettlementManagement: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-muted">
               <CardContent className="p-6">
                 <h3 className="text-sm font-medium text-gray-600 mb-4">지출 현황</h3>
                 <div className="space-y-2">
@@ -204,13 +204,13 @@ const SettlementManagement: React.FC = () => {
 
         {/* Detailed Comparison Table */}
         {loading ? (
-          <Card>
+          <Card className="border-muted">
             <CardContent className="text-center py-12">
               <Spinner />
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="border-muted">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">

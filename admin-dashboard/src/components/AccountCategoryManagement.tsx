@@ -308,7 +308,7 @@ const AccountCategoryManagement: React.FC = () => {
 
       <div className="max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Income Categories */}
-        <Card>
+        <Card className="border-muted">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-green-700">수입 계정과목</h3>
@@ -510,7 +510,7 @@ const AccountCategoryManagement: React.FC = () => {
         </Card>
 
         {/* Expense Categories */}
-        <Card>
+        <Card className="border-muted">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-red-700">지출 계정과목</h3>

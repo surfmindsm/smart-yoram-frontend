@@ -318,7 +318,7 @@ const BudgetManagement: React.FC = () => {
 
       <div className="space-y-4">
         {/* Budget Controls */}
-        <Card>
+        <Card className="border-muted">
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2">
@@ -353,12 +353,12 @@ const BudgetManagement: React.FC = () => {
 
         {/* Budget Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <Card>
-            <CardContent className="p-4">
+          <Card className="border-muted">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-600">총 수입 예산</p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-sm text-gray-600">총 수입 예산</p>
+                  <p className="text-2xl font-bold text-green-600">
                     {formatCurrency(
                       budgets
                         .filter(b => b.type === 'income')
@@ -366,17 +366,17 @@ const BudgetManagement: React.FC = () => {
                     )}
                   </p>
                 </div>
-                <TrendingUp className="w-6 h-6 text-green-600" />
+                <TrendingUp className="w-8 h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="border-muted">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-600">총 지출 예산</p>
-                  <p className="text-xl font-bold text-red-600">
+                  <p className="text-sm text-gray-600">총 지출 예산</p>
+                  <p className="text-2xl font-bold text-red-600">
                     {formatCurrency(
                       budgets
                         .filter(b => b.type === 'expense')
@@ -384,17 +384,17 @@ const BudgetManagement: React.FC = () => {
                     )}
                   </p>
                 </div>
-                <TrendingDown className="w-6 h-6 text-red-600" />
+                <TrendingDown className="w-8 h-8 text-red-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="border-muted">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-600">순 예산 (수입 - 지출)</p>
-                  <p className={`text-xl font-bold ${
+                  <p className="text-sm text-gray-600">순 예산 (수입 - 지출)</p>
+                  <p className={`text-2xl font-bold ${
                     (budgets.filter(b => b.type === 'income').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0) -
                      budgets.filter(b => b.type === 'expense').reduce((sum, b) => sum + parseFloat(b.budgeted_amount.toString()), 0)) >= 0
                       ? 'text-primary-600'
@@ -406,7 +406,7 @@ const BudgetManagement: React.FC = () => {
                     )}
                   </p>
                 </div>
-                <DollarSign className="w-6 h-6 text-primary-600" />
+                <DollarSign className="w-8 h-8 text-primary-600" />
               </div>
             </CardContent>
           </Card>
@@ -415,7 +415,7 @@ const BudgetManagement: React.FC = () => {
         {/* Budget Input Tables */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Income Budget */}
-          <Card>
+          <Card className="border-muted">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-green-700 mb-4">수입 예산</h3>
               {loading ? (
@@ -512,7 +512,7 @@ const BudgetManagement: React.FC = () => {
           </Card>
 
           {/* Expense Budget */}
-          <Card>
+          <Card className="border-muted">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-red-700 mb-4">지출 예산</h3>
               {loading ? (
