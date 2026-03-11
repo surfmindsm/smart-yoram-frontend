@@ -51,59 +51,59 @@ import OnlineUsers from './dashboard/OnlineUsers';
 import { useToast } from '../hooks/use-toast';
 import { AVAILABLE_QUICK_ACTIONS, DEFAULT_QUICK_ACTIONS, QuickAction } from '../constants/quickActions';
 
-// Chart configurations
+// Chart configurations - 부드러운 파스텔톤 색상
 const genderChartConfig = {
   남성: {
     label: "남성",
-    color: "hsl(var(--chart-1))",
+    color: "#60A5FA", // 부드러운 블루
   },
   여성: {
     label: "여성",
-    color: "hsl(var(--chart-2))",
+    color: "#F9A8D4", // 부드러운 핑크
   },
 } satisfies ChartConfig
 
 const ageChartConfig = {
   count: {
     label: "인원수",
-    color: "hsl(var(--chart-1))",
+    color: "#8B5CF6", // 부드러운 보라
   },
 } satisfies ChartConfig
 
 const memberGrowthConfig = {
   new_members: {
     label: "신규 교인",
-    color: "hsl(var(--chart-1))",
+    color: "#34D399", // 부드러운 그린
   },
   total_members: {
     label: "총 교인 수",
-    color: "hsl(var(--chart-2))",
+    color: "#60A5FA", // 부드러운 블루
   },
 } satisfies ChartConfig
 
 const pastoralCareChartConfig = {
   pending: {
     label: "대기중",
-    color: "hsl(var(--chart-1))",
+    color: "#FBBF24", // 부드러운 옐로우
   },
   in_progress: {
     label: "진행중",
-    color: "hsl(var(--chart-2))",
+    color: "#60A5FA", // 부드러운 블루
   },
   completed: {
     label: "완료",
-    color: "hsl(var(--chart-3))",
+    color: "#34D399", // 부드러운 그린
   },
 } satisfies ChartConfig
 
 const attendanceChartConfig = {
   attendance: {
     label: "출석 인원",
-    color: "hsl(var(--chart-1))",
+    color: "#8B5CF6", // 부드러운 보라
   },
   attendanceRate: {
     label: "출석률",
-    color: "hsl(var(--chart-2))",
+    color: "#F59E0B", // 부드러운 오렌지
   },
 } satisfies ChartConfig
 
@@ -757,10 +757,10 @@ const Dashboard = React.memo(() => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* 성별 분포 */}
           {demographics && (
-            <Card className="border-muted">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4" />
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                  <Users className="h-5 w-5 text-blue-500" />
                   성별 분포
                 </CardTitle>
               </CardHeader>
@@ -769,7 +769,7 @@ const Dashboard = React.memo(() => {
                   <>
                     <ChartContainer
                       config={genderChartConfig}
-                      className="mx-auto aspect-square max-h-[200px]"
+                      className="mx-auto aspect-square max-h-[220px]"
                     >
                       <PieChart>
                         <ChartTooltip
@@ -780,35 +780,37 @@ const Dashboard = React.memo(() => {
                           data={demographics.gender_distribution.filter(item => item.count > 0)}
                           dataKey="count"
                           nameKey="gender"
-                          innerRadius={40}
-                          strokeWidth={4}
+                          innerRadius={50}
+                          outerRadius={90}
+                          strokeWidth={2}
+                          stroke="#fff"
                         >
-                          <Cell fill="var(--color-남성)" />
-                          <Cell fill="var(--color-여성)" />
+                          <Cell fill="#60A5FA" />
+                          <Cell fill="#F9A8D4" />
                         </Pie>
                       </PieChart>
                     </ChartContainer>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-[220px] text-muted-foreground">
                     <Users className="h-12 w-12 mb-2 opacity-20" />
                     <p className="text-sm">등록된 교인이 없습니다</p>
                   </div>
                 )}
                 {demographics.total_members > 0 && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-4">
                     {demographics.gender_distribution.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-2">
+                      <div key={index} className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200">
+                        <div className="flex items-center gap-2.5">
                           <div
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ backgroundColor: index === 0 ? 'hsl(var(--chart-1))' : 'hsl(var(--chart-2))' }}
+                            className="w-3 h-3 rounded-full shadow-sm"
+                            style={{ backgroundColor: index === 0 ? '#60A5FA' : '#F9A8D4' }}
                           />
-                          <span className="text-xs font-medium">{item.gender}</span>
+                          <span className="text-sm font-medium text-slate-700">{item.gender}</span>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-bold">{item.count}명</div>
-                          <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                          <div className="text-base font-bold text-slate-800">{item.count}명</div>
+                          <div className="text-xs text-slate-500 font-medium">{item.percentage.toFixed(1)}%</div>
                         </div>
                       </div>
                     ))}
@@ -820,60 +822,62 @@ const Dashboard = React.memo(() => {
 
           {/* 연령 분포 */}
           {demographics && (
-            <Card className="border-muted">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                  <BarChart3 className="h-5 w-5 text-purple-500" />
                   연령 분포
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {demographics.total_members > 0 ? (
                   <>
-                    <ChartContainer config={ageChartConfig} className="h-[200px]">
+                    <ChartContainer config={ageChartConfig} className="h-[220px]">
                       <BarChart
                         data={demographics.age_distribution.filter(item => item.count > 0)}
                         margin={{
                           left: 8,
                           right: 8,
-                          top: 8,
+                          top: 12,
                           bottom: 8,
                         }}
                       >
-                        <CartesianGrid vertical={false} />
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis
                           dataKey="age_group"
                           tickLine={false}
-                          tickMargin={8}
+                          tickMargin={10}
                           axisLine={false}
+                          tick={{ fill: '#64748b', fontSize: 12 }}
                           tickFormatter={(value) => value}
                         />
                         <ChartTooltip
-                          cursor={false}
+                          cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
                           content={<ChartTooltipContent />}
                         />
                         <Bar
                           dataKey="count"
-                          fill="var(--color-count)"
-                          radius={[4, 4, 0, 0]}
+                          fill="#8B5CF6"
+                          radius={[8, 8, 0, 0]}
+                          maxBarSize={50}
                         />
                       </BarChart>
                     </ChartContainer>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-[220px] text-muted-foreground">
                     <BarChart3 className="h-12 w-12 mb-2 opacity-20" />
                     <p className="text-sm">등록된 교인이 없습니다</p>
                   </div>
                 )}
                 {demographics.total_members > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-4 grid grid-cols-3 gap-2">
                     {demographics.age_distribution.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-1.5 rounded bg-muted/30">
-                        <span className="text-muted-foreground text-xs">{item.age_group}</span>
-                        <div className="text-right">
-                          <div className="text-xs font-medium">{item.count}명</div>
-                          <div className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</div>
+                      <div key={index} className="flex flex-col items-center justify-center p-2 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200">
+                        <span className="text-slate-600 text-xs font-medium mb-1">{item.age_group}</span>
+                        <div className="text-center">
+                          <div className="text-sm font-bold text-slate-800">{item.count}명</div>
+                          <div className="text-xs text-slate-500 font-medium">{item.percentage.toFixed(1)}%</div>
                         </div>
                       </div>
                     ))}
@@ -886,38 +890,40 @@ const Dashboard = React.memo(() => {
 
         {/* 출석 통계 차트 */}
         {attendanceHistory.length > 0 && (
-          <Card className="border-muted mb-5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow mb-5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
                 출석 추이 (최근 8주)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer
                 config={attendanceChartConfig}
-                className="h-[250px] w-full"
+                className="h-[280px] w-full"
               >
                 <ComposedChart
                   data={attendanceHistory}
                   margin={{
                     left: 8,
                     right: 8,
-                    top: 8,
+                    top: 12,
                     bottom: 8,
                   }}
                 >
-                  <CartesianGrid vertical={false} />
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="displayDate"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
                   />
                   <YAxis
                     yAxisId="left"
                     tickLine={false}
                     axisLine={false}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
                     tickFormatter={(value) => `${value}명`}
                   />
                   <YAxis
@@ -925,60 +931,67 @@ const Dashboard = React.memo(() => {
                     orientation="right"
                     tickLine={false}
                     axisLine={false}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <ChartTooltip
-                    cursor={false}
+                    cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
                     content={<ChartTooltipContent />}
                   />
                   <ChartLegend content={<ChartLegendContent />} />
                   <Bar
                     yAxisId="left"
                     dataKey="attendance"
-                    fill="var(--color-attendance)"
-                    radius={[4, 4, 0, 0]}
+                    fill="#8B5CF6"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={40}
                   />
                   <Line
                     yAxisId="right"
                     dataKey="attendanceRate"
                     type="monotone"
-                    stroke="var(--color-attendanceRate)"
+                    stroke="#F59E0B"
                     strokeWidth={2}
                     dot={{
-                      fill: "var(--color-attendanceRate)",
+                      fill: "#F59E0B",
+                      r: 3,
+                      strokeWidth: 2,
+                      stroke: "#fff"
                     }}
                     activeDot={{
-                      r: 6,
+                      r: 5,
+                      strokeWidth: 2,
+                      stroke: "#fff"
                     }}
                   />
                 </ComposedChart>
               </ChartContainer>
 
               {/* 요약 통계 */}
-              <div className="mt-4 grid grid-cols-4 gap-3">
-                <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="text-xl font-bold text-blue-600">
+              <div className="mt-5 grid grid-cols-4 gap-3">
+                <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200">
+                  <div className="text-xl font-bold text-purple-700">
                     {attendanceHistory[attendanceHistory.length - 1]?.attendance || 0}명
                   </div>
-                  <div className="text-xs text-blue-700">최근 출석</div>
+                  <div className="text-xs text-purple-600 font-medium mt-1">최근 출석</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
-                  <div className="text-xl font-bold text-green-600">
+                <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200">
+                  <div className="text-xl font-bold text-orange-700">
                     {attendanceHistory[attendanceHistory.length - 1]?.attendanceRate || 0}%
                   </div>
-                  <div className="text-xs text-green-700">최근 출석률</div>
+                  <div className="text-xs text-orange-600 font-medium mt-1">최근 출석률</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
-                  <div className="text-xl font-bold text-purple-600">
+                <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200">
+                  <div className="text-xl font-bold text-blue-700">
                     {Math.round(attendanceHistory.reduce((sum, item) => sum + item.attendance, 0) / attendanceHistory.length)}명
                   </div>
-                  <div className="text-xs text-purple-700">평균 출석</div>
+                  <div className="text-xs text-blue-600 font-medium mt-1">평균 출석</div>
                 </div>
-                <div className="text-center p-3 rounded-lg bg-amber-50 border border-amber-200">
-                  <div className="text-xl font-bold text-amber-600">
+                <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200">
+                  <div className="text-xl font-bold text-green-700">
                     {Math.round(attendanceHistory.reduce((sum, item) => sum + item.attendanceRate, 0) / attendanceHistory.length)}%
                   </div>
-                  <div className="text-xs text-amber-700">평균 출석률</div>
+                  <div className="text-xs text-green-600 font-medium mt-1">평균 출석률</div>
                 </div>
               </div>
             </CardContent>
@@ -989,20 +1002,20 @@ const Dashboard = React.memo(() => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* 교인 증가 추이 */}
           {memberGrowth && (
-            <Card className="border-muted">
-              <CardHeader className="pb-4">
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
+                  <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                    <UserPlus className="h-5 w-5 text-green-500" />
                     교인 증가 추이 (최근 12개월)
                   </CardTitle>
-                  <div className="text-xs text-muted-foreground flex flex-col gap-1 text-right">
-                    <span className="flex items-center gap-1 justify-end">
-                      <Users className="h-3 w-3" />
-                      현재: {memberGrowth.total_current_members}명
+                  <div className="text-xs flex flex-col gap-1 text-right">
+                    <span className="flex items-center gap-1 justify-end text-slate-600">
+                      <Users className="h-3.5 w-3.5" />
+                      현재: <span className="font-semibold text-slate-700">{memberGrowth.total_current_members}명</span>
                     </span>
-                    <span className="flex items-center gap-1 justify-end">
-                      <TrendingUp className="h-3 w-3" />
+                    <span className="flex items-center gap-1 justify-end text-slate-600">
+                      <TrendingUp className="h-3.5 w-3.5" />
                       {memberGrowth.period_months}개월
                     </span>
                   </div>
@@ -1011,45 +1024,52 @@ const Dashboard = React.memo(() => {
               <CardContent>
                 <ChartContainer
                   config={memberGrowthConfig}
-                  className="h-[200px] w-full"
+                  className="h-[220px] w-full"
                 >
                   <ComposedChart
                     data={memberGrowth.growth_data.slice(-12)}
                     margin={{
                       left: 8,
                       right: 8,
-                      top: 8,
+                      top: 12,
                       bottom: 8,
                     }}
                   >
-                    <CartesianGrid vertical={false} />
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis
                       dataKey="month"
                       tickLine={false}
                       tickMargin={10}
                       axisLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
                       tickFormatter={(value) => value.slice(5)}
                     />
                     <ChartTooltip
-                      cursor={false}
+                      cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
                       content={<ChartTooltipContent />}
                     />
                     <ChartLegend content={<ChartLegendContent />} />
                     <Bar
                       dataKey="new_members"
-                      fill="var(--color-new_members)"
-                      radius={[4, 4, 0, 0]}
+                      fill="#34D399"
+                      radius={[8, 8, 0, 0]}
+                      maxBarSize={40}
                     />
                     <Line
                       dataKey="total_members"
-                      type="linear"
-                      stroke="var(--color-total_members)"
+                      type="monotone"
+                      stroke="#60A5FA"
                       strokeWidth={2}
                       dot={{
-                        fill: "var(--color-total_members)",
+                        fill: "#60A5FA",
+                        r: 3,
+                        strokeWidth: 2,
+                        stroke: "#fff"
                       }}
                       activeDot={{
-                        r: 6,
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: "#fff"
                       }}
                     />
                   </ComposedChart>
@@ -1057,23 +1077,23 @@ const Dashboard = React.memo(() => {
 
                 {/* 요약 통계 */}
                 <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
-                    <div className="text-xl font-bold text-green-600">
+                  <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200">
+                    <div className="text-xl font-bold text-green-700">
                       +{memberGrowth.growth_data.reduce((sum, item) => sum + item.new_members, 0)}
                     </div>
-                    <div className="text-xs text-green-700">총 신규 교인</div>
+                    <div className="text-xs text-green-600 font-medium mt-1">총 신규 교인</div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-primary-50 border border-primary-200">
-                    <div className="text-xl font-bold text-primary-600">
+                  <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200">
+                    <div className="text-xl font-bold text-blue-700">
                       {memberGrowth.total_current_members}명
                     </div>
-                    <div className="text-xs text-primary-700">현재 총 교인</div>
+                    <div className="text-xs text-blue-600 font-medium mt-1">현재 총 교인</div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-purple-50 border border-purple-200">
-                    <div className="text-xl font-bold text-purple-600">
+                  <div className="text-center p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200">
+                    <div className="text-xl font-bold text-purple-700">
                       {memberGrowth.growth_data.slice(-3).reduce((sum, item) => sum + item.new_members, 0)}
                     </div>
-                    <div className="text-xs text-purple-700">최근 3개월 신규</div>
+                    <div className="text-xs text-purple-600 font-medium mt-1">최근 3개월 신규</div>
                   </div>
                 </div>
               </CardContent>
@@ -1082,10 +1102,10 @@ const Dashboard = React.memo(() => {
 
           {/* 심방 신청 통계 */}
           {pastoralCareStats && (
-            <Card className="border-muted">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
+            <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                  <Heart className="h-5 w-5 text-pink-500" />
                   심방 신청 현황
                 </CardTitle>
               </CardHeader>
@@ -1094,7 +1114,7 @@ const Dashboard = React.memo(() => {
                   <>
                     <ChartContainer
                       config={pastoralCareChartConfig}
-                      className="mx-auto aspect-square max-h-[200px]"
+                      className="mx-auto aspect-square max-h-[220px]"
                     >
                       <PieChart>
                         <ChartTooltip
@@ -1109,32 +1129,34 @@ const Dashboard = React.memo(() => {
                           ].filter(item => item.value > 0)}
                           dataKey="value"
                           nameKey="name"
-                          innerRadius={40}
-                          strokeWidth={4}
+                          innerRadius={50}
+                          outerRadius={90}
+                          strokeWidth={2}
+                          stroke="#fff"
                         >
-                          <Cell fill="var(--color-pending)" />
-                          <Cell fill="var(--color-in_progress)" />
-                          <Cell fill="var(--color-completed)" />
+                          <Cell fill="#FBBF24" />
+                          <Cell fill="#60A5FA" />
+                          <Cell fill="#34D399" />
                         </Pie>
                       </PieChart>
                     </ChartContainer>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <div className="text-center p-2 rounded bg-muted/30">
-                        <div className="text-sm font-bold">{pastoralCareStats.pending}</div>
-                        <div className="text-xs text-muted-foreground">대기중</div>
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100/50 border border-yellow-200">
+                        <div className="text-base font-bold text-yellow-700">{pastoralCareStats.pending}</div>
+                        <div className="text-xs text-yellow-600 font-medium mt-1">대기중</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-muted/30">
-                        <div className="text-sm font-bold">{pastoralCareStats.in_progress}</div>
-                        <div className="text-xs text-muted-foreground">진행중</div>
+                      <div className="text-center p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200">
+                        <div className="text-base font-bold text-blue-700">{pastoralCareStats.in_progress}</div>
+                        <div className="text-xs text-blue-600 font-medium mt-1">진행중</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-muted/30">
-                        <div className="text-sm font-bold">{pastoralCareStats.completed}</div>
-                        <div className="text-xs text-muted-foreground">완료</div>
+                      <div className="text-center p-3 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200">
+                        <div className="text-base font-bold text-green-700">{pastoralCareStats.completed}</div>
+                        <div className="text-xs text-green-600 font-medium mt-1">완료</div>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-[220px] text-muted-foreground">
                     <Heart className="h-12 w-12 mb-2 opacity-20" />
                     <p className="text-sm">심방 신청이 없습니다</p>
                   </div>
