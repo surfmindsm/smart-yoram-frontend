@@ -639,6 +639,33 @@ const Layout: React.FC = () => {
 
           {/* 하단 고정 영역 */}
           <div className="border-t border-slate-200 bg-white">
+            {/* 후원 계좌 정보 */}
+            {isSidebarOpen && (
+              <div className="p-3 border-b border-slate-200">
+                <div className="mb-2">
+                  <h3 className="text-xs font-semibold text-slate-900">후원 계좌</h3>
+                </div>
+                <p className="text-[10px] text-slate-600 mb-2 leading-relaxed">
+                  Church Round의 발전을 위해 소중한 후원 부탁드립니다
+                </p>
+                <div className="bg-white rounded-md p-2 mb-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">은행</span>
+                      <span className="text-xs font-medium text-slate-900">우리은행</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">예금주</span>
+                      <span className="text-xs font-medium text-slate-900">이선민</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className="text-[10px] text-slate-500">계좌번호</span>
+                      <span className="text-[11px] font-mono font-medium text-slate-900">326-252703-02-001</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 문의하기 & 로그아웃 버튼 */}
             <div className={cn("p-3 space-y-2", !isSidebarOpen && "flex flex-col items-center")}>
