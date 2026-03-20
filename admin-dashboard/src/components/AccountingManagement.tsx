@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent } from "./ui";
@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { supabase } from '../lib/supabase';
 import { Spinner } from "./ui/spinner";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -45,8 +46,18 @@ interface Transaction {
   vendor_name?: string;
   payment_method?: string;
   description?: string;
+  receipt_url?: string; // 하위 호환성을 위해 유지
+  receipt_urls?: string[]; // 여러 영수증 지원
+  receipt_file?: string; // 백엔드에서 사용하는 필드명 (단일)
+  receipt_files?: string; // 백엔드에서 사용하는 필드명 (JSON 문자열)
+  receipt_metadata?: ReceiptFile[]; // 파일명 정보 포함
   created_at: string;
   category?: AccountCategory;
+}
+
+interface ReceiptFile {
+  url: string;
+  filename: string;
 }
 
 interface Summary {
@@ -90,6 +101,15 @@ const AccountingManagement: React.FC = () => {
     description: '',
   });
 
+  // Receipt Upload
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+  // Receipt Preview Modal
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [currentReceiptIndex, setCurrentReceiptIndex] = useState(0);
+  const [previewReceipts, setPreviewReceipts] = useState<ReceiptFile[]>([]);
+
   // Delete Confirmation Dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingTransactionId, setDeletingTransactionId] = useState<number | null>(null);
@@ -129,7 +149,108 @@ const AccountingManagement: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setTransactions(Array.isArray(data) ? data : (data?.data || []));
+        console.log('🔍 백엔드 응답 데이터:', data);
+
+        // receipt_files를 receipt_urls로 매핑
+        const transactions = (Array.isArray(data) ? data : (data?.data || [])).map((t: any) => {
+          console.log('🔍 거래 내역:', {
+            id: t.id,
+            receipt_files: t.receipt_files,
+            receipt_file: t.receipt_file,
+            receipt_url: t.receipt_url
+          });
+
+          let receiptUrls: string[] = [];
+          let receiptFiles: ReceiptFile[] = [];
+
+          // receipt_files가 JSON 문자열인 경우 파싱
+          if (t.receipt_files) {
+            try {
+              const parsed = JSON.parse(t.receipt_files);
+              if (Array.isArray(parsed)) {
+                // 객체 배열인 경우 (새 형식: [{url, filename}, ...])
+                if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+                  receiptFiles = parsed;
+                  receiptUrls = parsed.map((r: ReceiptFile) => r.url);
+                  console.log('✅ receipt_files 파싱 성공 (객체 배열):', receiptFiles);
+                }
+                // 문자열 배열인 경우 (이전 형식: ["url1", "url2"])
+                else {
+                  receiptUrls = parsed;
+                  receiptFiles = parsed.map((url: string) => ({
+                    url,
+                    filename: url.split('/').pop()?.split('?')[0] || '영수증'
+                  }));
+                  console.log('✅ receipt_files 파싱 성공 (URL 배열):', receiptUrls);
+                }
+              } else {
+                receiptUrls = [parsed];
+                receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
+              }
+            } catch (e) {
+              receiptUrls = [t.receipt_files];
+              receiptFiles = [{ url: t.receipt_files, filename: t.receipt_files.split('/').pop()?.split('?')[0] || '영수증' }];
+              console.log('⚠️ receipt_files 파싱 실패, 문자열로 처리:', receiptUrls);
+            }
+          }
+          // 하위 호환성: receipt_file이 있으면 추가
+          else if (t.receipt_file) {
+            // receipt_file이 JSON 문자열인지 확인
+            if (typeof t.receipt_file === 'string' && t.receipt_file.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(t.receipt_file);
+                if (Array.isArray(parsed)) {
+                  // 객체 배열인 경우
+                  if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+                    receiptFiles = parsed;
+                    receiptUrls = parsed.map((r: ReceiptFile) => r.url);
+                    console.log('✅ receipt_file JSON 파싱 성공 (객체 배열):', receiptFiles);
+                  }
+                  // 문자열 배열인 경우
+                  else {
+                    receiptUrls = parsed;
+                    receiptFiles = parsed.map((url: string) => ({
+                      url,
+                      filename: url.split('/').pop()?.split('?')[0] || '영수증'
+                    }));
+                    console.log('✅ receipt_file JSON 파싱 성공 (URL 배열):', receiptUrls);
+                  }
+                } else {
+                  receiptUrls = [parsed];
+                  receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
+                }
+              } catch (e) {
+                receiptUrls = [t.receipt_file];
+                receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
+                console.log('⚠️ receipt_file JSON 파싱 실패:', receiptUrls);
+              }
+            } else {
+              receiptUrls = [t.receipt_file];
+              receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
+              console.log('✅ receipt_file 사용 (일반 URL):', receiptUrls);
+            }
+          }
+          // 하위 호환성: receipt_url이 있으면 추가
+          else if (t.receipt_url) {
+            receiptUrls = [t.receipt_url];
+            receiptFiles = [{ url: t.receipt_url, filename: t.receipt_url.split('/').pop()?.split('?')[0] || '영수증' }];
+            console.log('✅ receipt_url 사용:', receiptUrls);
+          }
+
+          return {
+            ...t,
+            receipt_urls: receiptUrls,
+            receipt_url: receiptUrls[0] || undefined, // 하위 호환성
+            receipt_metadata: receiptFiles // 파일명 정보 포함
+          };
+        });
+
+        console.log('✅ 최종 변환된 거래 내역:', transactions.map((t: Transaction) => ({
+          id: t.id,
+          receipt_urls: t.receipt_urls
+        })));
+
+        setTransactions(transactions);
       }
     } catch (error) {
       console.error('거래 내역 로드 실패:', error);
@@ -210,6 +331,53 @@ const AccountingManagement: React.FC = () => {
     }
   };
 
+  const uploadReceiptsToStorage = async (files: File[]): Promise<ReceiptFile[]> => {
+    try {
+      setUploadingReceipt(true);
+      const uploadedReceipts: ReceiptFile[] = [];
+
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const fileName = `${timestamp}_${random}.${fileExt}`;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const filePath = `receipts/${year}/${month}/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('accounting-receipts')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('영수증 업로드 실패:', error);
+          throw error;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('accounting-receipts')
+          .getPublicUrl(filePath);
+
+        uploadedReceipts.push({
+          url: urlData.publicUrl,
+          filename: file.name
+        });
+      }
+
+      return uploadedReceipts;
+    } catch (error) {
+      console.error('영수증 업로드 중 오류:', error);
+      alert('영수증 업로드에 실패했습니다.');
+      return [];
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
   const addTransaction = async () => {
     // Validation
     if (!newTransaction.category_id) {
@@ -229,6 +397,15 @@ const AccountingManagement: React.FC = () => {
       const token = await supabaseAuthService.getToken();
       if (!token) return;
 
+      // 영수증 파일들이 있으면 먼저 업로드
+      let uploadedReceipts: ReceiptFile[] = [];
+      if (receiptFiles.length > 0) {
+        uploadedReceipts = await uploadReceiptsToStorage(receiptFiles);
+        if (uploadedReceipts.length === 0) {
+          return; // 업로드 실패 시 중단
+        }
+      }
+
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/transactions`, {
         method: 'POST',
@@ -245,6 +422,7 @@ const AccountingManagement: React.FC = () => {
           vendor_name: newTransaction.vendor_name || null,
           payment_method: newTransaction.payment_method || null,
           description: newTransaction.description || null,
+          receipt_files: uploadedReceipts.length > 0 ? JSON.stringify(uploadedReceipts) : null, // 파일명 포함한 객체 배열 저장
         }),
       });
 
@@ -262,6 +440,7 @@ const AccountingManagement: React.FC = () => {
           payment_method: '',
           description: '',
         });
+        setReceiptFiles([]);
         await loadTransactions();
         await loadSummary();
       } else {
@@ -295,6 +474,40 @@ const AccountingManagement: React.FC = () => {
       const token = await supabaseAuthService.getToken();
       if (!token) return;
 
+      // 기존 영수증 URL들 유지하고, 새 파일이 있으면 추가
+      let allReceiptUrls = [...(editingTransaction.receipt_urls || [])];
+
+      // 새로운 영수증 파일들이 있으면 업로드하고 추가
+      if (receiptFiles.length > 0) {
+        const uploadedReceipts = await uploadReceiptsToStorage(receiptFiles);
+        if (uploadedReceipts.length === 0) {
+          return; // 업로드 실패 시 중단
+        }
+        allReceiptUrls = [...allReceiptUrls, ...uploadedReceipts.map(r => r.url)];
+      }
+
+      // 기존 영수증과 새 영수증을 모두 ReceiptFile 형식으로 통일
+      const allReceipts: ReceiptFile[] = [];
+
+      // 기존 영수증 추가 (메타데이터가 있으면 사용, 없으면 URL에서 파일명 추출)
+      if (editingTransaction.receipt_metadata && editingTransaction.receipt_metadata.length > 0) {
+        allReceipts.push(...editingTransaction.receipt_metadata);
+      } else if (editingTransaction.receipt_urls && editingTransaction.receipt_urls.length > 0) {
+        for (const url of editingTransaction.receipt_urls) {
+          const filename = url.split('/').pop()?.split('?')[0] || '영수증';
+          allReceipts.push({ url, filename });
+        }
+      }
+
+      // 새 영수증 추가
+      if (receiptFiles.length > 0) {
+        const uploadedReceipts = await uploadReceiptsToStorage(receiptFiles);
+        if (uploadedReceipts.length === 0) {
+          return; // 업로드 실패 시 중단
+        }
+        allReceipts.push(...uploadedReceipts);
+      }
+
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/transactions/${editingTransaction.id}`, {
         method: 'PUT',
@@ -311,6 +524,7 @@ const AccountingManagement: React.FC = () => {
           vendor_name: newTransaction.vendor_name || null,
           payment_method: newTransaction.payment_method || null,
           description: newTransaction.description || null,
+          receipt_files: allReceipts.length > 0 ? JSON.stringify(allReceipts) : null, // 파일명 포함한 객체 배열 저장
         }),
       });
 
@@ -328,6 +542,7 @@ const AccountingManagement: React.FC = () => {
           payment_method: '',
           description: '',
         });
+        setReceiptFiles([]);
         await loadTransactions();
         await loadSummary();
       } else {
@@ -374,6 +589,16 @@ const AccountingManagement: React.FC = () => {
   };
 
   const handleEdit = (transaction: Transaction) => {
+    console.log('🔧 편집 모드 진입:', {
+      id: transaction.id,
+      receipt_urls: transaction.receipt_urls,
+      receipt_url: transaction.receipt_url,
+      receipt_files: transaction.receipt_files,
+      receipt_file: transaction.receipt_file,
+      receipt_metadata: transaction.receipt_metadata
+    });
+
+    // 기존 영수증 메타데이터를 포함한 transaction 설정
     setEditingTransaction(transaction);
     setNewTransaction({
       type: transaction.type,
@@ -384,11 +609,27 @@ const AccountingManagement: React.FC = () => {
       payment_method: transaction.payment_method || '',
       description: transaction.description || '',
     });
+    setReceiptFiles([]); // 영수증 파일 초기화
     // 계정과목 목록 미리 로드
     if (incomeCategories.length === 0 && expenseCategories.length === 0) {
       loadCategories();
     }
     setShowAddModal(true);
+  };
+
+  // 기존 영수증 삭제 핸들러
+  const handleRemoveExistingReceipt = (index: number) => {
+    if (!editingTransaction || !editingTransaction.receipt_metadata) return;
+
+    const updatedMetadata = editingTransaction.receipt_metadata.filter((_, i) => i !== index);
+    const updatedUrls = editingTransaction.receipt_urls?.filter((_, i) => i !== index) || [];
+
+    setEditingTransaction({
+      ...editingTransaction,
+      receipt_metadata: updatedMetadata,
+      receipt_urls: updatedUrls,
+      receipt_url: updatedUrls[0] || undefined
+    });
   };
 
   const handleDelete = (transactionId: number) => {
@@ -407,6 +648,7 @@ const AccountingManagement: React.FC = () => {
       payment_method: '',
       description: '',
     });
+    setReceiptFiles([]); // 영수증 파일 초기화
     // 계정과목 목록 미리 로드
     if (incomeCategories.length === 0 && expenseCategories.length === 0) {
       loadCategories();
@@ -707,6 +949,7 @@ const AccountingManagement: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">내용</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">결제수단</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">영수증</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
                     </tr>
                   </thead>
@@ -741,6 +984,35 @@ const AccountingManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                           {getPaymentMethodLabel(transaction.payment_method)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                          {transaction.receipt_urls && transaction.receipt_urls.length > 0 ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // URL에서 파일명 추출하여 ReceiptFile[] 생성
+                                const receipts: ReceiptFile[] = transaction.receipt_urls!.map((url) => {
+                                  const filename = url.split('/').pop()?.split('?')[0] || '영수증';
+                                  return { url, filename };
+                                });
+                                setPreviewReceipts(receipts);
+                                setCurrentReceiptIndex(0);
+                                setShowReceiptModal(true);
+                              }}
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50 h-8 w-8 p-0 relative"
+                              title="영수증 보기"
+                            >
+                              <FileText className="w-4 h-4" />
+                              {transaction.receipt_urls.length > 1 && (
+                                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                  {transaction.receipt_urls.length}
+                                </span>
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                           <div className="flex items-center justify-center gap-2">
@@ -917,6 +1189,139 @@ const AccountingManagement: React.FC = () => {
               />
             </div>
 
+            {/* 영수증 첨부 */}
+            <div className="space-y-2">
+              <Label htmlFor="receipt">영수증</Label>
+              <div className="space-y-3">
+                {/* 파일 업로드 버튼 */}
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="receipt-upload"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 text-sm"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>파일 선택</span>
+                  </label>
+                  <input
+                    id="receipt-upload"
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      const validFiles: File[] = [];
+
+                      for (const file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert(`${file.name}: 파일 크기는 10MB 이하여야 합니다.`);
+                          continue;
+                        }
+                        validFiles.push(file);
+                      }
+
+                      if (validFiles.length > 0) {
+                        setReceiptFiles([...receiptFiles, ...validFiles]);
+                      }
+
+                      // Reset input so the same file can be selected again
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <span className="text-xs text-gray-500">
+                    여러 파일 선택 가능 (각 최대 10MB)
+                  </span>
+                </div>
+
+                {/* 현재 업로드된 영수증 (수정 모드일 때) */}
+                {editingTransaction?.receipt_metadata && editingTransaction.receipt_metadata.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">등록된 영수증 ({editingTransaction.receipt_metadata.length}개)</p>
+                    {editingTransaction.receipt_metadata.map((receipt, index) => {
+                      const isPdf = receipt.url.toLowerCase().endsWith('.pdf') || receipt.url.includes('.pdf?');
+                      return (
+                        <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-md">
+                          {isPdf ? (
+                            <FileText className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 text-gray-500" />
+                          )}
+                          <span className="text-sm text-gray-700 flex-1 truncate">{receipt.filename}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(receipt.url, '_blank')}
+                            className="text-blue-600 hover:text-blue-800 h-8 w-8 p-0"
+                            title="보기"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // 다운로드
+                              const a = document.createElement('a');
+                              a.href = receipt.url;
+                              a.download = receipt.filename;
+                              a.target = '_blank';
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }}
+                            className="text-green-600 hover:text-green-800 h-8 w-8 p-0"
+                            title="다운로드"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveExistingReceipt(index)}
+                            className="text-red-600 hover:text-red-800 h-8 w-8 p-0"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 선택된 파일 미리보기 */}
+                {receiptFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-blue-700">새로 추가할 파일 ({receiptFiles.length}개)</p>
+                    {receiptFiles.map((file, index) => (
+                      <div key={index} className="flex items-center gap-2 p-3 bg-blue-50 rounded-md">
+                        {file.type.startsWith('image/') ? (
+                          <ImageIcon className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-blue-600" />
+                        )}
+                        <span className="text-sm text-blue-800 flex-1 truncate">{file.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReceiptFiles(receiptFiles.filter((_, i) => i !== index));
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* 버튼 */}
             <div className="flex gap-2 justify-end pt-4">
               <Button
@@ -970,6 +1375,138 @@ const AccountingManagement: React.FC = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Preview Modal */}
+      <Dialog open={showReceiptModal} onOpenChange={setShowReceiptModal}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              영수증 미리보기 ({currentReceiptIndex + 1} / {previewReceipts.length})
+            </DialogTitle>
+          </DialogHeader>
+
+          {previewReceipts.length > 0 && (
+            <div className="space-y-4">
+              {/* 파일명 표시 */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 truncate flex-1">
+                  {previewReceipts[currentReceiptIndex].filename}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const receipt = previewReceipts[currentReceiptIndex];
+                    const a = document.createElement('a');
+                    a.href = receipt.url;
+                    a.download = receipt.filename;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  다운로드
+                </Button>
+              </div>
+
+              {/* 이미지/PDF 미리보기 */}
+              <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ minHeight: '400px' }}>
+                {previewReceipts[currentReceiptIndex].url.toLowerCase().includes('.pdf') ? (
+                  <iframe
+                    src={previewReceipts[currentReceiptIndex].url}
+                    className="w-full h-[500px]"
+                    title="PDF Preview"
+                  />
+                ) : (
+                  <img
+                    src={previewReceipts[currentReceiptIndex].url}
+                    alt={previewReceipts[currentReceiptIndex].filename}
+                    className="w-full h-auto max-h-[500px] object-contain"
+                  />
+                )}
+
+                {/* 이전/다음 버튼 (여러 영수증이 있을 때만) */}
+                {previewReceipts.length > 1 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentReceiptIndex((prev) =>
+                          prev === 0 ? previewReceipts.length - 1 : prev - 1
+                        );
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white"
+                      disabled={previewReceipts.length <= 1}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentReceiptIndex((prev) =>
+                          prev === previewReceipts.length - 1 ? 0 : prev + 1
+                        );
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white"
+                      disabled={previewReceipts.length <= 1}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* 썸네일 리스트 (여러 영수증이 있을 때만) */}
+              {previewReceipts.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto py-2">
+                  {previewReceipts.map((receipt, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentReceiptIndex(index)}
+                      className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${
+                        index === currentReceiptIndex
+                          ? 'border-blue-500'
+                          : 'border-gray-300 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {receipt.url.toLowerCase().includes('.pdf') ? (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                          <FileText className="w-8 h-8 text-gray-600" />
+                        </div>
+                      ) : (
+                        <img
+                          src={receipt.url}
+                          alt={receipt.filename}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 닫기 버튼 */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowReceiptModal(false)}
+                >
+                  닫기
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </PageContainer>

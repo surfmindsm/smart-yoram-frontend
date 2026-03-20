@@ -236,16 +236,6 @@ function App() {
               <BulkDonationInput />
             </Suspense>
           } />
-          <Route path="donation-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <DonationManagement />
-            </Suspense>
-          } />
-          <Route path="donation-management/bulk-input" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <BulkDonationInput />
-            </Suspense>
-          } />
           <Route path="accounting" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AccountingManagement />

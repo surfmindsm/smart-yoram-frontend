@@ -569,7 +569,7 @@ Deno.serve(async (req) => {
             vendor_name: body.vendor_name || null,
             description: body.description,
             payment_method: body.payment_method || null,
-            receipt_file: body.receipt_file || null,
+            receipt_file: body.receipt_files || body.receipt_file || null, // 복수형 우선, 단수형 폴백
             input_user_id: userId,
           })
           .select(`
@@ -605,7 +605,9 @@ Deno.serve(async (req) => {
         if (body.vendor_name !== undefined) updateData.vendor_name = body.vendor_name
         if (body.description !== undefined) updateData.description = body.description
         if (body.payment_method !== undefined) updateData.payment_method = body.payment_method
-        if (body.receipt_file !== undefined) updateData.receipt_file = body.receipt_file
+        // 복수형 우선, 단수형 폴백
+        if (body.receipt_files !== undefined) updateData.receipt_file = body.receipt_files
+        else if (body.receipt_file !== undefined) updateData.receipt_file = body.receipt_file
         updateData.updated_at = new Date().toISOString()
 
         const { data, error } = await supabaseClient

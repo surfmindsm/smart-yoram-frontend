@@ -1711,7 +1711,7 @@ const DonationManagement: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => navigate('/donation-management/bulk-input')}
+                    onClick={() => navigate('/donations/bulk-input')}
                     className="flex items-center gap-2"
                   >
                     <Users className="w-4 h-4" />

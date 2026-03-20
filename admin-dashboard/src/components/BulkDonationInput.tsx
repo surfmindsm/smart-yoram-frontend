@@ -442,7 +442,7 @@ const BulkDonationInput: React.FC = () => {
       successCount = validDonations.length;
 
       alert(`${successCount}건의 헌금이 등록되었으며, 회계 수입으로 자동 기록되었습니다.`);
-      navigate('/donation-management');
+      navigate('/donations');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '일괄 헌금 추가에 실패했습니다.';
       console.error('❌ 일괄 헌금 추가 오류:', error);
@@ -462,7 +462,7 @@ const BulkDonationInput: React.FC = () => {
       <div className="mb-6">
         <Button
           variant="outline"
-          onClick={() => navigate('/donation-management')}
+          onClick={() => navigate('/donations')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -806,7 +806,7 @@ const BulkDonationInput: React.FC = () => {
         </Button>
         <Button
           variant="outline"
-          onClick={() => navigate('/donation-management')}
+          onClick={() => navigate('/donations')}
           className="flex-1"
         >
           취소
