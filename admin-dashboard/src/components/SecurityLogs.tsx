@@ -15,7 +15,7 @@ import {
   Users,
   Eye
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle, LoadingState } from "./ui";
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
@@ -245,12 +245,12 @@ const SecurityLogs: React.FC = () => {
         실패
       </Badge>;
     } else if (record.action === 'login') {
-      return <Badge variant="default" className="flex items-center gap-1 bg-green-600">
+      return <Badge variant="success" className="gap-1">
         <CheckCircle className="w-3 h-3" />
         로그인
       </Badge>;
     } else {
-      return <Badge variant="secondary" className="flex items-center gap-1">
+      return <Badge variant="neutral" className="gap-1">
         <Clock className="w-3 h-3" />
         로그아웃
       </Badge>;
@@ -259,15 +259,15 @@ const SecurityLogs: React.FC = () => {
 
   const getActionBadge = (action: string) => {
     const colors = {
-      view: 'bg-primary-100 text-primary-800',
-      create: 'bg-green-100 text-green-800', 
-      update: 'bg-yellow-100 text-yellow-800',
-      delete: 'bg-red-100 text-red-800',
+      view: 'bg-[#EAF1FE] text-[#2563EB]',
+      create: 'bg-[#E7F6EC] text-[#16A34A]',
+      update: 'bg-[#FBF1E3] text-[#B45309]',
+      delete: 'bg-[#FCEBEB] text-[#DC2626]',
       search: 'bg-purple-100 text-purple-800'
     };
     
     return (
-      <Badge className={colors[action as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>
+      <Badge className={colors[action as keyof typeof colors] || 'bg-[#F1F4F9] text-[#64748B]'}>
         {action}
       </Badge>
     );
@@ -308,9 +308,9 @@ const SecurityLogs: React.FC = () => {
   const filteredActivityLogs = activityLogs;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">보안 로그 관리</h2>
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
+        <h1 className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">보안 로그 관리</h1>
         <div className="flex gap-2">
           <Button variant="outline" className="flex items-center gap-2">
             <Download className="w-4 h-4" />
@@ -335,9 +335,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">전체 로그인</p>
-                <p className="text-2xl font-bold">{stats.totalLogins}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-foreground tabular-nums">{stats.totalLogins}</p>
               </div>
-              <Shield className="w-8 h-8 text-primary-600" />
+              <Shield className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -347,9 +347,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">성공 로그인</p>
-                <p className="text-2xl font-bold text-green-600">{stats.successfulLogins}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-[#16A34A] tabular-nums">{stats.successfulLogins}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-[#16A34A]" />
             </div>
           </CardContent>
         </Card>
@@ -359,9 +359,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">실패 로그인</p>
-                <p className="text-2xl font-bold text-red-600">{stats.failedLogins}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-[#DC2626] tabular-nums">{stats.failedLogins}</p>
               </div>
-              <XCircle className="w-8 h-8 text-red-600" />
+              <XCircle className="w-8 h-8 text-[#DC2626]" />
             </div>
           </CardContent>
         </Card>
@@ -371,9 +371,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">활성 사용자</p>
-                <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-foreground tabular-nums">{stats.uniqueUsers}</p>
               </div>
-              <Users className="w-8 h-8 text-purple-600" />
+              <Users className="w-8 h-8 text-[#8A5A86]" />
             </div>
           </CardContent>
         </Card>
@@ -383,9 +383,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">오늘 로그인</p>
-                <p className="text-2xl font-bold">{stats.todayLogins}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-foreground tabular-nums">{stats.todayLogins}</p>
               </div>
-              <Calendar className="w-8 h-8 text-indigo-600" />
+              <Calendar className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -395,9 +395,9 @@ const SecurityLogs: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">의심 활동</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.suspiciousActivities}</p>
+                <p className="text-[23px] font-bold leading-none tracking-[-0.02em] text-[#B45309] tabular-nums">{stats.suspiciousActivities}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
+              <AlertTriangle className="w-8 h-8 text-[#B45309]" />
             </div>
           </CardContent>
         </Card>
@@ -494,12 +494,7 @@ const SecurityLogs: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-                  <p className="text-gray-600">로그인 기록을 불러오는 중...</p>
-                </div>
-              </div>
+              <LoadingState text="로그인 기록을 불러오는 중..." />
             ) : filteredLoginRecords.length === 0 ? (
               <div className="text-center py-12">
                 <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -586,12 +581,7 @@ const SecurityLogs: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-                  <p className="text-gray-600">활동 로그를 불러오는 중...</p>
-                </div>
-              </div>
+              <LoadingState text="활동 로그를 불러오는 중..." />
             ) : filteredActivityLogs.length === 0 ? (
               <div className="text-center py-12">
                 <Eye className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

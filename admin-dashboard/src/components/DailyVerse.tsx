@@ -142,10 +142,10 @@ const DailyVerse: React.FC = () => {
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex items-center justify-center min-h-64">
+        <div className="flex min-h-64 items-center justify-center">
           <div className="text-center">
             <Spinner size="default" className="mx-auto mb-4" />
-            <p className="text-gray-500">오늘의 말씀을 불러오는 중...</p>
+            <p className="text-[13px] text-muted-foreground">오늘의 말씀을 불러오는 중...</p>
           </div>
         </div>
       </PageContainer>
@@ -167,39 +167,47 @@ const DailyVerse: React.FC = () => {
 
       {/* 오류 메시지 */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="rounded-[12px] border border-[#FAD9D9] bg-[#FCEBEB] p-4">
+          <p className="text-[13px] text-[#DC2626]">{error}</p>
         </div>
       )}
 
-      {/* 오늘의 말씀 카드 */}
+      {/* 오늘의 말씀 — 다크 히어로 카드 (Direction C) */}
       {todayVerse && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-5 w-5 text-primary-600" />
-              <h3 className="text-lg font-semibold text-gray-900">오늘의 말씀</h3>
-            </div>
-            <blockquote className="text-lg text-gray-900 italic mb-3 pl-4 border-l-4 border-primary-600 leading-relaxed">
-              "{todayVerse.verse}"
-            </blockquote>
-            <cite className="text-primary-600 font-medium">
-              - {todayVerse.reference}
-            </cite>
-          </CardContent>
-        </Card>
+        <div
+          className="relative mb-5 overflow-hidden rounded-[12px] px-10 py-9 text-white"
+          style={{ background: 'linear-gradient(135deg, #0E1729, #1B2740)' }}
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute right-10 top-12 text-[60px] leading-none text-primary/50"
+            style={{ fontFamily: 'Newsreader, serif', fontStyle: 'italic' }}
+          >
+            ”
+          </span>
+          <div className="mb-[18px] inline-flex items-center gap-[7px] rounded-full bg-white/10 px-3 py-[5px] text-[12px] font-semibold text-[#9DB0CC]">
+            <BookOpen className="h-3.5 w-3.5" />
+            오늘의 말씀
+          </div>
+          <div className="max-w-[820px] text-[24px] font-semibold leading-[1.55] tracking-[-0.01em]">
+            “{todayVerse.verse}”
+          </div>
+          <div className="mt-[18px] text-[15px] font-bold text-primary">
+            — {todayVerse.reference}
+          </div>
+        </div>
       )}
 
       {/* 말씀 입력/수정 폼 */}
       {showForm && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {editingId ? '말씀 수정' : '새 말씀 추가'}
-            </h3>
+        <Card className="mb-5">
+          <CardHeader>
+            <CardTitle>{editingId ? '말씀 수정' : '새 말씀 추가'}</CardTitle>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-[12px] font-semibold text-foreground">
                   말씀 내용
                 </label>
                 <Textarea
@@ -213,7 +221,7 @@ const DailyVerse: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-[12px] font-semibold text-foreground">
                   성경 구절
                 </label>
                 <Input
@@ -225,20 +233,20 @@ const DailyVerse: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="is_active"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="h-4 w-4 rounded border-border accent-primary"
                 />
-                <label htmlFor="is_active" className="text-sm text-gray-700">
+                <label htmlFor="is_active" className="text-[13px] text-foreground">
                   활성화 (오늘의 말씀으로 사용)
                 </label>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-2">
                 <Button type="submit">
                   {editingId ? '수정' : '저장'}
                 </Button>
@@ -253,56 +261,57 @@ const DailyVerse: React.FC = () => {
 
       {/* 말씀 목록 */}
       <Card>
-        <CardContent className="p-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            등록된 말씀
+            <span className="text-[12px] font-semibold text-[#94A3B8]">총 {verses.length}개</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           {verses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>등록된 말씀이 없습니다.</p>
-              <p className="text-sm">첫 번째 말씀을 추가해보세요.</p>
+            <div className="py-12 text-center">
+              <BookOpen className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+              <p className="text-[13px] text-muted-foreground">등록된 말씀이 없습니다.</p>
+              <p className="mt-1 text-[12px] text-[#94A3B8]">첫 번째 말씀을 추가해보세요.</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-[#F1F4F9]">
               {verses.map((verse) => (
                 <div
                   key={verse.id}
-                  className="py-4 first:pt-0 last:pb-0 group hover:bg-gray-50"
+                  className="group flex items-start gap-4 px-[18px] py-4 transition-colors hover:bg-[#FAFBFD]"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <blockquote className="text-gray-900 mb-2 leading-relaxed">
-                        "{verse.verse}"
-                      </blockquote>
-                      <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <cite className="font-medium text-primary-600">
-                          - {verse.reference}
-                        </cite>
-                        <Badge
-                          variant={verse.is_active ? "success" : "secondary"}
-                        >
-                          {verse.is_active ? '활성' : '비활성'}
-                        </Badge>
-                        <span>
-                          {formatDate(verse.created_at)}
-                        </span>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <blockquote className="text-[14px] leading-[1.6] text-foreground">
+                      “{verse.verse}”
+                    </blockquote>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <cite className="text-[12.5px] font-bold not-italic text-primary">
+                        — {verse.reference}
+                      </cite>
+                      <Badge variant={verse.is_active ? 'success' : 'neutral'}>
+                        {verse.is_active ? '오늘 노출' : '대기'}
+                      </Badge>
+                      <span className="text-[11.5px] text-[#94A3B8]">{formatDate(verse.created_at)}</span>
                     </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => startEdit(verse)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => handleDelete(verse.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="flex flex-shrink-0 gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-primary hover:bg-accent"
+                      onClick={() => startEdit(verse)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                      onClick={() => handleDelete(verse.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle, LoadingState } from "./ui";
 import { Input } from "./ui";
 import { Textarea } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
@@ -258,59 +258,54 @@ const Bulletins: React.FC = () => {
       {/* Bulletins Table */}
       {isLoading ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">주보 목록을 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="주보 목록을 불러오는 중..." />
         </Card>
       ) : bulletins.length === 0 ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-600">등록된 주보가 없습니다.</p>
-            <p className="text-sm text-gray-500 mt-1">첫 번째 주보를 추가해보세요.</p>
+          <CardContent className="py-12 text-center">
+            <FileText className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <p className="text-[13px] text-muted-foreground">등록된 주보가 없습니다.</p>
+            <p className="mt-1 text-[12px] text-[#94A3B8]">첫 번째 주보를 추가해보세요.</p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-[#FAFBFD]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">제목</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[150px]">날짜</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">내용</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">파일</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[80px]">조회수</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] min-w-[200px]">제목</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[150px]">날짜</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">내용</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">파일</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[80px]">조회수</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">작업</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[#F1F4F9] bg-card">
                   {bulletins.map((bulletin) => (
-                    <tr key={bulletin.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    <tr key={bulletin.id} className="transition-colors hover:bg-[#FAFBFD]">
+                      <td className="px-[18px] py-3 text-[12.5px] font-semibold text-foreground">
                         {bulletin.title}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-[18px] py-3 text-[12.5px] text-foreground">
                         {new Date(bulletin.date).toLocaleDateString('ko-KR')}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-[18px] py-3 text-[12.5px] text-muted-foreground">
                         {bulletin.content ? (
                           <span className="line-clamp-2">{bulletin.content}</span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-center">
+                      <td className="px-[18px] py-3 text-[12.5px] text-center">
                         {bulletin.file_url ? (
                           <a
                             href={bulletin.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary-600 hover:underline inline-flex items-center gap-1"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <FileText className="w-4 h-4" />
@@ -320,16 +315,16 @@ const Bulletins: React.FC = () => {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                      <td className="px-[18px] py-3 text-[12.5px] text-foreground text-center">
                         {bulletin.view_count?.toLocaleString() || 0}
                       </td>
-                      <td className="px-4 py-3 text-sm text-center">
+                      <td className="px-[18px] py-3 text-[12.5px] text-center">
                         <div className="flex items-center justify-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(bulletin)}
-                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            className="h-8 w-8 p-0 text-primary hover:bg-accent"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -337,7 +332,7 @@ const Bulletins: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(bulletin.id)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -410,7 +405,7 @@ const Bulletins: React.FC = () => {
               )}
               {editingBulletin?.file_url && !selectedFile && (
                 <p className="text-sm text-gray-600 mt-1">
-                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">보기</a>
+                  현재 파일: <a href={editingBulletin.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">보기</a>
                 </p>
               )}
             </div>

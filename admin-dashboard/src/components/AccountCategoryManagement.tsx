@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit, DollarSign, Check, X } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
@@ -352,12 +352,7 @@ const AccountCategoryManagement: React.FC = () => {
             )}
 
             {loading ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-2"></div>
-                  <p className="text-sm text-gray-600">불러오는 중...</p>
-                </div>
-              </div>
+              <LoadingState text="불러오는 중..." />
             ) : (
               <div className="divide-y">
                 {incomeCategories
@@ -543,12 +538,7 @@ const AccountCategoryManagement: React.FC = () => {
             )}
 
             {loading ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-2"></div>
-                  <p className="text-sm text-gray-600">불러오는 중...</p>
-                </div>
-              </div>
+              <LoadingState text="불러오는 중..." />
             ) : (
               <div className="divide-y">
                 {expenseCategories.map((category) => (

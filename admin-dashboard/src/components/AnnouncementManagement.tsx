@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
 import { useToast } from "./ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, LoadingState } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
 import { Badge } from "./ui";
 import { Input } from "./ui";
@@ -278,24 +278,19 @@ const AnnouncementManagement: React.FC = () => {
 
       {loading ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">공지사항을 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="공지사항을 불러오는 중..." />
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <p className="text-red-600">{error}</p>
+          <CardContent className="py-12 text-center">
+            <p className="text-[13px] text-[#DC2626]">{error}</p>
           </CardContent>
         </Card>
       ) : (
         <>
           {/* Category Filter */}
-          <div className="mb-6">
-            <Label htmlFor="category-filter" className="mb-2 block">카테고리 필터</Label>
+          <div className="mb-5">
+            <Label htmlFor="category-filter" className="mb-2 block text-[12px] font-semibold text-foreground">카테고리 필터</Label>
             <Select
               value={categoryFilter}
               onValueChange={setCategoryFilter}
@@ -315,75 +310,73 @@ const AnnouncementManagement: React.FC = () => {
           {/* Announcements List */}
           {filteredAnnouncements.length === 0 ? (
             <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-gray-600">공지사항이 없습니다.</p>
+              <CardContent className="py-12 text-center">
+                <p className="text-[13px] text-muted-foreground">공지사항이 없습니다.</p>
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">제목</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">카테고리</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">작성자</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">작성일</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[80px]">조회수</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-[#FAFBFD]">
+                    <tr>
+                      <th className="min-w-[200px] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">제목</th>
+                      <th className="w-[120px] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">카테고리</th>
+                      <th className="w-[100px] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작성자</th>
+                      <th className="w-[120px] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작성일</th>
+                      <th className="w-[80px] px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">조회수</th>
+                      <th className="w-[120px] px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                    {filteredAnnouncements.map((announcement) => (
+                      <tr
+                        key={announcement.id}
+                        className={`cursor-pointer transition-colors hover:bg-[#FAFBFD] ${!announcement.is_active ? 'opacity-60' : ''}`}
+                        onClick={() => handleViewDetail(announcement)}
+                      >
+                        <td className="px-[18px] py-3 font-semibold text-foreground">
+                          {announcement.title}
+                        </td>
+                        <td className="px-[18px] py-3">
+                          <Badge variant="info">
+                            {getCategoryLabel(announcement.category)}
+                          </Badge>
+                        </td>
+                        <td className="px-[18px] py-3 text-muted-foreground">
+                          {announcement.author_name || '관리자'}
+                        </td>
+                        <td className="px-[18px] py-3 text-muted-foreground">
+                          {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
+                        </td>
+                        <td className="px-[18px] py-3 text-center tabular-nums text-foreground">
+                          {announcement.view_count?.toLocaleString() || 0}
+                        </td>
+                        <td className="px-[18px] py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(announcement)}
+                              className="h-8 w-8 p-0 text-primary hover:bg-accent"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(announcement.id)}
+                              className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {filteredAnnouncements.map((announcement) => (
-                        <tr
-                          key={announcement.id}
-                          className={`hover:bg-gray-50 cursor-pointer ${!announcement.is_active ? 'opacity-60' : ''}`}
-                          onClick={() => handleViewDetail(announcement)}
-                        >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            {announcement.title}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            <Badge variant="secondary" className="bg-primary-100 text-primary-800">
-                              {getCategoryLabel(announcement.category)}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {announcement.author_name || '관리자'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900 text-center">
-                            {announcement.view_count?.toLocaleString() || 0}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(announcement)}
-                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(announcement.id)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Card>
           )}
         </>
@@ -454,7 +447,7 @@ const AnnouncementManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="text-2xl">{selectedAnnouncement?.title}</DialogTitle>
             <DialogDescription className="flex items-center gap-3 text-sm pt-2">
-              <Badge variant="secondary" className="bg-primary-100 text-primary-800">
+              <Badge variant="info">
                 {getCategoryLabel(selectedAnnouncement?.category)}
               </Badge>
               <span>작성자: {selectedAnnouncement?.author_name || '관리자'}</span>

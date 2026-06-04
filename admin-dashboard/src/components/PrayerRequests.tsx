@@ -22,8 +22,8 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Card, CardContent } from "./ui";
-import { Button, Combobox } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
+import { Badge, Button, Combobox } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { PageContainer, PageHeader } from "./ui";
 import { SearchFilterBar } from './common';
@@ -337,10 +337,10 @@ const PrayerRequests: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-primary-100 text-primary-800';
-      case 'answered': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-[#EAF1FE] text-[#2563EB]';
+      case 'answered': return 'bg-[#E7F6EC] text-[#16A34A]';
+      case 'closed': return 'bg-[#F1F4F9] text-[#64748B]';
+      default: return 'bg-[#F1F4F9] text-[#64748B]';
     }
   };
 
@@ -364,11 +364,73 @@ const PrayerRequests: React.FC = () => {
     }
   };
 
+  // 시안 매핑 — 기도 유형 칩 색 페어
+  const getTypeChipClass = (type: string): string => {
+    switch (type) {
+      case 'general': return 'bg-[#F1F4F9] text-[#64748B]';
+      case 'healing': return 'bg-[#EAF1FE] text-[#2563EB]';
+      case 'family': return 'bg-[#F0E6EF] text-[#8A5A86]';
+      case 'work': return 'bg-[#FBF1E3] text-[#B45309]';
+      case 'ministry': return 'bg-[#E7F6EC] text-[#16A34A]';
+      default: return 'bg-[#F1F4F9] text-[#64748B]';
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="중보기도 관리"
       />
+
+      {/* KPI strip — 전체 / 진행중 / 응답됨 / 긴급 */}
+      {stats && (
+        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#EEF3FC] text-primary">
+                <Heart className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">전체 요청</div>
+                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.total}</div>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#EAF1FE] text-[#2563EB]">
+                <Clock className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">진행 중</div>
+                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.active}</div>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
+                <Check className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">응답됨</div>
+                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.answered}</div>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
+                <AlertTriangle className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">긴급</div>
+                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.urgent}</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* 검색 및 필터 */}
       <div className="flex items-start gap-3">
@@ -402,126 +464,184 @@ const PrayerRequests: React.FC = () => {
         </Button>
       </div>
 
-      {/* 기도요청 목록 */}
-      <Card className="border-muted">
-        {loading ? (
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">기도요청을 불러오는 중...</p>
-            </div>
+      {/* 기도요청 카드 그리드 — 시안 .pr-card 매핑 */}
+      {loading ? (
+        <Card>
+          <LoadingState text="기도요청을 불러오는 중..." />
+        </Card>
+      ) : filteredRequests.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Heart className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <p className="text-[13px] text-muted-foreground">기도요청이 없습니다.</p>
           </CardContent>
-        ) : filteredRequests.length === 0 ? (
-          <CardContent className="text-center py-12">
-            <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">기도요청이 없습니다.</p>
-          </CardContent>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    요청자
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    조직
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    부서
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    기도 내용
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    생성일
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
-                  <tr
-                    key={request.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {filteredRequests.map((request) => (
+            <div
+              key={request.id}
+              className={cn(
+                'flex cursor-pointer flex-col rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
+                request.isUrgent && 'border-l-[3px] border-l-[#DC2626]'
+              )}
+              onClick={() => {
+                setSelectedRequest(request);
+                setShowDetailModal(true);
+              }}
+            >
+              {/* head — 시안 .pr-head */}
+              <div className="flex items-start gap-[11px]">
+                {/* 아바타 40px — 시안 .pr-av */}
+                <div className="flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
+                  {request.profilePhotoUrl && !request.isAnonymous ? (
+                    <img
+                      src={request.profilePhotoUrl}
+                      alt={request.requesterName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : request.isAnonymous ? (
+                    <Heart className="h-5 w-5" />
+                  ) : (
+                    <span className="text-[15px] font-bold">
+                      {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
+                    </span>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  {/* 이름 + 긴급 칩 */}
+                  <div className="flex flex-wrap items-center gap-[7px]">
+                    <span className="text-[14px] font-bold text-foreground">
+                      {request.isAnonymous ? '익명' : request.requesterName}
+                    </span>
+                    {request.isUrgent && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#FCEBEB] px-[8px] py-[2px] text-[10.5px] font-bold text-[#DC2626] whitespace-nowrap">
+                        <AlertTriangle className="h-3 w-3" />
+                        긴급
+                      </span>
+                    )}
+                  </div>
+                  {/* 유형 칩 + 공개 · 시간 */}
+                  <div className="mt-[2px] flex flex-wrap items-center gap-[6px] text-[11.5px] text-[#94A3B8]">
+                    <span className={cn(
+                      'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
+                      getTypeChipClass(request.prayerType)
+                    )}>
+                      {getTypeText(request.prayerType)}
+                    </span>
+                    <span>
+                      {request.isPublic ? '전체 공개' : '비공개'} · {formatTimeAgo(request.createdAt) || formatDate(request.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 상태 칩 (우측 상단) */}
+                <span className={cn(
+                  'inline-flex flex-shrink-0 rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
+                  getStatusColor(request.status)
+                )}>
+                  {getStatusText(request.status)}
+                </span>
+              </div>
+
+              {/* 기도 내용 — 시안 .pr-txt */}
+              <div className="my-[13px] flex-1 text-[13px] leading-[1.6] text-[#475569] line-clamp-3">
+                {request.prayerContent}
+              </div>
+
+              {/* 응답 간증 — 시안 .pr-ans (있을 때만) */}
+              {request.answeredTestimony && (
+                <div className="mb-[13px] rounded-[10px] border border-[#CDEBD7] bg-[#F0FAF3] px-[13px] py-[11px]">
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-[#16A34A]">
+                    <Check className="h-3 w-3" />
+                    응답 간증
+                  </div>
+                  <div className="text-[12.5px] leading-[1.5] text-[#3F7A4E]">
+                    {request.answeredTestimony}
+                  </div>
+                </div>
+              )}
+
+              {/* 푸터 — 시안 .pr-foot */}
+              <div
+                className="flex items-center gap-2 border-t border-[#F1F4F9] pt-[13px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 기도수 — 시안 .pr-cnt (빨간 하트 + 숫자) */}
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-bold text-[#DC2626]">
+                  <Heart className="h-[15px] w-[15px]" />
+                  {request.prayerCount}
+                  <small className="text-[11.5px] font-medium text-[#94A3B8]">명</small>
+                </span>
+
+                <div className="flex-1" />
+
+                {/* 액션 버튼 */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1 bg-[#FCEBEB] text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRequest(request);
+                    setShowDetailModal(true);
+                  }}
+                >
+                  <Heart className="h-3.5 w-3.5" />
+                  기도하기
+                </Button>
+                {request.status === 'active' ? (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedRequest(request);
                       setShowDetailModal(true);
                     }}
+                    className="gap-1"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          {request.profilePhotoUrl ? (
-                            <img
-                              src={request.profilePhotoUrl}
-                              alt={request.requesterName}
-                              className="h-10 w-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User className="h-6 w-6 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {request.isAnonymous ? '익명' : request.requesterName}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.organizationName || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {request.department || '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {request.prayerContent}
-                      </div>
-                      <div className="flex items-center mt-1">
-                        {request.isUrgent && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            긴급
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(request.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteRequest(request);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600 hover:text-red-900 h-8 w-8 p-0"
-                        title="삭제"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+                    <Check className="h-3.5 w-3.5" />
+                    응답 처리
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRequest(request);
+                      setShowDetailModal(true);
+                    }}
+                    className="gap-1"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    상세
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRequest(request);
+                  }}
+                  title="삭제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Total Count Display */}
       {filteredRequests.length > 0 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            전체 {filteredRequests.length.toLocaleString()}건
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[12.5px] text-muted-foreground">
+            전체 <b className="text-foreground">{filteredRequests.length.toLocaleString()}</b>건
           </div>
         </div>
       )}

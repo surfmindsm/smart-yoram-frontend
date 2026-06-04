@@ -35,19 +35,26 @@ export function Header() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}>
+      <header className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-card/95 shadow-sm backdrop-blur-md' : 'bg-card/80 backdrop-blur-sm'}`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollToSection('hero')}>
+            <div className="flex cursor-pointer items-center gap-3" onClick={() => scrollToSection('hero')}>
               <img
                 src="/logo_yoram.png"
                 alt="Church Round"
                 className="h-10 w-auto"
               />
-              <div>
-                <h1 className="text-xl text-gray-900 leading-tight font-bold">Church Round</h1>
-                <p className="text-xs text-gray-500 font-light">스마트 요람 플랫폼</p>
-              </div>
+              <span style={{ fontSize: '22px', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                <span
+                  className="text-primary"
+                  style={{ fontFamily: 'Newsreader, Georgia, serif', fontStyle: 'italic', fontWeight: 500 }}
+                >
+                  church
+                </span>
+                <span className="text-foreground" style={{ fontWeight: 800, marginLeft: 4 }}>
+                  round
+                </span>
+              </span>
             </div>
 
             <nav className="hidden lg:flex items-center gap-10">
@@ -55,7 +62,7 @@ export function Header() {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 font-medium"
+                  className="text-[13.5px] font-semibold text-muted-foreground transition-colors duration-200 hover:text-foreground"
                 >
                   {item.label}
                 </button>
@@ -65,41 +72,41 @@ export function Header() {
             <div className="hidden lg:flex items-center gap-3">
               <button
                 onClick={() => navigate('/login')}
-                className="px-5 py-2.5 text-sm bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all font-medium"
+                className="h-[38px] rounded-[8px] bg-primary px-5 text-[13.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 관리자 로그인
               </button>
             </div>
 
             <button
-              className="lg:hidden p-2 rounded-2xl hover:bg-gray-100 transition-colors"
+              className="rounded-[8px] p-2 transition-colors hover:bg-secondary lg:hidden"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6 text-gray-900" /> : <Menu className="w-6 h-6 text-gray-900" />}
+              {isMobileMenuOpen ? <X className="h-6 w-6 text-foreground" /> : <Menu className="h-6 w-6 text-foreground" />}
             </button>
           </div>
         </div>
       </header>
 
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-20 bg-white z-[60] overflow-y-auto">
+        <div className="fixed inset-0 top-20 z-[60] overflow-y-auto bg-card lg:hidden">
           <nav className="flex flex-col gap-2 p-6">
             {navigationItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className="text-left text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors py-3 px-4 font-medium text-base rounded-xl"
+                className="rounded-[8px] px-4 py-3 text-left text-base font-semibold text-foreground transition-colors hover:bg-[#FAFBFD]"
               >
                 {item.label}
               </button>
             ))}
-            <div className="pt-2 mt-2 border-t border-gray-200">
+            <div className="mt-2 border-t border-border pt-2">
               <button
                 onClick={() => {
                   navigate('/login');
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full px-5 py-3.5 text-base bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-medium"
+                className="w-full rounded-[8px] bg-primary px-5 py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 관리자 로그인
               </button>

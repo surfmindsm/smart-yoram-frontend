@@ -59,18 +59,20 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 - Temporary token system for Edge Functions: `temp_token_{user_id}_{timestamp}`
 - PrivateRoute wrapper protects authenticated routes
 
+**Source Layout (`src/`):**
+- `components/` — feature components (Community, Landing, chat subfolders included)
+- `pages/` — route-level pages
+- `services/` — API services (one file per domain: `communityService.ts`, `financialApi.ts`, etc.)
+- `hooks/`, `contexts/`, `lib/`, `utils/`, `constants/`, `types/`, `data/`, `api/`
+- `setupProxy.js` — CRA dev proxy to legacy backend at `http://localhost:8000` (also set via `"proxy"` field in `package.json`)
+- TS path alias `@/*` → `./src/*`
+
+**UI Component Versions:**
+- `/src/components/ui/`: **Active** — current shadcn/ui components (USE THIS)
+- `/src/components/ui_old/`, `/src/components/ui2/`: deprecated, do not add to
+
 **Component Organization:**
-- Main components in `/src/components/`
-- Community-specific components in `/src/components/Community/`
-- Chat-related components in `/src/components/chat/`
-- Landing page components in `/src/components/Landing/`
-- **UI Component Versions:**
-  - `/src/components/ui/`: **Active** - Current shadcn/ui components (USE THIS)
-  - `/src/components/ui_old/`: Legacy UI components (deprecated)
-  - `/src/components/ui2/`: Alternative UI variants (deprecated)
-  - Always use components from `/src/components/ui/` for consistency
-- Lazy loading throughout App.tsx for code splitting
-- Extensive use of React.Suspense for component lazy loading
+- Lazy loading throughout `App.tsx` for code splitting (React.lazy + Suspense)
 
 **State Management:**
 - No global state manager - uses React hooks and local state
@@ -115,8 +117,8 @@ This is a React 19 + TypeScript church management admin dashboard with Supabase 
 ### Supabase Integration
 
 **Edge Functions:**
-- Located in `admin-dashboard/supabase/functions/`
-- 57 Edge Functions organized by feature:
+- Located in `admin-dashboard/supabase/functions/` (~55 functions; run `ls supabase/functions/` for the current set)
+- Organized by feature:
 
 **Financial Management:**
 - `accounting`: General ledger, transactions, budget tracking

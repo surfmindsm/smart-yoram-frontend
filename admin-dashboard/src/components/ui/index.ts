@@ -155,7 +155,7 @@ export {
   SheetDescription
 } from './sheet'
 export { Skeleton } from './skeleton'
-export { Spinner } from './spinner'
+export { Spinner, LoadingState } from './spinner'
 export { Slider } from './slider'
 export { Switch } from './switch'
 export {

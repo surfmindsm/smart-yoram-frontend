@@ -219,21 +219,21 @@ const ChurchSettings: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="">
       {/* 헤더 */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">시스템 설정</h1>
-        <p className="text-slate-600">GPT API, 데이터베이스 연결 및 교회 정보를 관리합니다</p>
+        <h1 className="mb-1 text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">시스템 설정</h1>
+        <p className="text-muted-foreground">GPT API, 데이터베이스 연결 및 교회 정보를 관리합니다</p>
       </div>
 
       {/* 에러 표시 */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 rounded-md">
+        <div className="rounded-[12px] border border-[#FAD9D9] bg-[#FCEBEB] text-[#DC2626] px-4 py-3 mb-6 rounded-md">
           <div className="flex items-center justify-between">
             <span className="text-sm">{error}</span>
             <button 
               onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-600"
+              className="text-[#DC2626] hover:opacity-80"
             >
               ✕
             </button>
@@ -242,14 +242,14 @@ const ChurchSettings: React.FC = () => {
       )}
 
       {/* 탭 네비게이션 */}
-      <div className="border-b border-slate-200 mb-6">
+      <div className="border-b border-border mb-6">
         <div className="flex space-x-8">
           <button
             className={cn(
               "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
               activeTab === 'gpt'
                 ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
             onClick={() => setActiveTab('gpt')}
           >
@@ -261,7 +261,7 @@ const ChurchSettings: React.FC = () => {
               "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
               activeTab === 'database'
                 ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
             onClick={() => setActiveTab('database')}
           >
@@ -273,7 +273,7 @@ const ChurchSettings: React.FC = () => {
               "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
               activeTab === 'profile'
                 ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
             onClick={() => setActiveTab('profile')}
           >
@@ -285,33 +285,33 @@ const ChurchSettings: React.FC = () => {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-slate-400">설정을 불러오는 중...</div>
+          <div className="text-[#94A3B8]">설정을 불러오는 중...</div>
         </div>
       ) : (
         <>
           {/* GPT API 설정 */}
           {activeTab === 'gpt' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">OpenAI GPT API 설정</h3>
+              <div className="rounded-[12px] border border-border bg-card p-[18px]">
+                <h3 className="mb-4 text-[14px] font-bold text-foreground">OpenAI GPT API 설정</h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       API 키
                     </label>
                     <div className="relative">
                       <input
                         type={showApiKey ? "text" : "password"}
                         placeholder="sk-..."
-                        className="w-full p-3 pr-20 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 pr-20 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={gptConfig.api_key}
                         onChange={(e) => setGptConfig({ ...gptConfig, api_key: e.target.value })}
                       />
                       <button
                         type="button"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#94A3B8] hover:text-muted-foreground"
                       >
                         {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -320,11 +320,11 @@ const ChurchSettings: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         모델
                       </label>
                       <select
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={gptConfig.model}
                         onChange={(e) => setGptConfig({ ...gptConfig, model: e.target.value })}
                       >
@@ -335,21 +335,21 @@ const ChurchSettings: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         최대 토큰
                       </label>
                       <input
                         type="number"
                         min="100"
                         max="8000"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={gptConfig.max_tokens}
                         onChange={(e) => setGptConfig({ ...gptConfig, max_tokens: parseInt(e.target.value) })}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Temperature (0-1)
                       </label>
                       <input
@@ -357,7 +357,7 @@ const ChurchSettings: React.FC = () => {
                         min="0"
                         max="1"
                         step="0.1"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={gptConfig.temperature}
                         onChange={(e) => setGptConfig({ ...gptConfig, temperature: parseFloat(e.target.value) })}
                       />
@@ -365,7 +365,7 @@ const ChurchSettings: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between py-4">
-                    <label className="text-sm font-medium text-slate-900">API 활성화</label>
+                    <label className="text-sm font-medium text-foreground">API 활성화</label>
                     <button
                       onClick={() => setGptConfig({ ...gptConfig, is_active: !gptConfig.is_active })}
                       className={cn(
@@ -409,7 +409,7 @@ const ChurchSettings: React.FC = () => {
           {activeTab === 'database' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-slate-900">데이터베이스 연결</h3>
+                <h3 className="text-lg font-semibold text-foreground">데이터베이스 연결</h3>
                 <Button
                   onClick={() => setShowDbModal(true)}
                   className="bg-slate-800 hover:bg-slate-900 text-white"
@@ -421,13 +421,13 @@ const ChurchSettings: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4">
                 {dbConnections.map((connection) => (
-                  <div key={connection.id} className="bg-white p-6 rounded-lg border border-slate-200">
+                  <div key={connection.id} className="rounded-[12px] border border-border bg-card p-[18px]">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <Database className="h-5 w-5 text-slate-400" />
+                        <Database className="h-5 w-5 text-[#94A3B8]" />
                         <div>
-                          <h4 className="font-semibold text-slate-900">{connection.name}</h4>
-                          <p className="text-sm text-slate-500">
+                          <h4 className="font-semibold text-foreground">{connection.name}</h4>
+                          <p className="text-sm text-muted-foreground">
                             {connection.type.toUpperCase()} - {connection.host}:{connection.port}
                           </p>
                         </div>
@@ -473,32 +473,32 @@ const ChurchSettings: React.FC = () => {
           {/* 교회 정보 설정 */}
           {activeTab === 'profile' && (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">교회 기본 정보</h3>
+              <div className="rounded-[12px] border border-border bg-card p-[18px]">
+                <h3 className="mb-4 text-[14px] font-bold text-foreground">교회 기본 정보</h3>
                 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         교회명
                       </label>
                       <input
                         type="text"
                         placeholder="○○교회"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={churchProfile.name}
                         onChange={(e) => setChurchProfile({ ...churchProfile, name: e.target.value })}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         담임목사님
                       </label>
                       <input
                         type="text"
                         placeholder="홍길동 목사"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={churchProfile.pastor_name}
                         onChange={(e) => setChurchProfile({ ...churchProfile, pastor_name: e.target.value })}
                       />
@@ -506,13 +506,13 @@ const ChurchSettings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       교회 주소
                     </label>
                     <input
                       type="text"
                       placeholder="서울시 강남구..."
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                       value={churchProfile.address}
                       onChange={(e) => setChurchProfile({ ...churchProfile, address: e.target.value })}
                     />
@@ -520,26 +520,26 @@ const ChurchSettings: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         연락처
                       </label>
                       <input
                         type="tel"
                         placeholder="02-1234-5678"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={churchProfile.contact_phone}
                         onChange={(e) => setChurchProfile({ ...churchProfile, contact_phone: e.target.value })}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-900 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         이메일
                       </label>
                       <input
                         type="email"
                         placeholder="contact@church.com"
-                        className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                         value={churchProfile.contact_email}
                         onChange={(e) => setChurchProfile({ ...churchProfile, contact_email: e.target.value })}
                       />
@@ -547,13 +547,13 @@ const ChurchSettings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       교회 소개
                     </label>
                     <textarea
                       placeholder="교회에 대한 간단한 소개를 입력해주세요..."
                       rows={4}
-                      className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                      className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                       value={churchProfile.description || ''}
                       onChange={(e) => setChurchProfile({ ...churchProfile, description: e.target.value })}
                     />
@@ -579,28 +579,28 @@ const ChurchSettings: React.FC = () => {
       {showDbModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">새 데이터베이스 연결</h3>
+            <h3 className="mb-4 text-[14px] font-bold text-foreground">새 데이터베이스 연결</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   연결 이름
                 </label>
                 <input
                   type="text"
                   placeholder="메인 데이터베이스"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newDbConnection.name}
                   onChange={(e) => setNewDbConnection({ ...newDbConnection, name: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   데이터베이스 유형
                 </label>
                 <select
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newDbConnection.type}
                   onChange={(e) => {
                     const dbType = e.target.value as 'mysql' | 'postgresql' | 'sqlserver';
@@ -620,25 +620,25 @@ const ChurchSettings: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     호스트
                   </label>
                   <input
                     type="text"
                     placeholder="localhost"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={newDbConnection.host}
                     onChange={(e) => setNewDbConnection({ ...newDbConnection, host: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     포트
                   </label>
                   <input
                     type="number"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={newDbConnection.port}
                     onChange={(e) => setNewDbConnection({ ...newDbConnection, port: parseInt(e.target.value) })}
                   />
@@ -646,13 +646,13 @@ const ChurchSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   데이터베이스명
                 </label>
                 <input
                   type="text"
                   placeholder="church_db"
-                  className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={newDbConnection.database}
                   onChange={(e) => setNewDbConnection({ ...newDbConnection, database: e.target.value })}
                 />
@@ -660,26 +660,26 @@ const ChurchSettings: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     사용자명
                   </label>
                   <input
                     type="text"
                     placeholder="username"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={newDbConnection.username}
                     onChange={(e) => setNewDbConnection({ ...newDbConnection, username: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     비밀번호
                   </label>
                   <input
                     type="password"
                     placeholder="password"
-                    className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={newDbConnection.password}
                     onChange={(e) => setNewDbConnection({ ...newDbConnection, password: e.target.value })}
                   />

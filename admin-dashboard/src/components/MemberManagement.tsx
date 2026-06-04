@@ -14,6 +14,7 @@ import {
   QrCode,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   User,
   UserPlus,
   Trash2,
@@ -34,6 +35,7 @@ import {
   Settings,
   Shield,
   Phone,
+  Mail,
   Church,
   ArrowRightLeft,
   Car,
@@ -46,13 +48,14 @@ import { cn } from '../lib/utils';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { Badge } from "./ui";
 import { usePermissions } from '../contexts/PermissionContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "./ui";
 import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
-import { PageContainer, PageHeader, FilterBar } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { DatePicker } from "./ui/date-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
@@ -185,6 +188,9 @@ const MemberManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [invitationStatusFilter, setInvitationStatusFilter] = useState<string[]>([]);
+  // 시안 매핑 필터 (직분 / 구역)
+  const [positionFilter, setPositionFilter] = useState<string>('all');
+  const [organizationFilter, setOrganizationFilter] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -307,6 +313,22 @@ const MemberManagement: React.FC = () => {
     });
     return result;
   };
+
+  // organization_id로부터 루트까지의 계층 경로 문자열 생성 (예: "장년부 / 1구역 / A조")
+  const getOrgPath = React.useCallback((orgId?: string | null): string[] => {
+    if (!orgId || organizations.length === 0) return [];
+    const map = new Map(organizations.map(o => [o.id, o]));
+    const path: string[] = [];
+    let cur = map.get(orgId);
+    let safety = 0;
+    while (cur && safety < 20) {
+      path.unshift(cur.name);
+      if (!cur.parent_id) break;
+      cur = map.get(cur.parent_id);
+      safety += 1;
+    }
+    return path;
+  }, [organizations]);
 
   // 서버에서 원본 데이터 가져오기 (캐싱)
   const fetchMembers = async () => {
@@ -445,6 +467,16 @@ const MemberManagement: React.FC = () => {
       });
     }
 
+    // 시안 매핑: 직분 / 구역 / 상태 필터
+    if (positionFilter !== 'all') {
+      filteredData = filteredData.filter((m: any) => m.position_main === positionFilter);
+    }
+    if (organizationFilter !== 'all') {
+      filteredData = filteredData.filter((m: any) =>
+        String(m.organization_id ?? '') === organizationFilter ||
+        m.organization_name === organizationFilter
+      );
+    }
     // Sort all filtered data (before pagination)
     if (sortField) {
       filteredData.sort((a, b) => {
@@ -459,7 +491,7 @@ const MemberManagement: React.FC = () => {
     }
 
     return filteredData;
-  }, [allMembers, searchTerm, invitationStatusFilter, sortField, sortOrder, isAdvancedSearchActive, advancedSearchData]);
+  }, [allMembers, searchTerm, invitationStatusFilter, positionFilter, organizationFilter, sortField, sortOrder, isAdvancedSearchActive, advancedSearchData]);
 
   // useMemo로 페이지네이션된 데이터 캐싱 (페이지가 변경될 때만 재계산)
   const paginatedMembers = useMemo(() => {
@@ -2003,19 +2035,79 @@ Church Round 앱에 초대되셨습니다.
     return `${process.env.REACT_APP_API_URL}${cleanedUrl}`;
   };
 
+  // 탑바 부제 설정 (Hook은 early return 전에 호출해야 함)
+  // 전체 N명 표시 (시안 매핑 — 새가족 카운트는 별도 데이터 필요)
+  usePageSubtitle(pagination.total_count > 0 ? `전체 ${pagination.total_count.toLocaleString()}명` : undefined);
+
+  // 탑바 우측 액션: 엑셀 다운 / 엑셀 등록 / 교인 등록 (시안 매핑)
+  // 선택된 교인이 있을 때만 bulk 액션 추가 노출
+  usePageActions(
+    <>
+      {selectedMembers.size > 0 && (
+        <>
+          <Badge variant="info">{selectedMembers.size}명 선택</Badge>
+          <Button
+            onClick={handleBulkDelete}
+            disabled={isBulkDeleting}
+            variant="destructive-soft"
+            size="sm"
+            className="gap-2"
+          >
+            {isBulkDeleting ? <Spinner size="sm" /> : <Trash2 className="h-3.5 w-3.5" />}
+            삭제
+          </Button>
+          <Button
+            onClick={handleBulkInvitation}
+            disabled={isBulkInviting}
+            variant="success-soft"
+            size="sm"
+            className="gap-2"
+          >
+            {isBulkInviting ? <Spinner size="sm" /> : <Send className="h-3.5 w-3.5" />}
+            앱 초대
+          </Button>
+          <div className="mx-1 h-5 w-px bg-border" />
+        </>
+      )}
+      <Button
+        onClick={downloadMembersExcel}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+      >
+        <Download className="h-3.5 w-3.5" />
+        엑셀 다운
+      </Button>
+      {canCreateMember && (
+        <>
+          <Button
+            onClick={() => setShowExcelImportModal(true)}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            엑셀 등록
+          </Button>
+          <Button
+            onClick={() => navigate('/member-management/add')}
+            size="sm"
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            교인 등록
+          </Button>
+        </>
+      )}
+    </>,
+    [selectedMembers.size, isBulkDeleting, isBulkInviting, canCreateMember]
+  );
+
   if (loading) {
     return (
       <PageContainer>
-        <PageHeader
-          title="교인 관리"
-        />
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">교인 목록을 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="교인 목록을 불러오는 중..." />
         </Card>
       </PageContainer>
     );
@@ -2023,94 +2115,13 @@ Church Round 앱에 초대되셨습니다.
 
   return (
     <PageContainer>
-      <PageHeader
-        title={
-          <div className="flex items-center gap-4">
-            <span>교인 관리</span>
-            {selectedMembers.size > 0 && (
-              <Badge variant="default" className="text-sm px-3 py-1">
-                {selectedMembers.size}명 선택됨
-              </Badge>
-            )}
-          </div>
-        }
-        actions={
-          <>
-            {selectedMembers.size > 0 && (
-              <>
-                <Button
-                  onClick={handleBulkDelete}
-                  disabled={isBulkDeleting}
-                  variant="destructive"
-                  className="flex items-center gap-2"
-                >
-                  {isBulkDeleting ? (
-                    <Spinner size="sm" variant="white" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                  선택한 교인 삭제 ({selectedMembers.size}명)
-                </Button>
-                <Button
-                  onClick={handleBulkInvitation}
-                  disabled={isBulkInviting}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  {isBulkInviting ? (
-                    <Spinner size="sm" variant="white" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  선택한 교인 앱으로 초대 ({selectedMembers.size}명)
-                </Button>
-              </>
-            )}
-            <Button
-              onClick={downloadMembersExcel}
-              variant="outline"
-              className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
-            >
-              <Download className="w-4 h-4" />
-              교인 데이터 다운로드
-            </Button>
-            <Button
-              onClick={downloadExcelTemplate}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              엑셀 템플릿 다운로드
-            </Button>
-            {canCreateMember && (
-              <>
-                <Button
-                  onClick={() => setShowExcelImportModal(true)}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  엑셀 일괄 등록
-                </Button>
-                <Button
-                  onClick={() => navigate('/member-management/add')}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  교인 추가
-                </Button>
-              </>
-            )}
-          </>
-        }
-      />
-
-
-      {/* Search and Filter */}
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* === 검색·필터 + 테이블을 한 카드로 통합 — 시안 매핑 === */}
+      <Card className="overflow-hidden">
+        {/* 검색 + 필터 바 (카드 헤더 자리) */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
           <Input
             type="text"
-            placeholder="이름 또는 전화번호 (초성 실시간 검색: ㄱㅊㅅ)"
+            placeholder="이름, 전화번호로 검색"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -2119,23 +2130,15 @@ Church Round 앱에 초대되셨습니다.
               }
             }}
             onKeyPress={handleKeyPress}
-            className="w-full md:w-[400px]"
+            className="w-full md:w-[320px]"
             disabled={isAdvancedSearchActive}
           />
-          {searchTerm && !isAdvancedSearchActive && (
-            <Button
-              onClick={handleClearSearch}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              전체보기
-            </Button>
-          )}
+
+          {/* 상세검색 — 검색바 우측에 바로 배치 */}
           <div
             className={cn(
-              "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
-              isAdvancedSearchActive && "border-blue-300 text-blue-700"
+              "inline-flex h-[38px] items-center gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-[#334155] cursor-pointer transition-colors",
+              isAdvancedSearchActive && "border-primary/40 text-primary"
             )}
           >
             <div
@@ -2170,189 +2173,178 @@ Church Round 앱에 초대되셨습니다.
               />
             )}
           </div>
-          <Popover>
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
-                invitationStatusFilter.length > 0 && "border-blue-300 text-blue-700"
-              )}
+
+          {searchTerm && !isAdvancedSearchActive && (
+            <Button
+              onClick={handleClearSearch}
+              variant="outline"
+              size="sm"
+              className="gap-2"
             >
-              <PopoverTrigger asChild>
-                <div className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-sm">초대상태</span>
-                  {invitationStatusFilter.length === 0 && (
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  )}
-                </div>
-              </PopoverTrigger>
-              {invitationStatusFilter.length > 0 && (
-                <X
-                  className="h-4 w-4 opacity-50 hover:opacity-100 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setInvitationStatusFilter([]);
-                  }}
-                />
-              )}
-            </div>
-            <PopoverContent className="w-[200px] p-3" align="start">
-              <div className="space-y-2">
+              <X className="w-3.5 h-3.5" />
+              초기화
+            </Button>
+          )}
+
+          <div className="flex-1" />
+
+          {/* 시안 매핑 필터 — 직분 / 구역 / 초대상태 */}
+          <Select value={positionFilter} onValueChange={setPositionFilter}>
+            <SelectTrigger className="h-[38px] w-auto min-w-[120px] gap-2">
+              <span className="text-[12.5px] text-muted-foreground">직분</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              {ADMIN_POSITION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.mainValue} value={opt.mainValue}>
+                  {opt.mainLabel}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+            <SelectTrigger className="h-[38px] w-auto min-w-[120px] gap-2">
+              <span className="text-[12.5px] text-muted-foreground">구역</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              {organizations.map((org) => (
+                <SelectItem key={org.id} value={String(org.id)}>
+                  {org.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-[38px] w-auto min-w-[140px] items-center justify-between gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-foreground transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-[12.5px] text-muted-foreground">초대상태</span>
+                  <span className="font-medium">
+                    {invitationStatusFilter.length === 0
+                      ? '전체'
+                      : invitationStatusFilter.length === 1
+                        ? getInvitationStatusText(invitationStatusFilter[0])
+                        : `${invitationStatusFilter.length}개 선택`}
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-0" align="end">
+              {/* 옵션 리스트 */}
+              <div className="py-1.5">
                 {[
                   { value: 'pending', label: '대기중' },
                   { value: 'sent', label: '발송완료' },
                   { value: 'active', label: '등록완료' },
                   { value: 'failed', label: '발송실패' }
-                ].map((option) => (
-                  <div key={option.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`status-${option.value}`}
-                      checked={invitationStatusFilter.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setInvitationStatusFilter([...invitationStatusFilter, option.value]);
-                        } else {
-                          setInvitationStatusFilter(
-                            invitationStatusFilter.filter((s) => s !== option.value)
-                          );
-                        }
-                      }}
-                    />
+                ].map((option) => {
+                  const checked = invitationStatusFilter.includes(option.value);
+                  return (
                     <label
+                      key={option.value}
                       htmlFor={`status-${option.value}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-secondary"
                     >
-                      {option.label}
+                      <Checkbox
+                        id={`status-${option.value}`}
+                        checked={checked}
+                        onCheckedChange={(c) => {
+                          if (c) {
+                            setInvitationStatusFilter([...invitationStatusFilter, option.value]);
+                          } else {
+                            setInvitationStatusFilter(
+                              invitationStatusFilter.filter((s) => s !== option.value)
+                            );
+                          }
+                        }}
+                      />
+                      <span className="flex-1">{option.label}</span>
                     </label>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              {/* 초기화 — 선택값 있을 때만 하단에 */}
+              {invitationStatusFilter.length > 0 && (
+                <div className="border-t border-border px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setInvitationStatusFilter([])}
+                    className="text-[12px] font-semibold text-primary hover:underline"
+                  >
+                    선택 초기화
+                  </button>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         </div>
-      </div>
 
-      {/* Members Display */}
-      <Card className="overflow-hidden">
+        {/* === 테이블 (같은 카드 안) === */}
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50">
+          <table className="w-full min-w-[1000px] text-[12.5px]">
+            <thead className="bg-[#FAFBFD]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="w-[44px] px-[18px] py-3 text-left">
                   <input
                     type="checkbox"
                     checked={selectedMembers.size === members.length && members.length > 0}
                     onChange={handleToggleAllMembers}
-                    className="rounded border-gray-300"
+                    className="h-4 w-4 rounded border-border accent-primary"
                   />
                 </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('name')}
-                >
-                  <span className="flex items-center gap-1">
-                    이름
-                    {sortField === 'name' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('gender')}
-                >
-                  <span className="flex items-center gap-1">
-                    성별
-                    {sortField === 'gender' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('phone')}
-                >
-                  <span className="flex items-center gap-1">
-                    전화번호
-                    {sortField === 'phone' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('position_main')}
-                >
-                  <span className="flex items-center gap-1">
-                    직분 대분류
-                    {sortField === 'position_main' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('position_detail')}
-                >
-                  <span className="flex items-center gap-1">
-                    직분 세부
-                    {sortField === 'position_detail' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('organization_name')}
-                >
-                  <span className="flex items-center gap-1">
-                    조직
-                    {sortField === 'organization_name' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('department')}
-                >
-                  <span className="flex items-center gap-1">
-                    부서
-                    {sortField === 'department' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('invitation_status')}
-                >
-                  <span className="flex items-center gap-1">
-                    초대상태
-                    {sortField === 'invitation_status' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </span>
-                </th>
+                {/* 기존 컬럼: 이름 / 성별 / 전화번호 / 직분 대분류 / 직분 세부 / 조직 / 부서 / 초대상태 */}
+                {[
+                  { key: 'name', label: '이름' },
+                  { key: 'gender', label: '성별' },
+                  { key: 'phone', label: '전화번호' },
+                  { key: 'position_main', label: '직분 대분류' },
+                  { key: 'position_detail', label: '직분 세부' },
+                  { key: 'organization_name', label: '조직' },
+                  { key: 'department', label: '부서' },
+                  { key: 'invitation_status', label: '초대상태' },
+                ].map((col) => (
+                  <th
+                    key={col.key}
+                    className="cursor-pointer px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    onClick={() => handleSort(col.key as any)}
+                  >
+                    <span className="flex items-center gap-1">
+                      {col.label}
+                      {sortField === col.key && (
+                        sortOrder === 'asc' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-[#F1F4F9] bg-card">
               {members.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <tr key={member.id} className="transition-colors hover:bg-[#FAFBFD]">
+                  <td className="px-[18px] py-3" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedMembers.has(member.id)}
                       onChange={() => handleToggleMemberSelection(member.id)}
-                      className="rounded border-gray-300"
+                      className="h-4 w-4 rounded border-border accent-primary"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
+                  {/* 이름 (아바타 + 한글명) */}
+                  <td className="cursor-pointer px-[18px] py-3" onClick={() => handleMemberClick(member)}>
+                    <div className="flex items-center gap-[11px]">
+                      <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
                         {cleanPhotoUrl(member.profile_photo_url) ? (
                           <img
-                            className="h-10 w-10 rounded-full object-cover"
+                            className="h-full w-full object-cover"
                             src={cleanPhotoUrl(member.profile_photo_url)!}
                             alt={member.name}
                             loading="lazy"
@@ -2366,34 +2358,62 @@ Church Round 앱에 초대되셨습니다.
                             }}
                           />
                         ) : null}
-                        <div className={`h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center ${cleanPhotoUrl(member.profile_photo_url) ? 'hidden' : ''}`}>
-                          <User className="w-5 h-5 text-gray-600" />
+                        <div className={`flex h-full w-full items-center justify-center text-[13px] font-bold ${cleanPhotoUrl(member.profile_photo_url) ? 'hidden' : ''}`}>
+                          {member.name?.charAt(0) || <User className="h-4 w-4" />}
                         </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                      </div>
+                      <div className="font-semibold text-foreground">{member.name}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  {/* 성별 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
                     {getGenderText(member.gender)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {member.phone}
+                  {/* 전화번호 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                    {member.phone || <span className="text-[#94A3B8]">-</span>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {getPositionMainLabel(member.position_main)}
+                  {/* 직분 대분류 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                    {member.position_main
+                      ? getPositionMainLabel(member.position_main)
+                      : <span className="text-[#94A3B8]">-</span>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {getPositionDetailLabel(member.position_detail) || '-'}
+                  {/* 직분 세부 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                    {getPositionDetailLabel(member.position_detail) || <span className="text-[#94A3B8]">-</span>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {member.organization_name || '-'}
+                  {/* 조직 — 루트부터 최하위까지의 계층 경로 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                    {(() => {
+                      const path = getOrgPath(member.organization_id);
+                      if (path.length === 0) {
+                        return member.organization_name
+                          ? member.organization_name
+                          : <span className="text-[#94A3B8]">-</span>;
+                      }
+                      return (
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                          {path.map((name, i) => (
+                            <React.Fragment key={i}>
+                              {i > 0 && (
+                                <ChevronRight className="h-3 w-3 flex-shrink-0 text-[#CBD5E1]" />
+                              )}
+                              <span className={i === path.length - 1 ? 'text-foreground' : 'text-[#94A3B8]'}>
+                                {name}
+                              </span>
+                            </React.Fragment>
+                          ))}
+                        </span>
+                      );
+                    })()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleMemberClick(member)}>
-                    {member.department || '-'}
+                  {/* 부서 */}
+                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                    {member.department || <span className="text-[#94A3B8]">-</span>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleMemberClick(member)}>
+                  {/* 초대상태 */}
+                  <td className="cursor-pointer px-[18px] py-3" onClick={() => handleMemberClick(member)}>
                     <Badge variant={getInvitationStatusBadgeVariant(member.invitation_status || '')}>
                       {getInvitationStatusText(member.invitation_status || '')}
                     </Badge>
@@ -2406,16 +2426,16 @@ Church Round 앱에 초대되셨습니다.
       </Card>
 
       {members.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <p className="text-gray-600">등록된 교인이 없습니다.</p>
+        <div className="py-12 text-center">
+          <p className="text-[13px] text-muted-foreground">등록된 교인이 없습니다.</p>
         </div>
       )}
 
       {/* Total Count and Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="mt-4 flex items-center justify-between">
         {/* Total Count Display */}
-        <div className="text-sm text-gray-600">
-          전체 {pagination.total_count.toLocaleString()}명
+        <div className="text-[12.5px] text-muted-foreground">
+          전체 <b className="text-foreground">{pagination.total_count.toLocaleString()}</b>명
         </div>
 
         {/* Pagination */}
@@ -2446,7 +2466,7 @@ Church Round 앱에 초대되셨습니다.
           </DialogHeader>
           <form onSubmit={handleAddMember} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">이름 *</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이름 *</label>
               <Input
                 type="text"
                 required
@@ -2455,7 +2475,7 @@ Church Round 앱에 초대되셨습니다.
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이메일</label>
               <Input
                 type="email"
                 placeholder="example@email.com"
@@ -2465,7 +2485,7 @@ Church Round 앱에 초대되셨습니다.
               <p className="text-xs text-gray-600 mt-1">이메일이 있는 경우 앱 초대 시 임시 비밀번호가 발송됩니다.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">성별</label>
               <Select value={newMember.gender} onValueChange={(value) => setNewMember({...newMember, gender: value})}>
                 <SelectTrigger>
                   <SelectValue />
@@ -2477,7 +2497,7 @@ Church Round 앱에 초대되셨습니다.
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">생년월일</label>
               <DatePicker
                 value={newMember.birthdate}
                 onChange={(value) => setNewMember({...newMember, birthdate: value})}
@@ -2488,7 +2508,7 @@ Church Round 앱에 초대되셨습니다.
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">생년월일 구분</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">생년월일 구분</label>
               <Select
                 value={newMember.birthdate_type || '양력'}
                 onValueChange={(value) => setNewMember({...newMember, birthdate_type: value})}
@@ -2501,7 +2521,7 @@ Church Round 앱에 초대되셨습니다.
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">전화번호</label>
               <Input
                 type="tel"
                 placeholder="010-1234-5678"
@@ -2510,7 +2530,7 @@ Church Round 앱에 초대되셨습니다.
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">주소</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">주소</label>
               <Input
                 type="text"
                 value={newMember.address}
@@ -2518,7 +2538,7 @@ Church Round 앱에 초대되셨습니다.
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
+              <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직분 대분류</label>
               <Input
                 type="text"
                 placeholder="교역자, 직분자, 평신도 등"
@@ -2627,7 +2647,7 @@ Church Round 앱에 초대되셨습니다.
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">비밀번호</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">비밀번호</label>
                   <div className="flex items-center space-x-2">
                     <Input
                       type={showPassword ? "text" : "password"}
@@ -2783,26 +2803,25 @@ Church Round 앱에 초대되셨습니다.
           </DialogHeader>
 
           {selectedMember && (
-            <div className="space-y-8">
-              {/* Profile Photo & Status Section */}
-              <div className="text-center">
-                <div className="relative inline-block">
+            <div className="space-y-5">
+              {/* === Profile Band (시안 매핑: 사진 + 이름+영문 + 칩들 + 메타 한 줄) === */}
+              <div className="flex items-center gap-[18px] rounded-[12px] border border-border bg-card p-[18px]">
+                {/* 사진 (68px rounded-[16px]) */}
+                <div className="relative flex-shrink-0">
                   {cleanPhotoUrl(selectedMember.profile_photo_url) ? (
                     <img
                       src={cleanPhotoUrl(selectedMember.profile_photo_url)!}
                       alt={selectedMember.name}
-                      className="h-32 w-32 rounded-full object-cover mx-auto border-4 border-gray-200"
+                      className="h-[68px] w-[68px] rounded-[16px] object-cover"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="h-32 w-32 rounded-full bg-gray-100 flex items-center justify-center mx-auto border-4 border-gray-200">
-                      <User className="w-16 h-16 text-gray-400" />
+                    <div className="flex h-[68px] w-[68px] items-center justify-center rounded-[16px] bg-[#EEF3FC] text-[27px] font-bold text-primary">
+                      {selectedMember.name?.charAt(0) || <User className="h-10 w-10" />}
                     </div>
                   )}
-                  
-                  {/* Photo upload button in edit mode */}
                   {isEditMode && (
-                    <div className="absolute -bottom-2 -right-2">
+                    <div className="absolute -bottom-1.5 -right-1.5">
                       <input
                         type="file"
                         accept="image/*"
@@ -2817,40 +2836,100 @@ Church Round 앱에 초대되셨습니다.
                       />
                       <label
                         htmlFor="profile-photo-upload"
-                        className="bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-lg hover:bg-primary/90 flex items-center justify-center"
+                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="h-3.5 w-3.5" />
                       </label>
                     </div>
                   )}
                 </div>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <Badge variant={getStatusBadgeVariant(selectedMember.member_status)} className="text-sm px-3 py-1">
-                    {getStatusText(selectedMember.member_status)}
-                  </Badge>
-                  {selectedMember.registration_date && (
-                    <span className="text-sm text-gray-600">
-                      등록일: {new Date(selectedMember.registration_date).toLocaleDateString()}
+
+                {/* 이름·영문명 + 칩들 + 메타 한 줄 */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-[10px] gap-y-1">
+                    <span className="text-[22px] font-bold leading-tight tracking-[-0.02em] text-foreground">
+                      {selectedMember.name}
                     </span>
-                  )}
+                    {selectedMember.name_eng && (
+                      <span className="text-[13px] font-medium text-[#94A3B8]">
+                        {selectedMember.name_eng}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {/* 직분 칩 (있을 때만) */}
+                    {selectedMember.position_main && (
+                      <span className="inline-flex items-center rounded-full bg-[#EEF3FC] px-[10px] py-[2px] text-[11.5px] font-bold text-primary whitespace-nowrap">
+                        {getPositionMainLabel(selectedMember.position_main)}
+                        {getPositionDetailLabel(selectedMember.position_detail) && ` · ${getPositionDetailLabel(selectedMember.position_detail)}`}
+                      </span>
+                    )}
+                    {/* 상태 칩 */}
+                    <Badge variant={getStatusBadgeVariant(selectedMember.member_status)}>
+                      {getStatusText(selectedMember.member_status)}
+                    </Badge>
+                    {/* 구역·목장 + 등록일 메타 */}
+                    <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">
+                      {[
+                        selectedMember.organization_name,
+                        selectedMember.department,
+                        selectedMember.registration_date
+                          ? `등록 ${new Date(selectedMember.registration_date).toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '')}`
+                          : null
+                      ].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
                 </div>
+
+                {/* 우측 빠른 액션 (전화/문자/메일) — 뷰 모드에서만 */}
+                {!isEditMode && (
+                  <div className="flex flex-shrink-0 gap-2">
+                    {selectedMember.phone && (
+                      <a
+                        href={`tel:${selectedMember.phone}`}
+                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
+                      >
+                        <Phone className="h-3.5 w-3.5 text-[#64748B]" />
+                        전화
+                      </a>
+                    )}
+                    {selectedMember.phone && (
+                      <a
+                        href={`sms:${selectedMember.phone}`}
+                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 text-[#64748B]" />
+                        문자
+                      </a>
+                    )}
+                    {selectedMember.email && (
+                      <a
+                        href={`mailto:${selectedMember.email}`}
+                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
+                      >
+                        <Mail className="h-3.5 w-3.5 text-[#64748B]" />
+                        메일
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 기본 정보 */}
               <div className="space-y-4">
-                <details open className="border rounded-lg group">
-                    <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                <details open className="rounded-[12px] border border-border bg-card group">
+                    <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-sm font-medium">기본 정보</h3>
+                        <User className="w-4 h-4 text-primary" />
+                        <h3 className="text-[14px] font-bold text-foreground">기본 정보</h3>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                      <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                     </summary>
-                    <div className="px-6 pb-6">
+                    <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* 이름 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">이름</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이름</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.name || ''}
@@ -2858,13 +2937,13 @@ Church Round 앱에 초대되셨습니다.
                             placeholder="홍길동"
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.name}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.name}</p>
                         )}
                       </div>
 
                       {/* 영문명 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">영문명</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">영문명</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.name_eng || ''}
@@ -2872,13 +2951,13 @@ Church Round 앱에 초대되셨습니다.
                             placeholder="Hong Gil Dong"
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.name_eng || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.name_eng || '-'}</p>
                         )}
                       </div>
 
                       {/* 이메일 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이메일</label>
                         {isEditMode ? (
                           <Input
                             type="email"
@@ -2887,13 +2966,13 @@ Church Round 앱에 초대되셨습니다.
                             placeholder="example@email.com"
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.email}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.email}</p>
                         )}
                       </div>
 
                       {/* 전화번호 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">전화번호</label>
                         {isEditMode ? (
                           <Input
                             type="tel"
@@ -2902,13 +2981,13 @@ Church Round 앱에 초대되셨습니다.
                             placeholder="010-1234-5678"
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.phone}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.phone}</p>
                         )}
                       </div>
 
                       {/* 생년월일 구분 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">생년월일 구분</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">생년월일 구분</label>
                         {isEditMode ? (
                           <Select
                             value={editedMember.birthdate_type || '양력'}
@@ -2921,13 +3000,13 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.birthdate_type || '양력'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.birthdate_type || '양력'}</p>
                         )}
                       </div>
 
                       {/* 생년월일 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">생년월일</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">생년월일</label>
                         {isEditMode ? (
                           <DatePicker
                             value={editedMember.birthdate || ''}
@@ -2938,13 +3017,13 @@ Church Round 앱에 초대되셨습니다.
                             toYear={new Date().getFullYear()}
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.birthdate || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.birthdate || '-'}</p>
                         )}
                       </div>
 
                       {/* 성별 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">성별</label>
                         {isEditMode ? (
                           <Select value={editedMember.gender || ''} onValueChange={(value) => setEditedMember({...editedMember, gender: value})}>
                             <SelectTrigger>
@@ -2956,7 +3035,7 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.gender}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.gender}</p>
                         )}
                       </div>
                       </div>
@@ -2964,19 +3043,19 @@ Church Round 앱에 초대되셨습니다.
                   </details>
 
                 {/* 교회 정보 */}
-                <details open className="border rounded-lg group">
-                    <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+                <details open className="rounded-[12px] border border-border bg-card group">
+                    <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                       <div className="flex items-center gap-3">
-                        <UserCheck className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-sm font-medium">교회 정보</h3>
+                        <UserCheck className="w-4 h-4 text-primary" />
+                        <h3 className="text-[14px] font-bold text-foreground">교회 정보</h3>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                      <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                     </summary>
-                    <div className="px-6 pb-6">
+                    <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* 직분 대분류 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직분 대분류</label>
                         {isEditMode ? (
                           <Select
                             value={editedMember.position_main || 'none'}
@@ -3001,7 +3080,7 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-[13.5px] text-foreground">
                             {ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main)?.mainLabel || '-'}
                           </p>
                         )}
@@ -3014,7 +3093,7 @@ Church Round 앱에 초대되셨습니다.
 
                         return (
                           <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-1">세부 직분</label>
+                            <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">세부 직분</label>
                             {isEditMode ? (
                               <Select
                                 value={editedMember.position_detail || 'none'}
@@ -3033,7 +3112,7 @@ Church Round 앱에 초대되셨습니다.
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-[13.5px] text-foreground">
                                 {(() => {
                                   const selectedOption = ADMIN_POSITION_OPTIONS.find(opt => opt.mainValue === selectedMember.position_main);
                                   if (!selectedOption || selectedOption.details.length === 0) return '-';
@@ -3048,7 +3127,7 @@ Church Round 앱에 초대되셨습니다.
 
                       {/* 조직 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">조직</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">조직</label>
                         {isEditMode ? (
                           <Select
                             value={editedMember.organization_id || 'none'}
@@ -3067,13 +3146,13 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.organization_name || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.organization_name || '-'}</p>
                         )}
                       </div>
 
                       {/* 부서 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">부서</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">부서</label>
                         {isEditMode ? (
                           <Select value={editedMember.department || 'none'} onValueChange={(value) => setEditedMember({...editedMember, department: value === 'none' ? undefined : value})}>
                             <SelectTrigger>
@@ -3087,13 +3166,13 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.department || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.department || '-'}</p>
                         )}
                       </div>
 
                       {/* 직분 코드 - DB에 해당 컬럼 없음, 주석 처리 */}
                       {/* <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">직분 분류</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직분 분류</label>
                         {isEditMode ? (
                           <Select value={editedMember.position_code || ''} onValueChange={(value) => setEditedMember({...editedMember, position_code: value})}>
                             <SelectTrigger>
@@ -3108,7 +3187,7 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-[13.5px] text-foreground">
                             {selectedMember.position_code ?
                               ({'PASTOR': '목사', 'ELDER': '장로', 'DEACON': '집사', 'TEACHER': '교사', 'LEADER': '부장/회장'}[selectedMember.position_code] || selectedMember.position_code)
                               : '-'
@@ -3119,7 +3198,7 @@ Church Round 앱에 초대되셨습니다.
 
                       {/* 임명일 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">임명일</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">임명일</label>
                         {isEditMode ? (
                           <DatePicker
                             value={editedMember.appointed_on || ''}
@@ -3129,13 +3208,13 @@ Church Round 앱에 초대되셨습니다.
                             toYear={new Date().getFullYear() + 5}
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.appointed_on || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.appointed_on || '-'}</p>
                         )}
                       </div>
 
                       {/* 안수교회 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">안수교회</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">안수교회</label>
                         {isEditMode ? (
                           <Input
                             value={editedMember.ordination_church || ''}
@@ -3143,13 +3222,13 @@ Church Round 앱에 초대되셨습니다.
                             placeholder="중앙교회"
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{selectedMember.ordination_church || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{selectedMember.ordination_church || '-'}</p>
                         )}
                       </div>
 
                       {/* 상태 */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">상태</label>
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">상태</label>
                         {isEditMode ? (
                           <Select value={editedMember.member_status || ''} onValueChange={(value) => setEditedMember({...editedMember, member_status: value})}>
                             <SelectTrigger>
@@ -3162,7 +3241,7 @@ Church Round 앱에 초대되셨습니다.
                             </SelectContent>
                           </Select>
                         ) : (
-                          <p className="text-sm text-gray-600">{getStatusText(selectedMember.member_status)}</p>
+                          <p className="text-[13.5px] text-foreground">{getStatusText(selectedMember.member_status)}</p>
                         )}
                       </div>
                       </div>
@@ -3170,19 +3249,19 @@ Church Round 앱에 초대되셨습니다.
                   </details>
 
               {/* 사역 정보 */}
-              <details className="border rounded-lg group">
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group">
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">사역 정보</h3>
+                    <Briefcase className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">사역 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 사역 시작일 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">사역 시작일</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">사역 시작일</label>
                     {isEditMode ? (
                       <DatePicker
                         value={editedMember.ministry_start_date || ''}
@@ -3192,13 +3271,13 @@ Church Round 앱에 초대되셨습니다.
                         toYear={new Date().getFullYear() + 5}
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.ministry_start_date || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.ministry_start_date || '-'}</p>
                     )}
                   </div>
 
                   {/* 이웃교회 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">이웃교회</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이웃교회</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.neighboring_church || ''}
@@ -3206,13 +3285,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="협력하는 인근 교회"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.neighboring_church || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.neighboring_church || '-'}</p>
                     )}
                   </div>
 
                   {/* 직책 결정 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직책 결정</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직책 결정</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.position_decision || ''}
@@ -3220,13 +3299,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="직책 결정 내용"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.position_decision || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.position_decision || '-'}</p>
                     )}
                   </div>
 
                   {/* 인도자 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">인도자</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">인도자</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.inviter_name || ''}
@@ -3235,13 +3314,13 @@ Church Round 앱에 초대되셨습니다.
                         className="bg-gray-100"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.inviter_name || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.inviter_name || '-'}</p>
                     )}
                   </div>
 
                   {/* 일일 활동 */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-900 mb-1">일일 활동</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">일일 활동</label>
                     {isEditMode ? (
                       <Textarea
                         value={editedMember.daily_activity || ''}
@@ -3250,7 +3329,7 @@ Church Round 앱에 초대되셨습니다.
                         rows={3}
                       />
                     ) : (
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
+                      <p className="text-[13.5px] text-foreground whitespace-pre-wrap">{selectedMember.daily_activity || '-'}</p>
                     )}
                   </div>
                   </div>
@@ -3258,19 +3337,19 @@ Church Round 앱에 초대되셨습니다.
               </details>
 
               {/* 직업 정보 */}
-              <details className="border rounded-lg group">
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group">
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">직업 정보</h3>
+                    <Briefcase className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">직업 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 직업 분류 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직업 분류</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직업 분류</label>
                     {isEditMode ? (
                       <Select value={editedMember.job_category || ''} onValueChange={(value) => setEditedMember({...editedMember, job_category: value})}>
                         <SelectTrigger>
@@ -3288,13 +3367,13 @@ Church Round 앱에 초대되셨습니다.
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.job_category || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.job_category || '-'}</p>
                     )}
                   </div>
 
                   {/* 직업 상세 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직업 상세</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직업 상세</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_detail || ''}
@@ -3302,13 +3381,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="개발자, 디자이너 등"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.job_detail || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.job_detail || '-'}</p>
                     )}
                   </div>
 
                   {/* 직급/직위 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직급/직위</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직급/직위</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_position || ''}
@@ -3316,13 +3395,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="과장, 부장 등"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.job_position || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.job_position || '-'}</p>
                     )}
                   </div>
 
                   {/* 직업 (기존 필드) */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직업명</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직업명</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.job_title || ''}
@@ -3330,13 +3409,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="회사원, 교사 등"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.job_title || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.job_title || '-'}</p>
                     )}
                   </div>
 
                   {/* 직장명 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직장명</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직장명</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.workplace || ''}
@@ -3344,13 +3423,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="삼성전자"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.workplace || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.workplace || '-'}</p>
                     )}
                   </div>
 
                   {/* 직장 전화번호 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">직장 전화번호</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직장 전화번호</label>
                     {isEditMode ? (
                       <Input
                         type="tel"
@@ -3359,7 +3438,7 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="02-1234-5678"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.workplace_phone || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.workplace_phone || '-'}</p>
                     )}
                   </div>
                 </div>
@@ -3367,19 +3446,19 @@ Church Round 앱에 초대되셨습니다.
               </details>
 
               {/* 개인 및 가족 정보 */}
-              <details className="border rounded-lg group" open>
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group" open>
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <Heart className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">개인 및 가족 정보</h3>
+                    <Heart className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">개인 및 가족 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 교인 분류 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">교인 분류</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">교인 분류</label>
                     {isEditMode ? (
                       <Select value={editedMember.member_type || ''} onValueChange={(value) => setEditedMember({...editedMember, member_type: value})}>
                         <SelectTrigger>
@@ -3395,13 +3474,13 @@ Church Round 앱에 초대되셨습니다.
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.member_type || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.member_type || '-'}</p>
                     )}
                   </div>
 
                   {/* 연령대 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">연령대</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">연령대</label>
                     {isEditMode ? (
                       <Select value={editedMember.age_group || ''} onValueChange={(value) => setEditedMember({...editedMember, age_group: value})}>
                         <SelectTrigger>
@@ -3420,13 +3499,13 @@ Church Round 앱에 초대되셨습니다.
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.age_group || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.age_group || '-'}</p>
                     )}
                   </div>
 
                   {/* 신앙 등급 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">신앙 등급</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">신앙 등급</label>
                     {isEditMode ? (
                       <Select value={editedMember.spiritual_grade || ''} onValueChange={(value) => setEditedMember({...editedMember, spiritual_grade: value})}>
                         <SelectTrigger>
@@ -3441,13 +3520,13 @@ Church Round 앱에 초대되셨습니다.
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.spiritual_grade || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.spiritual_grade || '-'}</p>
                     )}
                   </div>
 
                   {/* 결혼 상태 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">결혼 상태</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">결혼 상태</label>
                     {isEditMode ? (
                       <Select value={editedMember.marital_status || ''} onValueChange={(value) => setEditedMember({...editedMember, marital_status: value})}>
                         <SelectTrigger>
@@ -3461,13 +3540,13 @@ Church Round 앱에 초대되셨습니다.
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.marital_status || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.marital_status || '-'}</p>
                     )}
                   </div>
 
                   {/* 배우자 이름 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">배우자 이름</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">배우자 이름</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.spouse_name || ''}
@@ -3475,13 +3554,13 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="배우자 이름"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.spouse_name || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.spouse_name || '-'}</p>
                     )}
                   </div>
 
                   {/* 결혼일 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">결혼일</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">결혼일</label>
                     {isEditMode ? (
                       <DatePicker
                         value={editedMember.married_on || ''}
@@ -3491,7 +3570,7 @@ Church Round 앱에 초대되셨습니다.
                         toYear={new Date().getFullYear() + 5}
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.married_on || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.married_on || '-'}</p>
                     )}
                   </div>
 
@@ -3580,12 +3659,12 @@ Church Round 앱에 초대되셨습니다.
                       <div className="space-y-2">
                         {selectedMember.children && selectedMember.children.length > 0 ? (
                           selectedMember.children.map((child, index) => (
-                            <div key={index} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+                            <div key={index} className="text-[13.5px] text-foreground p-2 bg-gray-50 rounded">
                               {child.name} {child.gender && `(${child.gender})`} {child.birthdate && `- ${child.birthdate}`}
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-600">-</p>
+                          <p className="text-[13.5px] text-foreground">-</p>
                         )}
                       </div>
                     )}
@@ -3596,19 +3675,19 @@ Church Round 앱에 초대되셨습니다.
               </details>
 
               {/* 주소 정보 */}
-              <details className="border rounded-lg group">
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group">
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">주소 정보</h3>
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">주소 정보</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                 <div className="space-y-4">
                   {/* 우편번호 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">우편번호</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">우편번호</label>
                     {isEditMode ? (
                       <Input
                         value={editedMember.postal_code || ''}
@@ -3616,14 +3695,14 @@ Church Round 앱에 초대되셨습니다.
                         placeholder="12345"
                       />
                     ) : (
-                      <p className="text-sm text-gray-600">{selectedMember.postal_code || '-'}</p>
+                      <p className="text-[13.5px] text-foreground">{selectedMember.postal_code || '-'}</p>
                     )}
                   </div>
 
                   {/* 지역 정보 */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">시/도</label>
+                      <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">시/도</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_1 || ''}
@@ -3631,11 +3710,11 @@ Church Round 앱에 초대되셨습니다.
                           placeholder="서울특별시"
                         />
                       ) : (
-                        <p className="text-sm text-gray-600">{selectedMember.region_1 || '-'}</p>
+                        <p className="text-[13.5px] text-foreground">{selectedMember.region_1 || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">시/군/구</label>
+                      <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">시/군/구</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_2 || ''}
@@ -3643,11 +3722,11 @@ Church Round 앱에 초대되셨습니다.
                           placeholder="강남구"
                         />
                       ) : (
-                        <p className="text-sm text-gray-600">{selectedMember.region_2 || '-'}</p>
+                        <p className="text-[13.5px] text-foreground">{selectedMember.region_2 || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">동/읍/면</label>
+                      <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">동/읍/면</label>
                       {isEditMode ? (
                         <Input
                           value={editedMember.region_3 || ''}
@@ -3655,14 +3734,14 @@ Church Round 앱에 초대되셨습니다.
                           placeholder="역삼동"
                         />
                       ) : (
-                        <p className="text-sm text-gray-600">{selectedMember.region_3 || '-'}</p>
+                        <p className="text-[13.5px] text-foreground">{selectedMember.region_3 || '-'}</p>
                       )}
                     </div>
                   </div>
 
                   {/* 상세 주소 */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">상세 주소</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">상세 주소</label>
                     {isEditMode ? (
                       <Textarea
                         value={editedMember.address || ''}
@@ -3671,7 +3750,7 @@ Church Round 앱에 초대되셨습니다.
                         rows={3}
                       />
                     ) : (
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                      <p className="text-[13.5px] text-foreground whitespace-pre-wrap">
                         {selectedMember.address || '-'}
                       </p>
                     )}
@@ -3681,15 +3760,15 @@ Church Round 앱에 초대되셨습니다.
               </details>
 
               {/* 자유 필드 (커스텀 정보) */}
-              <details className="border rounded-lg group">
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group">
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">자유 필드 (커스텀 정보)</h3>
+                    <Settings className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">자유 필드 (커스텀 정보)</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => {
                     const fieldKey = `custom_field_${num}` as keyof Member;
@@ -3702,7 +3781,7 @@ Church Round 앱에 초대되셨습니다.
 
                     return (
                       <div key={num}>
-                        <label className="block text-sm font-medium text-gray-900 mb-1">
+                        <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">
                           자유필드 {num}
                         </label>
                         {isEditMode ? (
@@ -3712,7 +3791,7 @@ Church Round 앱에 초대되셨습니다.
                             placeholder={`추가 정보 ${num}`}
                           />
                         ) : (
-                          <p className="text-sm text-gray-600">{value as string || '-'}</p>
+                          <p className="text-[13.5px] text-foreground">{value as string || '-'}</p>
                         )}
                       </div>
                     );
@@ -3721,22 +3800,22 @@ Church Round 앱에 초대되셨습니다.
                   {!isEditMode && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].some(num =>
                     selectedMember[`custom_field_${num}` as keyof Member]
                   ) && (
-                    <p className="text-sm text-gray-600 px-6 pb-6">등록된 추가 정보가 없습니다.</p>
+                    <p className="text-[13.5px] text-foreground px-6 pb-6">등록된 추가 정보가 없습니다.</p>
                   )}
                 </div>
               </details>
 
               {/* 특별 사항 */}
-              <details className="border rounded-lg group">
-                <summary className="cursor-pointer p-4 list-none flex items-center justify-between">
+              <details className="rounded-[12px] border border-border bg-card group">
+                <summary className="cursor-pointer list-none flex items-center justify-between px-[18px] py-[14px]">
                   <div className="flex items-center gap-3">
-                    <MessageSquare className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-sm font-medium">특별 사항</h3>
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                    <h3 className="text-[14px] font-bold text-foreground">특별 사항</h3>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-600 group-open:rotate-180 transition-transform" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] group-open:rotate-180 transition-transform" />
                 </summary>
-                <div className="px-6 pb-6">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">특이사항 및 메모</label>
+                <div className="border-t border-[#EEF1F6] px-[18px] py-[18px]">
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">특이사항 및 메모</label>
                   {isEditMode ? (
                     <Textarea
                       value={editedMember.special_notes || ''}
@@ -3745,7 +3824,7 @@ Church Round 앱에 초대되셨습니다.
                       rows={4}
                     />
                   ) : (
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                    <p className="text-[13.5px] text-foreground whitespace-pre-wrap">
                       {selectedMember.special_notes || '-'}
                     </p>
                   )}
@@ -4129,7 +4208,7 @@ Church Round 앱에 초대되셨습니다.
               <h3 className="text-lg font-semibold">기본 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">이름</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이름</label>
                   <Input
                     value={advancedSearchData.name}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, name: e.target.value }))}
@@ -4137,7 +4216,7 @@ Church Round 앱에 초대되셨습니다.
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">이메일</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">이메일</label>
                   <Input
                     value={advancedSearchData.email}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, email: e.target.value }))}
@@ -4145,7 +4224,7 @@ Church Round 앱에 초대되셨습니다.
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">전화번호</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">전화번호</label>
                   <Input
                     value={advancedSearchData.phone}
                     onChange={(e) => setAdvancedSearchData(prev => ({ ...prev, phone: e.target.value }))}
@@ -4153,7 +4232,7 @@ Church Round 앱에 초대되셨습니다.
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">성별</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">성별</label>
                   <Select value={advancedSearchData.gender} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, gender: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -4173,7 +4252,7 @@ Church Round 앱에 초대되셨습니다.
               <h3 className="text-lg font-semibold">교회 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">직분 대분류</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직분 대분류</label>
                   <Select
                     value={advancedSearchData.position_main}
                     onValueChange={(value) => {
@@ -4197,7 +4276,7 @@ Church Round 앱에 초대되셨습니다.
                 </div>
                 {advancedSearchData.position_main !== 'all' && POSITION_HIERARCHY[advancedSearchData.position_main as keyof typeof POSITION_HIERARCHY] && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">세부 직분</label>
+                    <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">세부 직분</label>
                     <Select
                       value={advancedSearchData.position_detail}
                       onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, position_detail: value }))}
@@ -4217,7 +4296,7 @@ Church Round 앱에 초대되셨습니다.
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">조직/부서</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">조직/부서</label>
                   <Select value={advancedSearchData.organization_id} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, organization_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -4238,7 +4317,7 @@ Church Round 앱에 초대되셨습니다.
               <h3 className="text-lg font-semibold">개인 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">연령대</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">연령대</label>
                   <Select value={advancedSearchData.age_group} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, age_group: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -4254,7 +4333,7 @@ Church Round 앱에 초대되셨습니다.
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">결혼 상태</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">결혼 상태</label>
                   <Select value={advancedSearchData.marital_status} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, marital_status: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />
@@ -4269,7 +4348,7 @@ Church Round 앱에 초대되셨습니다.
                   </Select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">나이 범위</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">나이 범위</label>
                   <div className="grid grid-cols-2 gap-4">
                     <Input
                       type="number"
@@ -4297,7 +4376,7 @@ Church Round 앱에 초대되셨습니다.
               <h3 className="text-lg font-semibold">직업 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">직업 분류</label>
+                  <label className="mb-1 block text-[11.5px] font-semibold text-[#94A3B8]">직업 분류</label>
                   <Select value={advancedSearchData.job_category} onValueChange={(value) => setAdvancedSearchData(prev => ({ ...prev, job_category: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="선택해주세요" />

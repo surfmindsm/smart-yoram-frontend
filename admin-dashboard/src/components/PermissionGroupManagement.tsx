@@ -3,7 +3,7 @@ import { supabaseAuthService } from '../services/supabaseAuthService';
 import { permissionGroupService, PermissionGroup, SystemMenu, MenuPermission, GroupUser, ChurchUser } from '../services/permissionGroupService';
 import { isChurchSuperAdmin, isSuperAdmin } from '../utils/userPermissions';
 import { Shield, Search, Plus, Save, Trash2, UserPlus, X } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent, DialogHeader, DialogTitle } from './ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent, DialogHeader, DialogTitle, LoadingState } from './ui';
 import { useToast } from '../hooks/use-toast';
 
 const PermissionGroupManagement: React.FC = () => {
@@ -310,8 +310,8 @@ const PermissionGroupManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <LoadingState text="권한 그룹을 불러오는 중..." />
       </div>
     );
   }

@@ -4,21 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full px-[10px] py-[3px] text-[11px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          "bg-[#FCEBEB] text-[#DC2626] hover:bg-[#FCEBEB]/80",
+        outline:
+          "border border-border bg-card text-foreground",
+        info:
+          "bg-[#EAF1FE] text-[#2563EB] hover:bg-[#EAF1FE]/80",
         success:
-          "border-transparent bg-green-500 text-white hover:bg-green-600",
+          "bg-[#E7F6EC] text-[#16A34A] hover:bg-[#E7F6EC]/80",
         warning:
-          "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
+          "bg-[#FBF1E3] text-[#B45309] hover:bg-[#FBF1E3]/80",
+        danger:
+          "bg-[#FCEBEB] text-[#DC2626] hover:bg-[#FCEBEB]/80",
+        neutral:
+          "bg-[#F1F4F9] text-[#64748B] hover:bg-[#F1F4F9]/80",
+        accent:
+          "bg-[#F0E6EF] text-[#8A5A86] hover:bg-[#F0E6EF]/80",
       },
     },
     defaultVariants: {
@@ -30,7 +39,18 @@ const badgeVariants = cva(
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | null
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "info"
+    | "success"
+    | "warning"
+    | "danger"
+    | "neutral"
+    | "accent"
+    | null
 }
 
 function Badge({ className, variant, ...props }: BadgeProps) {

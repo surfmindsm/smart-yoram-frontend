@@ -260,14 +260,14 @@ const ExcelManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">엑셀 관리</h2>
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
+        <h1 className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">엑셀 관리</h1>
       </div>
 
       {/* Upload Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">교인 명단 업로드</h3>
+      <div className="space-y-3">
+        <h3 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">교인 명단 업로드</h3>
         <Card className="border-muted">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-center w-full">
@@ -341,23 +341,23 @@ const ExcelManagement: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">전체</p>
-                <p className="text-2xl font-bold">{parseResult.totalRows}</p>
+              <div className="text-center p-4 rounded-[10px] bg-[#EAF1FE]">
+                <p className="text-[12.5px] text-muted-foreground">전체</p>
+                <p className="text-[20px] font-bold">{parseResult.totalRows}</p>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">유효</p>
-                <p className="text-2xl font-bold text-green-600">{parseResult.validRows}</p>
+              <div className="text-center p-4 rounded-[10px] bg-[#E7F6EC]">
+                <p className="text-[12.5px] text-muted-foreground">유효</p>
+                <p className="text-[20px] font-bold text-[#16A34A]">{parseResult.validRows}</p>
               </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <p className="text-sm text-gray-600">오류</p>
-                <p className="text-2xl font-bold text-red-600">{parseResult.errorRows}</p>
+              <div className="text-center p-4 rounded-[10px] bg-[#FCEBEB]">
+                <p className="text-[12.5px] text-muted-foreground">오류</p>
+                <p className="text-[20px] font-bold text-[#DC2626]">{parseResult.errorRows}</p>
               </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto border rounded-lg">
               <table className="w-full text-sm">
-                <thead className="bg-gray-100 sticky top-0">
+                <thead className="sticky top-0 bg-[#FAFBFD]">
                   <tr>
                     <th className="px-4 py-2 text-left">행</th>
                     <th className="px-4 py-2 text-left">이름</th>
@@ -426,7 +426,7 @@ const ExcelManagement: React.FC = () => {
                       <td className="px-4 py-2">
                         <div className="space-y-1">
                           {row.errors.map((err, idx) => (
-                            <div key={idx} className="text-xs text-red-600 flex items-start gap-1">
+                            <div key={idx} className="text-xs text-[#DC2626] flex items-start gap-1">
                               <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                               <span>{err}</span>
                             </div>
@@ -438,7 +438,7 @@ const ExcelManagement: React.FC = () => {
                             </div>
                           ))}
                           {row.isValid && row.errors.length === 0 && row.warnings.length === 0 && (
-                            <div className="text-xs text-green-600 flex items-center gap-1">
+                            <div className="text-xs text-[#16A34A] flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
                               <span>정상</span>
                             </div>
@@ -480,7 +480,7 @@ const ExcelManagement: React.FC = () => {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => deleteRow(row.rowNumber)}
-                                className="h-7 px-2 text-red-600 hover:text-red-700"
+                                className="h-7 px-2 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                               >
                                 <X className="w-3 h-3" />
                               </Button>
@@ -502,22 +502,22 @@ const ExcelManagement: React.FC = () => {
         <Card className="border-muted">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
               <h4 className="text-base font-semibold text-foreground">업로드 결과</h4>
             </div>
             <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <Badge variant="default" className="mb-2 bg-green-600">신규 등록</Badge>
-                <p className="text-2xl font-bold text-foreground">{uploadResult.created}</p>
+                <p className="text-[20px] font-bold text-foreground">{uploadResult.created}</p>
               </div>
               <div className="text-center">
                 <Badge variant="default" className="mb-2 bg-blue-600">정보 수정</Badge>
-                <p className="text-2xl font-bold text-foreground">{uploadResult.updated}</p>
+                <p className="text-[20px] font-bold text-foreground">{uploadResult.updated}</p>
               </div>
               <div className="text-center">
                 <Badge variant="destructive" className="mb-2">오류</Badge>
-                <p className="text-2xl font-bold text-foreground">{uploadResult.errors?.length || 0}</p>
+                <p className="text-[20px] font-bold text-foreground">{uploadResult.errors?.length || 0}</p>
               </div>
             </div>
 
@@ -548,7 +548,7 @@ const ExcelManagement: React.FC = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center mb-4">
                     <div className="p-3 rounded-lg bg-green-500/10">
-                      <Users className="h-6 w-6 text-green-600" />
+                      <Users className="h-6 w-6 text-[#16A34A]" />
                     </div>
                     <div className="ml-4">
                       <h4 className="text-base font-semibold text-foreground">교인 명단</h4>
@@ -617,7 +617,7 @@ const ExcelManagement: React.FC = () => {
       {/* Instructions */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground">사용 방법</h3>
-        <Card className="border-muted bg-primary-50/50">
+        <Card className="border-muted bg-accent">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="h-5 w-5 text-primary-600" />

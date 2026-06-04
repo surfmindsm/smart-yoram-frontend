@@ -141,7 +141,7 @@ const AnalyticsDashboard: React.FC = () => {
 
   const getGrowthIcon = (growth: number) => {
     if (growth > 0) {
-      return <ArrowUp className="h-4 w-4 text-green-500" />;
+      return <ArrowUp className="h-4 w-4 text-[#16A34A]" />;
     } else if (growth < 0) {
       return <ArrowDown className="h-4 w-4 text-red-500" />;
     }
@@ -151,23 +151,23 @@ const AnalyticsDashboard: React.FC = () => {
   const getGrowthColor = (growth: number) => {
     if (growth > 0) return 'text-green-600';
     if (growth < 0) return 'text-red-600';
-    return 'text-slate-600';
+    return 'text-muted-foreground';
   };
 
   return (
-    <div className="p-6">
+    <div className="">
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">사용량 분석</h1>
-            <p className="text-slate-600">AI 에이전트 사용량 및 성능 분석 대시보드</p>
+            <h1 className="text-[23px] font-bold tracking-[-0.02em] text-foreground mb-2">사용량 분석</h1>
+            <p className="text-muted-foreground">AI 에이전트 사용량 및 성능 분석 대시보드</p>
           </div>
           <div className="flex items-center space-x-2">
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as 'day' | 'week' | 'month' | 'current_month')}
-              className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="px-4 py-2 border border-border rounded-md bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="week">최근 7일</option>
               <option value="current_month">이번 달</option>
@@ -179,14 +179,14 @@ const AnalyticsDashboard: React.FC = () => {
 
       {/* 에러 표시 */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 rounded-md">
+        <div className="rounded-[12px] border border-[#FAD9D9] bg-[#FCEBEB] text-[#DC2626] px-4 py-3 mb-6 rounded-md">
           <div className="flex items-center justify-between">
             <span className="text-sm">{error}</span>
             <Button
               onClick={() => setError(null)}
               variant="ghost"
               size="sm"
-              className="text-red-400 hover:text-red-600 h-6 w-6 p-0"
+              className="text-[#DC2626] hover:bg-[#FCEBEB] h-6 w-6 p-0"
             >
               ✕
             </Button>
@@ -196,21 +196,21 @@ const AnalyticsDashboard: React.FC = () => {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-slate-400">분석 데이터를 불러오는 중...</div>
+          <div className="text-[#94A3B8]">분석 데이터를 불러오는 중...</div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* 주요 지표 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
+            <div className="rounded-[12px] border border-border bg-card p-[18px]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">총 요청수</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">총 요청수</p>
+                  <p className="text-[23px] font-bold tracking-[-0.02em] text-foreground mt-1">
                     {formatNumber(usageStats.total_requests)}
                   </p>
                 </div>
-                <MessageSquare className="h-8 w-8 text-primary-500" />
+                <MessageSquare className="h-8 w-8 text-primary" />
               </div>
               <div className="flex items-center mt-4 text-sm">
                 {getGrowthIcon(usageStats.period_growth.requests)}
@@ -221,15 +221,15 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
+            <div className="rounded-[12px] border border-border bg-card p-[18px]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">총 토큰 사용량</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">총 토큰 사용량</p>
+                  <p className="text-[23px] font-bold tracking-[-0.02em] text-foreground mt-1">
                     {formatNumber(usageStats.total_tokens)}
                   </p>
                 </div>
-                <Activity className="h-8 w-8 text-green-500" />
+                <Activity className="h-8 w-8 text-[#16A34A]" />
               </div>
               <div className="flex items-center mt-4 text-sm">
                 {getGrowthIcon(usageStats.period_growth.tokens)}
@@ -240,15 +240,15 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
+            <div className="rounded-[12px] border border-border bg-card p-[18px]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">총 비용</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">총 비용</p>
+                  <p className="text-[23px] font-bold tracking-[-0.02em] text-foreground mt-1">
                     {formatCurrency(usageStats.total_cost)}
                   </p>
                 </div>
-                <DollarSign className="h-8 w-8 text-yellow-500" />
+                <DollarSign className="h-8 w-8 text-[#D97706]" />
               </div>
               <div className="flex items-center mt-4 text-sm">
                 {getGrowthIcon(usageStats.period_growth.cost)}
@@ -259,18 +259,18 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-slate-200">
+            <div className="rounded-[12px] border border-border bg-card p-[18px]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">활성 에이전트</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">활성 에이전트</p>
+                  <p className="text-[23px] font-bold tracking-[-0.02em] text-foreground mt-1">
                     {usageStats.active_agents}
                   </p>
                 </div>
-                <Users className="h-8 w-8 text-purple-500" />
+                <Users className="h-8 w-8 text-[#8A5A86]" />
               </div>
               <div className="flex items-center mt-4 text-sm">
-                <span className="text-slate-600">전체 에이전트</span>
+                <span className="text-muted-foreground">전체 에이전트</span>
               </div>
             </div>
           </div>
@@ -278,37 +278,37 @@ const AnalyticsDashboard: React.FC = () => {
           {/* 에이전트 성능 분석 */}
           <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-6 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">에이전트별 성능</h3>
-              <p className="text-sm text-slate-600 mt-1">각 에이전트의 사용량 및 성능 지표</p>
+              <h3 className="text-lg font-semibold text-foreground">에이전트별 성능</h3>
+              <p className="text-sm text-muted-foreground mt-1">각 에이전트의 사용량 및 성능 지표</p>
             </div>
-            <div className="p-6">
+            <div className="">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left py-3 font-medium text-slate-700">에이전트</th>
-                      <th className="text-right py-3 font-medium text-slate-700">요청수</th>
-                      <th className="text-right py-3 font-medium text-slate-700">토큰</th>
-                      <th className="text-right py-3 font-medium text-slate-700">비용</th>
-                      <th className="text-right py-3 font-medium text-slate-700">평균 응답시간</th>
+                      <th className="text-left py-3 font-medium text-foreground">에이전트</th>
+                      <th className="text-right py-3 font-medium text-foreground">요청수</th>
+                      <th className="text-right py-3 font-medium text-foreground">토큰</th>
+                      <th className="text-right py-3 font-medium text-foreground">비용</th>
+                      <th className="text-right py-3 font-medium text-foreground">평균 응답시간</th>
                     </tr>
                   </thead>
                   <tbody>
                     {agentPerformance.map((agent) => (
                       <tr key={agent.id} className="border-b border-slate-100">
                         <td className="py-4">
-                          <div className="font-medium text-slate-900">{agent.name}</div>
+                          <div className="font-medium text-foreground">{agent.name}</div>
                         </td>
-                        <td className="text-right py-4 text-slate-600">
+                        <td className="text-right py-4 text-muted-foreground">
                           {formatNumber(agent.requests)}
                         </td>
-                        <td className="text-right py-4 text-slate-600">
+                        <td className="text-right py-4 text-muted-foreground">
                           {formatNumber(agent.tokens)}
                         </td>
-                        <td className="text-right py-4 text-slate-600">
+                        <td className="text-right py-4 text-muted-foreground">
                           {formatCurrency(agent.cost)}
                         </td>
-                        <td className="text-right py-4 text-slate-600">
+                        <td className="text-right py-4 text-muted-foreground">
                           <div className="flex items-center justify-end">
                             <Clock className="h-4 w-4 mr-1" />
                             {agent.avg_response_time.toFixed(1)}s
@@ -326,15 +326,15 @@ const AnalyticsDashboard: React.FC = () => {
             {/* 인기 질문 */}
             <div className="bg-white rounded-lg border border-slate-200">
               <div className="p-6 border-b border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900">인기 질문</h3>
-                <p className="text-sm text-slate-600 mt-1">가장 많이 질문된 내용들</p>
+                <h3 className="text-lg font-semibold text-foreground">인기 질문</h3>
+                <p className="text-sm text-muted-foreground mt-1">가장 많이 질문된 내용들</p>
               </div>
-              <div className="p-6">
+              <div className="">
                 <div className="space-y-4">
                   {topQueries.map((query, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {query.query}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
@@ -355,14 +355,14 @@ const AnalyticsDashboard: React.FC = () => {
             {/* 사용량 추이 */}
             <div className="bg-white rounded-lg border border-slate-200">
               <div className="p-6 border-b border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900">사용량 추이</h3>
-                <p className="text-sm text-slate-600 mt-1">일별 사용량 변화</p>
+                <h3 className="text-lg font-semibold text-foreground">사용량 추이</h3>
+                <p className="text-sm text-muted-foreground mt-1">일별 사용량 변화</p>
               </div>
-              <div className="p-6">
+              <div className="">
                 <div className="space-y-4">
                   {trendData.slice(-7).map((trend, index) => (
                     <div key={index} className="flex items-center justify-between">
-                      <div className="text-sm text-slate-700">
+                      <div className="text-sm text-foreground">
                         {new Date(trend.date).toLocaleDateString('ko-KR', {
                           month: 'short',
                           day: 'numeric'
@@ -371,13 +371,13 @@ const AnalyticsDashboard: React.FC = () => {
                       <div className="flex items-center space-x-4 text-sm">
                         <div className="flex items-center">
                           <div className="w-3 h-3 bg-primary-500 rounded-full mr-2"></div>
-                          <span className="text-slate-600">
+                          <span className="text-muted-foreground">
                             {formatNumber(trend.requests)} 요청
                           </span>
                         </div>
                         <div className="flex items-center">
                           <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                          <span className="text-slate-600">
+                          <span className="text-muted-foreground">
                             {formatNumber(trend.tokens)} 토큰
                           </span>
                         </div>
@@ -391,24 +391,24 @@ const AnalyticsDashboard: React.FC = () => {
 
           {/* 요약 인사이트 */}
           <div className="bg-gradient-to-r from-primary/10 to-primary-50 rounded-lg p-6 border border-primary/30">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">📊 이번 달 인사이트</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">📊 이번 달 인사이트</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <TrendingUp className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="font-medium text-slate-900">가장 활발한 에이전트</span>
+                  <TrendingUp className="h-5 w-5 text-[#16A34A] mr-2" />
+                  <span className="font-medium text-foreground">가장 활발한 에이전트</span>
                 </div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {agentPerformance.length > 0 ? agentPerformance[0].name : 'N/A'}
                 </p>
               </div>
               
               <div className="bg-white p-4 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <Clock className="h-5 w-5 text-primary-500 mr-2" />
-                  <span className="font-medium text-slate-900">평균 응답시간</span>
+                  <Clock className="h-5 w-5 text-primary mr-2" />
+                  <span className="font-medium text-foreground">평균 응답시간</span>
                 </div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {agentPerformance.length > 0 
                     ? (agentPerformance.reduce((sum, a) => sum + a.avg_response_time, 0) / agentPerformance.length).toFixed(1) + 's'
                     : 'N/A'
@@ -418,10 +418,10 @@ const AnalyticsDashboard: React.FC = () => {
 
               <div className="bg-white p-4 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <DollarSign className="h-5 w-5 text-yellow-500 mr-2" />
-                  <span className="font-medium text-slate-900">일일 평균 비용</span>
+                  <DollarSign className="h-5 w-5 text-[#D97706] mr-2" />
+                  <span className="font-medium text-foreground">일일 평균 비용</span>
                 </div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {formatCurrency(usageStats.total_cost / (period === 'week' ? 7 : period === 'current_month' || period === 'month' ? 30 : 1))}
                 </p>
               </div>

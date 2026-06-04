@@ -1,65 +1,65 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from "../ui";
+import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { Card } from "../ui";
 import { cn } from '../../lib/utils';
 
 interface StatCardProps {
   title: string;
   value: string;
   Icon: LucideIcon;
-  color: string;
+  color?: string;
   loading?: boolean;
+  /** 라벨 옆 작은 단위 (예: "명", "만원") — value에서 자동 추출도 시도 */
+  unit?: string;
+  /** 델타/부제 (예: "+7 이번 주", "73% 출석률") */
   subtitle?: string;
 }
 
-const StatCard = React.memo<StatCardProps>(({ title, value, Icon, color, loading = false, subtitle }) => {
-  // 색상에 따른 그라데이션 배경 설정
-  const getGradientClass = (colorClass: string) => {
-    if (colorClass.includes('primary')) return 'from-blue-50 to-blue-100/50 border-blue-200';
-    if (colorClass.includes('green')) return 'from-green-50 to-green-100/50 border-green-200';
-    if (colorClass.includes('purple')) return 'from-purple-50 to-purple-100/50 border-purple-200';
-    if (colorClass.includes('yellow')) return 'from-yellow-50 to-yellow-100/50 border-yellow-200';
-    return 'from-slate-50 to-slate-100/50 border-slate-200';
-  };
+// 시안 매핑: 라벨 + primary 아이콘(14px) · 큰 숫자(28px/750) + 작은 단위 · 델타 한 줄
+const StatCard = React.memo<StatCardProps>(({ title, value, Icon, loading = false, unit, subtitle }) => {
+  const isNegative = !!subtitle && /-\s*\d|감소|하락/.test(subtitle);
+  const deltaColor = isNegative ? 'text-[#DC2626]' : 'text-[#16A34A]';
+  const DeltaIcon = isNegative ? TrendingDown : TrendingUp;
 
-  const getIconBgClass = (colorClass: string) => {
-    if (colorClass.includes('primary')) return 'bg-blue-500/10';
-    if (colorClass.includes('green')) return 'bg-green-500/10';
-    if (colorClass.includes('purple')) return 'bg-purple-500/10';
-    if (colorClass.includes('yellow')) return 'bg-yellow-500/10';
-    return 'bg-slate-500/10';
-  };
-
-  const getIconColorClass = (colorClass: string) => {
-    if (colorClass.includes('primary')) return 'text-blue-600';
-    if (colorClass.includes('green')) return 'text-green-600';
-    if (colorClass.includes('purple')) return 'text-purple-600';
-    if (colorClass.includes('yellow')) return 'text-yellow-600';
-    return 'text-slate-600';
-  };
+  // unit이 명시 안 되었으면 value 끝에서 한글 단위 자동 추출 (예: "842명" → 숫자 "842" + 단위 "명")
+  let displayValue = value;
+  let displayUnit = unit;
+  if (!unit && value) {
+    const match = value.match(/^([\d,.]+)\s*(.+)$/);
+    if (match) {
+      displayValue = match[1];
+      displayUnit = match[2];
+    }
+  }
 
   return (
-    <Card className={cn("border shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-br", getGradientClass(color))}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-600 mb-2">{title}</p>
-            <div className="text-2xl font-bold text-slate-800">
-              {loading ? (
-                <div className="w-16 h-8 bg-white/50 animate-pulse rounded-lg"></div>
-              ) : (
-                value
-              )}
-            </div>
-            {subtitle && (
-              <p className="text-xs text-slate-500 font-medium mt-1.5">{subtitle}</p>
-            )}
-          </div>
-          <div className={cn("p-3 rounded-xl shadow-sm", getIconBgClass(color))}>
-            <Icon className={cn("h-6 w-6", getIconColorClass(color))} />
-          </div>
+    <Card className="transition-colors hover:border-[#BBD4FB]">
+      <div className="px-5 py-[18px]">
+        <div className="flex items-center gap-[7px] text-[12px] font-semibold text-muted-foreground">
+          <Icon className="h-[14px] w-[14px] text-primary" />
+          {title}
         </div>
-      </CardContent>
+        <div className="mt-[9px] flex items-baseline gap-1.5 leading-none">
+          {loading ? (
+            <div className="h-[26px] w-20 animate-pulse rounded-md bg-secondary" />
+          ) : (
+            <>
+              <span className="text-[28px] font-bold tracking-[-0.02em] tabular-nums text-foreground">
+                {displayValue}
+              </span>
+              {displayUnit && (
+                <span className="text-[13px] font-semibold text-[#94A3B8]">{displayUnit}</span>
+              )}
+            </>
+          )}
+        </div>
+        {subtitle && (
+          <div className={cn('mt-2 flex items-center gap-1 text-[11.5px] font-semibold', deltaColor)}>
+            <DeltaIcon className="h-3 w-3" />
+            {subtitle}
+          </div>
+        )}
+      </div>
     </Card>
   );
 });

@@ -155,9 +155,9 @@ const SMSManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">SMS 관리</h2>
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
+        <h1 className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">SMS 관리</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'send' | 'history')}>
@@ -314,41 +314,41 @@ const SMSManagement: React.FC = () => {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-border">
-                  <thead className="bg-muted/50">
+                  <thead className="bg-[#FAFBFD]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         발송일시
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         수신자
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         메시지
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         유형
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         상태
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-background divide-y divide-border">
+                  <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {smsHistory.map((sms) => (
-                      <tr key={sms.id} className="hover:bg-muted/30">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <tr key={sms.id} className="transition-colors hover:bg-[#FAFBFD]">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[12.5px] text-foreground">
                           {new Date(sms.created_at).toLocaleString('ko-KR')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[12.5px] text-foreground">
                           {sms.recipient_phone}
                         </td>
-                        <td className="px-6 py-4 text-sm text-foreground max-w-xs truncate">
+                        <td className="px-[18px] py-3 text-[12.5px] text-foreground max-w-xs truncate">
                           {sms.message}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[12.5px] text-muted-foreground">
                           {sms.sms_type}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-[18px] py-3 whitespace-nowrap">
                           <Badge variant={getStatusBadgeVariant(sms.status)}>
                             {getStatusText(sms.status)}
                           </Badge>

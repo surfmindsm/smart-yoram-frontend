@@ -1125,22 +1125,40 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
           opacity: 0.3;
         }
 
+        /* Auto-hide 스크롤바 — 스크롤 중일 때만 보이고 멈추면 사라짐 (overlay 스타일) */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+          transition: scrollbar-color 0.3s ease;
+        }
+        .custom-scrollbar:hover,
+        .custom-scrollbar:focus-within {
+          scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
+          background: transparent;
         }
 
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: hsl(var(--muted));
-          border-radius: 4px;
+          background: transparent;
         }
 
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: hsl(var(--primary) / 0.3);
+          background: transparent;
           border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb,
+        .custom-scrollbar:focus-within::-webkit-scrollbar-thumb,
+        .custom-scrollbar:active::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.4);
         }
 
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--primary) / 0.5);
+          background: rgba(148, 163, 184, 0.6);
         }
       `}</style>
     </Card>

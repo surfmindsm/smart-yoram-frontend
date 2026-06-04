@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Label } from "./ui";
@@ -398,13 +398,13 @@ const PastoralCareManagement: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-primary-100 text-primary-800';
-      case 'scheduled': return 'bg-primary-100 text-primary-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-[#FBF1E3] text-[#B45309]';
+      case 'approved': return 'bg-[#EAF1FE] text-[#2563EB]';
+      case 'scheduled': return 'bg-[#EEF3FC] text-[#1C7CFF]';
+      case 'in_progress': return 'bg-[#F0E6EF] text-[#8A5A86]';
+      case 'completed': return 'bg-[#E7F6EC] text-[#16A34A]';
+      case 'cancelled': return 'bg-[#FCEBEB] text-[#DC2626]';
+      default: return 'bg-[#F1F4F9] text-[#64748B]';
     }
   };
 
@@ -422,11 +422,11 @@ const PastoralCareManagement: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'text-red-600';
-      case 'high': return 'text-orange-600';
-      case 'normal': return 'text-gray-600';
-      case 'low': return 'text-gray-400';
-      default: return 'text-gray-600';
+      case 'urgent': return 'text-[#DC2626]';
+      case 'high': return 'text-[#D97706]';
+      case 'normal': return 'text-[#64748B]';
+      case 'low': return 'text-[#94A3B8]';
+      default: return 'text-[#64748B]';
     }
   };
 
@@ -447,6 +447,28 @@ const PastoralCareManagement: React.FC = () => {
       case 'hospital': return '병원 심방';
       case 'counseling': return '상담';
       default: return '일반 심방';
+    }
+  };
+
+  // 시안 매핑 — 유형 칩 색 페어
+  const getRequestTypeChipClass = (type: string): string => {
+    switch (type) {
+      case 'general': return 'bg-[#F1F4F9] text-[#64748B]';
+      case 'urgent': return 'bg-[#FCEBEB] text-[#DC2626]';
+      case 'hospital': return 'bg-[#EAF1FE] text-[#2563EB]';
+      case 'counseling': return 'bg-[#F0E6EF] text-[#8A5A86]';
+      default: return 'bg-[#F1F4F9] text-[#64748B]';
+    }
+  };
+
+  // 시안 매핑 — 우선순위 색 (dot + text)
+  const getPriorityDotColor = (priority: string): string => {
+    switch (priority) {
+      case 'urgent': return '#DC2626';
+      case 'high': return '#D97706';
+      case 'normal': return '#64748B';
+      case 'low': return '#94A3B8';
+      default: return '#64748B';
     }
   };
 
@@ -1095,12 +1117,7 @@ const PastoralCareManagement: React.FC = () => {
           title="심방 관리"
         />
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">심방 목록을 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="심방 목록을 불러오는 중..." />
         </Card>
       </PageContainer>
     );
@@ -1133,151 +1150,93 @@ const PastoralCareManagement: React.FC = () => {
         className="mb-6"
       />
 
-      {/* 신청 관리 탭 */}
+      {/* 신청 관리 탭 — Direction C KPI strip */}
       {activeTab === 'requests' && (
-        <>
-          {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-yellow-500/10">
-                    <Clock className="h-6 w-6 text-yellow-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">대기중</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {requests.filter(r => r.status === 'pending').length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-primary-500/10">
-                    <Calendar className="h-6 w-6 text-primary-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">예정됨</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {requests.filter(r => r.status === 'scheduled').length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-green-500/10">
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">완료</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {requests.filter(r => r.status === 'completed').length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-slate-500/10">
-                    <Users className="h-6 w-6 text-slate-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">전체</p>
-                    <div className="text-2xl font-bold text-foreground">{requests.length}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">대기중</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {requests.filter(r => r.status === 'pending').length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">예정됨</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {requests.filter(r => r.status === 'scheduled').length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">완료</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {requests.filter(r => r.status === 'completed').length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">전체</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {requests.length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
-      {/* 심방 기록 탭 */}
+      {/* 심방 기록 탭 — Direction C KPI strip */}
       {activeTab === 'records' && (
-        <>
-          {/* 심방 기록 통계 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-green-500/10">
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">총 심방 완료</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {completedRecords.length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-primary-500/10">
-                    <Calendar className="h-6 w-6 text-primary-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">이번 달</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {completedRecords.filter(r => {
-                        const completedAt = new Date(r.completedAt || r.createdAt);
-                        const thisMonth = new Date();
-                        return completedAt.getMonth() === thisMonth.getMonth() &&
-                               completedAt.getFullYear() === thisMonth.getFullYear();
-                      }).length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-red-500/10">
-                    <AlertCircle className="h-6 w-6 text-red-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">병원 심방</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {completedRecords.filter(r => r.requestType === 'hospital').length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-primary-500/10">
-                    <FileText className="h-6 w-6 text-primary-500" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">일지 작성</p>
-                    <div className="text-2xl font-bold text-foreground">
-                      {completedRecords.filter(r => r.completionNotes && r.completionNotes.trim()).length}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">총 심방 완료</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {completedRecords.length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">이번 달</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {completedRecords.filter(r => {
+                  const completedAt = new Date(r.completedAt || r.createdAt);
+                  const thisMonth = new Date();
+                  return completedAt.getMonth() === thisMonth.getMonth() &&
+                         completedAt.getFullYear() === thisMonth.getFullYear();
+                }).length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">병원 심방</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {completedRecords.filter(r => r.requestType === 'hospital').length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="px-4 py-[14px]">
+              <div className="text-[12px] font-semibold text-muted-foreground">일지 작성</div>
+              <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
+                {completedRecords.filter(r => r.completionNotes && r.completionNotes.trim()).length}
+                <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* 검색 및 필터 */}
@@ -1315,412 +1274,364 @@ const PastoralCareManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* 신청 관리 목록 */}
+      {/* 신청 관리 카드 리스트 — 시안 .pc-card 매핑 */}
       {activeTab === 'requests' && (
-        <Card className="border-muted overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  신청자
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  조직
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  부서
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  상태
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  담당자
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  신청일
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  작업
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredRequests.map((request) => (
-                <tr 
-                  key={request.id} 
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
-                  onClick={() => handleViewDetails(request)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+        <>
+          {filteredRequests.length === 0 ? (
+            <Card>
+              <div className="py-12 text-center">
+                <Users className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+                <p className="text-[13px] text-muted-foreground">조건에 맞는 심방 신청이 없습니다.</p>
+              </div>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredRequests.map((request) => {
+                const isUrgent = request.priority === 'urgent' || (request as any).isUrgent;
+                const priColor = getPriorityDotColor(request.priority);
+                return (
+                  <div
+                    key={request.id}
+                    className={cn(
+                      'flex cursor-pointer gap-4 rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
+                      isUrgent && 'border-l-[3px] border-l-[#DC2626]'
+                    )}
+                    onClick={() => handleViewDetails(request)}
+                  >
+                    {/* 아바타 — 시안 .pc-av (44px rounded-[11px]) */}
+                    <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
                       {request.profilePhotoUrl ? (
                         <img
                           src={request.profilePhotoUrl}
                           alt={request.requesterName}
-                          className="h-10 w-10 rounded-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center">
-                          <User className="h-6 w-6 text-slate-400" />
-                        </div>
-                      )}
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-slate-900">
-                          {request.requesterName}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {request.organizationName || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {request.department || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={cn(
-                      "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
-                      getStatusColor(request.status)
-                    )}>
-                      {getStatusText(request.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {request.assignedPastor ? (
-                      <div className="text-sm text-slate-900">
-                        {request.assignedPastor.name}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-500">미배정</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {new Date(request.createdAt).toLocaleString('ko-KR', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                    <div className="flex items-center justify-center space-x-2" onClick={(e) => e.stopPropagation()}>
-                      {request.status === 'pending' && !request.assignedPastor && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssignPastor(request);
-                            }}
-                            className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            담당자 배정
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(request);
-                            }}
-                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            삭제
-                          </button>
-                        </>
-                      )}
-                      {request.status === 'pending' && request.assignedPastor && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApprove(request);
-                            }}
-                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            승인
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReject(request);
-                            }}
-                            className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            반려
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSchedule(request);
-                            }}
-                            className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            일정변경
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssignPastor(request);
-                            }}
-                            className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            재배정
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(request);
-                            }}
-                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            삭제
-                          </button>
-                        </>
-                      )}
-                      {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedRequest(request);
-                              setShowCompletionModal(true);
-                            }}
-                            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            완료처리
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssignPastor(request);
-                            }}
-                            className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            재배정
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrintCard(request);
-                            }}
-                            className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            카드인쇄
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(request);
-                            }}
-                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            삭제
-                          </button>
-                        </>
-                      )}
-                      {(request.status === 'completed' || request.status === 'cancelled') && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(request);
-                          }}
-                          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          삭제
-                        </button>
+                        <span className="text-[16px] font-bold">
+                          {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
+                        </span>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
 
-        {filteredRequests.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-500">조건에 맞는 심방 신청이 없습니다.</p>
-          </div>
-        )}
-        </Card>
+                    {/* 메인 — 시안 .pc-main */}
+                    <div className="min-w-0 flex-1">
+                      {/* 상단: 이름 · 유형 칩 · 우선순위 dot */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-bold text-foreground">
+                          {request.requesterName}
+                        </span>
+                        <span className={cn(
+                          'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
+                          getRequestTypeChipClass(request.requestType)
+                        )}>
+                          {getRequestTypeText(request.requestType).replace(' 심방', '')}
+                        </span>
+                        <span
+                          className="inline-flex items-center gap-1 text-[11.5px] font-bold whitespace-nowrap"
+                          style={{ color: priColor }}
+                        >
+                          <span
+                            className="h-[6px] w-[6px] rounded-full"
+                            style={{ background: priColor }}
+                          />
+                          {getPriorityText(request.priority)}
+                        </span>
+                      </div>
+
+                      {/* 신청 내용 — 시안 .pc-txt */}
+                      {request.requestContent && (
+                        <div className="mt-[9px] text-[13px] leading-[1.55] text-[#475569] line-clamp-2">
+                          {request.requestContent}
+                        </div>
+                      )}
+
+                      {/* 메타 — 시안 .pc-meta */}
+                      <div className="mt-[11px] flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
+                        {(request.preferredDate || request.scheduledDate) && (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
+                            <Calendar className="h-3.5 w-3.5 text-[#94A3B8]" />
+                            {request.scheduledDate
+                              ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime : ''}`
+                              : request.preferredDate}
+                          </span>
+                        )}
+                        {request.requesterPhone && (
+                          <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-[#64748B]">
+                            <Phone className="h-3.5 w-3.5 text-[#94A3B8]" />
+                            {request.requesterPhone}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
+                          <Users className="h-3.5 w-3.5 text-[#94A3B8]" />
+                          {request.assignedPastor ? request.assignedPastor.name : '담당 미정'}
+                        </span>
+                        {(request.organizationName || request.department) && (
+                          <span className="text-[12px] text-[#94A3B8]">
+                            {[request.organizationName, request.department].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 우측 — 시안 .pc-side (상태 칩 위, 액션 아래) */}
+                    <div
+                      className="flex flex-shrink-0 flex-col items-end gap-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className={cn(
+                        'inline-flex rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
+                        getStatusColor(request.status)
+                      )}>
+                        {getStatusText(request.status)}
+                      </span>
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        {request.status === 'pending' && !request.assignedPastor && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
+                            >
+                              담당자 배정
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
+                              className="gap-1"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              삭제
+                            </Button>
+                          </>
+                        )}
+                        {request.status === 'pending' && request.assignedPastor && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleApprove(request); }}
+                              className="bg-success text-success-foreground hover:bg-success/90"
+                            >
+                              승인
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => { e.stopPropagation(); handleReject(request); }}
+                            >
+                              반려
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleSchedule(request); }}
+                            >
+                              일정변경
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
+                            >
+                              재배정
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
+                              className="gap-1"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              삭제
+                            </Button>
+                          </>
+                        )}
+                        {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowCompletionModal(true); }}
+                              className="bg-success text-success-foreground hover:bg-success/90"
+                            >
+                              완료처리
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
+                            >
+                              재배정
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handlePrintCard(request); }}
+                            >
+                              카드인쇄
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
+                              className="gap-1"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              삭제
+                            </Button>
+                          </>
+                        )}
+                        {(request.status === 'completed' || request.status === 'cancelled') && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            삭제
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Total Count Display for Requests */}
       {activeTab === 'requests' && filteredRequests.length > 0 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            전체 {filteredRequests.length.toLocaleString()}건
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[12.5px] text-muted-foreground">
+            전체 <b className="text-foreground">{filteredRequests.length.toLocaleString()}</b>건
           </div>
         </div>
       )}
 
       {/* 심방 기록 목록 */}
       {activeTab === 'records' && (
-        <>
-          {/* 테이블 형태로 변경 */}
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-[12.5px]">
+              <thead className="bg-[#FAFBFD]">
+                <tr>
+                  {['신청자', '조직', '부서', '심방 유형', '우선순위', '심방일', '담당자', '완료일', '일지'].map((h) => (
+                    <th key={h} className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
+                      {h}
+                    </th>
+                  ))}
+                  <th className="px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {filteredRecords.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      신청자
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      조직
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      부서
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      심방 유형
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      우선순위
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      심방일
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      담당자
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      완료일
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      일지
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      작업
-                    </th>
+                    <td colSpan={10} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center">
+                        <FileText className="mb-3 h-12 w-12 text-[#94A3B8]" />
+                        <p className="text-[14px] font-bold text-foreground">심방 기록이 없습니다</p>
+                        <p className="mt-1 text-[12.5px] text-muted-foreground">완료된 심방이 없거나 필터 조건에 맞는 기록이 없습니다.</p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRecords.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
-                        <div className="flex flex-col items-center">
-                          <FileText className="h-12 w-12 text-gray-300 mb-3" />
-                          <p className="text-lg font-medium">심방 기록이 없습니다</p>
-                          <p className="text-sm text-gray-400 mt-1">완료된 심방이 없거나 필터 조건에 맞는 기록이 없습니다.</p>
+                ) : (
+                  filteredRecords.map((record) => (
+                    <tr key={record.id} className="transition-colors hover:bg-[#FAFBFD]">
+                      <td className="px-[18px] py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-[11px]">
+                          <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
+                            {record.profilePhotoUrl ? (
+                              <img src={record.profilePhotoUrl} alt={record.requesterName} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[13px] font-bold">
+                                {record.requesterName?.charAt(0) || <User className="h-4 w-4" />}
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-semibold text-foreground">{record.requesterName}</div>
+                        </div>
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{record.organizationName || '-'}</td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{record.department || '-'}</td>
+                      <td className="px-[18px] py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <span className="text-foreground">{getRequestTypeText(record.requestType)}</span>
+                          {(record as any).isUrgent && (
+                            <Badge variant="danger" className="gap-1">
+                              <Zap className="h-3 w-3" />
+                              긴급
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap">
+                        <span className={cn("font-medium", getPriorityColor(record.priority))}>
+                          {getPriorityText(record.priority)}
+                        </span>
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 text-[#94A3B8]" />
+                          {record.scheduledDate} {record.scheduledTime}
+                        </div>
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                        {record.assignedPastor?.name || '미지정'}
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle className="h-3 w-3 text-[#16A34A]" />
+                          {record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '-'}
+                        </div>
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap">
+                        {record.completionNotes ? (
+                          <Badge variant="success" className="gap-1">
+                            <FileText className="h-3 w-3" />
+                            작성완료
+                          </Badge>
+                        ) : (
+                          <Badge variant="warning" className="gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            미작성
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRecordDetail(record)}
+                            className="gap-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            상세보기
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteRecord(record); }}
+                            className="gap-1 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            삭제
+                          </Button>
                         </div>
                       </td>
                     </tr>
-                  ) : (
-                    filteredRecords.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {record.profilePhotoUrl ? (
-                              <img
-                                src={record.profilePhotoUrl}
-                                alt={record.requesterName}
-                                className="h-10 w-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                <User className="h-6 w-6 text-gray-400" />
-                              </div>
-                            )}
-                            <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">{record.requesterName}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {record.organizationName || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {record.department || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-1">
-                            <span className="text-sm text-gray-900">{getRequestTypeText(record.requestType)}</span>
-                            {(record as any).isUrgent && (
-                              <Badge className="bg-red-100 text-red-800 text-xs">
-                                <Zap className="h-3 w-3 mr-1" />
-                                긴급
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={cn("text-sm font-medium", getPriorityColor(record.priority))}>
-                            {getPriorityText(record.priority)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center">
-                            <Calendar className="h-3 w-3 text-gray-400 mr-1" />
-                            {record.scheduledDate} {record.scheduledTime}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {record.assignedPastor?.name || '미지정'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center">
-                            <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                            {record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '-'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {record.completionNotes ? (
-                            <Badge className="bg-green-100 text-green-800">
-                              <FileText className="h-3 w-3 mr-1" />
-                              작성완료
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-yellow-100 text-yellow-800">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              미작성
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRecordDetail(record)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              상세보기
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteRecord(record);
-                              }}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              삭제
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Total Count Display for Records */}
       {activeTab === 'records' && filteredRecords.length > 0 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            전체 {filteredRecords.length.toLocaleString()}건
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[12.5px] text-muted-foreground">
+            전체 <b className="text-foreground">{filteredRecords.length.toLocaleString()}</b>건
           </div>
         </div>
       )}

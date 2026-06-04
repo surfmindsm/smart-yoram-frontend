@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, MapPin, Monitor } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, MapPin, Monitor, Users } from 'lucide-react';
 import { Button } from "../ui";
-import { Card, CardContent } from "../ui";
+import { Card, CardContent, LoadingState } from "../ui";
 import { Input } from "../ui";
 import { Label } from "../ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui";
@@ -462,19 +462,14 @@ export default function WorshipScheduleManagement() {
 
       {isLoading ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">예배 일정을 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="예배 일정을 불러오는 중..." />
         </Card>
       ) : services.length === 0 ? (
         <Card>
-          <CardContent className="text-center py-12">
-            <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">등록된 예배가 없습니다</h3>
-            <p className="text-gray-600 mb-4">
+          <CardContent className="py-12 text-center">
+            <Clock className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <h3 className="mb-2 text-[16px] font-bold text-foreground">등록된 예배가 없습니다</h3>
+            <p className="mb-4 text-[13px] text-muted-foreground">
               아직 등록된 예배 일정이 없습니다.<br />
               새로운 예배 일정을 추가해보세요.
             </p>
@@ -493,126 +488,145 @@ export default function WorshipScheduleManagement() {
             <TabsTrigger value="online">온라인</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {sortedServices.map(service => (
-                        <tr key={service.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            <div className="flex items-center gap-2">
-                              {service.name}
-                              {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {service.service_type || '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {service.day_of_week !== undefined ?
-                              (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])
-                              : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{service.start_time}</span>
-                              {service.end_time && <span>- {service.end_time}</span>}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {service.location ? (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{service.location}</span>
-                              </div>
-                            ) : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {service.target_group ?
-                              TARGET_GROUPS.find(g => g.value === service.target_group)?.label
-                              : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-center">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              service.is_active
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {service.is_active ? '활성' : '비활성'}
+          <TabsContent value="all" className="space-y-5">
+            {/* 시안 매핑: 유형(service_type)별 그룹 + 시간블록 카드 행 */}
+            {(() => {
+              // service_type별 그룹핑 (없으면 '기타')
+              const groups = sortedServices.reduce<Record<string, WorshipService[]>>((acc, svc) => {
+                const key = svc.service_type || '기타';
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(svc);
+                return acc;
+              }, {});
+
+              // 카테고리 order_index 따라 정렬, 없는 그룹은 마지막
+              const sortedTypes = Object.keys(groups).sort((a, b) => {
+                const ai = categories.find(c => c.name === a)?.order_index ?? 999;
+                const bi = categories.find(c => c.name === b)?.order_index ?? 999;
+                return ai - bi;
+              });
+
+              return sortedTypes.map((type) => (
+                <div key={type}>
+                  {/* 그룹 헤더 — 시안 .wo-sh */}
+                  <div className="mb-[11px] flex items-center gap-[9px]">
+                    <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{type}</span>
+                    <span className="inline-flex rounded-full border border-border bg-card px-2 py-px text-[11.5px] font-bold text-[#94A3B8]">
+                      {groups[type].length}
+                    </span>
+                  </div>
+                  {/* 카드 — 시안 .wo-card */}
+                  <Card className="overflow-hidden">
+                    {groups[type].map((service) => {
+                      const dayLabel = service.day_of_week !== undefined
+                        ? (DAY_OF_WEEK_MAPPING[service.day_of_week as keyof typeof DAY_OF_WEEK_MAPPING] || DAYS_OF_WEEK[service.day_of_week])?.replace('요일', '')
+                        : '';
+                      return (
+                        <div
+                          key={service.id}
+                          className="flex items-center gap-[18px] border-b border-[#F1F4F9] px-5 py-[15px] transition-colors last:border-b-0 hover:bg-[#FAFBFD]"
+                        >
+                          {/* 좌측 시간 블록 — 시안 .wo-time */}
+                          <div className="flex w-[64px] flex-shrink-0 flex-col items-center border-r border-[#EEF1F6] pr-[18px]">
+                            <span className="text-[11px] font-bold text-primary">{dayLabel || '-'}</span>
+                            <span className="text-[17px] font-bold leading-[1.2] tracking-[-0.02em] tabular-nums">
+                              {service.start_time || '-'}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(service)}
-                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(service.id)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                            {service.end_time && (
+                              <span className="text-[11px] text-[#94A3B8] tabular-nums">~{service.end_time}</span>
+                            )}
+                          </div>
+
+                          {/* 메인 — 예배명 + 온라인 칩 + 메타 */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-[9px]">
+                              <span className="text-[14px] font-bold text-foreground">{service.name}</span>
+                              {service.is_online && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF1FE] px-[9px] py-[2px] text-[10.5px] font-bold text-[#2563EB] whitespace-nowrap">
+                                  <Monitor className="h-[11px] w-[11px]" />
+                                  온라인 중계
+                                </span>
+                              )}
+                              {!service.is_active && (
+                                <span className="inline-flex rounded-full bg-[#F1F4F9] px-[9px] py-[2px] text-[10.5px] font-bold text-[#64748B] whitespace-nowrap">
+                                  비활성
+                                </span>
+                              )}
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-[14px] gap-y-1">
+                              {service.location && (
+                                <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
+                                  <MapPin className="h-[13px] w-[13px] text-[#94A3B8]" />
+                                  {service.location}
+                                </span>
+                              )}
+                              {service.target_group && (
+                                <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
+                                  <Users className="h-[13px] w-[13px] text-[#94A3B8]" />
+                                  {TARGET_GROUPS.find(g => g.value === service.target_group)?.label}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 우측 액션 — 시안 .wo-acts */}
+                          <div className="flex flex-shrink-0 gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(service)}
+                              className="h-[30px] w-[30px] p-0 text-primary hover:bg-accent"
+                              title="수정"
+                            >
+                              <Edit2 className="h-[15px] w-[15px]" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(service.id)}
+                              className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-[15px] w-[15px]" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+              ));
+            })()}
           </TabsContent>
 
           <TabsContent value="sunday" className="space-y-4">
             <Card>
               <CardContent className="p-0">
                 {services.filter(s => s.service_type === '주일예배').length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">주일예배가 등록되지 않았습니다.</p>
+                  <p className="py-8 text-center text-[13px] text-muted-foreground">주일예배가 등록되지 않았습니다.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-[#FAFBFD]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">작업</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[#F1F4F9] bg-card">
                         {sortedServices
                           .filter(s => s.service_type === '주일예배')
                           .map(service => (
-                            <tr key={service.id} className="hover:bg-gray-50">
+                            <tr key={service.id} className="transition-colors hover:bg-[#FAFBFD]">
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                 <div className="flex items-center gap-2">
                                   {service.name}
-                                  {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
+                                  {service.is_online && <Monitor className="h-4 w-4 text-primary" />}
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900">
@@ -641,10 +655,10 @@ export default function WorshipScheduleManagement() {
                                   : '-'}
                               </td>
                               <td className="px-4 py-3 text-sm text-center">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                <span className={`inline-flex rounded-full px-[10px] py-[3px] text-[11px] font-bold ${
                                   service.is_active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-[#E7F6EC] text-[#16A34A]'
+                                    : 'bg-[#F1F4F9] text-[#64748B]'
                                 }`}>
                                   {service.is_active ? '활성' : '비활성'}
                                 </span>
@@ -655,7 +669,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEdit(service)}
-                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    className="text-primary hover:bg-accent"
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </Button>
@@ -663,7 +677,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDelete(service.id)}
-                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    className="text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -683,31 +697,31 @@ export default function WorshipScheduleManagement() {
             <Card>
               <CardContent className="p-0">
                 {services.filter(s => s.service_type !== '주일예배' && s.service_type).length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">주중예배가 등록되지 않았습니다.</p>
+                  <p className="py-8 text-center text-[13px] text-muted-foreground">주중예배가 등록되지 않았습니다.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-[#FAFBFD]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">유형</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">작업</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[#F1F4F9] bg-card">
                         {sortedServices
                           .filter(s => s.service_type !== '주일예배' && s.service_type)
                           .map(service => (
-                            <tr key={service.id} className="hover:bg-gray-50">
+                            <tr key={service.id} className="transition-colors hover:bg-[#FAFBFD]">
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                 <div className="flex items-center gap-2">
                                   {service.name}
-                                  {service.is_online && <Monitor className="h-4 w-4 text-primary-600" />}
+                                  {service.is_online && <Monitor className="h-4 w-4 text-primary" />}
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900">
@@ -739,10 +753,10 @@ export default function WorshipScheduleManagement() {
                                   : '-'}
                               </td>
                               <td className="px-4 py-3 text-sm text-center">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                <span className={`inline-flex rounded-full px-[10px] py-[3px] text-[11px] font-bold ${
                                   service.is_active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-[#E7F6EC] text-[#16A34A]'
+                                    : 'bg-[#F1F4F9] text-[#64748B]'
                                 }`}>
                                   {service.is_active ? '활성' : '비활성'}
                                 </span>
@@ -753,7 +767,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEdit(service)}
-                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    className="text-primary hover:bg-accent"
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </Button>
@@ -761,7 +775,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDelete(service.id)}
-                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    className="text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -781,31 +795,31 @@ export default function WorshipScheduleManagement() {
             <Card>
               <CardContent className="p-0">
                 {services.filter(s => s.is_online).length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">온라인 예배가 등록되지 않았습니다.</p>
+                  <p className="py-8 text-center text-[13px] text-muted-foreground">온라인 예배가 등록되지 않았습니다.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-[#FAFBFD]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">예배명</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">유형</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">요일</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">시간</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[120px]">장소</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[100px]">대상</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[100px]">상태</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[120px]">작업</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] min-w-[150px]">예배명</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">유형</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">요일</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">시간</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">장소</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">대상</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[100px]">상태</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] w-[120px]">작업</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[#F1F4F9] bg-card">
                         {sortedServices
                           .filter(s => s.is_online)
                           .map(service => (
-                            <tr key={service.id} className="hover:bg-gray-50">
+                            <tr key={service.id} className="transition-colors hover:bg-[#FAFBFD]">
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                 <div className="flex items-center gap-2">
                                   {service.name}
-                                  <Monitor className="h-4 w-4 text-primary-600" />
+                                  <Monitor className="h-4 w-4 text-primary" />
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900">
@@ -837,10 +851,10 @@ export default function WorshipScheduleManagement() {
                                   : '-'}
                               </td>
                               <td className="px-4 py-3 text-sm text-center">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                <span className={`inline-flex rounded-full px-[10px] py-[3px] text-[11px] font-bold ${
                                   service.is_active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-[#E7F6EC] text-[#16A34A]'
+                                    : 'bg-[#F1F4F9] text-[#64748B]'
                                 }`}>
                                   {service.is_active ? '활성' : '비활성'}
                                 </span>
@@ -851,7 +865,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEdit(service)}
-                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    className="text-primary hover:bg-accent"
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </Button>
@@ -859,7 +873,7 @@ export default function WorshipScheduleManagement() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDelete(service.id)}
-                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    className="text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -949,7 +963,7 @@ export default function WorshipScheduleManagement() {
                           });
                         }
                       }}
-                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary-500"
                     />
                     <Label htmlFor={`day-${index}`} className="cursor-pointer font-normal">
                       {day}

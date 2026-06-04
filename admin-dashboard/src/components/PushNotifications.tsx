@@ -304,10 +304,10 @@ export default function PushNotifications() {
 
         <TabsContent value="send" className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">알림 대상 선택</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">알림 대상 선택</h3>
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm text-gray-600 mb-6">푸시 알림을 받을 대상을 선택하세요</p>
+                <p className="mb-5 text-[13px] text-muted-foreground">푸시 알림을 받을 대상을 선택하세요</p>
                 <RadioGroup value={targetType} onValueChange={setTargetType}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="all" id="all" />
@@ -346,10 +346,10 @@ export default function PushNotifications() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">알림 내용</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">알림 내용</h3>
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm text-gray-600 mb-6">발송할 푸시 알림의 내용을 작성하세요</p>
+                <p className="mb-5 text-[13px] text-muted-foreground">발송할 푸시 알림의 내용을 작성하세요</p>
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="type">알림 유형</Label>
@@ -437,9 +437,9 @@ export default function PushNotifications() {
         <TabsContent value="history" className="space-y-4">
           {history.length === 0 ? (
             <Card>
-              <CardContent className="text-center py-8">
-                <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-600">발송한 알림이 없습니다</p>
+              <CardContent className="py-12 text-center">
+                <Bell className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+                <p className="text-[13px] text-muted-foreground">발송한 알림이 없습니다</p>
               </CardContent>
             </Card>
           ) : (
@@ -449,8 +449,8 @@ export default function PushNotifications() {
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                        <p className="text-sm text-gray-600">{item.body}</p>
+                        <h4 className="font-bold text-foreground">{item.title}</h4>
+                        <p className="text-[12.5px] text-muted-foreground">{item.body}</p>
                       </div>
                       <div className="flex gap-2">
                         {getStatusBadge(item)}
@@ -458,12 +458,12 @@ export default function PushNotifications() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-[12.5px] text-muted-foreground">
                       <span>{getTargetLabel(item.target_type, item.total_recipients)}</span>
                       {item.sent_count > 0 && (
                         <>
                           <span>•</span>
-                          <span className="text-green-600">성공: {item.sent_count}</span>
+                          <span className="text-[#16A34A]">성공: {item.sent_count}</span>
                         </>
                       )}
                       {item.delivered_count > 0 && (
@@ -481,7 +481,7 @@ export default function PushNotifications() {
                       {item.failed_count > 0 && (
                         <>
                           <span>•</span>
-                          <span className="text-red-500">실패: {item.failed_count}</span>
+                          <span className="text-[#DC2626]">실패: {item.failed_count}</span>
                         </>
                       )}
                       {item.total_recipients === 0 && (
@@ -489,7 +489,7 @@ export default function PushNotifications() {
                       )}
                     </div>
 
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-[12.5px] text-muted-foreground">
                       <Clock className="mr-1 h-3 w-3" />
                       {new Date(item.sent_at || item.created_at).toLocaleString()}
                     </div>
@@ -512,7 +512,7 @@ export default function PushNotifications() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50"
+                  className="flex items-center space-x-2 p-2 rounded hover:bg-[#FAFBFD]"
                 >
                   <Checkbox
                     id={`member-${member.id}`}
@@ -527,12 +527,12 @@ export default function PushNotifications() {
                       <div>
                         <span className="font-medium">{member.name}</span>
                         {member.department && (
-                          <span className="ml-2 text-sm text-gray-500">
+                          <span className="ml-2 text-[12.5px] text-muted-foreground">
                             ({member.department})
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-gray-500">{member.phone}</span>
+                      <span className="text-[12.5px] text-muted-foreground">{member.phone}</span>
                     </div>
                   </Label>
                 </div>

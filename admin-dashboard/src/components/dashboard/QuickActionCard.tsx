@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from "../ui";
-import { cn } from '../../lib/utils';
+import { Card } from "../ui";
 
 interface QuickActionCardProps {
   title: string;
@@ -12,21 +11,20 @@ interface QuickActionCardProps {
   color: string;
 }
 
-const QuickActionCard = React.memo<QuickActionCardProps>(({ title, description, Icon, link, color }) => {
+// 시안 매핑: 38px rounded-[10px] accent tint + title 13.5/700 + sub 11.5 muted
+const QuickActionCard = React.memo<QuickActionCardProps>(({ title, description, Icon, link }) => {
   return (
-    <Link to={link}>
-      <Card className="border-muted hover:shadow-md transition-shadow duration-200 cursor-pointer group">
-        <CardContent className="p-6">
-          <div className="flex items-center">
-            <div className={cn("p-3 rounded-lg transition-colors", color.replace('bg-', 'bg-') + '/10', "group-hover:" + color.replace('bg-', 'bg-') + '/20')}>
-              <Icon className={cn("h-6 w-6", color.replace('bg-', 'text-'))} />
-            </div>
-            <div className="ml-4">
-              <h4 className="text-lg font-medium text-foreground">{title}</h4>
-              <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
+    <Link to={link} className="block">
+      <Card className="cursor-pointer transition-colors hover:border-[#BBD4FB]">
+        <div className="flex items-center gap-3 px-4 py-[18px]">
+          <div className="flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-[11px] bg-[#EEF3FC] text-primary">
+            <Icon className="h-[19px] w-[19px]" />
           </div>
-        </CardContent>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13.5px] font-bold text-foreground">{title}</div>
+            <div className="mt-px text-[11.5px] text-[#94A3B8]">{description}</div>
+          </div>
+        </div>
       </Card>
     </Link>
   );

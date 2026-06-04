@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui";
 import { Label } from "./ui";
@@ -439,12 +439,7 @@ const ImportantDatesManagement: React.FC = () => {
       <div className="space-y-4">
         {loading ? (
           <Card>
-            <CardContent className="text-center py-12">
-              <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-                <p className="text-gray-600">일정 목록을 불러오는 중...</p>
-              </div>
-            </CardContent>
+            <LoadingState text="일정 목록을 불러오는 중..." />
           </Card>
         ) : activeDates.length === 0 && completedDates.length === 0 ? (
           <Card>

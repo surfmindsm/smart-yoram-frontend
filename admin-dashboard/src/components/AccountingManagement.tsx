@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Label } from "./ui";
@@ -921,13 +921,8 @@ const AccountingManagement: React.FC = () => {
       <div className="space-y-4">
           {/* Transactions Table */}
           {loading ? (
-            <Card className="border-muted">
-              <CardContent className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-                  <p className="text-gray-600">거래 내역을 불러오는 중...</p>
-                </div>
-              </CardContent>
+            <Card>
+              <LoadingState text="거래 내역을 불러오는 중..." />
             </Card>
           ) : paginatedTransactions.length === 0 ? (
             <Card className="border-muted">

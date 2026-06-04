@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { Button } from "./ui";
-import { Card, CardContent } from "./ui";
+import { Card, CardContent, LoadingState } from "./ui";
 import { Input } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { PageContainer, PageHeader } from "./ui";
@@ -124,12 +124,7 @@ const ChurchInfo: React.FC = () => {
           description="교회의 기본 정보를 확인하고 수정합니다."
         />
         <Card>
-          <CardContent className="text-center py-12">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">교회 정보를 불러오는 중...</p>
-            </div>
-          </CardContent>
+          <LoadingState text="교회 정보를 불러오는 중..." />
         </Card>
       </PageContainer>
     );

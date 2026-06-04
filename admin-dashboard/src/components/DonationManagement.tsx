@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, LoadingState } from "./ui";
 import { SimpleTabs } from "./ui";
 import { Combobox } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
@@ -38,6 +38,7 @@ import { supabase } from '../lib/supabase';
 import { getPositionDetailLabel } from '../constants/memberPositions';
 import * as XLSX from 'xlsx';
 import { Pagination } from './common/Pagination';
+import { cn } from '../lib/utils';
 
 // 백엔드 API 응답 타입 정의
 interface Member {
@@ -1343,6 +1344,49 @@ const DonationManagement: React.FC = () => {
     return amount.toLocaleString('ko-KR') + '원';
   };
 
+  // 헌금 유형별 chip 색 페어 (Direction C)
+  const getFundTypeChipClass = (fundType: string): string => {
+    switch (fundType) {
+      case '십일조': return 'bg-[#EAF1FE] text-[#2563EB]';
+      case '주일헌금': return 'bg-[#F1F4F9] text-[#475569]';
+      case '감사헌금': return 'bg-[#E7F6EC] text-[#16A34A]';
+      case '선교헌금': return 'bg-[#F0E6EF] text-[#8A5A86]';
+      case '건축헌금': return 'bg-[#FBF1E3] text-[#B45309]';
+      default: return 'bg-[#F1F4F9] text-[#64748B]';
+    }
+  };
+
+  // 헌금 유형별 막대/도트 색 (시안 .dn-bar / .dn-leg 매핑)
+  const getFundTypeBarColor = (fundType: string): string => {
+    switch (fundType) {
+      case '십일조': return '#2563EB';
+      case '주일헌금': return '#64748B';
+      case '감사헌금': return '#16A34A';
+      case '선교헌금': return '#8A5A86';
+      case '건축헌금': return '#B45309';
+      default: return '#94A3B8';
+    }
+  };
+
+  // 헌금 종류별 분포 (현재 filteredDonations 기준)
+  const fundDistribution = useMemo(() => {
+    const totalsByType = new Map<string, number>();
+    let total = 0;
+    for (const d of filteredDonations) {
+      totalsByType.set(d.fundType, (totalsByType.get(d.fundType) || 0) + d.amount);
+      total += d.amount;
+    }
+    const items = Array.from(totalsByType.entries())
+      .map(([type, amount]) => ({
+        type,
+        amount,
+        percentage: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
+        color: getFundTypeBarColor(type),
+      }))
+      .sort((a, b) => b.amount - a.amount);
+    return { items, total };
+  }, [filteredDonations]);
+
   // PDF 영수증 생성 함수
   const generateReceiptPDF = (member: Member, donations: Donation[], year: number, issueNo: string, additionalInfo: any) => {
     const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0);
@@ -1686,7 +1730,7 @@ const DonationManagement: React.FC = () => {
                   <Button
                     onClick={downloadDonationsExcel}
                     variant="outline"
-                    className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 border-primary-300"
+                    className="flex items-center gap-2"
                   >
                     <Download className="w-4 h-4" />
                     헌금 데이터 다운로드
@@ -1731,165 +1775,187 @@ const DonationManagement: React.FC = () => {
 
           {/* 헌금 데이터 전체 로딩 */}
           {loading ? (
-            <Card className="border-gray-200">
-              <CardContent className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-                  <p className="text-gray-600">헌금 데이터를 불러오는 중...</p>
-                </div>
-              </CardContent>
+            <Card>
+              <LoadingState text="헌금 데이터를 불러오는 중..." />
             </Card>
           ) : (
             <>
-              {/* 헌금 통계 카드 */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-green-500/10">
-                        <DollarSign className="h-6 w-6 text-green-500" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">이번 달 총액</p>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
-                        </div>
-                      </div>
+              {/* 헌금 통계 카드 — Direction C flat KPI strip */}
+              <div className="grid grid-cols-1 gap-[14px] md:grid-cols-4">
+                <Card>
+                  <div className="px-[18px] py-4">
+                    <div className="text-[12px] font-semibold text-muted-foreground">이번 달 총액</div>
+                    <div className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] tabular-nums">
+                      {formatCurrency(donations.reduce((sum, d) => sum + d.amount, 0))}
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
-                <Card className="border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-primary-500/10">
-                        <Receipt className="h-6 w-6 text-primary-500" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">헌금 건수</p>
-                        <div className="text-2xl font-bold text-gray-900">{donations.length}건</div>
-                      </div>
+                <Card>
+                  <div className="px-[18px] py-4">
+                    <div className="text-[12px] font-semibold text-muted-foreground">헌금 건수</div>
+                    <div className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em]">
+                      {donations.length}
+                      <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
-                <Card className="border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-purple-500/10">
-                        <Users className="h-6 w-6 text-purple-500" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">기부자 수</p>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {new Set(donations.map(d => d.donorId)).size}명
-                        </div>
-                      </div>
+                <Card>
+                  <div className="px-[18px] py-4">
+                    <div className="text-[12px] font-semibold text-muted-foreground">기부자 수</div>
+                    <div className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em]">
+                      {new Set(donations.map(d => d.donorId)).size}
+                      <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">명</span>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
-                <Card className="border-gray-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="p-3 rounded-lg bg-orange-500/10">
-                        <DollarSign className="h-6 w-6 text-orange-500" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">평균 헌금</p>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
-                        </div>
-                      </div>
+                <Card>
+                  <div className="px-[18px] py-4">
+                    <div className="text-[12px] font-semibold text-muted-foreground">평균 헌금</div>
+                    <div className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] tabular-nums">
+                      {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               </div>
 
-              {/* 헌금 목록 */}
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                            onClick={() => handleSort('offeredOn')}
-                          >
-                            <span className="flex items-center gap-1">
-                              날짜
-                              {getSortIcon('offeredOn')}
-                            </span>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                            onClick={() => handleSort('donorName')}
-                          >
-                            <span className="flex items-center gap-1">
-                              기부자
-                              {getSortIcon('donorName')}
-                            </span>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                            onClick={() => handleSort('fundType')}
-                          >
-                            <span className="flex items-center gap-1">
-                              헌금 유형
-                              {getSortIcon('fundType')}
-                            </span>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                            onClick={() => handleSort('amount')}
-                          >
-                            <span className="flex items-center gap-1 justify-end">
-                              금액
-                              {getSortIcon('amount')}
-                            </span>
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {currentDonations.map((donation) => (
-                          <tr key={donation.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.offeredOn}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.donorName}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.fundType}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{formatCurrency(donation.amount)}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{donation.note}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                              <div className="flex items-center justify-center space-x-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditDonation(donation)}
-                                  title="수정"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600"
-                                  onClick={() => handleDeleteDonation(donation.id)}
-                                  title="삭제"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                  </table>
+              {/* 헌금 종류별 분포 — 시안 .dn-bar + .dn-leg 매핑 */}
+              {fundDistribution.items.length > 0 && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <CardTitle>헌금 종류별 분포</CardTitle>
+                    <span className="text-[12px] font-semibold text-[#94A3B8]">
+                      누계 {formatCurrency(fundDistribution.total)}
+                    </span>
+                  </CardHeader>
+                  <CardContent>
+                    {/* 가로 스택바 */}
+                    <div className="mb-[18px] flex h-[14px] overflow-hidden rounded-[7px] bg-[#F1F4F9]">
+                      {fundDistribution.items.map((item) => (
+                        <div
+                          key={item.type}
+                          style={{ width: `${item.percentage}%`, background: item.color }}
+                          title={`${item.type} ${item.percentage}%`}
+                        />
+                      ))}
+                    </div>
+                    {/* 범례 */}
+                    <div className="flex flex-col gap-[11px]">
+                      {fundDistribution.items.map((item) => (
+                        <div key={item.type} className="flex items-center gap-[10px] text-[13px]">
+                          <span
+                            className="h-[10px] w-[10px] flex-shrink-0 rounded-[3px]"
+                            style={{ background: item.color }}
+                          />
+                          <span className="font-semibold text-[#334155]">{item.type}</span>
+                          <span className="text-[12px] text-[#94A3B8]">
+                            {item.percentage}%
+                          </span>
+                          <span className="ml-auto whitespace-nowrap font-bold tabular-nums text-foreground">
+                            {formatCurrency(item.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
+              {/* 헌금 목록 */}
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-[12.5px]">
+                    <thead className="bg-[#FAFBFD]">
+                      <tr>
+                        <th
+                          className="cursor-pointer px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                          onClick={() => handleSort('offeredOn')}
+                        >
+                          <span className="flex items-center gap-1">
+                            날짜
+                            {getSortIcon('offeredOn')}
+                          </span>
+                        </th>
+                        <th
+                          className="cursor-pointer px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                          onClick={() => handleSort('donorName')}
+                        >
+                          <span className="flex items-center gap-1">
+                            기부자
+                            {getSortIcon('donorName')}
+                          </span>
+                        </th>
+                        <th
+                          className="cursor-pointer px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                          onClick={() => handleSort('fundType')}
+                        >
+                          <span className="flex items-center gap-1">
+                            헌금 유형
+                            {getSortIcon('fundType')}
+                          </span>
+                        </th>
+                        <th
+                          className="cursor-pointer px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                          onClick={() => handleSort('amount')}
+                        >
+                          <span className="flex items-center justify-end gap-1">
+                            금액
+                            {getSortIcon('amount')}
+                          </span>
+                        </th>
+                        <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">적요</th>
+                        <th className="px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                      {currentDonations.map((donation) => (
+                        <tr key={donation.id} className="transition-colors hover:bg-[#FAFBFD]">
+                          <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{donation.offeredOn}</td>
+                          <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">{donation.donorName}</td>
+                          <td className="px-[18px] py-3 whitespace-nowrap">
+                            <span className={cn(
+                              "inline-flex rounded-[6px] px-[9px] py-[2px] text-[11.5px] font-bold whitespace-nowrap",
+                              getFundTypeChipClass(donation.fundType)
+                            )}>
+                              {donation.fundType}
+                            </span>
+                          </td>
+                          <td className="px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums text-foreground">
+                            {formatCurrency(donation.amount)}
+                          </td>
+                          <td className="px-[18px] py-3 text-[12.5px] text-[#94A3B8]">{donation.note || '—'}</td>
+                          <td className="px-[18px] py-3 whitespace-nowrap text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditDonation(donation)}
+                                title="수정"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                                onClick={() => handleDeleteDonation(donation.id)}
+                                title="삭제"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
                 {filteredDonations.length === 0 && (
-                  <div className="text-center py-8 text-gray-600">
+                  <div className="py-8 text-center text-[13px] text-muted-foreground">
                     등록된 헌금 내역이 없습니다.
                   </div>
                 )}
-              </div>
+              </Card>
 
               {/* 페이지네이션 */}
               {filteredDonations.length > 0 && (
@@ -1953,36 +2019,42 @@ const DonationManagement: React.FC = () => {
           </div>
 
           {/* 영수증 목록 */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">기부금 영수증</h3>
-              <p className="text-sm text-gray-600">{selectedYear}년 발행된 기부금 영수증 목록입니다.</p>
-            </div>
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle>기부금 영수증</CardTitle>
+              <CardDescription>{selectedYear}년 발행된 기부금 영수증 목록입니다.</CardDescription>
+            </CardHeader>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <table className="min-w-full text-[12.5px]">
+                  <thead className="bg-[#FAFBFD]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행번호</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">기부자</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">총액</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행일</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">발행자</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">작업</th>
+                      {['발행번호', '기부자', '총액', '발행일', '발행자'].map((h, i) => (
+                        <th
+                          key={h}
+                          className={cn(
+                            "px-[18px] py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]",
+                            i === 2 ? "text-right" : "text-left"
+                          )}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                      <th className="px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {filteredReceipts.map((receipt) => (
-                      <tr key={receipt.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{receipt.issueNo || receipt.issue_no}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{receipt.donorName || receipt.member?.name || ''}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                      <tr key={receipt.id} className="transition-colors hover:bg-[#FAFBFD]">
+                        <td className="px-[18px] py-3 whitespace-nowrap font-mono text-foreground">{receipt.issueNo || receipt.issue_no}</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">{receipt.donorName || receipt.member?.name || ''}</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums text-foreground">
                           {formatCurrency(receipt.totalAmount || Number(receipt.total_amount) || 0)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
                           {receipt.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('ko-KR') :
                            receipt.issued_at ? new Date(receipt.issued_at).toLocaleDateString('ko-KR') : ''}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">관리자</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">관리자</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Button
@@ -2001,11 +2073,11 @@ const DonationManagement: React.FC = () => {
               </table>
             </div>
             {filteredReceipts.length === 0 && (
-              <div className="text-center py-8 text-gray-600">
+              <div className="py-8 text-center text-[13px] text-muted-foreground">
                 {selectedYear}년에 발행된 영수증이 없습니다.
               </div>
             )}
-          </div>
+          </Card>
         </div>
       )}
 

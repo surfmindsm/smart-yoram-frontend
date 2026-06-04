@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[8px] text-[12.5px] font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -13,17 +13,26 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border border-border bg-card text-[#334155] hover:bg-secondary hover:text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "text-[#334155] hover:bg-secondary hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Soft 톤 — Badge와 같은 색 페어. 강조 없이 차분하게.
+        "destructive-soft":
+          "bg-[#FCEBEB] text-[#DC2626] hover:bg-[#FCEBEB]/80",
+        "success-soft":
+          "bg-[#E7F6EC] text-[#16A34A] hover:bg-[#E7F6EC]/80",
+        "warning-soft":
+          "bg-[#FBF1E3] text-[#B45309] hover:bg-[#FBF1E3]/80",
+        "info-soft":
+          "bg-[#EAF1FE] text-[#2563EB] hover:bg-[#EAF1FE]/80",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-2xl px-3",
-        lg: "h-11 rounded-2xl px-8",
-        icon: "h-10 w-10",
+        default: "h-[34px] px-[14px]",
+        sm: "h-8 rounded-[8px] px-3 text-[12px]",
+        lg: "h-10 rounded-[8px] px-6 text-[13px]",
+        icon: "h-[34px] w-[34px]",
       },
     },
     defaultVariants: {

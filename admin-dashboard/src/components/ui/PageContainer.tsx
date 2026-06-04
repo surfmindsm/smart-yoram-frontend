@@ -31,21 +31,23 @@ interface PageContainerProps {
   className?: string;
 }
 
-// 페이지 헤더 컴포넌트
+// 페이지 헤더 컴포넌트 — Direction C: 23px/750, sub 13px muted, end-aligned actions
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
   actions
 }) => {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="mb-5 flex items-end justify-between gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+        <h1 className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">
+          {title}
+        </h1>
         {description && (
-          <p className="text-sm text-gray-600 mt-1">{description}</p>
+          <p className="mt-[3px] text-[13px] text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center space-x-2">{actions}</div>}
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   );
 };
@@ -135,13 +137,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   );
 };
 
-// 페이지 컨테이너
+// 페이지 컨테이너 — Layout이 이미 외곽 p-6을 주므로 여기는 폭만 차지
 export const PageContainer: React.FC<PageContainerProps> = ({
   children,
   className = ''
 }) => {
   return (
-    <div className={`p-6 w-full ${className}`}>
+    <div className={`w-full ${className}`}>
       {children}
     </div>
   );
