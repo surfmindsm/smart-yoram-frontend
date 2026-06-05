@@ -1294,20 +1294,8 @@ const OrganizationManagement: React.FC = () => {
                   className="pl-10"
                 />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleAllMembers}
-                disabled={memberLoading}
-              >
-                전체 선택/해제
-              </Button>
             </div>
 
-            {/* Selected Count */}
-            <div className="text-[12.5px] text-muted-foreground">
-              선택된 교인: <strong>{selectedMemberIds.size}명</strong>
-            </div>
 
             {/* Member List */}
             <div className="border rounded-lg overflow-hidden">
@@ -1484,20 +1472,8 @@ const OrganizationManagement: React.FC = () => {
                   className="pl-10"
                 />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleAllDepartmentMembers}
-                disabled={departmentMemberLoading}
-              >
-                전체 선택/해제
-              </Button>
             </div>
 
-            {/* Selected Count */}
-            <div className="text-[12.5px] text-muted-foreground">
-              선택된 교인: <strong>{selectedDepartmentMemberIds.size}명</strong>
-            </div>
 
             {/* Member List */}
             <div className="border rounded-lg overflow-hidden">
