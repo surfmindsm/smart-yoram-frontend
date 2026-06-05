@@ -51,8 +51,9 @@ Deno.serve(async (req) => {
       const endDate = url.searchParams.get('end_date')
       const serviceDate = url.searchParams.get('service_date')
       const churchId = url.searchParams.get('church_id')
+      const worshipServiceId = url.searchParams.get('worship_service_id')
 
-      console.log('GET attendances - filters:', { startDate, endDate, serviceDate, churchId })
+      console.log('GET attendances - filters:', { startDate, endDate, serviceDate, churchId, worshipServiceId })
 
       // Build query
       let query = supabaseClient.from('attendances').select('*')
@@ -60,6 +61,11 @@ Deno.serve(async (req) => {
       // Filter by church_id if provided
       if (churchId) {
         query = query.eq('church_id', parseInt(churchId))
+      }
+
+      // Filter by worship_service_id if provided
+      if (worshipServiceId) {
+        query = query.eq('worship_service_id', parseInt(worshipServiceId))
       }
 
       // Filter by specific service date if provided
@@ -108,6 +114,7 @@ Deno.serve(async (req) => {
           church_id: body.church_id,
           service_date: body.service_date || new Date().toISOString().split('T')[0],
           service_type: body.service_type || 'sunday_morning',
+          worship_service_id: body.worship_service_id ?? null,
           present: body.present !== undefined ? body.present : true,
           check_in_method: body.check_in_method || 'manual',
           check_in_time: body.check_in_time || new Date().toISOString(),
