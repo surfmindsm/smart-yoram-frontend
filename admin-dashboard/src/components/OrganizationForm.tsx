@@ -235,58 +235,6 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({
             </p>
           </div>
 
-          {/* Contact Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                연락처
-              </label>
-              <Input
-                type="tel"
-                value={formData.contact_phone}
-                onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                placeholder="010-0000-0000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                이메일
-              </label>
-              <Input
-                type="email"
-                value={formData.contact_email}
-                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                placeholder="example@church.org"
-              />
-            </div>
-          </div>
-
-          {/* Meeting Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                모임 일정
-              </label>
-              <Input
-                value={formData.meeting_schedule}
-                onChange={(e) => setFormData({ ...formData, meeting_schedule: e.target.value })}
-                placeholder="예: 매주 금요일 오후 7시"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                모임 장소
-              </label>
-              <Input
-                value={formData.meeting_location}
-                onChange={(e) => setFormData({ ...formData, meeting_location: e.target.value })}
-                placeholder="예: 교회 2층 소모임실"
-              />
-            </div>
-          </div>
-
           {/* Action Buttons */}
           <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button

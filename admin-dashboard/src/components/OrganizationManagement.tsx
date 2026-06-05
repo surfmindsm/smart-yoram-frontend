@@ -118,59 +118,50 @@ const OrganizationTreeNode: React.FC<OrganizationTreeNodeInnerProps> = ({
           <Users className={isRoot ? 'h-[17px] w-[17px]' : 'h-[15px] w-[15px]'} />
         </div>
 
-        {/* 이름 */}
-        <span className={cn('font-bold text-foreground', isRoot ? 'text-[14px]' : 'text-[13px] font-semibold')}>
+        {/* 이름 (들여쓰기는 paddingLeft로 처리. 헤더와 동일한 폭 220px) */}
+        <span className={cn('w-[320px] flex-shrink-0 truncate font-bold text-foreground', isRoot ? 'text-[14px]' : 'text-[13px] font-semibold')}>
           {organization.name}
         </span>
 
-        {/* 비활성 칩 */}
-        {!organization.is_active && (
-          <span className="inline-flex items-center rounded-full bg-[#F1F4F9] px-[8px] py-[2px] text-[10px] font-bold text-[#94A3B8]">
-            비활성
-          </span>
-        )}
+        {/* 설명 */}
+        <div className="flex-1 truncate text-[12.5px] text-muted-foreground">
+          {organization.description || <span className="text-[#CBD5E1]">-</span>}
+        </div>
 
-        {/* 우측 메타: 리더 / 인원수 / 액션 */}
-        <div className="ml-auto flex items-center gap-[14px]">
-          {(organization as any).leader_name && (
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12px] text-[#64748B]">
-              <UserPlus className="h-3.5 w-3.5 text-[#94A3B8]" />
-              {(organization as any).leader_name}
-            </span>
-          )}
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-foreground tabular-nums">
-            {organization.member_count}
-            <small className="ml-px text-[11px] font-medium text-[#94A3B8]">명</small>
-          </span>
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddMember(organization)}
-              className="h-[30px] w-[30px] p-0 text-[#64748B] hover:bg-secondary hover:text-foreground"
-              title="교인 배정"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(organization)}
-              className="h-[30px] w-[30px] p-0 text-primary hover:bg-accent"
-              title="수정"
-            >
-              <Edit className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(organization)}
-              className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
-              title="삭제"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+        {/* 인원 수 */}
+        <div className="w-[100px] whitespace-nowrap text-right text-[12.5px] text-foreground tabular-nums">
+          {organization.member_count || 0}명
+        </div>
+
+        {/* 작업 */}
+        <div className="flex w-[130px] items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onAddMember(organization)}
+            className="h-[30px] w-[30px] p-0 text-[#64748B] hover:bg-secondary hover:text-foreground"
+            title="교인 배정"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(organization)}
+            className="h-[30px] w-[30px] p-0 text-primary hover:bg-accent"
+            title="수정"
+          >
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(organization)}
+            className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+            title="삭제"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
 
@@ -904,35 +895,9 @@ const OrganizationManagement: React.FC = () => {
   // 탑바 부제
   usePageSubtitle('교회 조직 구조와 교인 배정을 관리합니다');
 
-  // 탑바 우측 액션 — 조직/부서 세그먼트 + 추가 버튼
+  // 탑바 우측 액션 — 추가 버튼만 유지 (탭은 본문 상단으로 이동)
   usePageActions(
     <>
-      <div className="inline-flex items-center gap-[2px] rounded-[8px] bg-secondary p-[3px]">
-        <button
-          type="button"
-          onClick={() => setActiveTab('organizations')}
-          className={cn(
-            'rounded-[6px] px-3 py-[5px] text-[12px] font-semibold transition-colors whitespace-nowrap',
-            activeTab === 'organizations'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          조직
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('departments')}
-          className={cn(
-            'rounded-[6px] px-3 py-[5px] text-[12px] font-semibold transition-colors whitespace-nowrap',
-            activeTab === 'departments'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          부서
-        </button>
-      </div>
       <Button
         onClick={() => activeTab === 'organizations' ? setShowCreateModal(true) : openDepartmentCreateModal()}
         size="sm"
@@ -947,6 +912,34 @@ const OrganizationManagement: React.FC = () => {
 
   return (
     <PageContainer>
+      {/* 조직 / 부서 탭 — 본문 상단으로 이동해 가시성 향상 */}
+      <div className="mb-4 inline-flex items-center gap-1 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('organizations')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'organizations'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          조직
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('departments')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'departments'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          부서
+        </button>
+      </div>
+
       {/* Organizations Tab Content */}
       {activeTab === 'organizations' && (
         <div>
@@ -971,7 +964,14 @@ const OrganizationManagement: React.FC = () => {
         ) : (
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
-              <div className="min-w-[760px]">
+              <div className="min-w-[900px]">
+                {/* 컬럼 헤더 */}
+                <div className="flex items-center gap-3 border-b border-[#F1F4F9] bg-[#FAFBFD] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
+                  <div className="w-[320px]">이름</div>
+                  <div className="flex-1">설명</div>
+                  <div className="w-[100px] text-right tabular-nums">인원 수</div>
+                  <div className="w-[130px] text-right">작업</div>
+                </div>
                 {renderOrganizationTree(organizations)}
               </div>
             </div>
@@ -1004,22 +1004,19 @@ const OrganizationManagement: React.FC = () => {
           ) : (
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full">
+                <table className="min-w-[900px] w-full table-fixed">
                   <thead className="bg-[#FAFBFD]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[320px] px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         부서명
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         설명
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[100px] px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         인원 수
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        상태
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[130px] px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         작업
                       </th>
                     </tr>
@@ -1027,24 +1024,17 @@ const OrganizationManagement: React.FC = () => {
                   <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {departments.map((department) => (
                       <tr key={department.id} className="cursor-pointer transition-colors hover:bg-[#FAFBFD]">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-foreground">{department.name}</div>
+                        <td className="w-[320px] px-6 py-4 whitespace-nowrap">
+                          <div className="truncate text-sm font-semibold text-foreground">{department.name}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-[12.5px] text-muted-foreground">{department.description || '-'}</div>
+                          <div className="truncate text-[12.5px] text-muted-foreground">{department.description || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="w-[100px] px-6 py-4 whitespace-nowrap text-right">
                           <span className="text-[12.5px] text-foreground">{department.member_count || 0}명</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {department.is_active ? (
-                            <Badge variant="secondary" className="text-xs">활성</Badge>
-                          ) : (
-                            <Badge variant="destructive" className="text-xs">비활성</Badge>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end space-x-1">
+                        <td className="w-[130px] px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1052,9 +1042,10 @@ const OrganizationManagement: React.FC = () => {
                                 e.stopPropagation();
                                 handleAddMemberToDepartment(department);
                               }}
-                              className="h-8 w-8 p-0"
+                              className="h-[30px] w-[30px] p-0 text-[#64748B] hover:bg-secondary hover:text-foreground"
+                              title="교인 배정"
                             >
-                              <UserPlus className="w-4 h-4" />
+                              <UserPlus className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1063,9 +1054,10 @@ const OrganizationManagement: React.FC = () => {
                                 e.stopPropagation();
                                 openDepartmentEditModal(department);
                               }}
-                              className="h-8 w-8 p-0"
+                              className="h-[30px] w-[30px] p-0 text-primary hover:bg-accent"
+                              title="수정"
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1074,9 +1066,10 @@ const OrganizationManagement: React.FC = () => {
                                 e.stopPropagation();
                                 openDepartmentDeleteModal(department);
                               }}
-                              className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                              className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                              title="삭제"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </td>
@@ -1138,16 +1131,6 @@ const OrganizationManagement: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="dept-active"
-                checked={departmentFormData.is_active}
-                onChange={(e) => setDepartmentFormData({ ...departmentFormData, is_active: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="dept-active">활성 상태</Label>
-            </div>
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
@@ -1191,16 +1174,6 @@ const OrganizationManagement: React.FC = () => {
                 onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
                 rows={3}
               />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="edit-dept-active"
-                checked={departmentFormData.is_active}
-                onChange={(e) => setDepartmentFormData({ ...departmentFormData, is_active: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="edit-dept-active">활성 상태</Label>
             </div>
             <div className="flex justify-end space-x-2">
               <Button
