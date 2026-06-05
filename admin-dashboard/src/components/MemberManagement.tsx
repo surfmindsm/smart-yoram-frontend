@@ -315,29 +315,49 @@ const MemberManagement: React.FC = () => {
   };
 
   // organization_id로부터 루트까지의 계층 경로 문자열 생성 (예: "장년부 / 1구역 / A조")
+  // organizations Map은 한 번만 생성하여 행마다 재생성하지 않음
+  const organizationsMap = useMemo(
+    () => new Map(organizations.map(o => [o.id, o])),
+    [organizations]
+  );
+  const orgPathCacheRef = useRef<Map<string, string[]>>(new Map());
+  useEffect(() => {
+    // organizations가 바뀌면 캐시 무효화
+    orgPathCacheRef.current = new Map();
+  }, [organizationsMap]);
   const getOrgPath = React.useCallback((orgId?: string | null): string[] => {
-    if (!orgId || organizations.length === 0) return [];
-    const map = new Map(organizations.map(o => [o.id, o]));
+    if (!orgId || organizationsMap.size === 0) return [];
+    const cached = orgPathCacheRef.current.get(orgId);
+    if (cached) return cached;
     const path: string[] = [];
-    let cur = map.get(orgId);
+    let cur = organizationsMap.get(orgId);
     let safety = 0;
     while (cur && safety < 20) {
       path.unshift(cur.name);
       if (!cur.parent_id) break;
-      cur = map.get(cur.parent_id);
+      cur = organizationsMap.get(cur.parent_id);
       safety += 1;
     }
+    orgPathCacheRef.current.set(orgId, path);
     return path;
-  }, [organizations]);
+  }, [organizationsMap]);
+
+  // getCurrentUser 결과를 컴포넌트 라이프타임 동안 한 번만 호출하도록 캐시
+  const currentUserPromiseRef = useRef<ReturnType<typeof supabaseAuthService.getCurrentUser> | null>(null);
+  const getCurrentUserCached = React.useCallback(() => {
+    if (!currentUserPromiseRef.current) {
+      currentUserPromiseRef.current = supabaseAuthService.getCurrentUser();
+    }
+    return currentUserPromiseRef.current;
+  }, []);
 
   // 서버에서 원본 데이터 가져오기 (캐싱)
   const fetchMembers = async () => {
     try {
       setLoading(true);
 
-      // 현재 사용자의 church_id 가져오기
-      const currentUserData = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUserData?.user?.church_id || 9998; // 기본값 9998
+      // 현재 사용자 정보 (캐시된 호출 사용)
+      const currentUserData = await getCurrentUserCached();
 
       // 현재 사용자 정보를 상태에 저장
       setCurrentUser(currentUserData?.user);
@@ -564,29 +584,30 @@ const MemberManagement: React.FC = () => {
     fetchMembers();
   }, []); // 한 번만 실행
 
-  // 조직 목록 및 부서 목록 불러오기
+  // 조직 목록 및 부서 목록 불러오기 (캐시된 currentUser 재사용)
   useEffect(() => {
     const fetchOrganizationsAndDepartments = async () => {
       try {
-        const result = await supabaseAuthService.getCurrentUser();
+        const result = await getCurrentUserCached();
         if (result?.user?.church_id) {
-          // 조직 목록 불러오기
-          const orgResult = await organizationService.getOrganizations(result.user.church_id);
+          // 조직 목록과 부서 목록을 병렬 호출
+          const [orgResult, deptResult] = await Promise.all([
+            organizationService.getOrganizations(result.user.church_id),
+            supabase
+              .from('departments')
+              .select('name')
+              .eq('church_id', result.user.church_id)
+              .eq('is_active', true)
+              .order('display_order', { ascending: true }),
+          ]);
+
           const flatOrgs = flattenOrganizations(orgResult.organizations);
           setOrganizations(flatOrgs);
 
-          // 부서 목록 불러오기
-          const { data, error } = await supabase
-            .from('departments')
-            .select('name')
-            .eq('church_id', result.user.church_id)
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
-
-          if (error) {
-            console.error('Error loading departments:', error);
+          if (deptResult.error) {
+            console.error('Error loading departments:', deptResult.error);
           } else {
-            setDepartments(data?.map(d => d.name) || []);
+            setDepartments(deptResult.data?.map(d => d.name) || []);
           }
         }
       } catch (error) {
@@ -594,7 +615,7 @@ const MemberManagement: React.FC = () => {
       }
     };
     fetchOrganizationsAndDepartments();
-  }, []);
+  }, [getCurrentUserCached]);
 
   // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
   // 수정 페이지에서 돌아왔을 때 페이지네이션 복원
@@ -2021,19 +2042,19 @@ Church Round 앱에 초대되셨습니다.
   };
 
   // Clean photo URL - handle both relative and absolute URLs
-  const cleanPhotoUrl = (url: string | null) => {
+  const cleanPhotoUrl = React.useCallback((url: string | null) => {
     if (!url) return null;
     // Remove trailing '?' if present
     const cleanedUrl = url.endsWith('?') ? url.slice(0, -1) : url;
-    
+
     // If it's already a full URL (starts with http:// or https://), return as-is
     if (cleanedUrl.startsWith('http://') || cleanedUrl.startsWith('https://')) {
       return cleanedUrl;
     }
-    
+
     // Otherwise, prepend the API base URL
     return `${process.env.REACT_APP_API_URL}${cleanedUrl}`;
-  };
+  }, []);
 
   // 탑바 부제 설정 (Hook은 early return 전에 호출해야 함)
   // 전체 N명 표시 (시안 매핑 — 새가족 카운트는 별도 데이터 필요)
@@ -2102,16 +2123,6 @@ Church Round 앱에 초대되셨습니다.
     </>,
     [selectedMembers.size, isBulkDeleting, isBulkInviting, canCreateMember]
   );
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <Card>
-          <LoadingState text="교인 목록을 불러오는 중..." />
-        </Card>
-      </PageContainer>
-    );
-  }
 
   return (
     <PageContainer>
@@ -2328,7 +2339,14 @@ Church Round 앱에 초대되셨습니다.
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F1F4F9] bg-card">
-              {members.map((member) => (
+              {loading && (
+                <tr>
+                  <td colSpan={9} className="px-[18px] py-12">
+                    <LoadingState text="교인 목록을 불러오는 중..." />
+                  </td>
+                </tr>
+              )}
+              {!loading && members.map((member) => (
                 <tr key={member.id} className="transition-colors hover:bg-[#FAFBFD]">
                   <td className="px-[18px] py-3" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -2341,27 +2359,33 @@ Church Round 앱에 초대되셨습니다.
                   {/* 이름 (아바타 + 한글명) */}
                   <td className="cursor-pointer px-[18px] py-3" onClick={() => handleMemberClick(member)}>
                     <div className="flex items-center gap-[11px]">
-                      <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
-                        {cleanPhotoUrl(member.profile_photo_url) ? (
-                          <img
-                            className="h-full w-full object-cover"
-                            src={cleanPhotoUrl(member.profile_photo_url)!}
-                            alt={member.name}
-                            loading="lazy"
-                            onError={(e) => {
-                              const target = e.currentTarget as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) {
-                                fallback.classList.remove('hidden');
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div className={`flex h-full w-full items-center justify-center text-[13px] font-bold ${cleanPhotoUrl(member.profile_photo_url) ? 'hidden' : ''}`}>
-                          {member.name?.charAt(0) || <User className="h-4 w-4" />}
-                        </div>
-                      </div>
+                      {(() => {
+                        const photoUrl = cleanPhotoUrl(member.profile_photo_url);
+                        return (
+                          <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
+                            {photoUrl ? (
+                              <img
+                                className="h-full w-full object-cover"
+                                src={photoUrl}
+                                alt={member.name}
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) {
+                                    fallback.classList.remove('hidden');
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div className={`flex h-full w-full items-center justify-center text-[13px] font-bold ${photoUrl ? 'hidden' : ''}`}>
+                              {member.name?.charAt(0) || <User className="h-4 w-4" />}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <div className="font-semibold text-foreground">{member.name}</div>
                     </div>
                   </td>

@@ -9,7 +9,9 @@ import SupabaseTest from './components/SupabaseTest';
 import { ToastProvider } from './contexts/ToastContext';
 import { SpinnerProvider } from './contexts/SpinnerContext';
 import { Toaster } from './components/ui';
-import { Spinner } from './components/ui/spinner';
+import { Spinner, LoadingState } from './components/ui/spinner';
+import { Card } from './components/ui/card';
+import { PageContainer } from './components/ui/PageContainer';
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -127,11 +129,20 @@ const SermonManagement = lazy(() => import('./components/SermonManagement'));
 const AddMemberPage = lazy(() => import('./pages/AddMemberPage'));
 const EditMemberPage = lazy(() => import('./pages/EditMemberPage'));
 
-// Loading component
+// 인증/랜딩 등 풀스크린 영역용 (Layout 바깥)
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
     <Spinner size="lg" />
   </div>
+);
+
+// Layout 안쪽 본문에서 라우트 chunk를 기다리는 동안 사용 — 페이지 내 데이터 로딩과 동일한 비주얼
+const PageLoadingFallback = () => (
+  <PageContainer>
+    <Card>
+      <LoadingState text="불러오는 중..." />
+    </Card>
+  </PageContainer>
 );
 
 function App() {
@@ -192,310 +203,310 @@ function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <Dashboard />
             </Suspense>
           } />
           <Route path="members" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <Members />
             </Suspense>
           } />
           <Route path="member-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MemberManagement />
             </Suspense>
           } />
           <Route path="member-management/add" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AddMemberPage />
             </Suspense>
           } />
           <Route path="member-management/edit/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <EditMemberPage />
             </Suspense>
           } />
           <Route path="organization-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <OrganizationManagement />
             </Suspense>
           } />
           <Route path="add-member" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AddMemberWizard />
             </Suspense>
           } />
           <Route path="donations" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <DonationManagement />
             </Suspense>
           } />
           <Route path="donations/bulk-input" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <BulkDonationInput />
             </Suspense>
           } />
           <Route path="accounting" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AccountingManagement />
             </Suspense>
           } />
           <Route path="account-categories" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AccountCategoryManagement />
             </Suspense>
           } />
           <Route path="budget" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <BudgetManagement />
             </Suspense>
           } />
           <Route path="settlement" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SettlementManagement />
             </Suspense>
           } />
           <Route path="system-announcements" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SystemAnnouncementManagement />
             </Suspense>
           } />
           <Route path="system-announcements-list" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SystemAnnouncementList />
             </Suspense>
           } />
           <Route path="announcements" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AnnouncementManagement />
             </Suspense>
           } />
           <Route path="sermons" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SermonManagement />
             </Suspense>
           } />
           <Route path="ai-chat" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AIChat />
             </Suspense>
           } />
           <Route path="ai-agent-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AIAgentManagement />
             </Suspense>
           } />
           <Route path="sermon-library" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SermonLibrary />
             </Suspense>
           } />
           <Route path="church-settings" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchSettings />
             </Suspense>
           } />
           <Route path="analytics" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AnalyticsDashboard />
             </Suspense>
           } />
           <Route path="pastoral-care" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <PastoralCareManagement />
             </Suspense>
           } />
           <Route path="important-dates" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ImportantDatesManagement />
             </Suspense>
           } />
           <Route path="prayer-requests" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <PrayerRequests />
             </Suspense>
           } />
           <Route path="sms" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SMSManagement />
             </Suspense>
           } />
           <Route path="qr-codes" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <QRCodeManagement />
             </Suspense>
           } />
           <Route path="statistics" element={<Navigate to="/dashboard" replace />} />
           <Route path="excel" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ExcelManagement />
             </Suspense>
           } />
           <Route path="attendance" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <Attendance />
             </Suspense>
           } />
           <Route path="bulletins" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <Bulletins />
             </Suspense>
           } />
           <Route path="daily-verses" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <DailyVerse />
             </Suspense>
           } />
           <Route path="church" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchInfo />
             </Suspense>
           } />
           <Route path="worship-schedule" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <WorshipScheduleManagement />
             </Suspense>
           } />
           <Route path="push-notifications" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <PushNotifications />
             </Suspense>
           } />
           <Route path="message-sending" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MessageSending />
             </Suspense>
           } />
           <Route path="gpt-settings" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <GPTSettings />
             </Suspense>
           } />
           <Route path="security-logs" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SecurityLogs />
             </Suspense>
           } />
           
           {/* Community Routes */}
           <Route path="community" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CommunityHome />
             </Suspense>
           } />
           <Route path="community/free-sharing" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <FreeSharing />
             </Suspense>
           } />
           <Route path="community/free-sharing/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateSharing />
             </Suspense>
           } />
           <Route path="community/free-sharing/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <FreeSharingDetail />
             </Suspense>
           } />
           <Route path="community/item-request" element={
-            <Suspense fallback={<div>Loading ItemRequest...</div>}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ItemRequest />
             </Suspense>
           } />
           <Route path="community/item-request/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateItemRequest />
             </Suspense>
           } />
           <Route path="community/item-request/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ItemRequestDetail />
             </Suspense>
           } />
           <Route path="community/item-sale" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SharingOffer />
             </Suspense>
           } />
           <Route path="community/item-sale/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateSharingOffer />
             </Suspense>
           } />
           <Route path="community/item-sale/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SharingOfferDetail />
             </Suspense>
           } />
           <Route path="community/job-posting" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <JobPosting />
             </Suspense>
           } />
           <Route path="community/job-posting/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <JobPostingDetail />
             </Suspense>
           } />
           <Route path="community/job-posting/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateJobPosting />
             </Suspense>
           } />
           <Route path="community/job-seeking" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <JobSeeking />
             </Suspense>
           } />
           <Route path="community/job-seeking/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateJobSeeking />
             </Suspense>
           } />
           <Route path="community/music-team-recruit" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MusicTeamRecruit />
             </Suspense>
           } />
           <Route path="community/music-team-recruit/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MusicTeamRecruitDetail />
             </Suspense>
           } />
           <Route path="community/music-team-recruit/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateMusicTeamRecruit />
             </Suspense>
           } />
           <Route path="community/music-team-seeking" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MusicTeamSeeking />
             </Suspense>
           } />
           <Route path="community/music-team-seeking/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateMusicTeamSeeking />
             </Suspense>
           } />
           <Route path="community/church-news" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchNews />
             </Suspense>
           } />
           <Route path="community/church-news/create" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CreateChurchNews />
             </Suspense>
           } />
           <Route path="community/church-news/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchEventsDetail />
             </Suspense>
           } />
           <Route path="community/church-news/:id/edit" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <EditChurchNews />
             </Suspense>
           } />
@@ -504,82 +515,82 @@ function App() {
           <Route path="community/church-events" element={<Navigate to="/community/church-news" replace />} />
           <Route path="community/church-events/:id" element={<Navigate to="/community/church-news" replace />} />
           <Route path="community/music-team-seeking/:id" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MusicTeamSeekingDetail />
             </Suspense>
           } />
           <Route path="community/my-posts" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <MyPosts />
             </Suspense>
           } />
           <Route path="community/wishlists" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <Wishlists />
             </Suspense>
           } />
           <Route path="community/admin" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CommunityAdmin />
             </Suspense>
           } />
           <Route path="community-applications" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <CommunityApplicationManagement />
             </Suspense>
           } />
           <Route path="church-applications" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchApplicationManagement />
             </Suspense>
           } />
           <Route path="admin-roles" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AdminRoleManagement />
             </Suspense>
           } />
           <Route path="permission-groups" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <PermissionGroupManagement />
             </Suspense>
           } />
           <Route path="church-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchManagement />
             </Suspense>
           } />
           <Route path="gpt-license-management" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <GptLicenseManagement />
             </Suspense>
           } />
           <Route path="church-gpt-license-assignment" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <ChurchGptLicenseAssignment />
             </Suspense>
           } />
           <Route path="ai-tools" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AITools />
             </Suspense>
           } />
           <Route path="ai-tools/sermon-writer" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <SermonWriter />
             </Suspense>
           } />
           <Route path="ai-tools/prayer-generator" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <PrayerGenerator />
             </Suspense>
           } />
           <Route path="ai-tools/announcement-writer" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <AnnouncementWriter />
             </Suspense>
           } />
           <Route path="ai-tools/bulletin-content" element={
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={<PageLoadingFallback />}>
               <BulletinContent />
             </Suspense>
           } />
