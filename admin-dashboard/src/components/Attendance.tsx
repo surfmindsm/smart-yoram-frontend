@@ -1,19 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Card, CardContent } from "./ui";
+import { Card, LoadingState } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Badge } from "./ui";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { PageContainer, PageHeader } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle } from '../hooks/usePageSubtitle';
+import { getPositionMainLabel } from '../constants/memberPositions';
 
 interface Member {
   id: number;
   name: string;
-  position: string;
-  department: string;
+  position?: string;
+  position_main?: string | null;
+  department?: string;
+  organization_name?: string | null;
 }
+
+type SortField = 'name' | 'organization' | 'position' | 'rate';
+type SortOrder = 'asc' | 'desc';
 
 interface AttendanceRecord {
   id: number;
@@ -53,14 +59,18 @@ const getSundaysInMonth = (year: number, month: number): Date[] => {
 const Attendance: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [churchId, setChurchId] = useState<number>(1);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [, setCurrentUser] = useState<any>(null);
 
   // 주별 출석 현황용 상태
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [weeklyAttendances, setWeeklyAttendances] = useState<AttendanceRecord[]>([]);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
-  const [updatingWeekly, setUpdatingWeekly] = useState<string | null>(null); // "memberId_date" 형식
+  const [updatingWeekly, setUpdatingWeekly] = useState<string | null>(null);
+
+  // 정렬 상태
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   // 년도 옵션 (현재 년도 기준 ±2년)
   const currentYear = new Date().getFullYear();
@@ -72,6 +82,11 @@ const Attendance: React.FC = () => {
   const tokenCacheRef = useRef<string | null>(null);
   const loadingWeeklyRef = useRef(false);
   const attendanceCacheRef = useRef<Map<string, AttendanceRecord[]>>(new Map());
+
+  const sundays = getSundaysInMonth(selectedYear, selectedMonth);
+
+  // 상단바 부제: 조회 기간 + 주차 수
+  usePageSubtitle(`${selectedYear}년 ${selectedMonth + 1}월 · 주일 ${sundays.length}회`);
 
   // 토큰 가져오기 헬퍼 (캐싱)
   const getToken = useCallback(async () => {
@@ -92,22 +107,14 @@ const Attendance: React.FC = () => {
   }, []);
 
   const loadMembers = useCallback(async () => {
-    if (membersLoadedRef.current) {
-      console.log('>>> Members already loaded, skipping');
-      return;
-    }
+    if (membersLoadedRef.current) return;
 
-    console.log('>>> loadMembers 시작 (Supabase Edge Function)');
     try {
       const token = await getToken();
-
       if (!token) {
-        console.error('>>> No auth token');
         setMembers([]);
         return;
       }
-
-      console.log('>>> Using token:', token.substring(0, 20) + '...');
 
       const response = await fetch(
         `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/members?limit=1000`,
@@ -122,35 +129,26 @@ const Attendance: React.FC = () => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('>>> Members API error:', response.status, errorText);
         setMembers([]);
         return;
       }
 
       const result = await response.json();
       const memberList = result.data || [];
-      console.log('>>> Members loaded:', memberList.length);
       setMembers(memberList);
       membersLoadedRef.current = true;
     } catch (error: any) {
-      console.error('>>> Failed to load members:', error);
+      console.error('Failed to load members:', error);
       setMembers([]);
     }
   }, [getToken]);
 
   const loadWeeklyAttendances = useCallback(async () => {
-    // 이미 로딩 중이면 중복 호출 방지
-    if (loadingWeeklyRef.current) {
-      console.log('>>> Already loading attendances, skipping');
-      return;
-    }
+    if (loadingWeeklyRef.current) return;
 
     const cacheKey = `${selectedYear}-${selectedMonth}`;
 
-    // 캐시에 있으면 캐시 사용
     if (attendanceCacheRef.current.has(cacheKey)) {
-      console.log('>>> Using cached attendances for', cacheKey);
       setWeeklyAttendances(attendanceCacheRef.current.get(cacheKey) || []);
       return;
     }
@@ -158,27 +156,22 @@ const Attendance: React.FC = () => {
     try {
       loadingWeeklyRef.current = true;
       setLoadingWeekly(true);
-      const sundays = getSundaysInMonth(selectedYear, selectedMonth);
-      console.log('>>> Sundays in', selectedYear, selectedMonth + 1, ':', sundays.length);
+      const monthSundays = getSundaysInMonth(selectedYear, selectedMonth);
 
-      if (sundays.length === 0) {
-        console.log('>>> No sundays in this month');
+      if (monthSundays.length === 0) {
         setWeeklyAttendances([]);
         attendanceCacheRef.current.set(cacheKey, []);
         return;
       }
 
       const token = await getToken();
-
       if (!token) {
-        console.error('>>> No auth token');
         setWeeklyAttendances([]);
         return;
       }
 
-      // 첫 주일과 마지막 주일 사이의 모든 출석 데이터 조회
-      const firstSunday = formatLocalDate(sundays[0]);
-      const lastSunday = formatLocalDate(sundays[sundays.length - 1]);
+      const firstSunday = formatLocalDate(monthSundays[0]);
+      const lastSunday = formatLocalDate(monthSundays[monthSundays.length - 1]);
 
       const response = await fetch(
         `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${firstSunday}&end_date=${lastSunday}${churchId ? `&church_id=${churchId}` : ''}`,
@@ -193,26 +186,21 @@ const Attendance: React.FC = () => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('>>> Weekly attendances API error:', response.status, errorText);
         setWeeklyAttendances([]);
         return;
       }
 
       const data = await response.json();
-      console.log('>>> Weekly attendance results:', data.length || 0);
       setWeeklyAttendances(data || []);
-
-      // 캐시에 저장
       attendanceCacheRef.current.set(cacheKey, data || []);
     } catch (error) {
-      console.error('>>> Failed to load weekly attendances:', error);
+      console.error('Failed to load weekly attendances:', error);
       setWeeklyAttendances([]);
     } finally {
       loadingWeeklyRef.current = false;
       setLoadingWeekly(false);
     }
-  }, [selectedYear, selectedMonth, getToken]);
+  }, [selectedYear, selectedMonth, churchId, getToken]);
 
   // 초기화: 한 번만 실행
   useEffect(() => {
@@ -220,23 +208,17 @@ const Attendance: React.FC = () => {
     initializedRef.current = true;
 
     const init = async () => {
-      console.log('=== Attendance Component Init (Supabase) ===');
-
       try {
         const user = await supabaseAuthService.getCurrentUser();
-        console.log('>>> Current user:', user);
         setCurrentUser(user?.user || null);
         if (user?.user?.church_id) {
           setChurchId(user.user.church_id);
         }
       } catch (error: any) {
-        console.error('>>> Failed to get current user:', error);
+        console.error('Failed to get current user:', error);
       }
 
-      // 교인 목록과 출석 데이터를 병렬로 로드
       await Promise.all([loadMembers(), loadWeeklyAttendances()]);
-
-      console.log('✅ 초기화 완료');
     };
 
     init();
@@ -244,7 +226,7 @@ const Attendance: React.FC = () => {
 
   // 년도/월 변경 시 출석 데이터만 다시 로드
   useEffect(() => {
-    if (!initializedRef.current) return; // 초기화 완료 후에만 실행
+    if (!initializedRef.current) return;
     loadWeeklyAttendances();
   }, [selectedYear, selectedMonth, loadWeeklyAttendances]);
 
@@ -261,10 +243,7 @@ const Attendance: React.FC = () => {
 
     try {
       const token = await getToken();
-
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다.');
-      }
+      if (!token) throw new Error('인증 토큰이 없습니다.');
 
       const headers = {
         'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
@@ -276,13 +255,9 @@ const Attendance: React.FC = () => {
 
       if (existingAttendance) {
         if (existingAttendance.present) {
-          // 출석 삭제
           const response = await fetch(
             `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?id=${existingAttendance.id}`,
-            {
-              method: 'DELETE',
-              headers,
-            }
+            { method: 'DELETE', headers }
           );
 
           if (!response.ok) {
@@ -292,7 +267,6 @@ const Attendance: React.FC = () => {
 
           updatedAttendances = weeklyAttendances.filter(a => a.id !== existingAttendance.id);
         } else {
-          // 출석 업데이트
           const response = await fetch(
             `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances`,
             {
@@ -317,7 +291,6 @@ const Attendance: React.FC = () => {
           );
         }
       } else {
-        // 새로 출석 생성
         const response = await fetch(
           `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances`,
           {
@@ -344,14 +317,12 @@ const Attendance: React.FC = () => {
         updatedAttendances = [...weeklyAttendances, data];
       }
 
-      // 상태 업데이트 및 캐시 업데이트
       setWeeklyAttendances(updatedAttendances);
       const cacheKey = `${selectedYear}-${selectedMonth}`;
       attendanceCacheRef.current.set(cacheKey, updatedAttendances);
     } catch (error: any) {
       console.error('Failed to update attendance:', error);
       alert(error.message || '출석 체크 중 오류가 발생했습니다.');
-      // 캐시 무효화 후 재로딩
       const cacheKey = `${selectedYear}-${selectedMonth}`;
       attendanceCacheRef.current.delete(cacheKey);
       await loadWeeklyAttendances();
@@ -360,8 +331,8 @@ const Attendance: React.FC = () => {
     }
   };
 
-  const getMemberAttendanceRate = (memberId: number, sundays: Date[]) => {
-    const attendedCount = sundays.filter(sunday => {
+  const getMemberAttendanceRate = (memberId: number, monthSundays: Date[]) => {
+    const attendedCount = monthSundays.filter(sunday => {
       const dateStr = formatLocalDate(sunday);
       const attendance = weeklyAttendances.find(
         a => a.member_id === memberId && a.service_date === dateStr && a.present
@@ -369,7 +340,7 @@ const Attendance: React.FC = () => {
       return !!attendance;
     }).length;
 
-    return sundays.length > 0 ? Math.round((attendedCount / sundays.length) * 100) : 0;
+    return monthSundays.length > 0 ? Math.round((attendedCount / monthSundays.length) * 100) : 0;
   };
 
   const isAttended = (memberId: number, sunday: Date) => {
@@ -380,159 +351,208 @@ const Attendance: React.FC = () => {
     return attendance?.present || false;
   };
 
-  const sundays = getSundaysInMonth(selectedYear, selectedMonth);
+  // 정렬된 멤버 목록
+  const sortedMembers = useMemo(() => {
+    const arr = [...members];
+    const koLocale = 'ko-KR';
+    arr.sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      if (sortField === 'name') {
+        av = a.name || '';
+        bv = b.name || '';
+      } else if (sortField === 'organization') {
+        av = a.organization_name || '';
+        bv = b.organization_name || '';
+      } else if (sortField === 'position') {
+        av = getPositionMainLabel(a.position_main || '') || '';
+        bv = getPositionMainLabel(b.position_main || '') || '';
+      } else if (sortField === 'rate') {
+        av = getMemberAttendanceRate(a.id, sundays);
+        bv = getMemberAttendanceRate(b.id, sundays);
+      }
+      let cmp = 0;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av).localeCompare(String(bv), koLocale);
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [members, sortField, sortOrder, weeklyAttendances, sundays.length]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' ? (
+      <ChevronUp className="h-3.5 w-3.5" />
+    ) : (
+      <ChevronDown className="h-3.5 w-3.5" />
+    );
+  };
 
   return (
     <PageContainer>
-      <PageHeader
-        title="출석 관리"
-      />
+      {/* === 필터 + 테이블을 한 카드로 통합 — 시안 매핑 === */}
+      <Card className="overflow-hidden">
+        {/* 필터 바 */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+          <Select
+            value={selectedYear.toString()}
+            onValueChange={(value) => setSelectedYear(parseInt(value))}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map(year => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}년
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedMonth.toString()}
+            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => (
+                <SelectItem key={i} value={i.toString()}>
+                  {i + 1}월
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* 월별 출석 현황 */}
-      <div>
-          <Card className="border-muted mb-6">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
-                <div className="flex-1 sm:flex-none">
-                  <label className="block text-sm font-medium text-foreground mb-2">년도</label>
-                  <Select
-                    value={selectedYear.toString()}
-                    onValueChange={(value) => setSelectedYear(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yearOptions.map(year => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}년
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1 sm:flex-none">
-                  <label className="block text-sm font-medium text-foreground mb-2">월</label>
-                  <Select
-                    value={selectedMonth.toString()}
-                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i} value={i.toString()}>
-                          {i + 1}월
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1">
-                  <Card className="border-muted bg-primary/5">
-                    <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground">조회 기간</p>
-                      <p className="text-lg font-bold text-primary">
-                        {selectedYear}년 {selectedMonth + 1}월 ({sundays.length}주차)
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {loadingWeekly ? (
-            <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-              <p className="text-muted-foreground">로딩 중...</p>
+        {/* 테이블 */}
+        <div className="overflow-x-auto">
+          {sundays.length === 0 ? (
+            <div className="py-12 text-center text-[13px] text-muted-foreground">
+              해당 월에 주일이 없습니다.
             </div>
-          ) : sundays.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">해당 월에 주일이 없습니다.</p>
-              </CardContent>
-            </Card>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-32 sticky left-0 bg-background z-10 border-r">교인명</TableHead>
-                        {sundays.map((sunday, index) => (
-                          <TableHead key={index} className="text-center min-w-28">
-                            {sunday.getMonth() + 1}/{sunday.getDate()}
-                            <br />
-                            <span className="text-xs text-muted-foreground">(주일)</span>
-                          </TableHead>
-                        ))}
-                        <TableHead className="text-center w-24 sticky right-0 bg-background z-10 border-l">출석률</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {members.map((member) => {
-                        const attendanceRate = getMemberAttendanceRate(member.id, sundays);
-                        return (
-                          <TableRow key={member.id}>
-                            <TableCell className="font-medium sticky left-0 bg-background z-10 border-r">
-                              {member.name}
-                            </TableCell>
-                            {sundays.map((sunday, index) => {
-                              const dateStr = formatLocalDate(sunday);
-                              const updateKey = `${member.id}_${dateStr}`;
-                              const attended = isAttended(member.id, sunday);
-                              const isUpdating = updatingWeekly === updateKey;
+            <table className="w-full min-w-[920px] text-[12.5px]">
+              <thead className="bg-[#FAFBFD]">
+                <tr>
+                  <th
+                    className="sticky left-0 z-10 w-[160px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    onClick={() => handleSort('name')}
+                  >
+                    <span className="flex items-center gap-1">교인명 <SortIcon field="name" /></span>
+                  </th>
+                  <th
+                    className="sticky left-[160px] z-10 w-[160px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    onClick={() => handleSort('organization')}
+                  >
+                    <span className="flex items-center gap-1">조직 <SortIcon field="organization" /></span>
+                  </th>
+                  <th
+                    className="sticky left-[320px] z-10 w-[120px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    onClick={() => handleSort('position')}
+                  >
+                    <span className="flex items-center gap-1">직분 <SortIcon field="position" /></span>
+                  </th>
+                  {sundays.map((sunday, index) => (
+                    <th
+                      key={index}
+                      className="min-w-[120px] px-[16px] py-3 text-center text-[12px] font-bold tracking-[0.02em] text-[#94A3B8]"
+                    >
+                      <div className="text-[13px] text-foreground">{sunday.getMonth() + 1}/{sunday.getDate()}</div>
+                      <div className="mt-0.5 text-[11px] font-medium text-[#94A3B8]">주일</div>
+                    </th>
+                  ))}
+                  <th
+                    className="sticky right-0 z-10 w-[100px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    onClick={() => handleSort('rate')}
+                  >
+                    <span className="flex items-center justify-end gap-1">출석률 <SortIcon field="rate" /></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {loadingWeekly && (
+                  <tr>
+                    <td colSpan={sundays.length + 4} className="px-[18px] py-12">
+                      <LoadingState text="출석 데이터를 불러오는 중..." />
+                    </td>
+                  </tr>
+                )}
+                {!loadingWeekly && sortedMembers.map((member) => {
+                  const attendanceRate = getMemberAttendanceRate(member.id, sundays);
+                  return (
+                    <tr key={member.id} className="transition-colors hover:bg-[#FAFBFD]">
+                      <td className="sticky left-0 z-10 w-[160px] bg-card px-[18px] py-3 font-semibold text-foreground">
+                        {member.name}
+                      </td>
+                      <td className="sticky left-[160px] z-10 w-[160px] truncate bg-card px-[18px] py-3 text-foreground">
+                        {member.organization_name || <span className="text-[#CBD5E1]">-</span>}
+                      </td>
+                      <td className="sticky left-[320px] z-10 w-[120px] truncate bg-card px-[18px] py-3 text-foreground">
+                        {member.position_main
+                          ? getPositionMainLabel(member.position_main)
+                          : <span className="text-[#CBD5E1]">-</span>}
+                      </td>
+                      {sundays.map((sunday, index) => {
+                        const dateStr = formatLocalDate(sunday);
+                        const updateKey = `${member.id}_${dateStr}`;
+                        const attended = isAttended(member.id, sunday);
+                        const isUpdating = updatingWeekly === updateKey;
 
-                              return (
-                                <TableCell
-                                  key={index}
-                                  className={cn(
-                                    "text-center cursor-pointer transition-colors relative",
-                                    attended ? "bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50" : "hover:bg-gray-50 dark:hover:bg-gray-800",
-                                    isUpdating && "opacity-50"
-                                  )}
-                                  onClick={() => !isUpdating && handleToggleAttendance(member.id, sunday)}
-                                >
-                                  {isUpdating ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                                  ) : attended ? (
-                                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mx-auto" />
-                                  ) : (
-                                    <XCircle className="h-5 w-5 text-gray-300 dark:text-gray-600 mx-auto" />
-                                  )}
-                                </TableCell>
-                              );
-                            })}
-                            <TableCell className="text-center sticky right-0 bg-background z-10 border-l">
-                              <Badge
-                                variant={attendanceRate >= 80 ? "success" : attendanceRate >= 50 ? "warning" : "secondary"}
-                                className="font-semibold"
-                              >
-                                {attendanceRate}%
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
+                        return (
+                          <td
+                            key={index}
+                            className={cn(
+                              "cursor-pointer px-[16px] py-3 text-center align-middle transition-colors",
+                              attended ? "bg-[#E7F6EC]/40 hover:bg-[#E7F6EC]" : "hover:bg-[#FAFBFD]",
+                              isUpdating && "opacity-50"
+                            )}
+                            onClick={() => !isUpdating && handleToggleAttendance(member.id, sunday)}
+                          >
+                            <span
+                              className={cn(
+                                "mx-auto flex h-[36px] w-[36px] items-center justify-center rounded-full transition-colors",
+                                attended ? "bg-[#16A34A] text-white" : "border-2 border-[#E2E8F0] bg-white text-[#CBD5E1] hover:border-[#CBD5E1]"
+                              )}
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : attended ? (
+                                <CheckCircle2 className="h-[22px] w-[22px]" />
+                              ) : null}
+                            </span>
+                          </td>
                         );
                       })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                      <td className="sticky right-0 z-10 bg-card px-[18px] py-3 text-right">
+                        <Badge
+                          variant={attendanceRate >= 80 ? "success" : attendanceRate >= 50 ? "warning" : "secondary"}
+                        >
+                          {attendanceRate}%
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
-
-          {/* Total Count Display */}
-          {members.length > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
-                전체 {members.length.toLocaleString()}명
-              </div>
-            </div>
-          )}
-      </div>
+        </div>
+      </Card>
     </PageContainer>
   );
 };
