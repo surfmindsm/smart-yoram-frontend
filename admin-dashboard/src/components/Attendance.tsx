@@ -92,7 +92,7 @@ const getDatesByDayOfMonth = (year: number, month: number, jsDayOfWeek: number):
 const Attendance: React.FC = () => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
-  const [churchId, setChurchId] = useState<number>(1);
+  const [churchId, setChurchId] = useState<number | null>(null);
   const [, setCurrentUser] = useState<any>(null);
 
   // 예배 목록
@@ -106,6 +106,9 @@ const Attendance: React.FC = () => {
   const [weeklyAttendances, setWeeklyAttendances] = useState<AttendanceRecord[]>([]);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
   const [updatingWeekly, setUpdatingWeekly] = useState<string | null>(null);
+
+  // 이번 달 전체 출석(통계 카드용 — 모든 worship_service 포함)
+  const [monthAttendances, setMonthAttendances] = useState<AttendanceRecord[]>([]);
 
   // 정렬 상태
   const [sortField, setSortField] = useState<SortField>('name');
@@ -197,6 +200,54 @@ const Attendance: React.FC = () => {
     }
   }, [getToken]);
 
+  // 이번 달 전체 예배에 대한 출석 데이터 fetch (통계 카드용)
+  const loadMonthAttendances = useCallback(async () => {
+    if (!churchId) return; // church_id 미정 상태에선 호출 금지
+    try {
+      const token = await getToken();
+      if (!token) {
+        setMonthAttendances([]);
+        return;
+      }
+      const first = formatLocalDate(new Date(selectedYear, selectedMonth, 1));
+      const last = formatLocalDate(new Date(selectedYear, selectedMonth + 1, 0));
+      const response = await fetch(
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${first}&end_date=${last}${churchId ? `&church_id=${churchId}` : ''}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        setMonthAttendances([]);
+        return;
+      }
+      const data = await response.json();
+      // [DEBUG] 통계 카드용 월 출석 응답
+      console.log('[Attendance][GET 월 응답]', {
+        first,
+        last,
+        churchId,
+        rowCount: data?.length,
+        sample: (data || []).slice(0, 3).map((r: any) => ({
+          id: r.id,
+          wsid: r.worship_service_id,
+          wsid_type: typeof r.worship_service_id,
+          present: r.present,
+          service_date: r.service_date,
+        })),
+      });
+      setMonthAttendances(data || []);
+    } catch (error) {
+      console.error('Failed to load month attendances:', error);
+      setMonthAttendances([]);
+    }
+  }, [selectedYear, selectedMonth, churchId, getToken]);
+
   const loadWorshipServices = useCallback(async (cid: number) => {
     try {
       const result = await supabaseApiService.worshipServices.getAll({
@@ -219,6 +270,7 @@ const Attendance: React.FC = () => {
 
   const loadWeeklyAttendances = useCallback(async () => {
     if (loadingWeeklyRef.current) return;
+    if (!churchId) return; // church_id 미정 상태에선 호출 금지
     if (!selectedWorshipServiceId) {
       setWeeklyAttendances([]);
       return;
@@ -266,6 +318,20 @@ const Attendance: React.FC = () => {
       }
 
       const data = await response.json();
+      // [DEBUG] GET — 새로고침 후 데이터가 worship_service_id로 매칭되는지 확인
+      console.log('[Attendance][GET 주별 응답]', {
+        selectedWorshipServiceId,
+        cacheKey,
+        rowCount: data?.length,
+        firstRow: data?.[0],
+        worship_service_id_types: (data || []).slice(0, 5).map((r: any) => ({
+          id: r.id,
+          wsid: r.worship_service_id,
+          type: typeof r.worship_service_id,
+          present: r.present,
+          service_date: r.service_date,
+        })),
+      });
       setWeeklyAttendances(data || []);
       attendanceCacheRef.current.set(cacheKey, data || []);
     } catch (error) {
@@ -284,7 +350,7 @@ const Attendance: React.FC = () => {
     initializedRef.current = true;
 
     const init = async () => {
-      let cid = churchId;
+      let cid: number | null = churchId;
       try {
         const user = await supabaseAuthService.getCurrentUser();
         setCurrentUser(user?.user || null);
@@ -296,18 +362,30 @@ const Attendance: React.FC = () => {
         console.error('Failed to get current user:', error);
       }
 
-      await Promise.all([loadMembers(), loadWorshipServices(cid)]);
+      const tasks: Promise<unknown>[] = [loadMembers()];
+      if (cid) tasks.push(loadWorshipServices(cid));
+      // loadMonthAttendances는 churchId state를 deps로 가지므로
+      // setChurchId가 반영된 뒤 별도 useEffect에서 트리거됩니다.
+      await Promise.all(tasks);
     };
 
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 예배·년도·월 변경 시 출석 데이터 재로드
+  // 예배·년도·월·church_id 변경 시 출석 데이터 재로드
   useEffect(() => {
     if (!initializedRef.current) return;
+    if (!churchId) return;
     loadWeeklyAttendances();
-  }, [selectedYear, selectedMonth, selectedWorshipServiceId, loadWeeklyAttendances]);
+  }, [selectedYear, selectedMonth, selectedWorshipServiceId, churchId, loadWeeklyAttendances]);
+
+  // 년/월·church_id 변경 시 통계용 월 전체 출석도 재로드
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    if (!churchId) return;
+    loadMonthAttendances();
+  }, [selectedYear, selectedMonth, churchId, loadMonthAttendances]);
 
   const handleToggleAttendance = async (memberId: number, serviceDate: Date) => {
     if (!selectedWorshipServiceId) return;
@@ -318,7 +396,7 @@ const Attendance: React.FC = () => {
 
     setUpdatingWeekly(updateKey);
     const existingAttendance = weeklyAttendances.find(
-      a => a.member_id === memberId && a.service_date === dateStr && a.worship_service_id === selectedWorshipServiceId
+      a => a.member_id === memberId && a.service_date === dateStr && Number(a.worship_service_id) === selectedWorshipServiceId
     );
 
     try {
@@ -395,12 +473,32 @@ const Attendance: React.FC = () => {
         }
 
         const data = await response.json();
-        updatedAttendances = [...weeklyAttendances, data];
+        // [DEBUG] POST 응답 — worship_service_id가 응답에 어떻게 오는지 확인
+        console.log('[Attendance][POST 응답]', {
+          id: data?.id,
+          member_id: data?.member_id,
+          service_date: data?.service_date,
+          worship_service_id: data?.worship_service_id,
+          worship_service_id_type: typeof data?.worship_service_id,
+          present: data?.present,
+          rawData: data,
+        });
+        // 응답에 worship_service_id가 빠지거나 string으로 와도 일관되게 number로 보정
+        const normalized = {
+          ...data,
+          worship_service_id:
+            data.worship_service_id !== undefined && data.worship_service_id !== null
+              ? Number(data.worship_service_id)
+              : selectedWorshipServiceId,
+        };
+        updatedAttendances = [...weeklyAttendances, normalized];
       }
 
       setWeeklyAttendances(updatedAttendances);
       const cacheKey = `${selectedYear}-${selectedMonth}-${selectedWorshipServiceId}`;
       attendanceCacheRef.current.set(cacheKey, updatedAttendances);
+      // 통계 카드 갱신
+      loadMonthAttendances();
     } catch (error: any) {
       console.error('Failed to update attendance:', error);
       alert(error.message || '출석 체크 중 오류가 발생했습니다.');
@@ -419,7 +517,7 @@ const Attendance: React.FC = () => {
       const attendance = weeklyAttendances.find(
         a => a.member_id === memberId
           && a.service_date === dateStr
-          && a.worship_service_id === selectedWorshipServiceId
+          && Number(a.worship_service_id) === selectedWorshipServiceId
           && a.present
       );
       return !!attendance;
@@ -434,7 +532,7 @@ const Attendance: React.FC = () => {
     const attendance = weeklyAttendances.find(
       a => a.member_id === memberId
         && a.service_date === dateStr
-        && a.worship_service_id === selectedWorshipServiceId
+        && Number(a.worship_service_id) === selectedWorshipServiceId
     );
     return attendance?.present || false;
   };
@@ -489,6 +587,47 @@ const Attendance: React.FC = () => {
     );
   };
 
+  // 예배별 통계 (이번 달 평균 출석률 + 출석 인원/전체)
+  const worshipStats = useMemo(() => {
+    const totalMembers = members.length || 0;
+    const result = worshipServices.map(w => {
+      const dates = w.day_of_week !== null && w.day_of_week !== undefined
+        ? getDatesByDayOfMonth(selectedYear, selectedMonth, worshipDayToJsDay(w.day_of_week))
+        : [];
+      const dateCount = dates.length;
+      // 해당 예배 + 이번 달 + present 행 수
+      const presentRows = monthAttendances.filter(
+        a => Number(a.worship_service_id) === w.id && a.present
+      );
+      const presentCount = presentRows.length;
+      const possible = dateCount * totalMembers;
+      const rate = possible > 0 ? Math.round((presentCount / possible) * 100) : 0;
+      // 이번 달 출석한 고유 인원
+      const uniqueMembers = new Set(presentRows.map(r => r.member_id)).size;
+      return {
+        service: w,
+        dateCount,
+        presentCount,
+        uniqueMembers,
+        rate,
+      };
+    });
+    // [DEBUG] worshipStats 재계산 추적
+    console.log('[Attendance][worshipStats 계산]', {
+      totalMembers,
+      worshipCount: worshipServices.length,
+      monthAttendanceCount: monthAttendances.length,
+      sample: result.slice(0, 3).map(r => ({
+        name: r.service.name,
+        id: r.service.id,
+        dateCount: r.dateCount,
+        presentCount: r.presentCount,
+        rate: r.rate,
+      })),
+    });
+    return result;
+  }, [worshipServices, monthAttendances, members.length, selectedYear, selectedMonth]);
+
   // 예배가 한 건도 없으면 가이드만 표시
   if (worshipServicesLoaded && worshipServices.length === 0) {
     return (
@@ -513,6 +652,49 @@ const Attendance: React.FC = () => {
 
   return (
     <PageContainer>
+      {/* === 예배별 통계 카드 그리드 — 이번 달 평균 출석률 === */}
+      {worshipStats.length > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+          {worshipStats.map(({ service, dateCount, presentCount, uniqueMembers, rate }) => {
+            const isActive = service.id === selectedWorshipServiceId;
+            const dayLabel = service.day_of_week !== null && service.day_of_week !== undefined
+              ? `${DAY_LABEL_FROM_WORSHIP[service.day_of_week]}요일`
+              : null;
+            const timeLabel = formatStartTime(service.start_time);
+            const meta = [dayLabel, timeLabel].filter(Boolean).join(' · ');
+            const rateColor = rate >= 80 ? 'text-[#16A34A]' : rate >= 50 ? 'text-[#B45309]' : 'text-foreground';
+            return (
+              <button
+                key={service.id}
+                type="button"
+                onClick={() => setSelectedWorshipServiceId(service.id)}
+                className={cn(
+                  'flex flex-col items-start gap-1 rounded-[10px] border bg-card px-4 py-3 text-left transition-colors',
+                  isActive
+                    ? 'border-primary shadow-[0_0_0_3px_rgba(28,124,255,0.12)]'
+                    : 'border-border hover:border-[#CBD5E1] hover:bg-[#FAFBFD]'
+                )}
+              >
+                <div className="flex w-full items-center justify-between gap-2">
+                  <div className="truncate text-[13px] font-bold text-foreground">{service.name}</div>
+                  <div className={cn('text-[20px] font-bold tabular-nums', rateColor)}>{rate}%</div>
+                </div>
+                {meta && (
+                  <div className="text-[11px] font-medium text-[#94A3B8]">{meta}</div>
+                )}
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>출석 <b className="font-semibold text-foreground tabular-nums">{presentCount}</b></span>
+                  <span className="text-[#CBD5E1]">·</span>
+                  <span>인원 <b className="font-semibold text-foreground tabular-nums">{uniqueMembers}</b></span>
+                  <span className="text-[#CBD5E1]">·</span>
+                  <span>회 <b className="font-semibold text-foreground tabular-nums">{dateCount}</b></span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* === 필터 + 테이블을 한 카드로 통합 — 시안 매핑 === */}
       <Card className="overflow-hidden">
         {/* 필터 바 */}
