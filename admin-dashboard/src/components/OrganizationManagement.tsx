@@ -1088,14 +1088,6 @@ const OrganizationManagement: React.FC = () => {
             </Card>
           )}
 
-          {/* Total Count Display */}
-          {departments.length > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-[12.5px] text-muted-foreground">
-                전체 {departments.length.toLocaleString()}개
-              </div>
-            </div>
-          )}
         </div>
       )}
 
