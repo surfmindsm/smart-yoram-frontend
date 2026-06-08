@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '../hooks/queries';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
@@ -25,7 +27,8 @@ import { cn } from '../lib/utils';
 import { Card, CardContent, LoadingState } from "./ui";
 import { Badge, Button, Combobox } from "./ui";
 import { Spinner } from "./ui/spinner";
-import { PageContainer, PageHeader } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { SearchFilterBar } from './common';
 import type { Filter as FilterType } from './common';
 import { getPositionDetailLabel } from '../constants/memberPositions';
@@ -84,14 +87,66 @@ interface PrayerRequestStats {
 }
 
 const PrayerRequests: React.FC = () => {
+  const queryClient = useQueryClient();
+  const { data: cachedCurrentUser } = useCurrentUser();
+  const churchIdForQuery = cachedCurrentUser?.church_id ?? null;
+
   const [requests, setRequests] = useState<PrayerRequest[]>([]);
   const [stats, setStats] = useState<PrayerRequestStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [urgentFilter, setUrgentFilter] = useState('all');
   const [publicFilter, setPublicFilter] = useState('all');
   const [members, setMembers] = useState<Member[]>([]);
+
+  // React Query — 기도 요청 캐시 (화면 간 공유)
+  const prayerQuery = useQuery({
+    queryKey: ['prayerRequests', 'list', churchIdForQuery ?? 9998, publicFilter],
+    queryFn: async () => {
+      const cid = churchIdForQuery ?? 9998;
+      const params: any = { church_id: cid };
+      if (publicFilter !== 'all') params.is_public = publicFilter === 'true';
+      const response = await supabaseApiService.prayerRequests.getAll(params);
+      let data: any[] = [];
+      if (Array.isArray(response)) data = response;
+      else if (response && Array.isArray(response.data)) data = response.data;
+      return data;
+    },
+    enabled: !!churchIdForQuery,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
+  // query data → state 동기화 (변환은 useEffect에서 처리)
+  useEffect(() => {
+    if (!prayerQuery.data) return;
+    const transformed: PrayerRequest[] = prayerQuery.data.map((item: any) => ({
+      id: item.id,
+      churchId: item.church_id,
+      memberId: item.member_id,
+      requesterName: item.requester_name,
+      requesterPhone: item.requester_phone,
+      organizationName: item.organization_name,
+      department: item.department,
+      profilePhotoUrl: item.profile_photo_url,
+      prayerType: item.prayer_type,
+      prayerContent: item.prayer_content,
+      isAnonymous: item.is_anonymous || false,
+      isUrgent: item.is_urgent || false,
+      isPublic: item.is_public !== false,
+      status: item.status,
+      adminNotes: item.admin_notes,
+      answeredTestimony: item.answered_testimony,
+      prayerCount: item.prayer_count || 0,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      closedAt: item.closed_at,
+      expiresAt: item.expires_at,
+    }));
+    setRequests(transformed);
+  }, [prayerQuery.data]);
+  useEffect(() => {
+    setLoading(prayerQuery.isLoading);
+  }, [prayerQuery.isLoading]);
 
   // 모달 상태
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -145,94 +200,30 @@ const PrayerRequests: React.FC = () => {
     }
   };
 
+  // prayer 목록은 React Query가 자동 fetch. stats만 별도 호출.
   useEffect(() => {
-    const loadAllData = async () => {
-      await Promise.all([
-        loadPrayerRequests(),
-        loadStats()
-      ]);
-    };
-    loadAllData();
-  }, [statusFilter, urgentFilter, publicFilter]);
+    loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // 교인 목록 — 캐시된 currentUser 사용
   useEffect(() => {
+    if (!churchIdForQuery) return;
     const loadMembers = async () => {
       try {
-        const currentUser = await supabaseAuthService.getCurrentUser();
-        const userChurchId = currentUser?.user?.church_id || 9998;
-
-        const response = await supabaseApiService.members.getAll({ church_id: userChurchId, limit: 500 });
-
+        const response = await supabaseApiService.members.getAll({ church_id: churchIdForQuery, limit: 500 });
         const membersData = response?.data || response || [];
-
         setMembers(membersData);
       } catch (error) {
         setMembers([]);
       }
     };
-
     loadMembers();
-  }, []);
+  }, [churchIdForQuery]);
 
+  // 외부 호출용 — invalidate로 query 재요청
   const loadPrayerRequests = async () => {
-    try {
-      setLoading(true);
-
-      // 현재 사용자의 church_id 가져오기
-      const currentUser = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
-
-      const params: any = {
-        church_id: userChurchId  // 현재 사용자의 교회 ID로 필터링
-      };
-
-      // 필터는 클라이언트 사이드에서 처리
-      if (urgentFilter !== 'all') params.is_urgent = urgentFilter === 'true';
-      if (publicFilter !== 'all') params.is_public = publicFilter === 'true';
-
-      const response = await supabaseApiService.prayerRequests.getAll(params);
-
-      let prayerRequestsData = [];
-
-      if (Array.isArray(response)) {
-        prayerRequestsData = response;
-      } else if (response && Array.isArray(response.data)) {
-        prayerRequestsData = response.data;
-      } else {
-        prayerRequestsData = [];
-      }
-
-      // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
-      const transformedRequests: PrayerRequest[] = prayerRequestsData.map((item: any) => ({
-        id: item.id,
-        churchId: item.church_id,
-        memberId: item.member_id,
-        requesterName: item.requester_name,
-        requesterPhone: item.requester_phone,
-        organizationName: item.organization_name,
-        department: item.department,
-        profilePhotoUrl: item.profile_photo_url,
-        prayerType: item.prayer_type,
-        prayerContent: item.prayer_content,
-        isAnonymous: item.is_anonymous || false,
-        isUrgent: item.is_urgent || false,
-        isPublic: item.is_public !== false, // 기본값 true
-        status: item.status,
-        adminNotes: item.admin_notes,
-        answeredTestimony: item.answered_testimony,
-        prayerCount: item.prayer_count || 0,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        closedAt: item.closed_at,
-        expiresAt: item.expires_at
-      }));
-
-      setRequests(transformedRequests);
-    } catch (error) {
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
+    await queryClient.invalidateQueries({ queryKey: ['prayerRequests', 'list'] });
   };
 
   const loadStats = async () => {
@@ -327,11 +318,6 @@ const PrayerRequests: React.FC = () => {
       if (!matchesSearch) return false;
     }
 
-    // 상태 필터
-    if (statusFilter.length > 0 && !statusFilter.includes(request.status)) {
-      return false;
-    }
-
     return true;
   });
 
@@ -376,93 +362,33 @@ const PrayerRequests: React.FC = () => {
     }
   };
 
+  // 상단바 부제·액션 (early return 전 호출)
+  usePageSubtitle(
+    requests.length > 0 ? `전체 ${requests.length.toLocaleString()}건` : undefined
+  );
+  usePageActions(
+    <Button
+      onClick={() => setShowCreateModal(true)}
+      size="sm"
+      className="gap-2"
+    >
+      <Plus className="h-4 w-4" />
+      기도 요청
+    </Button>,
+    []
+  );
+
   return (
     <PageContainer>
-      <PageHeader
-        title="중보기도 관리"
+
+      {/* 검색 — KPI/필터 드롭다운 제거 */}
+      <SearchFilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onClearSearch={() => setSearchTerm('')}
+        searchPlaceholder="요청자, 기도 내용으로 검색"
+        filters={[]}
       />
-
-      {/* KPI strip — 전체 / 진행중 / 응답됨 / 긴급 */}
-      {stats && (
-        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#EEF3FC] text-primary">
-                <Heart className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">전체 요청</div>
-                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.total}</div>
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#EAF1FE] text-[#2563EB]">
-                <Clock className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">진행 중</div>
-                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.active}</div>
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
-                <Check className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">응답됨</div>
-                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.answered}</div>
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
-                <AlertTriangle className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">긴급</div>
-                <div className="text-[23px] font-bold leading-tight tracking-[-0.02em]">{stats.urgent}</div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* 검색 및 필터 */}
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <SearchFilterBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onClearSearch={() => setSearchTerm('')}
-            searchPlaceholder="기도 요청 내용으로 검색"
-            filters={[
-              {
-                id: 'status',
-                label: '상태',
-                value: statusFilter,
-                options: [
-                  { value: 'active', label: '진행중' },
-                  { value: 'answered', label: '응답됨' },
-                  { value: 'closed', label: '종료됨' },
-                ],
-                onChange: setStatusFilter,
-              },
-            ]}
-          />
-        </div>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          직접 등록
-        </Button>
-      </div>
 
       {/* 기도요청 카드 그리드 — 시안 .pr-card 매핑 */}
       {loading ? (
@@ -477,12 +403,12 @@ const PrayerRequests: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="flex flex-col gap-3">
           {filteredRequests.map((request) => (
             <div
               key={request.id}
               className={cn(
-                'flex cursor-pointer flex-col rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
+                'flex cursor-pointer gap-4 rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
                 request.isUrgent && 'border-l-[3px] border-l-[#DC2626]'
               )}
               onClick={() => {
@@ -490,146 +416,75 @@ const PrayerRequests: React.FC = () => {
                 setShowDetailModal(true);
               }}
             >
-              {/* head — 시안 .pr-head */}
-              <div className="flex items-start gap-[11px]">
-                {/* 아바타 40px — 시안 .pr-av */}
-                <div className="flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
-                  {request.profilePhotoUrl && !request.isAnonymous ? (
-                    <img
-                      src={request.profilePhotoUrl}
-                      alt={request.requesterName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : request.isAnonymous ? (
-                    <Heart className="h-5 w-5" />
-                  ) : (
-                    <span className="text-[15px] font-bold">
-                      {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
-                    </span>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  {/* 이름 + 긴급 칩 */}
-                  <div className="flex flex-wrap items-center gap-[7px]">
-                    <span className="text-[14px] font-bold text-foreground">
-                      {request.isAnonymous ? '익명' : request.requesterName}
-                    </span>
-                    {request.isUrgent && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#FCEBEB] px-[8px] py-[2px] text-[10.5px] font-bold text-[#DC2626] whitespace-nowrap">
-                        <AlertTriangle className="h-3 w-3" />
-                        긴급
-                      </span>
-                    )}
-                  </div>
-                  {/* 유형 칩 + 공개 · 시간 */}
-                  <div className="mt-[2px] flex flex-wrap items-center gap-[6px] text-[11.5px] text-[#94A3B8]">
-                    <span className={cn(
-                      'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
-                      getTypeChipClass(request.prayerType)
-                    )}>
-                      {getTypeText(request.prayerType)}
-                    </span>
-                    <span>
-                      {request.isPublic ? '전체 공개' : '비공개'} · {formatTimeAgo(request.createdAt) || formatDate(request.createdAt)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 상태 칩 (우측 상단) */}
-                <span className={cn(
-                  'inline-flex flex-shrink-0 rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
-                  getStatusColor(request.status)
-                )}>
-                  {getStatusText(request.status)}
-                </span>
+              {/* 아바타 44px — 심방 카드와 동일 */}
+              <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
+                {request.profilePhotoUrl && !request.isAnonymous ? (
+                  <img
+                    src={request.profilePhotoUrl}
+                    alt={request.requesterName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : request.isAnonymous ? (
+                  <Heart className="h-5 w-5" />
+                ) : (
+                  <span className="text-[16px] font-bold">
+                    {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
+                  </span>
+                )}
               </div>
 
-              {/* 기도 내용 — 시안 .pr-txt */}
-              <div className="my-[13px] flex-1 text-[13px] leading-[1.6] text-[#475569] line-clamp-3">
-                {request.prayerContent}
+              {/* 메인 */}
+              <div className="min-w-0 flex-1">
+                {/* 상단: 이름 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[15px] font-bold text-foreground">
+                    {request.isAnonymous ? '익명' : request.requesterName}
+                  </span>
+                </div>
+
+                {/* 기도 내용 */}
+                {request.prayerContent && (
+                  <div className="mt-[9px] text-[13px] leading-[1.55] text-[#475569] line-clamp-2">
+                    {request.prayerContent}
+                  </div>
+                )}
+
+                {/* 응답 간증 (있을 때만) */}
+                {request.answeredTestimony && (
+                  <div className="mt-[11px] rounded-[10px] border border-[#CDEBD7] bg-[#F0FAF3] px-[13px] py-[9px]">
+                    <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold text-[#16A34A]">
+                      <Check className="h-3 w-3" />
+                      응답 간증
+                    </div>
+                    <div className="text-[12.5px] leading-[1.5] text-[#3F7A4E] line-clamp-2">
+                      {request.answeredTestimony}
+                    </div>
+                  </div>
+                )}
+
+                {/* 메타 — 공개 · 시간 */}
+                <div className="mt-[11px] flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
+                  <span className="text-[12px] text-[#94A3B8]">
+                    {request.isPublic ? '전체 공개' : '비공개'} · {formatTimeAgo(request.createdAt) || formatDate(request.createdAt)}
+                  </span>
+                </div>
               </div>
 
-              {/* 응답 간증 — 시안 .pr-ans (있을 때만) */}
-              {request.answeredTestimony && (
-                <div className="mb-[13px] rounded-[10px] border border-[#CDEBD7] bg-[#F0FAF3] px-[13px] py-[11px]">
-                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-[#16A34A]">
-                    <Check className="h-3 w-3" />
-                    응답 간증
-                  </div>
-                  <div className="text-[12.5px] leading-[1.5] text-[#3F7A4E]">
-                    {request.answeredTestimony}
-                  </div>
-                </div>
-              )}
-
-              {/* 푸터 — 시안 .pr-foot */}
+              {/* 우측 액션 — 상세 버튼만 */}
               <div
-                className="flex items-center gap-2 border-t border-[#F1F4F9] pt-[13px]"
+                className="flex flex-shrink-0 items-start"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* 기도수 — 시안 .pr-cnt (빨간 하트 + 숫자) */}
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-bold text-[#DC2626]">
-                  <Heart className="h-[15px] w-[15px]" />
-                  {request.prayerCount}
-                  <small className="text-[11.5px] font-medium text-[#94A3B8]">명</small>
-                </span>
-
-                <div className="flex-1" />
-
-                {/* 액션 버튼 */}
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className="gap-1 bg-[#FCEBEB] text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                  variant="outline"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedRequest(request);
                     setShowDetailModal(true);
                   }}
                 >
-                  <Heart className="h-3.5 w-3.5" />
-                  기도하기
-                </Button>
-                {request.status === 'active' ? (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRequest(request);
-                      setShowDetailModal(true);
-                    }}
-                    className="gap-1"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    응답 처리
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRequest(request);
-                      setShowDetailModal(true);
-                    }}
-                    className="gap-1"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    상세
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteRequest(request);
-                  }}
-                  title="삭제"
-                >
-                  <Trash2 className="h-4 w-4" />
+                  상세
                 </Button>
               </div>
             </div>
@@ -836,11 +691,6 @@ const PrayerRequests: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">기도 유형</label>
-                <p className="text-gray-900">{getTypeText(selectedRequest.prayerType)}</p>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700">기도 내용</label>
                 <p className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-md">{selectedRequest.prayerContent}</p>
               </div>
@@ -853,32 +703,6 @@ const PrayerRequests: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">만료일</label>
                   <p className="text-gray-900">{selectedRequest.expiresAt ? formatDate(selectedRequest.expiresAt) : '없음'}</p>
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                <div className="flex items-center">
-                  {selectedRequest.isUrgent ? (
-                    <>
-                      <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
-                      <span className="text-sm text-red-600">긴급</span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-gray-500">일반</span>
-                  )}
-                </div>
-                <div className="flex items-center">
-                  {selectedRequest.isPublic ? (
-                    <>
-                      <Eye className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-sm text-green-600">공개</span>
-                    </>
-                  ) : (
-                    <>
-                      <EyeOff className="h-4 w-4 text-gray-500 mr-1" />
-                      <span className="text-sm text-gray-500">비공개</span>
-                    </>
-                  )}
                 </div>
               </div>
 
@@ -897,9 +721,23 @@ const PrayerRequests: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="mt-6 flex items-center justify-between gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="destructive-soft"
+                size="sm"
+                onClick={() => {
+                  const target = selectedRequest;
+                  setShowDetailModal(false);
+                  handleDeleteRequest(target);
+                }}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowDetailModal(false)}
               >
                 닫기

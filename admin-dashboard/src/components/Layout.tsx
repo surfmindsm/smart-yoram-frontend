@@ -270,7 +270,7 @@ const Layout: React.FC = () => {
           { path: '/member-management', name: '교인 관리', Icon: Users, count: menuCounts.members },
           { path: '/organization-management', name: '조직 · 부서 관리', Icon: Building2 },
           { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
-          { path: '/pastoral-care', name: '심방 신청', Icon: UserCheck, count: menuCounts.pastoralCare },
+          { path: '/pastoral-care', name: '심방 관리', Icon: UserCheck, count: menuCounts.pastoralCare },
           { path: '/prayer-requests', name: '중보 기도', Icon: Heart, count: menuCounts.prayers },
         ]),
       },

@@ -13,7 +13,6 @@ import { Textarea } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Combobox } from "./ui";
-import { SimpleTabs } from "./ui";
 import { PageContainer } from "./ui";
 import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { DatePicker } from "./ui/date-picker";
@@ -1065,16 +1064,14 @@ const PastoralCareManagement: React.FC = () => {
     );
   };
 
-  // 상단바 부제·액션 (Hook은 early return 전에 호출)
-  usePageSubtitle(
-    activeTab === 'requests'
-      ? `대기 ${requests.filter(r => r.status === 'pending').length}건 · 이번 달 완료 ${completedRecords.filter(r => {
-          const completedAt = new Date(r.completedAt || r.createdAt);
-          const thisMonth = new Date();
-          return completedAt.getMonth() === thisMonth.getMonth() && completedAt.getFullYear() === thisMonth.getFullYear();
-        }).length}건`
-      : `완료 ${completedRecords.length}건`
-  );
+  // 상단바 부제 — 탭에 무관하게 동일 (대기 / 이번 달 완료)
+  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const thisMonthCompletedCount = completedRecords.filter(r => {
+    const completedAt = new Date(r.completedAt || r.createdAt);
+    const thisMonth = new Date();
+    return completedAt.getMonth() === thisMonth.getMonth() && completedAt.getFullYear() === thisMonth.getFullYear();
+  }).length;
+  usePageSubtitle(`대기 ${pendingCount}건 · 이번 달 완료 ${thisMonthCompletedCount}건`);
   usePageActions(
     <Button
       onClick={() => setShowAdminRegistrationModal(true)}
@@ -1084,7 +1081,7 @@ const PastoralCareManagement: React.FC = () => {
       <Plus className="h-4 w-4" />
       심방 신청
     </Button>,
-    [activeTab]
+    []
   );
 
   if (loading) {
@@ -1099,26 +1096,33 @@ const PastoralCareManagement: React.FC = () => {
 
   return (
     <PageContainer>
-      <SimpleTabs
-        tabs={[
-          {
-            id: 'requests',
-            label: '심방 신청',
-            icon: <Users className="h-4 w-4" />,
-            count: requests.length
-          },
-          {
-            id: 'records',
-            label: '심방 기록',
-            icon: <FileText className="h-4 w-4" />,
-            count: completedRecords.length
-          }
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as 'requests' | 'records')}
-        variant="default"
-        className="mb-6"
-      />
+      {/* 심방 신청 / 심방 기록 탭 — 조직·부서 관리와 동일한 언더라인 스타일 */}
+      <div className="mb-4 inline-flex items-center gap-1 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('requests')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'requests'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          심방 신청
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('records')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'records'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          심방 기록
+        </button>
+      </div>
 
       {/* 신청 관리 탭 — KPI strip (시안: 대기 / 승인·예약 / 진행 중 / 이번 달 완료) */}
       {activeTab === 'requests' && (
