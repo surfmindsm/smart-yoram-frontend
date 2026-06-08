@@ -643,17 +643,17 @@ const PrayerRequests: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex space-x-3 mt-6">
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
                 onClick={() => setShowCreateModal(false)}
-                variant="outline"
-                className="flex-1"
+                variant="ghost"
+                size="sm"
               >
                 취소
               </Button>
               <Button
+                size="sm"
                 onClick={handleCreateRequest}
-                className="flex-1"
               >
                 등록
               </Button>

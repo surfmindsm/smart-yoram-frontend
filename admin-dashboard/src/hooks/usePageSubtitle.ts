@@ -2,8 +2,46 @@ import { useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 interface LayoutOutletContext {
+  setPageTitle: (title: string | undefined) => void;
+  setPageLeading: (leading: React.ReactNode) => void;
   setPageSubtitle: (subtitle: string | undefined) => void;
   setPageActions: (actions: React.ReactNode) => void;
+}
+
+/**
+ * 상단바 페이지 타이틀 좌측에 prefix(예: 뒤로가기 버튼)를 설정합니다.
+ * 진입형 서브 페이지에서 사용.
+ */
+export function usePageLeading(leading: React.ReactNode, deps: React.DependencyList = []): void {
+  const ctx = useOutletContext<LayoutOutletContext | undefined>();
+  const setFn = ctx?.setPageLeading;
+  const leadingRef = useRef(leading);
+  leadingRef.current = leading;
+  useEffect(() => {
+    if (!setFn) return;
+    setFn(leadingRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setFn, ...deps]);
+  useEffect(() => {
+    return () => {
+      if (setFn) setFn(null);
+    };
+  }, [setFn]);
+}
+
+/**
+ * Layout 탑바의 페이지명을 사이드바 활성 메뉴 대신 강제로 지정합니다.
+ * 서브 페이지(예: 헌금 일괄 입력)에서 사용.
+ */
+export function usePageTitle(title: string | undefined): void {
+  const ctx = useOutletContext<LayoutOutletContext | undefined>();
+  const setFn = ctx?.setPageTitle;
+
+  useEffect(() => {
+    if (!setFn) return;
+    setFn(title);
+    return () => setFn(undefined);
+  }, [setFn, title]);
 }
 
 /**

@@ -7,8 +7,12 @@ import { getPositionDetailLabel } from '../constants/memberPositions';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Combobox } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
-import { Plus, X, Users, ArrowLeft, Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Card } from "./ui";
+import { Checkbox } from "./ui";
+import { PageContainer } from "./ui";
+import { DatePicker } from "./ui/date-picker";
+import { usePageTitle, usePageLeading, usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
+import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface Member {
@@ -174,10 +178,10 @@ const BulkDonationInput: React.FC = () => {
   };
 
   const updateBulkRow = (index: number, field: string, value: any) => {
-    const updated = bulkDonations.map((item, i) =>
+    // functional setState — 연속 호출 시 stale snapshot 문제 방지
+    setBulkDonations(prev => prev.map((item, i) =>
       i === index ? { ...item, [field]: value } : item
-    );
-    setBulkDonations(updated);
+    ));
   };
 
   const formatCurrency = (amount: number) => {
@@ -452,255 +456,93 @@ const BulkDonationInput: React.FC = () => {
     }
   };
 
+  const validBulkCount = bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length;
+
+  // 상단바: 진입형 서브 페이지 — 좌측 뒤로가기, 우측 등록 액션
+  usePageTitle('헌금 일괄 입력');
+  usePageSubtitle(`유효 ${validBulkCount}건`);
+  usePageLeading(
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => navigate('/donations')}
+      className="h-[32px] w-[32px] p-0"
+      title="헌금 관리로 돌아가기"
+    >
+      <ArrowLeft className="h-4 w-4" />
+    </Button>
+  );
+  usePageActions(
+    <Button
+      size="sm"
+      onClick={handleBulkSubmit}
+      disabled={submitLoading || validBulkCount === 0}
+    >
+      {submitLoading ? '등록 중...' : `${validBulkCount}건 등록`}
+    </Button>,
+    [validBulkCount, submitLoading]
+  );
+
   return (
     <PageContainer>
-      <PageHeader
-        title="헌금 일괄 입력"
-        description="여러 건의 헌금을 한번에 입력합니다."
-      />
-
-      <div className="mb-6">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/donations')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          헌금 관리로 돌아가기
-        </Button>
-      </div>
 
       {/* 공통 설정 */}
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">공통 설정</h3>
-        <div className="w-64">
-          <label className="block text-sm font-medium mb-2">헌금일</label>
-          <Input
-            type="date"
-            value={bulkSettings.offeredOn}
-            onChange={(e) => setBulkSettings({ ...bulkSettings, offeredOn: e.target.value })}
-          />
-        </div>
-      </div>
-
-      {/* 헌금 목록 */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold">헌금 목록</h3>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={downloadExcelTemplate}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                템플릿 다운로드
-              </Button>
-              <Button
-                onClick={() => setShowExcelUpload(!showExcelUpload)}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                엑셀에서 가져오기
-              </Button>
-              <Button
-                onClick={addBulkRow}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                행 추가
-              </Button>
-            </div>
+      {/* 공통 설정 + 헌금 목록 — 통합 카드 (다른 화면과 동일 패턴) */}
+      <Card className="overflow-hidden">
+        {/* 컨트롤 바: 공통 설정 + 행 추가 */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+          <div className="flex items-center gap-2">
+            <label className="text-[12.5px] font-semibold text-muted-foreground">헌금일</label>
+            <DatePicker
+              value={bulkSettings.offeredOn}
+              onChange={(value) => setBulkSettings({ ...bulkSettings, offeredOn: value })}
+              placeholder="날짜 선택"
+            />
           </div>
+          <div className="flex-1" />
+          <Button
+            onClick={addBulkRow}
+            size="sm"
+            className="gap-2"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            행 추가
+          </Button>
         </div>
 
-        {/* 엑셀 업로드 섹션 */}
-        {showExcelUpload && (
-          <div className="p-6 border-b border-gray-200 bg-gray-50">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">엑셀 파일 선택</label>
-                <Input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setExcelFile(file);
-                      setExcelPreviewData(null);
-                      setValidationResults(null);
-                    }
-                  }}
-                />
-                <p className="text-xs text-gray-600 mt-1">
-                  CSV, XLSX, XLS 파일만 가능 (헤더: 기부자, 무명, 헌금유형, 금액, 적요)
-                </p>
-              </div>
-
-              {excelFile && (
-                <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                  <p className="text-sm text-green-800">
-                    <strong>선택된 파일:</strong> {excelFile.name}
-                  </p>
-                </div>
-              )}
-
-              {excelFile && !excelPreviewData && (
-                <div className="flex justify-center">
-                  <Button
-                    onClick={handleExcelPreview}
-                    disabled={isPreviewLoading}
-                    className="flex items-center gap-2"
-                    variant="outline"
-                  >
-                    {isPreviewLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                        검증 중...
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-4 h-4" />
-                        파일 검증 및 미리보기
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {excelPreviewData && validationResults && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">
-                      검증 결과 ({validationResults.filter(r => r.isValid).length}/{validationResults.length}건 유효)
-                    </h3>
-                    <Button
-                      onClick={() => {
-                        setExcelPreviewData(null);
-                        setValidationResults(null);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {/* 검증 에러 요약 */}
-                  {validationResults.some(r => !r.isValid) && (
-                    <div className="bg-red-50 border border-red-200 rounded-md p-3 max-h-40 overflow-y-auto">
-                      <h4 className="text-sm font-medium text-red-800 mb-2">❌ 오류가 있는 행</h4>
-                      {validationResults
-                        .filter(r => !r.isValid)
-                        .map((result, idx) => (
-                          <div key={idx} className="text-xs text-red-700 mb-1">
-                            <strong>행 {result.rowNumber}:</strong> {result.errors.join(', ')}
-                          </div>
-                        ))}
-                    </div>
-                  )}
-
-                  {/* 미리보기 테이블 */}
-                  <div className="border rounded-md overflow-hidden">
-                    <div className="max-h-80 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-gray-200 text-xs">
-                        <thead className="bg-gray-50 sticky top-0 z-10">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">상태</th>
-                            {excelPreviewData[0].map((header: string, index: number) => (
-                              <th
-                                key={index}
-                                className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap"
-                              >
-                                {header}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {excelPreviewData.slice(1).map((row: any[], rowIndex: number) => {
-                            const result = validationResults[rowIndex];
-                            return (
-                              <tr
-                                key={rowIndex}
-                                className={result.isValid ? 'bg-white' : 'bg-red-50'}
-                              >
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  {result.isValid ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                  ) : (
-                                    <AlertCircle className="w-4 h-4 text-red-600" />
-                                  )}
-                                </td>
-                                {row.map((cell: any, cellIndex: number) => (
-                                  <td key={cellIndex} className="px-3 py-2 whitespace-nowrap">
-                                    {cell}
-                                  </td>
-                                ))}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* 가져오기 버튼 */}
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleExcelImport}
-                      disabled={validationResults.filter(r => r.isValid).length === 0}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {validationResults.filter(r => r.isValid).length}건 가져오기
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="w-full min-w-[840px] text-[12.5px]">
+            <thead className="bg-[#FAFBFD]">
               <tr>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-20">무명</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">기부자</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">헌금 유형</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">금액</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">적요</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-20">작업</th>
+                <th className="w-[64px] px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">무명</th>
+                <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기부자</th>
+                <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">헌금 유형</th>
+                <th className="px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">금액</th>
+                <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">적요</th>
+                <th className="w-[64px] px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-[#F1F4F9] bg-card">
               {bulkDonations.map((bulk, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-center">
-                    <input
-                      type="checkbox"
-                      checked={bulk.isAnonymous}
-                      onChange={(e) => {
-                        updateBulkRow(index, 'isAnonymous', e.target.checked);
-                        if (e.target.checked) {
-                          updateBulkRow(index, 'donorId', '');
-                        }
-                      }}
-                      className="w-4 h-4"
-                    />
+                <tr key={index} className="transition-colors hover:bg-[#FAFBFD]">
+                  <td className="px-[18px] py-3 text-center">
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={bulk.isAnonymous}
+                        onCheckedChange={(c) => {
+                          const checked = c === true;
+                          updateBulkRow(index, 'isAnonymous', checked);
+                          if (checked) {
+                            updateBulkRow(index, 'donorId', '');
+                          }
+                        }}
+                      />
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-[18px] py-3">
                     {bulk.isAnonymous ? (
-                      <div className="px-3 py-2 bg-gray-100 text-gray-500 rounded text-sm text-center">
+                      <div className="rounded-[8px] bg-[#F1F4F9] px-3 py-2 text-center text-[12.5px] text-muted-foreground">
                         무명
                       </div>
                     ) : (
@@ -726,7 +568,7 @@ const BulkDonationInput: React.FC = () => {
                       />
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-[18px] py-3">
                     <Combobox
                       options={fundTypes.map(type => ({ label: type, value: type }))}
                       value={bulk.fundType}
@@ -737,16 +579,21 @@ const BulkDonationInput: React.FC = () => {
                       className="text-sm"
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-[18px] py-3">
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="0"
-                      value={bulk.amount || ''}
-                      onChange={(e) => updateBulkRow(index, 'amount', Number(e.target.value))}
-                      className="text-right text-sm"
+                      value={bulk.amount ? bulk.amount.toLocaleString('ko-KR') : ''}
+                      onChange={(e) => {
+                        // 숫자만 추출 후 저장 — 쉼표/공백 제거
+                        const digits = e.target.value.replace(/[^\d]/g, '');
+                        updateBulkRow(index, 'amount', digits ? Number(digits) : 0);
+                      }}
+                      className="text-right text-sm tabular-nums"
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-[18px] py-3">
                     <Input
                       placeholder="비고"
                       value={bulk.note}
@@ -754,17 +601,17 @@ const BulkDonationInput: React.FC = () => {
                       className="text-sm"
                     />
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    {bulkDonations.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeBulkRow(index)}
-                        className="text-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
+                  <td className="px-[18px] py-3 text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBulkRow(index)}
+                      disabled={bulkDonations.length === 1}
+                      className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626] disabled:opacity-30"
+                      title="삭제"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -773,45 +620,23 @@ const BulkDonationInput: React.FC = () => {
         </div>
 
         {/* 합계 정보 */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <div className="flex justify-end">
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">총 건수:</span>
-                <span className="font-medium">{bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length}건</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">무명 헌금:</span>
-                <span className="font-medium">{bulkDonations.filter(b => b.isAnonymous && b.amount > 0).length}건</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">총 금액:</span>
-                <span className="text-lg font-bold text-primary-600">
-                  {formatCurrency(bulkDonations.reduce((sum, b) => sum + (b.amount || 0), 0))}
-                </span>
-              </div>
-            </div>
+        <div className="flex items-center justify-end gap-6 border-t border-[#EEF1F6] px-[18px] py-[14px] bg-[#FAFBFD]">
+          <div className="flex items-center gap-2 text-[12.5px]">
+            <span className="text-muted-foreground">총 건수</span>
+            <span className="font-bold text-foreground tabular-nums">{validBulkCount}건</span>
+          </div>
+          <div className="flex items-center gap-2 text-[12.5px]">
+            <span className="text-muted-foreground">무명</span>
+            <span className="font-bold text-foreground tabular-nums">{bulkDonations.filter(b => b.isAnonymous && b.amount > 0).length}건</span>
+          </div>
+          <div className="flex items-center gap-2 text-[12.5px]">
+            <span className="text-muted-foreground">총 금액</span>
+            <span className="text-[15px] font-bold text-primary tabular-nums">
+              {formatCurrency(bulkDonations.reduce((sum, b) => sum + (b.amount || 0), 0))}
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* 액션 버튼 */}
-      <div className="flex gap-4 mt-6">
-        <Button
-          onClick={handleBulkSubmit}
-          className="flex-1"
-          disabled={submitLoading || bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length === 0}
-        >
-          {submitLoading ? '등록 중...' : `${bulkDonations.filter(b => (b.donorId || b.isAnonymous) && b.amount > 0).length}건 등록`}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/donations')}
-          className="flex-1"
-        >
-          취소
-        </Button>
-      </div>
+      </Card>
     </PageContainer>
   );
 };

@@ -76,6 +76,8 @@ const Layout: React.FC = () => {
   const [userPermissions, setUserPermissions] = useState<MenuPermission[]>([]);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
+  const [pageTitle, setPageTitle] = useState<string | undefined>(undefined);
+  const [pageLeading, setPageLeading] = useState<React.ReactNode>(null);
   const [pageSubtitle, setPageSubtitle] = useState<string | undefined>(undefined);
   const [pageActions, setPageActions] = useState<React.ReactNode>(null);
   const [menuCounts, setMenuCounts] = useState<{
@@ -90,7 +92,7 @@ const Layout: React.FC = () => {
   // Outlet context를 안정 참조로 (매 렌더링마다 새 객체 → 자식 무한 루프 방지)
   // setPageSubtitle/setPageActions는 useState의 setter라 React가 안정 참조 보장
   const outletContext = React.useMemo(
-    () => ({ setPageSubtitle, setPageActions }),
+    () => ({ setPageTitle, setPageLeading, setPageSubtitle, setPageActions }),
     []
   );
 
@@ -500,10 +502,15 @@ const Layout: React.FC = () => {
       {/* ===== Main ===== */}
       <main className="ml-[236px] flex min-h-screen flex-1 flex-col">
         {/* Top bar — 페이지명 + 부제 (좌) + 페이지 액션 (우, outlet context로 설정) */}
-        <div className="sticky top-0 z-30 flex h-[58px] flex-shrink-0 items-center gap-4 border-b border-border bg-card px-6">
+        <div className="sticky top-0 z-30 flex h-[58px] flex-shrink-0 items-center gap-3 border-b border-border bg-card px-6">
+          {pageLeading && (
+            <div className="flex items-center gap-2">
+              {pageLeading}
+            </div>
+          )}
           <div className="flex items-baseline gap-3 min-w-0">
             <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground whitespace-nowrap">
-              {activeMenu?.name || '대시보드'}
+              {pageTitle ?? activeMenu?.name ?? '대시보드'}
             </span>
             {pageSubtitle && (
               <span className="truncate text-[13px] text-muted-foreground">

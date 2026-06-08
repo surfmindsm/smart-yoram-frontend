@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCurrentUser } from '../hooks/queries';
 import {
   Plus,
   Search,
@@ -10,9 +11,8 @@ import {
   Receipt,
   Users,
   X,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
+  ChevronUp,
+  ChevronDown,
   Printer,
   CalendarDays,
   Edit,
@@ -24,10 +24,13 @@ import {
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, LoadingState } from "./ui";
-import { SimpleTabs } from "./ui";
 import { Combobox } from "./ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import { DatePicker } from "./ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui";
+import { Checkbox } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { DateRangePicker } from "./ui";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -144,6 +147,8 @@ interface Donation {
 
 const DonationManagement: React.FC = () => {
   const navigate = useNavigate();
+  // currentUser는 다른 화면과 공유 캐시 (loadData 내 getCurrentUser 호출도 캐시 활용 가능)
+  useCurrentUser();
   const [activeTab, setActiveTab] = useState<'donations' | 'receipts'>('donations');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
@@ -157,7 +162,7 @@ const DonationManagement: React.FC = () => {
   const [fundTypes, setFundTypes] = useState<string[]>([]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [fundTypeFilter, setFundTypeFilter] = useState('all');
+  const [fundTypeFilter, setFundTypeFilter] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear() - 1);
   const [selectedDonor, setSelectedDonor] = useState<string>('');
   const [receiptInfo, setReceiptInfo] = useState({
@@ -212,6 +217,12 @@ const DonationManagement: React.FC = () => {
   const [isExcelUploadModalOpen, setIsExcelUploadModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // 헌금 종류별 분포 차트 — 마우스 따라가는 tooltip 상태
+  const [fundTooltip, setFundTooltip] = useState<{
+    item: any;
+    x: number; // 막대 컨테이너 기준 마우스 X
+  } | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadDataRef = useRef(false);
@@ -751,11 +762,11 @@ const DonationManagement: React.FC = () => {
 
   const getSortIcon = (columnKey: keyof Donation) => {
     if (sortConfig.key !== columnKey) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+      return null;
     }
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="w-4 h-4 text-primary-600" />
-      : <ArrowDown className="w-4 h-4 text-primary-600" />;
+    return sortConfig.direction === 'asc'
+      ? <ChevronUp className="h-3.5 w-3.5" />
+      : <ChevronDown className="h-3.5 w-3.5" />;
   };
 
   // 헌금 수정 함수
@@ -898,8 +909,24 @@ const DonationManagement: React.FC = () => {
       return;
     }
 
-    if (donations.length === 0) {
-      alert('다운로드할 헌금 데이터가 없습니다.');
+    // [DEBUG] 다운로드 시점 데이터 상태
+    console.log('[Donation][다운로드 클릭 시점]', {
+      donations_length: donations.length,
+      filteredDonations_length: filteredDonations.length,
+      offerings_length: offerings.length,
+      searchTerm,
+      fundTypeFilter,
+      dateRange,
+      loadDataRef: loadDataRef.current,
+    });
+
+    // 현재 필터 결과 기준으로 다운로드. 비어있으면 안내.
+    if (filteredDonations.length === 0) {
+      if (donations.length === 0) {
+        alert('헌금 데이터가 아직 로딩되지 않았거나 등록된 헌금이 없습니다.');
+      } else {
+        alert('현재 필터 결과가 비어있습니다. 필터를 조정해 주세요.');
+      }
       return;
     }
 
@@ -1278,7 +1305,7 @@ const DonationManagement: React.FC = () => {
 
   const filteredDonations = donations.filter(donation => {
     // 헌금 유형 필터
-    const matchesFundType = fundTypeFilter === 'all' || donation.fundType === fundTypeFilter;
+    const matchesFundType = fundTypeFilter.length === 0 || fundTypeFilter.includes(donation.fundType);
 
     // 검색 필터
     const matchesSearch = donation.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1369,14 +1396,15 @@ const DonationManagement: React.FC = () => {
   };
 
   // 헌금 종류별 분포 (현재 filteredDonations 기준)
+  // 헌금 종류별 분포는 필터와 무관하게 항상 전체(donations) 기준
   const fundDistribution = useMemo(() => {
     const totalsByType = new Map<string, number>();
     let total = 0;
-    for (const d of filteredDonations) {
+    for (const d of donations) {
       totalsByType.set(d.fundType, (totalsByType.get(d.fundType) || 0) + d.amount);
       total += d.amount;
     }
-    const items = Array.from(totalsByType.entries())
+    const rawItems = Array.from(totalsByType.entries())
       .map(([type, amount]) => ({
         type,
         amount,
@@ -1384,8 +1412,25 @@ const DonationManagement: React.FC = () => {
         color: getFundTypeBarColor(type),
       }))
       .sort((a, b) => b.amount - a.amount);
+
+    // 1% 미만은 "기타"로 묶어 시각적 잡음 줄임
+    const THRESHOLD = 1; // %
+    const major = rawItems.filter(i => i.percentage >= THRESHOLD);
+    const minor = rawItems.filter(i => i.percentage < THRESHOLD);
+    const items = [...major];
+    if (minor.length > 0) {
+      const otherAmount = minor.reduce((s, i) => s + i.amount, 0);
+      const otherPct = total > 0 ? Math.round((otherAmount / total) * 1000) / 10 : 0;
+      items.push({
+        type: '기타',
+        amount: otherAmount,
+        percentage: otherPct,
+        color: '#CBD5E1',
+        details: minor, // tooltip에서 분해 표시용
+      } as any);
+    }
     return { items, total };
-  }, [filteredDonations]);
+  }, [donations]);
 
   // PDF 영수증 생성 함수
   const generateReceiptPDF = (member: Member, donations: Donation[], year: number, issueNo: string, additionalInfo: any) => {
@@ -1663,116 +1708,92 @@ const DonationManagement: React.FC = () => {
     generateReceiptPDF(member, memberDonations, taxYear, receipt.issueNo || receipt.issue_no, receiptInfo);
   };
 
+  // 상단바 부제·액션 (Hook은 early return 전 호출)
+  usePageSubtitle('교인별 헌금 내역을 관리하고 연말정산 영수증을 발행합니다');
+  usePageActions(
+    <>
+      <Button
+        onClick={downloadDonationsExcel}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+      >
+        <Download className="h-3.5 w-3.5" />
+        엑셀 다운
+      </Button>
+      <Button
+        onClick={downloadExcelTemplate}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+      >
+        <FileText className="h-3.5 w-3.5" />
+        템플릿
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setIsExcelUploadModalOpen(true)}
+        className="gap-2"
+      >
+        <Upload className="h-3.5 w-3.5" />
+        엑셀 등록
+      </Button>
+      <Button
+        variant="info-soft"
+        size="sm"
+        onClick={() => navigate('/donations/bulk-input')}
+        className="gap-2"
+      >
+        <Users className="h-3.5 w-3.5" />
+        일괄 입력
+      </Button>
+      <Button
+        size="sm"
+        onClick={() => setIsAddModalOpen(true)}
+        className="gap-2"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        헌금 입력
+      </Button>
+    </>,
+    // 클로저가 최신 데이터/필터를 잡도록 deps 명시
+    [donations.length, filteredDonations.length, searchTerm, fundTypeFilter, dateRange]
+  );
+
   return (
     <PageContainer>
-      <PageHeader
-        title="헌금 관리"
-        description="교인별 헌금내역을 관리하고 연말정산 영수증을 발행합니다."
-      />
-
-      {/* 탭 네비게이션 */}
-      <SimpleTabs
-        tabs={[
-          {
-            id: 'donations',
-            label: '헌금 내역',
-            icon: <DollarSign className="w-4 h-4" />
-          },
-          {
-            id: 'receipts',
-            label: '기부금 영수증',
-            icon: <Receipt className="w-4 h-4" />
-          }
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as 'donations' | 'receipts')}
-        variant="default"
-        className="mb-6"
-      />
+      {/* 헌금 내역 / 기부금 영수증 탭 — 조직·부서/심방 관리와 동일한 언더라인 스타일 */}
+      <div className="mb-4 inline-flex items-center gap-1 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('donations')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'donations'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          헌금 내역
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('receipts')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'receipts'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          기부금 영수증
+        </button>
+      </div>
 
       {/* 헌금 내역 탭 */}
       {activeTab === 'donations' && (
-        <div className="space-y-6">
-          {/* 컨트롤 바 */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="기부자명 또는 헌금 유형 검색..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-80"
-                  />
-                </div>
-                <DateRangePicker
-                  value={dateRange}
-                  onChange={setDateRange}
-                />
-                <Select
-                  value={fundTypeFilter}
-                  onValueChange={setFundTypeFilter}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="헌금 유형 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">모든 헌금 유형</SelectItem>
-                    {fundTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={downloadDonationsExcel}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    헌금 데이터 다운로드
-                  </Button>
-                  <Button
-                    onClick={downloadExcelTemplate}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    엑셀 템플릿 다운로드
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsExcelUploadModalOpen(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    엑셀 업로드
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/donations/bulk-input')}
-                    className="flex items-center gap-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    일괄 입력
-                  </Button>
-                  <Button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    헌금 입력
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="space-y-4">
           {/* 헌금 데이터 전체 로딩 */}
           {loading ? (
             <Card>
@@ -1780,8 +1801,8 @@ const DonationManagement: React.FC = () => {
             </Card>
           ) : (
             <>
-              {/* 헌금 통계 카드 — Direction C flat KPI strip */}
-              <div className="grid grid-cols-1 gap-[14px] md:grid-cols-4">
+              {/* 1) 통계 KPI strip */}
+              <div className="grid grid-cols-2 gap-[14px] md:grid-cols-4">
                 <Card>
                   <div className="px-[18px] py-4">
                     <div className="text-[12px] font-semibold text-muted-foreground">이번 달 총액</div>
@@ -1818,52 +1839,197 @@ const DonationManagement: React.FC = () => {
                 </Card>
               </div>
 
-              {/* 헌금 종류별 분포 — 시안 .dn-bar + .dn-leg 매핑 */}
+              {/* 2) 헌금 종류별 분포 — 컴팩트 (스택바 + 범례 inline) */}
               {fundDistribution.items.length > 0 && (
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                    <CardTitle>헌금 종류별 분포</CardTitle>
+                  <div className="flex items-center justify-between border-b border-[#EEF1F6] px-[18px] py-3">
+                    <div className="text-[13px] font-bold tracking-[-0.01em]">헌금 종류별 분포</div>
                     <span className="text-[12px] font-semibold text-[#94A3B8]">
                       누계 {formatCurrency(fundDistribution.total)}
                     </span>
-                  </CardHeader>
-                  <CardContent>
-                    {/* 가로 스택바 */}
-                    <div className="mb-[18px] flex h-[14px] overflow-hidden rounded-[7px] bg-[#F1F4F9]">
-                      {fundDistribution.items.map((item) => (
-                        <div
-                          key={item.type}
-                          style={{ width: `${item.percentage}%`, background: item.color }}
-                          title={`${item.type} ${item.percentage}%`}
-                        />
-                      ))}
+                  </div>
+                  <div className="px-[18px] py-[14px]">
+                    {/* 스택바 — 마우스 따라다니는 단일 tooltip */}
+                    <div
+                      className="relative mb-3"
+                      onMouseLeave={() => setFundTooltip(null)}
+                    >
+                      <div className="flex h-[10px] rounded-[5px] bg-[#F1F4F9]">
+                        {fundDistribution.items.map((item, index) => {
+                          const isFirst = index === 0;
+                          const isLast = index === fundDistribution.items.length - 1;
+                          return (
+                            <div
+                              key={item.type}
+                              className="h-full cursor-default transition-all hover:brightness-95"
+                              style={{
+                                width: `${item.percentage}%`,
+                                background: item.color,
+                                borderTopLeftRadius: isFirst ? 5 : 0,
+                                borderBottomLeftRadius: isFirst ? 5 : 0,
+                                borderTopRightRadius: isLast ? 5 : 0,
+                                borderBottomRightRadius: isLast ? 5 : 0,
+                              }}
+                              onMouseEnter={(e) => {
+                                const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                                setFundTooltip({ item, x: e.clientX - rect.left });
+                              }}
+                              onMouseMove={(e) => {
+                                const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                                setFundTooltip({ item, x: e.clientX - rect.left });
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                      {/* 마우스 따라가는 Tooltip */}
+                      {fundTooltip && (() => {
+                        const item: any = fundTooltip.item;
+                        // 컨테이너 폭을 모르므로 좌/우 경계는 transform으로 처리
+                        return (
+                          <div
+                            className="pointer-events-none absolute z-20 -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-border bg-card px-3 py-2 text-[12px] shadow-lg"
+                            style={{
+                              left: fundTooltip.x,
+                              bottom: 'calc(100% + 8px)',
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="h-[8px] w-[8px] flex-shrink-0 rounded-[2px]"
+                                style={{ background: item.color }}
+                              />
+                              <span className="font-bold text-foreground">{item.type}</span>
+                              <span className="text-[#94A3B8]">{item.percentage}%</span>
+                            </div>
+                            <div className="mt-1 text-[13px] font-bold tabular-nums text-foreground">
+                              {formatCurrency(item.amount)}
+                            </div>
+                            {item.details && item.details.length > 0 && (
+                              <div className="mt-2 border-t border-[#F1F4F9] pt-2">
+                                {(item.details as Array<{ type: string; amount: number; percentage: number; color: string }>).map(d => (
+                                  <div key={d.type} className="mt-1 flex items-center gap-2 text-[11.5px]">
+                                    <span
+                                      className="h-[6px] w-[6px] flex-shrink-0 rounded-[1px]"
+                                      style={{ background: d.color }}
+                                    />
+                                    <span className="text-[#334155]">{d.type}</span>
+                                    <span className="ml-auto whitespace-nowrap tabular-nums text-foreground">
+                                      {formatCurrency(d.amount)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-border bg-card" />
+                          </div>
+                        );
+                      })()}
                     </div>
-                    {/* 범례 */}
-                    <div className="flex flex-col gap-[11px]">
+                    <div className="flex flex-wrap gap-x-5 gap-y-2">
                       {fundDistribution.items.map((item) => (
-                        <div key={item.type} className="flex items-center gap-[10px] text-[13px]">
+                        <div key={item.type} className="flex items-center gap-2 text-[12.5px]">
                           <span
-                            className="h-[10px] w-[10px] flex-shrink-0 rounded-[3px]"
+                            className="h-[8px] w-[8px] flex-shrink-0 rounded-[2px]"
                             style={{ background: item.color }}
                           />
                           <span className="font-semibold text-[#334155]">{item.type}</span>
-                          <span className="text-[12px] text-[#94A3B8]">
+                          <span className="text-[11.5px] text-[#94A3B8]">
                             {item.percentage}%
                           </span>
-                          <span className="ml-auto whitespace-nowrap font-bold tabular-nums text-foreground">
+                          <span className="whitespace-nowrap font-bold tabular-nums text-foreground">
                             {formatCurrency(item.amount)}
                           </span>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               )}
 
-              {/* 헌금 목록 */}
+              {/* 3) 검색·필터 + 테이블 — 한 카드로 통합 (교인 관리 패턴) */}
               <Card className="overflow-hidden">
+                {/* 검색 + 필터 바 (카드 헤더 자리) */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="기부자명 또는 헌금 유형 검색..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-full md:w-[320px]"
+                    />
+                  </div>
+                  {/* spacer — 기간/헌금 유형을 우측으로 밀어냄 */}
+                  <div className="flex-1" />
+                  <DateRangePicker
+                    value={dateRange}
+                    onChange={setDateRange}
+                  />
+                  {/* 헌금 유형 — 다중 선택 (교인 관리 패턴) */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-[38px] w-auto min-w-[160px] items-center justify-between gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-foreground transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-[12.5px] text-muted-foreground">헌금 유형</span>
+                          <span className="font-medium">
+                            {fundTypeFilter.length === 0
+                              ? '전체'
+                              : fundTypeFilter.length === 1
+                                ? fundTypeFilter[0]
+                                : `${fundTypeFilter.length}개 선택`}
+                          </span>
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[220px] p-0" align="end">
+                      <div className="py-1.5">
+                        {fundTypes.map((type) => {
+                          const checked = fundTypeFilter.includes(type);
+                          return (
+                            <label
+                              key={type}
+                              htmlFor={`fund-type-${type}`}
+                              className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-secondary"
+                            >
+                              <Checkbox
+                                id={`fund-type-${type}`}
+                                checked={checked}
+                                onCheckedChange={(c) => {
+                                  if (c) {
+                                    setFundTypeFilter([...fundTypeFilter, type]);
+                                  } else {
+                                    setFundTypeFilter(fundTypeFilter.filter((t) => t !== type));
+                                  }
+                                }}
+                              />
+                              <span className="flex-1">{type}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {fundTypeFilter.length > 0 && (
+                        <div className="border-t border-border px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => setFundTypeFilter([])}
+                            className="text-[12px] font-semibold text-primary hover:underline"
+                          >
+                            선택 초기화
+                          </button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* 헌금 목록 테이블 */}
                 <div className="overflow-x-auto">
-                  <table className="min-w-full text-[12.5px]">
+                  <table className="w-full min-w-[840px] text-[12.5px]">
                     <thead className="bg-[#FAFBFD]">
                       <tr>
                         <th
@@ -1903,12 +2069,15 @@ const DonationManagement: React.FC = () => {
                           </span>
                         </th>
                         <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">적요</th>
-                        <th className="px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F1F4F9] bg-card">
                       {currentDonations.map((donation) => (
-                        <tr key={donation.id} className="transition-colors hover:bg-[#FAFBFD]">
+                        <tr
+                          key={donation.id}
+                          className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                          onClick={() => handleEditDonation(donation)}
+                        >
                           <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{donation.offeredOn}</td>
                           <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">{donation.donorName}</td>
                           <td className="px-[18px] py-3 whitespace-nowrap">
@@ -1923,35 +2092,13 @@ const DonationManagement: React.FC = () => {
                             {formatCurrency(donation.amount)}
                           </td>
                           <td className="px-[18px] py-3 text-[12.5px] text-[#94A3B8]">{donation.note || '—'}</td>
-                          <td className="px-[18px] py-3 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditDonation(donation)}
-                                title="수정"
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
-                                onClick={() => handleDeleteDonation(donation.id)}
-                                title="삭제"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 {filteredDonations.length === 0 && (
-                  <div className="py-8 text-center text-[13px] text-muted-foreground">
+                  <div className="py-12 text-center text-[13px] text-muted-foreground">
                     등록된 헌금 내역이 없습니다.
                   </div>
                 )}
@@ -2091,10 +2238,10 @@ const DonationManagement: React.FC = () => {
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="w-1/2">
                 <label className="block text-sm font-medium mb-1">헌금일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={bulkSettings.offeredOn}
-                  onChange={(e) => setBulkSettings({ ...bulkSettings, offeredOn: e.target.value })}
+                  onChange={(value) => setBulkSettings({ ...bulkSettings, offeredOn: value })}
+                  placeholder="날짜 선택"
                 />
               </div>
             </div>
@@ -2313,10 +2460,10 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={newDonation.offeredOn}
-                  onChange={(e) => setNewDonation({ ...newDonation, offeredOn: e.target.value })}
+                  onChange={(value) => setNewDonation({ ...newDonation, offeredOn: value })}
+                  placeholder="날짜 선택"
                 />
               </div>
 
@@ -2335,10 +2482,15 @@ const DonationManagement: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">금액</label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="헌금 금액을 입력하세요"
-                  value={newDonation.amount || ''}
-                  onChange={(e) => setNewDonation({ ...newDonation, amount: Number(e.target.value) })}
+                  value={newDonation.amount ? newDonation.amount.toLocaleString('ko-KR') : ''}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^\d]/g, '');
+                    setNewDonation({ ...newDonation, amount: digits ? Number(digits) : 0 });
+                  }}
+                  className="text-right tabular-nums"
                 />
               </div>
 
@@ -2352,20 +2504,20 @@ const DonationManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex space-x-2 mt-6">
-              <Button 
-                onClick={handleAddDonation} 
-                className="flex-1"
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddModalOpen(false)}
+              >
+                취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAddDonation}
                 disabled={submitLoading}
               >
                 {submitLoading ? '등록 중...' : '등록'}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsAddModalOpen(false)}
-                className="flex-1"
-              >
-                취소
               </Button>
             </div>
           </div>
@@ -2388,10 +2540,10 @@ const DonationManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">헌금일</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={editingDonation.offeredOn}
-                  onChange={(e) => setEditingDonation({ ...editingDonation, offeredOn: e.target.value })}
+                  onChange={(value) => setEditingDonation({ ...editingDonation, offeredOn: value })}
+                  placeholder="날짜 선택"
                 />
               </div>
 
@@ -2410,10 +2562,15 @@ const DonationManagement: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">금액</label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="헌금 금액을 입력하세요"
-                  value={editingDonation.amount || ''}
-                  onChange={(e) => setEditingDonation({ ...editingDonation, amount: Number(e.target.value) })}
+                  value={editingDonation.amount ? editingDonation.amount.toLocaleString('ko-KR') : ''}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^\d]/g, '');
+                    setEditingDonation({ ...editingDonation, amount: digits ? Number(digits) : 0 });
+                  }}
+                  className="text-right tabular-nums"
                 />
               </div>
 
@@ -2427,24 +2584,42 @@ const DonationManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex space-x-2 mt-6">
-              <Button 
-                onClick={handleUpdateDonation} 
-                className="flex-1"
-                disabled={submitLoading}
-              >
-                {submitLoading ? '수정 중...' : '수정'}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
+            <div className="mt-6 flex items-center justify-between gap-2 border-t border-border pt-4">
+              <Button
+                variant="destructive-soft"
+                size="sm"
+                onClick={async () => {
+                  if (!editingDonation) return;
+                  const id = editingDonation.id;
                   setIsEditModalOpen(false);
                   setEditingDonation(null);
+                  await handleDeleteDonation(id);
                 }}
-                className="flex-1"
+                disabled={submitLoading}
+                className="gap-1.5"
               >
-                취소
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제
               </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingDonation(null);
+                  }}
+                >
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleUpdateDonation}
+                  disabled={submitLoading}
+                >
+                  {submitLoading ? '수정 중...' : '수정'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -2583,12 +2758,10 @@ const DonationManagement: React.FC = () => {
               )}
             </div>
 
-            <div className="flex space-x-2 mt-6">
-              <Button onClick={generateReceipt} className="flex-1" disabled={!selectedDonor}>
-                영수증 발행
-              </Button>
-              <Button 
-                variant="outline" 
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setIsReceiptModalOpen(false);
                   setSelectedDonor('');
@@ -2600,9 +2773,11 @@ const DonationManagement: React.FC = () => {
                     donorRegNo: ''
                   });
                 }}
-                className="flex-1"
               >
                 취소
+              </Button>
+              <Button size="sm" onClick={generateReceipt} disabled={!selectedDonor}>
+                영수증 발행
               </Button>
             </div>
           </div>
@@ -2760,25 +2935,25 @@ const DonationManagement: React.FC = () => {
               )}
             </div>
 
-            <div className="flex space-x-2 mt-6">
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                onClick={handleExcelUpload}
-                className="flex-1"
-                disabled={!excelFile || submitLoading}
-              >
-                {submitLoading ? '업로드 중...' : '업로드 시작'}
-              </Button>
-              <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setIsExcelUploadModalOpen(false);
                   setExcelFile(null);
                   setExcelPreviewData([]);
                   setValidationResults(null);
                 }}
-                className="flex-1"
               >
                 취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleExcelUpload}
+                disabled={!excelFile || submitLoading}
+              >
+                {submitLoading ? '업로드 중...' : '업로드 시작'}
               </Button>
             </div>
           </div>

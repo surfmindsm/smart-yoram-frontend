@@ -144,14 +144,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 px-3"
+            className="h-[38px] w-[38px] flex-shrink-0 rounded-[8px] p-0"
             disabled={disabled}
           >
             <CalendarIcon className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto p-0"
+          className="w-auto overflow-hidden rounded-[10px] p-0"
           align="end"
           style={{ backgroundColor: '#FFFFFF' }}
         >

@@ -171,7 +171,7 @@ export function DateRangePicker({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-fit justify-start text-left font-normal",
+              "h-[38px] w-fit justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -179,10 +179,14 @@ export function DateRangePicker({
             {formatDateRange(date)}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="flex">
+        <PopoverContent
+          className="w-auto overflow-hidden rounded-[10px] p-0"
+          align="start"
+          style={{ backgroundColor: '#FFFFFF' }}
+        >
+          <div className="flex bg-white">
             {/* Preset Options Sidebar */}
-            <div className="border-r p-2 w-48">
+            <div className="border-r p-2 w-48 bg-white">
               <div className="space-y-1">
                 <button
                   onClick={() => handlePresetChange("custom")}
@@ -208,7 +212,7 @@ export function DateRangePicker({
               </div>
             </div>
             {/* Calendar */}
-            <div className="p-3">
+            <div className="p-3 bg-white">
               <Calendar
                 initialFocus
                 mode="range"
@@ -217,6 +221,7 @@ export function DateRangePicker({
                 onSelect={handleDateChange}
                 numberOfMonths={2}
                 locale={ko}
+                className="!bg-white"
               />
             </div>
           </div>

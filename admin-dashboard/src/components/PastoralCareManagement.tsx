@@ -5,6 +5,8 @@ import { useCurrentUser, useMembers } from '../hooks/queries';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui";
+import { Checkbox } from "./ui";
 import { Card, CardContent, LoadingState } from "./ui";
 import { Badge } from "./ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
@@ -16,8 +18,6 @@ import { Combobox } from "./ui";
 import { PageContainer } from "./ui";
 import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { DatePicker } from "./ui/date-picker";
-import { SearchFilterBar } from './common';
-import type { Filter as FilterType } from './common';
 import {
   Search,
   Filter,
@@ -28,6 +28,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CheckCircle,
   XCircle,
   User,
@@ -176,6 +177,75 @@ const extractArray = (response: any): any[] => {
   if (response && Array.isArray((response as any).items)) return (response as any).items;
   if (response && Array.isArray((response as any).results)) return (response as any).results;
   return [];
+};
+
+// 다중 선택 필터 Popover (헌금 유형 드롭다운과 동일 패턴)
+interface FilterMultiOption { value: string; label: string }
+const FilterMultiPopover: React.FC<{
+  label: string;
+  value: string[];
+  onChange: (v: string[]) => void;
+  options: FilterMultiOption[];
+}> = ({ label, value, onChange, options }) => {
+  const display = value.length === 0
+    ? '전체'
+    : value.length === 1
+      ? (options.find(o => o.value === value[0])?.label ?? value[0])
+      : `${value.length}개 선택`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-[38px] w-auto min-w-[140px] items-center justify-between gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-foreground transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-[12.5px] text-muted-foreground">{label}</span>
+            <span className="font-medium">{display}</span>
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="end">
+        <div className="py-1.5">
+          {options.map((opt) => {
+            const checked = value.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                htmlFor={`fmp-${label}-${opt.value}`}
+                className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-secondary"
+              >
+                <Checkbox
+                  id={`fmp-${label}-${opt.value}`}
+                  checked={checked}
+                  onCheckedChange={(c) => {
+                    if (c) {
+                      onChange([...value, opt.value]);
+                    } else {
+                      onChange(value.filter(v => v !== opt.value));
+                    }
+                  }}
+                />
+                <span className="flex-1">{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        {value.length > 0 && (
+          <div className="border-t border-border px-3 py-2">
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-[12px] font-semibold text-primary hover:underline"
+            >
+              선택 초기화
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const PastoralCareManagement: React.FC = () => {
@@ -1218,265 +1288,235 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 검색 및 필터 — 시안 .pc-filter 매핑 */}
-      <SearchFilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onClearSearch={() => setSearchTerm('')}
-        searchPlaceholder="이름, 내용으로 검색"
-        filters={[
-          {
-            id: 'status',
-            label: '상태',
-            value: statusFilter,
-            options: [
-              { value: 'pending', label: '대기중' },
-              { value: 'approved', label: '승인됨' },
-              { value: 'scheduled', label: '예정됨' },
-              { value: 'in_progress', label: '진행중' },
-              { value: 'completed', label: '완료됨' },
-              { value: 'cancelled', label: '취소됨' },
-            ],
-            onChange: setStatusFilter,
-          },
-          {
-            id: 'priority',
-            label: '우선순위',
-            value: priorityFilter,
-            options: [
-              { value: 'urgent', label: '긴급' },
-              { value: 'high', label: '높음' },
-              { value: 'normal', label: '보통' },
-              { value: 'low', label: '낮음' },
-            ],
-            onChange: setPriorityFilter,
-          },
-          {
-            id: 'type',
-            label: '유형',
-            value: typeFilter,
-            options: [
-              { value: 'general', label: '일반' },
-              { value: 'urgent', label: '긴급' },
-              { value: 'hospital', label: '병원' },
-              { value: 'counseling', label: '상담' },
-            ],
-            onChange: setTypeFilter,
-          },
-        ]}
-      />
+      {/* 검색·필터 + 리스트 통합 Card — 헌금 관리 패턴 */}
+      <Card className="overflow-hidden">
+      {/* 검색 및 필터 — 헌금 관리 패턴(Popover + Checkbox 다중 선택) */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="이름, 내용으로 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 w-full md:w-[320px]"
+          />
+        </div>
+
+        <div className="flex-1" />
+
+        {/* 상태 */}
+        <FilterMultiPopover
+          label="상태"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'pending', label: '대기중' },
+            { value: 'approved', label: '승인됨' },
+            { value: 'scheduled', label: '예정됨' },
+            { value: 'in_progress', label: '진행중' },
+            { value: 'completed', label: '완료됨' },
+            { value: 'cancelled', label: '취소됨' },
+          ]}
+        />
+
+        {/* 우선순위 */}
+        <FilterMultiPopover
+          label="우선순위"
+          value={priorityFilter}
+          onChange={setPriorityFilter}
+          options={[
+            { value: 'urgent', label: '긴급' },
+            { value: 'high', label: '높음' },
+            { value: 'normal', label: '보통' },
+            { value: 'low', label: '낮음' },
+          ]}
+        />
+
+        {/* 유형 */}
+        <FilterMultiPopover
+          label="유형"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { value: 'general', label: '일반' },
+            { value: 'urgent', label: '긴급' },
+            { value: 'hospital', label: '병원' },
+            { value: 'counseling', label: '상담' },
+          ]}
+        />
+      </div>
 
       {/* 신청 관리 카드 리스트 — 시안 .pc-card 매핑 */}
       {activeTab === 'requests' && (
         <>
           {filteredRequests.length === 0 ? (
-            <Card>
-              <div className="py-12 text-center">
-                <Users className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
-                <p className="text-[13px] text-muted-foreground">조건에 맞는 심방 신청이 없습니다.</p>
-              </div>
-            </Card>
+            <div className="py-12 text-center">
+              <Users className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+              <p className="text-[13px] text-muted-foreground">조건에 맞는 심방 신청이 없습니다.</p>
+            </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {filteredRequests.map((request) => {
-                const isUrgent = request.priority === 'urgent' || (request as any).isUrgent;
-                const priColor = getPriorityDotColor(request.priority);
-                return (
-                  <div
-                    key={request.id}
-                    className={cn(
-                      'flex cursor-pointer gap-4 rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
-                      isUrgent && 'border-l-[3px] border-l-[#DC2626]'
-                    )}
-                    onClick={() => handleViewDetails(request)}
-                  >
-                    {/* 아바타 — 시안 .pc-av (44px rounded-[11px]) */}
-                    <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
-                      {request.profilePhotoUrl ? (
-                        <img
-                          src={request.profilePhotoUrl}
-                          alt={request.requesterName}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[16px] font-bold">
-                          {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
-                        </span>
-                      )}
-                    </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1080px] text-[12.5px]">
+                <thead className="bg-[#FAFBFD]">
+                  <tr>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청자</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">유형</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">우선순위</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">희망/방문일</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">연락처</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">담당자</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">조직</th>
+                    <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">상태</th>
+                    <th className="px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                  {filteredRequests.map((request) => {
+                    const priColor = getPriorityDotColor(request.priority);
+                    return (
+                      <tr
+                        key={request.id}
+                        className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                        onClick={() => handleViewDetails(request)}
+                      >
+                        {/* 신청자 — 아바타 + 이름 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-[11px]">
+                            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
+                              {request.profilePhotoUrl ? (
+                                <img
+                                  src={request.profilePhotoUrl}
+                                  alt={request.requesterName}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-[13px] font-bold">
+                                  {request.requesterName?.charAt(0) || <User className="h-4 w-4" />}
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-semibold text-foreground">{request.requesterName}</div>
+                          </div>
+                        </td>
 
-                    {/* 메인 — 시안 .pc-main */}
-                    <div className="min-w-0 flex-1">
-                      {/* 상단: 이름 · 유형 칩 · 우선순위 dot */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[15px] font-bold text-foreground">
-                          {request.requesterName}
-                        </span>
-                        <span className={cn(
-                          'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
-                          getRequestTypeChipClass(request.requestType)
-                        )}>
-                          {getRequestTypeText(request.requestType).replace(' 심방', '')}
-                        </span>
-                        <span
-                          className="inline-flex items-center gap-1 text-[11.5px] font-bold whitespace-nowrap"
-                          style={{ color: priColor }}
-                        >
+                        {/* 유형 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap">
+                          <span className={cn(
+                            'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold',
+                            getRequestTypeChipClass(request.requestType)
+                          )}>
+                            {getRequestTypeText(request.requestType).replace(' 심방', '')}
+                          </span>
+                        </td>
+
+                        {/* 우선순위 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap">
                           <span
-                            className="h-[6px] w-[6px] rounded-full"
-                            style={{ background: priColor }}
-                          />
-                          {getPriorityText(request.priority)}
-                        </span>
-                      </div>
-
-                      {/* 신청 내용 — 시안 .pc-txt */}
-                      {request.requestContent && (
-                        <div className="mt-[9px] text-[13px] leading-[1.55] text-[#475569] line-clamp-2">
-                          {request.requestContent}
-                        </div>
-                      )}
-
-                      {/* 메타 — 시안 .pc-meta */}
-                      <div className="mt-[11px] flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
-                        {(request.preferredDate || request.scheduledDate) && (
-                          <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                            <Calendar className="h-3.5 w-3.5 text-[#94A3B8]" />
-                            {request.scheduledDate
-                              ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime : ''}`
-                              : request.preferredDate}
-                          </span>
-                        )}
-                        {request.requesterPhone && (
-                          <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-[#64748B]">
-                            <Phone className="h-3.5 w-3.5 text-[#94A3B8]" />
-                            {request.requesterPhone}
-                          </span>
-                        )}
-                        <span className="inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
-                          <Users className="h-3.5 w-3.5 text-[#94A3B8]" />
-                          {request.assignedPastor ? request.assignedPastor.name : '담당 미정'}
-                        </span>
-                        {(request.organizationName || request.department) && (
-                          <span className="text-[12px] text-[#94A3B8]">
-                            {[request.organizationName, request.department].filter(Boolean).join(' · ')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 우측 — 시안 .pc-side (상태 칩 위, 액션 아래) */}
-                    <div
-                      className="flex flex-shrink-0 flex-col items-end gap-3"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className={cn(
-                        'inline-flex rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
-                        getStatusColor(request.status)
-                      )}>
-                        {getStatusText(request.status)}
-                      </span>
-                      {/* 상태별 핵심 액션 2개로 압축 (시안 매핑) — 그 외 액션은 상세 모달에서 */}
-                      <div className="flex items-center justify-end gap-1.5">
-                        {request.status === 'pending' && !request.assignedPastor && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
-                            >
-                              상세
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
-                            >
-                              담당자 배정
-                            </Button>
-                          </>
-                        )}
-                        {request.status === 'pending' && request.assignedPastor && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleReject(request); }}
-                            >
-                              반려
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleApprove(request); }}
-                            >
-                              승인
-                            </Button>
-                          </>
-                        )}
-                        {request.status === 'approved' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
-                            >
-                              상세
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleSchedule(request); }}
-                            >
-                              일정 잡기
-                            </Button>
-                          </>
-                        )}
-                        {(request.status === 'scheduled' || request.status === 'in_progress') && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
-                            >
-                              상세
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowCompletionModal(true); }}
-                            >
-                              완료 처리
-                            </Button>
-                          </>
-                        )}
-                        {(request.status === 'completed' || request.status === 'cancelled') && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
+                            className="inline-flex items-center gap-1 text-[12px] font-bold"
+                            style={{ color: priColor }}
                           >
-                            상세
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                            <span
+                              className="h-[6px] w-[6px] rounded-full"
+                              style={{ background: priColor }}
+                            />
+                            {getPriorityText(request.priority)}
+                          </span>
+                        </td>
+
+                        {/* 희망/방문일 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                          {request.scheduledDate
+                            ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime : ''}`
+                            : request.preferredDate || <span className="text-[#CBD5E1]">-</span>}
+                        </td>
+
+                        {/* 연락처 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                          {request.requesterPhone || <span className="text-[#CBD5E1]">-</span>}
+                        </td>
+
+                        {/* 담당자 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                          {request.assignedPastor ? request.assignedPastor.name : <span className="text-[#94A3B8]">담당 미정</span>}
+                        </td>
+
+                        {/* 조직 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                          {[request.organizationName, request.department].filter(Boolean).join(' · ') || <span className="text-[#CBD5E1]">-</span>}
+                        </td>
+
+                        {/* 상태 */}
+                        <td className="px-[18px] py-3 whitespace-nowrap">
+                          <span className={cn(
+                            'inline-flex rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
+                            getStatusColor(request.status)
+                          )}>
+                            {getStatusText(request.status)}
+                          </span>
+                        </td>
+
+                        {/* 작업 — 상태별 핵심 액션 (상세 버튼은 행 클릭으로 대체) */}
+                        <td
+                          className="px-[18px] py-3 whitespace-nowrap text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            {request.status === 'pending' && !request.assignedPastor && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
+                              >
+                                담당자 배정
+                              </Button>
+                            )}
+                            {request.status === 'pending' && request.assignedPastor && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => { e.stopPropagation(); handleReject(request); }}
+                                >
+                                  반려
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); handleApprove(request); }}
+                                >
+                                  승인
+                                </Button>
+                              </>
+                            )}
+                            {request.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleSchedule(request); }}
+                              >
+                                일정 잡기
+                              </Button>
+                            )}
+                            {(request.status === 'scheduled' || request.status === 'in_progress') && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowCompletionModal(true); }}
+                              >
+                                완료 처리
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </>
       )}
 
-      {/* Total Count Display for Requests */}
-      {activeTab === 'requests' && filteredRequests.length > 0 && (
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-[12.5px] text-muted-foreground">
-            전체 <b className="text-foreground">{filteredRequests.length.toLocaleString()}</b>건
-          </div>
-        </div>
-      )}
-
-      {/* 심방 기록 목록 */}
+      {/* 심방 기록 목록 — 동일 Card 안에서 테이블 영역 */}
       {activeTab === 'records' && (
-        <Card className="overflow-hidden">
+        <>
           <div className="overflow-x-auto">
             <table className="min-w-full text-[12.5px]">
               <thead className="bg-[#FAFBFD]">
@@ -1591,14 +1631,21 @@ const PastoralCareManagement: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </Card>
+        </>
       )}
 
-      {/* Total Count Display for Records */}
-      {activeTab === 'records' && filteredRecords.length > 0 && (
+      </Card>
+
+      {/* 합계 — 카드 밖 (교인 관리 패턴) */}
+      {((activeTab === 'requests' && filteredRequests.length > 0) ||
+        (activeTab === 'records' && filteredRecords.length > 0)) && (
         <div className="mt-4 flex items-center justify-between">
           <div className="text-[12.5px] text-muted-foreground">
-            전체 <b className="text-foreground">{filteredRecords.length.toLocaleString()}</b>건
+            전체{' '}
+            <b className="text-foreground">
+              {(activeTab === 'requests' ? filteredRequests.length : filteredRecords.length).toLocaleString()}
+            </b>
+            건
           </div>
         </div>
       )}
@@ -2035,14 +2082,19 @@ const PastoralCareManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => {
-                setShowScheduleModal(false);
-                setCustomMinute('');
-              }}>
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setCustomMinute('');
+                }}
+              >
                 취소
               </Button>
               <Button
+                size="sm"
                 onClick={handleSaveSchedule}
                 disabled={!scheduledDate || !scheduledTime || scheduledTime.includes('custom')}
               >
@@ -2102,11 +2154,11 @@ const PastoralCareManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setShowAssignPastorModal(false)}>
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" size="sm" onClick={() => setShowAssignPastorModal(false)}>
                 취소
               </Button>
-              <Button onClick={handleSaveAssignPastor}>
+              <Button size="sm" onClick={handleSaveAssignPastor}>
                 배정 완료
               </Button>
             </div>
@@ -2155,12 +2207,13 @@ const PastoralCareManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" size="sm" onClick={() => setShowRejectModal(false)}>
                 취소
               </Button>
-              <Button 
-                onClick={handleSaveRejection} 
+              <Button
+                size="sm"
+                onClick={handleSaveRejection}
                 disabled={!rejectionReason.trim()}
                 variant="destructive"
               >
@@ -2198,9 +2251,10 @@ const PastoralCareManagement: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3">
+            <div className="flex items-center justify-end gap-2 border-t border-border bg-slate-50 px-6 py-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowCompletionModal(false);
                   setCompletionNotes('');
@@ -2208,7 +2262,7 @@ const PastoralCareManagement: React.FC = () => {
               >
                 취소
               </Button>
-              <Button onClick={handleSaveCompletion}>
+              <Button size="sm" onClick={handleSaveCompletion}>
                 기록 저장
               </Button>
             </div>
@@ -3017,15 +3071,12 @@ const PastoralCareManagement: React.FC = () => {
             </div>
 
             {/* 버튼 영역 */}
-            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
-              <Button variant="outline" onClick={() => setShowAdminRegistrationModal(false)}>
+            <div className="flex items-center justify-end gap-2 border-t border-border bg-slate-50 px-6 py-4">
+              <Button variant="ghost" size="sm" onClick={() => setShowAdminRegistrationModal(false)}>
                 취소
               </Button>
-              <Button
-                onClick={handleAdminRegistration}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                등록하기
+              <Button size="sm" onClick={handleAdminRegistration}>
+                등록
               </Button>
             </div>
           </div>
