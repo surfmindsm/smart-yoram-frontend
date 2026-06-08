@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -11,7 +12,8 @@ import { Spinner } from "./ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { Combobox } from "./ui";
 import { SimpleTabs } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
 import { DatePicker } from "./ui/date-picker";
 import { SearchFilterBar } from './common';
 import type { Filter as FilterType } from './common';
@@ -137,6 +139,8 @@ const PastoralCareManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PastoralCareRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -664,8 +668,10 @@ const PastoralCareManagement: React.FC = () => {
                          request.requestContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (request.address && request.address.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter.length === 0 || statusFilter.includes(request.status);
+    const matchesPriority = priorityFilter.length === 0 || priorityFilter.includes(request.priority);
+    const matchesType = typeFilter.length === 0 || typeFilter.includes(request.requestType);
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesPriority && matchesType;
   });
 
   const filteredRecords = completedRecords;
@@ -1110,12 +1116,31 @@ const PastoralCareManagement: React.FC = () => {
     );
   };
 
+  // 상단바 부제·액션 (Hook은 early return 전에 호출)
+  usePageSubtitle(
+    activeTab === 'requests'
+      ? `대기 ${requests.filter(r => r.status === 'pending').length}건 · 이번 달 완료 ${completedRecords.filter(r => {
+          const completedAt = new Date(r.completedAt || r.createdAt);
+          const thisMonth = new Date();
+          return completedAt.getMonth() === thisMonth.getMonth() && completedAt.getFullYear() === thisMonth.getFullYear();
+        }).length}건`
+      : `완료 ${completedRecords.length}건`
+  );
+  usePageActions(
+    <Button
+      onClick={() => setShowAdminRegistrationModal(true)}
+      size="sm"
+      className="gap-2"
+    >
+      <Plus className="h-4 w-4" />
+      심방 신청
+    </Button>,
+    [activeTab]
+  );
+
   if (loading) {
     return (
       <PageContainer>
-        <PageHeader
-          title="심방 관리"
-        />
         <Card>
           <LoadingState text="심방 목록을 불러오는 중..." />
         </Card>
@@ -1125,10 +1150,6 @@ const PastoralCareManagement: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="심방 관리"
-      />
-
       <SimpleTabs
         tabs={[
           {
@@ -1150,12 +1171,12 @@ const PastoralCareManagement: React.FC = () => {
         className="mb-6"
       />
 
-      {/* 신청 관리 탭 — Direction C KPI strip */}
+      {/* 신청 관리 탭 — KPI strip (시안: 대기 / 승인·예약 / 진행 중 / 이번 달 완료) */}
       {activeTab === 'requests' && (
-        <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Card>
             <div className="px-4 py-[14px]">
-              <div className="text-[12px] font-semibold text-muted-foreground">대기중</div>
+              <div className="text-[12px] font-semibold text-muted-foreground">대기 중</div>
               <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
                 {requests.filter(r => r.status === 'pending').length}
                 <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
@@ -1164,27 +1185,32 @@ const PastoralCareManagement: React.FC = () => {
           </Card>
           <Card>
             <div className="px-4 py-[14px]">
-              <div className="text-[12px] font-semibold text-muted-foreground">예정됨</div>
+              <div className="text-[12px] font-semibold text-muted-foreground">승인 · 예약</div>
               <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
-                {requests.filter(r => r.status === 'scheduled').length}
+                {requests.filter(r => r.status === 'approved' || r.status === 'scheduled').length}
                 <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
               </div>
             </div>
           </Card>
           <Card>
             <div className="px-4 py-[14px]">
-              <div className="text-[12px] font-semibold text-muted-foreground">완료</div>
+              <div className="text-[12px] font-semibold text-muted-foreground">진행 중</div>
               <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
-                {requests.filter(r => r.status === 'completed').length}
+                {requests.filter(r => r.status === 'in_progress').length}
                 <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
               </div>
             </div>
           </Card>
           <Card>
             <div className="px-4 py-[14px]">
-              <div className="text-[12px] font-semibold text-muted-foreground">전체</div>
+              <div className="text-[12px] font-semibold text-muted-foreground">이번 달 완료</div>
               <div className="mt-[6px] text-[24px] font-bold leading-none tracking-[-0.02em]">
-                {requests.length}
+                {requests.filter(r => {
+                  if (r.status !== 'completed') return false;
+                  const at = new Date(r.createdAt);
+                  const now = new Date();
+                  return at.getMonth() === now.getMonth() && at.getFullYear() === now.getFullYear();
+                }).length}
                 <span className="ml-1 text-[13px] font-semibold text-[#94A3B8]">건</span>
               </div>
             </div>
@@ -1239,40 +1265,53 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 검색 및 필터 */}
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <SearchFilterBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onClearSearch={() => setSearchTerm('')}
-            searchPlaceholder="신청자 이름 또는 내용으로 검색"
-            filters={[
-              {
-                id: 'status',
-                label: '상태',
-                value: statusFilter,
-                options: [
-                  { value: 'pending', label: '대기중' },
-                  { value: 'approved', label: '승인됨' },
-                  { value: 'scheduled', label: '예정됨' },
-                  { value: 'in_progress', label: '진행중' },
-                  { value: 'completed', label: '완료됨' },
-                  { value: 'cancelled', label: '취소됨' },
-                ],
-                onChange: setStatusFilter,
-              },
-            ]}
-          />
-        </div>
-        <Button
-          onClick={() => setShowAdminRegistrationModal(true)}
-          className="flex items-center whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          직접 등록
-        </Button>
-      </div>
+      {/* 검색 및 필터 — 시안 .pc-filter 매핑 */}
+      <SearchFilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onClearSearch={() => setSearchTerm('')}
+        searchPlaceholder="이름, 내용으로 검색"
+        filters={[
+          {
+            id: 'status',
+            label: '상태',
+            value: statusFilter,
+            options: [
+              { value: 'pending', label: '대기중' },
+              { value: 'approved', label: '승인됨' },
+              { value: 'scheduled', label: '예정됨' },
+              { value: 'in_progress', label: '진행중' },
+              { value: 'completed', label: '완료됨' },
+              { value: 'cancelled', label: '취소됨' },
+            ],
+            onChange: setStatusFilter,
+          },
+          {
+            id: 'priority',
+            label: '우선순위',
+            value: priorityFilter,
+            options: [
+              { value: 'urgent', label: '긴급' },
+              { value: 'high', label: '높음' },
+              { value: 'normal', label: '보통' },
+              { value: 'low', label: '낮음' },
+            ],
+            onChange: setPriorityFilter,
+          },
+          {
+            id: 'type',
+            label: '유형',
+            value: typeFilter,
+            options: [
+              { value: 'general', label: '일반' },
+              { value: 'urgent', label: '긴급' },
+              { value: 'hospital', label: '병원' },
+              { value: 'counseling', label: '상담' },
+            ],
+            onChange: setTypeFilter,
+          },
+        ]}
+      />
 
       {/* 신청 관리 카드 리스트 — 시안 .pc-card 매핑 */}
       {activeTab === 'requests' && (
@@ -1384,23 +1423,22 @@ const PastoralCareManagement: React.FC = () => {
                       )}>
                         {getStatusText(request.status)}
                       </span>
-                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {/* 상태별 핵심 액션 2개로 압축 (시안 매핑) — 그 외 액션은 상세 모달에서 */}
+                      <div className="flex items-center justify-end gap-1.5">
                         {request.status === 'pending' && !request.assignedPastor && (
                           <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
+                            >
+                              상세
+                            </Button>
                             <Button
                               size="sm"
                               onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
                             >
                               담당자 배정
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
-                              className="gap-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              삭제
                             </Button>
                           </>
                         )}
@@ -1408,84 +1446,60 @@ const PastoralCareManagement: React.FC = () => {
                           <>
                             <Button
                               size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleApprove(request); }}
-                              className="bg-success text-success-foreground hover:bg-success/90"
-                            >
-                              승인
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
+                              variant="outline"
                               onClick={(e) => { e.stopPropagation(); handleReject(request); }}
                             >
                               반려
                             </Button>
                             <Button
                               size="sm"
-                              onClick={(e) => { e.stopPropagation(); handleSchedule(request); }}
+                              onClick={(e) => { e.stopPropagation(); handleApprove(request); }}
                             >
-                              일정변경
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
-                            >
-                              재배정
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
-                              className="gap-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              삭제
+                              승인
                             </Button>
                           </>
                         )}
-                        {(request.status === 'approved' || request.status === 'scheduled' || request.status === 'in_progress') && (
+                        {request.status === 'approved' && (
                           <>
                             <Button
                               size="sm"
-                              onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowCompletionModal(true); }}
-                              className="bg-success text-success-foreground hover:bg-success/90"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
                             >
-                              완료처리
+                              상세
                             </Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleSchedule(request); }}
+                            >
+                              일정 잡기
+                            </Button>
+                          </>
+                        )}
+                        {(request.status === 'scheduled' || request.status === 'in_progress') && (
+                          <>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={(e) => { e.stopPropagation(); handleAssignPastor(request); }}
+                              onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
                             >
-                              재배정
+                              상세
                             </Button>
                             <Button
                               size="sm"
-                              onClick={(e) => { e.stopPropagation(); handlePrintCard(request); }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowCompletionModal(true); }}
                             >
-                              카드인쇄
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
-                              className="gap-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              삭제
+                              완료 처리
                             </Button>
                           </>
                         )}
                         {(request.status === 'completed' || request.status === 'cancelled') && (
                           <Button
                             size="sm"
-                            variant="destructive"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(request); }}
-                            className="gap-1"
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); handleViewDetails(request); }}
                           >
-                            <Trash2 className="h-3 w-3" />
-                            삭제
+                            상세
                           </Button>
                         )}
                       </div>
@@ -1636,140 +1650,285 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 상세 보기 모달 */}
-      {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">심방 신청 상세</h2>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
+      {/* 상세 보기 모달 — Dialog 기반, Direction C 톤 통일 */}
+      <Dialog open={showDetailModal && !!selectedRequest} onOpenChange={(open) => !open && setShowDetailModal(false)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>심방 신청 상세</DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">신청자 정보</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">이름:</span> {selectedRequest.requesterName}</p>
-                    <p><span className="font-medium">전화번호:</span> {selectedRequest.requesterPhone}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">신청 정보</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">유형:</span> {getRequestTypeText(selectedRequest.requestType)}</p>
-                    <p><span className="font-medium">우선순위:</span> {getPriorityText(selectedRequest.priority)}</p>
-                    <p><span className="font-medium">상태:</span> {getStatusText(selectedRequest.status)}</p>
-                  </div>
-                </div>
+          {selectedRequest && (
+            <div className="mt-2 space-y-5">
+              {/* 신청자 + 신청 정보 — 2열 라벨/값 그리드 */}
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청자 정보</h3>
+                  <dl className="space-y-1.5 text-[13px]">
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">이름</dt>
+                      <dd className="font-semibold text-foreground">{selectedRequest.requesterName}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">전화번호</dt>
+                      <dd className="text-foreground tabular-nums">{selectedRequest.requesterPhone || '-'}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청 정보</h3>
+                  <dl className="space-y-1.5 text-[13px]">
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">유형</dt>
+                      <dd className="text-foreground">{getRequestTypeText(selectedRequest.requestType)}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">우선순위</dt>
+                      <dd className="text-foreground">{getPriorityText(selectedRequest.priority)}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">상태</dt>
+                      <dd className="text-foreground">{getStatusText(selectedRequest.status)}</dd>
+                    </div>
+                  </dl>
+                </section>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-slate-700 mb-2">신청 내용</h3>
-                <p className="text-slate-900 bg-slate-50 p-3 rounded-md">
-                  {selectedRequest.requestContent}
+              {/* 신청 내용 */}
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청 내용</h3>
+                <p className="rounded-[8px] bg-[#FAFBFD] p-3 text-[13px] leading-relaxed text-foreground">
+                  {selectedRequest.requestContent || '-'}
                 </p>
-              </div>
+              </section>
 
+              {/* 희망 일정 */}
               {selectedRequest.preferredDate && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">희망 일정</h3>
-                  <p><span className="font-medium">날짜:</span> {selectedRequest.preferredDate}</p>
-                  {selectedRequest.preferredTimeStart && selectedRequest.preferredTimeEnd && (
-                    <p><span className="font-medium">시간:</span> {selectedRequest.preferredTimeStart} - {selectedRequest.preferredTimeEnd}</p>
-                  )}
-                </div>
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">희망 일정</h3>
+                  <dl className="space-y-1.5 text-[13px]">
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">날짜</dt>
+                      <dd className="text-foreground tabular-nums">{selectedRequest.preferredDate}</dd>
+                    </div>
+                    {selectedRequest.preferredTimeStart && selectedRequest.preferredTimeEnd && (
+                      <div className="flex gap-2">
+                        <dt className="w-[72px] text-muted-foreground">시간</dt>
+                        <dd className="text-foreground tabular-nums">
+                          {selectedRequest.preferredTimeStart} - {selectedRequest.preferredTimeEnd}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </section>
               )}
 
-              {/* 🆕 위치 정보 섹션 개선 */}
-              {(selectedRequest.address || selectedRequest.contactInfo || selectedRequest.isUrgent) && (
-                <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-primary-800 mb-3 flex items-center">
-                    <MapPin className="h-5 w-5 mr-2" />
-                    위치 및 추가 정보
-                  </h3>
-                  <div className="space-y-4">
+              {/* 위치 및 추가 정보 */}
+              {(selectedRequest.address || selectedRequest.contactInfo || selectedRequest.isUrgent || selectedRequest.distanceKm) && (
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">위치 및 추가 정보</h3>
+                  <div className="space-y-2">
                     {selectedRequest.address && (
-                      <div className="bg-white rounded-md p-3">
-                        <div className="flex items-start space-x-3">
-                          <MapPin className="h-5 w-5 text-primary-600 mt-1 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-primary-800 mb-1">방문 주소</p>
-                            <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.address}</p>
-                          </div>
+                      <div className="flex items-start gap-2 rounded-[8px] bg-[#FAFBFD] p-3 text-[13px]">
+                        <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#94A3B8]" />
+                        <div>
+                          <div className="text-[11px] font-semibold text-muted-foreground">방문 주소</div>
+                          <div className="text-foreground">{selectedRequest.address}</div>
                         </div>
                       </div>
                     )}
                     {selectedRequest.contactInfo && (
-                      <div className="bg-white rounded-md p-3">
-                        <div className="flex items-start space-x-3">
-                          <Phone className="h-5 w-5 text-green-600 mt-1 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-green-800 mb-1">추가 연락처 정보</p>
-                            <p className="text-slate-900 text-base leading-relaxed">{selectedRequest.contactInfo}</p>
-                          </div>
+                      <div className="flex items-start gap-2 rounded-[8px] bg-[#FAFBFD] p-3 text-[13px]">
+                        <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#94A3B8]" />
+                        <div>
+                          <div className="text-[11px] font-semibold text-muted-foreground">추가 연락처 정보</div>
+                          <div className="text-foreground">{selectedRequest.contactInfo}</div>
                         </div>
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
                       {selectedRequest.isUrgent && (
-                        <div className="flex items-center space-x-2 bg-red-100 text-red-800 px-3 py-1 rounded-full">
-                          <Zap className="h-4 w-4" />
-                          <span className="text-sm font-medium">긴급 요청</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEBEB] px-3 py-1 text-[11.5px] font-semibold text-[#DC2626]">
+                          <Zap className="h-3.5 w-3.5" />
+                          긴급 요청
+                        </span>
                       )}
                       {selectedRequest.distanceKm && (
-                        <div className="flex items-center space-x-2 bg-primary-100 text-primary-800 px-3 py-1 rounded-full">
-                          <Target className="h-4 w-4" />
-                          <span className="text-sm font-medium">거리: {formatDistance(selectedRequest.distanceKm)}</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF1FE] px-3 py-1 text-[11.5px] font-semibold text-[#2563EB]">
+                          <Target className="h-3.5 w-3.5" />
+                          거리 {formatDistance(selectedRequest.distanceKm)}
+                        </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </section>
               )}
 
+              {/* 담당 목사 */}
               {selectedRequest.assignedPastor && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">담당 목사</h3>
-                  <p><span className="font-medium">이름:</span> {selectedRequest.assignedPastor.name}</p>
-                  <p><span className="font-medium">전화번호:</span> {selectedRequest.assignedPastor.phone}</p>
-                </div>
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">담당 목사</h3>
+                  <dl className="space-y-1.5 text-[13px]">
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">이름</dt>
+                      <dd className="font-semibold text-foreground">{selectedRequest.assignedPastor.name}</dd>
+                    </div>
+                    <div className="flex gap-2">
+                      <dt className="w-[72px] text-muted-foreground">전화번호</dt>
+                      <dd className="text-foreground tabular-nums">{selectedRequest.assignedPastor.phone || '-'}</dd>
+                    </div>
+                  </dl>
+                </section>
               )}
 
+              {/* 거부 사유 */}
               {selectedRequest.rejectionReason && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">거부 사유</h3>
-                  <p className="text-slate-900 bg-red-50 p-3 rounded-md border border-red-200">
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">거부 사유</h3>
+                  <p className="rounded-[8px] bg-[#FCEBEB] p-3 text-[13px] leading-relaxed text-[#DC2626]">
                     {selectedRequest.rejectionReason}
                   </p>
-                </div>
+                </section>
               )}
 
+              {/* 완료 노트 */}
               {selectedRequest.completionNotes && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">완료 노트</h3>
-                  <p className="text-slate-900 bg-green-50 p-3 rounded-md">
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">완료 노트</h3>
+                  <p className="rounded-[8px] bg-[#E7F6EC] p-3 text-[13px] leading-relaxed text-[#16A34A]">
                     {selectedRequest.completionNotes}
                   </p>
-                </div>
+                </section>
               )}
             </div>
+          )}
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <Button variant="outline" onClick={() => setShowDetailModal(false)}>
-                닫기
-              </Button>
+          {/* 상태별 액션 — 카드에서 압축한 만큼 상세 모달에 모음 */}
+          {selectedRequest && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 위험 액션 — 좌측 */}
+                <Button
+                  variant="destructive-soft"
+                  size="sm"
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleDelete(selectedRequest);
+                  }}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  삭제
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 보조 액션 */}
+                {(selectedRequest.status === 'approved'
+                  || selectedRequest.status === 'scheduled'
+                  || selectedRequest.status === 'in_progress') && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleAssignPastor(selectedRequest);
+                      }}
+                    >
+                      재배정
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handlePrintCard(selectedRequest);
+                      }}
+                    >
+                      카드 인쇄
+                    </Button>
+                  </>
+                )}
+
+                {/* 상태별 핵심 액션 */}
+                {selectedRequest.status === 'pending' && !selectedRequest.assignedPastor && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleAssignPastor(selectedRequest);
+                    }}
+                  >
+                    담당자 배정
+                  </Button>
+                )}
+                {selectedRequest.status === 'pending' && selectedRequest.assignedPastor && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleReject(selectedRequest);
+                      }}
+                    >
+                      반려
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleApprove(selectedRequest);
+                      }}
+                    >
+                      승인
+                    </Button>
+                  </>
+                )}
+                {selectedRequest.status === 'approved' && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleSchedule(selectedRequest);
+                    }}
+                  >
+                    일정 잡기
+                  </Button>
+                )}
+                {(selectedRequest.status === 'scheduled' || selectedRequest.status === 'in_progress') && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleSchedule(selectedRequest);
+                      }}
+                    >
+                      일정 변경
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        setShowCompletionModal(true);
+                      }}
+                    >
+                      완료 처리
+                    </Button>
+                  </>
+                )}
+
+                <Button variant="ghost" size="sm" onClick={() => setShowDetailModal(false)}>
+                  닫기
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* 일정 변경 모달 */}
       {showScheduleModal && selectedRequest && (
@@ -2104,31 +2263,96 @@ const PastoralCareManagement: React.FC = () => {
         </div>
       )}
 
-      {/* 심방 카드 인쇄 모달 */}
-      {showPrintModal && selectedMember && selectedRequest && (
+      {/* 심방 카드 인쇄 모달 — body 직계로 portal */}
+      {showPrintModal && selectedMember && selectedRequest && createPortal(
         <>
           <style>
             {`
               @media print {
-                body * {
-                  visibility: hidden;
+                @page {
+                  size: A4 portrait;
+                  margin: 10mm;
                 }
-                .print-area, .print-area * {
-                  visibility: visible;
+                html, body {
+                  background: #fff !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  height: auto !important;
+                  overflow: visible !important;
                 }
-                .print-area {
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                  width: 100%;
+                /* body 직계 자식 중 print-portal만 살리고 나머지는 제거 → 빈 페이지 차단 */
+                body > *:not(.print-portal) {
+                  display: none !important;
+                }
+                /* print-portal 자체와 자식의 화면용 레이아웃 무력화 */
+                .print-portal {
+                  position: static !important;
+                  inset: auto !important;
+                  background: transparent !important;
+                  display: block !important;
+                  align-items: initial !important;
+                  justify-content: initial !important;
+                  z-index: auto !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: auto !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                  max-height: none !important;
+                }
+                .print-portal > * {
+                  background: transparent !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  border-radius: 0 !important;
+                  max-height: none !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                  margin: 0 !important;
                 }
                 .no-print {
                   display: none !important;
                 }
+                .print-area {
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  font-size: 11px !important;
+                  line-height: 1.35 !important;
+                }
+                .print-card {
+                  border: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  border-radius: 0 !important;
+                  box-shadow: none !important;
+                  page-break-inside: avoid;
+                  page-break-after: avoid;
+                }
+                .print-card h2 {
+                  font-size: 18px !important;
+                  margin-bottom: 2px !important;
+                }
+                .print-card h3 {
+                  font-size: 12.5px !important;
+                  margin-bottom: 4px !important;
+                  padding-bottom: 2px !important;
+                }
+                .print-card .print-section {
+                  margin-bottom: 8px !important;
+                  page-break-inside: avoid;
+                }
+                .print-card .write-line {
+                  height: 12px !important;
+                }
+                .print-card .print-footer {
+                  margin-top: 8px !important;
+                  padding-top: 4px !important;
+                  font-size: 10px !important;
+                }
               }
             `}
           </style>
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
+          <div className="print-portal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: '1rem'}}>
             <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-screen overflow-y-auto">
               <div className="p-6 border-b border-slate-200 no-print">
                 <div className="flex items-center justify-between">
@@ -2149,21 +2373,21 @@ const PastoralCareManagement: React.FC = () => {
               </div>
               
               <div className="print-area p-6">
-                <div className="border border-slate-300 rounded-lg p-6 bg-white">
+                <div className="print-card border border-slate-300 rounded-lg p-6 bg-white">
                   {/* 헤더 */}
-                  <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">심방 카드</h2>
+                  <div className="print-section text-center mb-4">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-1">심방 카드</h2>
                     <div className="text-sm text-slate-600">
                       발급일: {new Date().toLocaleDateString('ko-KR')}
                     </div>
                   </div>
 
                   {/* 성도 기본 정보 */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                  <div className="print-section mb-4">
+                    <h3 className="text-base font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-1">
                       성도 정보
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="font-medium text-slate-700">이름:</span>
                         <span className="ml-2 text-slate-900">{selectedMember.name}</span>
@@ -2180,12 +2404,12 @@ const PastoralCareManagement: React.FC = () => {
                   </div>
 
                   {/* 가족 현황 */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                  <div className="print-section mb-4">
+                    <h3 className="text-base font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-1">
                       가족 현황
                     </h3>
                     {selectedMember.family.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-1 text-sm">
                         {selectedMember.family.map((member: any, index: number) => (
                           <div key={index} className="flex items-center space-x-4">
                             <span className="font-medium text-slate-700">{member.relationship}:</span>
@@ -2200,14 +2424,14 @@ const PastoralCareManagement: React.FC = () => {
                   </div>
 
                   {/* 심방 요청 정보 */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                  <div className="print-section mb-4">
+                    <h3 className="text-base font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-1">
                       이번 심방 정보
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="font-medium text-slate-700">심방 유형:</span>
-                        <span className="ml-2 text-slate-900">{selectedRequest.requestType}</span>
+                        <span className="ml-2 text-slate-900">{getRequestTypeText(selectedRequest.requestType)}</span>
                       </div>
                       <div>
                         <span className="font-medium text-slate-700">우선순위:</span>
@@ -2215,7 +2439,7 @@ const PastoralCareManagement: React.FC = () => {
                       </div>
                       <div className="col-span-2">
                         <span className="font-medium text-slate-700">요청 내용:</span>
-                        <p className="mt-1 text-slate-900 text-sm bg-slate-50 p-3 rounded">
+                        <p className="mt-1 text-slate-900 text-sm bg-slate-50 p-2 rounded">
                           {selectedRequest.requestContent}
                         </p>
                       </div>
@@ -2223,26 +2447,26 @@ const PastoralCareManagement: React.FC = () => {
                   </div>
 
                   {/* 심방 기록 작성 공간 */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b border-slate-200 pb-1">
+                  <div className="print-section mb-4">
+                    <h3 className="text-base font-semibold text-slate-800 mb-2 border-b border-slate-200 pb-1">
                       심방 기록
                     </h3>
-                    <div className="border border-slate-200 rounded p-4 min-h-[120px]">
-                      <div className="text-sm text-slate-500 mb-2">심방일: _______________</div>
+                    <div className="border border-slate-200 rounded p-3">
+                      <div className="text-sm text-slate-500 mb-1">심방일: _______________</div>
                       <div className="text-sm text-slate-500 mb-2">담당 목회자: _______________</div>
-                      <div className="border-t border-slate-200 pt-2 mt-4">
+                      <div className="border-t border-slate-200 pt-2 mt-2">
                         <div className="text-sm text-slate-500 mb-2">심방 내용:</div>
-                        <div className="space-y-3">
-                          {[...Array(6)].map((_, i) => (
-                            <div key={i} className="border-b border-slate-200 h-4"></div>
+                        <div className="space-y-2">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="write-line border-b border-slate-200 h-4"></div>
                           ))}
                         </div>
                       </div>
-                      <div className="border-t border-slate-200 pt-2 mt-4">
+                      <div className="border-t border-slate-200 pt-2 mt-3">
                         <div className="text-sm text-slate-500 mb-2">기도 제목:</div>
-                        <div className="space-y-3">
-                          {[...Array(4)].map((_, i) => (
-                            <div key={i} className="border-b border-slate-200 h-4"></div>
+                        <div className="space-y-2">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="write-line border-b border-slate-200 h-4"></div>
                           ))}
                         </div>
                       </div>
@@ -2250,7 +2474,7 @@ const PastoralCareManagement: React.FC = () => {
                   </div>
 
                   {/* 하단 정보 */}
-                  <div className="text-center text-xs text-slate-500 mt-8 pt-4 border-t border-slate-200">
+                  <div className="print-footer print-section text-center text-xs text-slate-500 mt-4 pt-2 border-t border-slate-200">
                     <div>본 심방 카드는 목회 활동의 일환으로 작성되었습니다.</div>
                     <div className="mt-1">문의사항이 있으시면 교회로 연락주시기 바랍니다.</div>
                   </div>
@@ -2258,7 +2482,8 @@ const PastoralCareManagement: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 심방 완료 일지 작성 모달 */}

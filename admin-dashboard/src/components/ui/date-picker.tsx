@@ -150,7 +150,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <CalendarIcon className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        <PopoverContent
+          className="w-auto p-0"
+          align="end"
+          style={{ backgroundColor: '#FFFFFF' }}
+        >
           <Calendar
             mode="single"
             selected={date}
@@ -161,6 +165,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             captionLayout="dropdown"
             fromYear={fromYear}
             toYear={toYear}
+            className="!bg-white"
           />
         </PopoverContent>
       </Popover>

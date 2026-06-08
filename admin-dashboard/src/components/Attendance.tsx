@@ -227,20 +227,6 @@ const Attendance: React.FC = () => {
         return;
       }
       const data = await response.json();
-      // [DEBUG] 통계 카드용 월 출석 응답
-      console.log('[Attendance][GET 월 응답]', {
-        first,
-        last,
-        churchId,
-        rowCount: data?.length,
-        sample: (data || []).slice(0, 3).map((r: any) => ({
-          id: r.id,
-          wsid: r.worship_service_id,
-          wsid_type: typeof r.worship_service_id,
-          present: r.present,
-          service_date: r.service_date,
-        })),
-      });
       setMonthAttendances(data || []);
     } catch (error) {
       console.error('Failed to load month attendances:', error);
@@ -318,20 +304,6 @@ const Attendance: React.FC = () => {
       }
 
       const data = await response.json();
-      // [DEBUG] GET — 새로고침 후 데이터가 worship_service_id로 매칭되는지 확인
-      console.log('[Attendance][GET 주별 응답]', {
-        selectedWorshipServiceId,
-        cacheKey,
-        rowCount: data?.length,
-        firstRow: data?.[0],
-        worship_service_id_types: (data || []).slice(0, 5).map((r: any) => ({
-          id: r.id,
-          wsid: r.worship_service_id,
-          type: typeof r.worship_service_id,
-          present: r.present,
-          service_date: r.service_date,
-        })),
-      });
       setWeeklyAttendances(data || []);
       attendanceCacheRef.current.set(cacheKey, data || []);
     } catch (error) {
@@ -473,16 +445,6 @@ const Attendance: React.FC = () => {
         }
 
         const data = await response.json();
-        // [DEBUG] POST 응답 — worship_service_id가 응답에 어떻게 오는지 확인
-        console.log('[Attendance][POST 응답]', {
-          id: data?.id,
-          member_id: data?.member_id,
-          service_date: data?.service_date,
-          worship_service_id: data?.worship_service_id,
-          worship_service_id_type: typeof data?.worship_service_id,
-          present: data?.present,
-          rawData: data,
-        });
         // 응답에 worship_service_id가 빠지거나 string으로 와도 일관되게 number로 보정
         const normalized = {
           ...data,
@@ -590,19 +552,17 @@ const Attendance: React.FC = () => {
   // 예배별 통계 (이번 달 평균 출석률 + 출석 인원/전체)
   const worshipStats = useMemo(() => {
     const totalMembers = members.length || 0;
-    const result = worshipServices.map(w => {
+    return worshipServices.map(w => {
       const dates = w.day_of_week !== null && w.day_of_week !== undefined
         ? getDatesByDayOfMonth(selectedYear, selectedMonth, worshipDayToJsDay(w.day_of_week))
         : [];
       const dateCount = dates.length;
-      // 해당 예배 + 이번 달 + present 행 수
       const presentRows = monthAttendances.filter(
         a => Number(a.worship_service_id) === w.id && a.present
       );
       const presentCount = presentRows.length;
       const possible = dateCount * totalMembers;
       const rate = possible > 0 ? Math.round((presentCount / possible) * 100) : 0;
-      // 이번 달 출석한 고유 인원
       const uniqueMembers = new Set(presentRows.map(r => r.member_id)).size;
       return {
         service: w,
@@ -612,20 +572,6 @@ const Attendance: React.FC = () => {
         rate,
       };
     });
-    // [DEBUG] worshipStats 재계산 추적
-    console.log('[Attendance][worshipStats 계산]', {
-      totalMembers,
-      worshipCount: worshipServices.length,
-      monthAttendanceCount: monthAttendances.length,
-      sample: result.slice(0, 3).map(r => ({
-        name: r.service.name,
-        id: r.service.id,
-        dateCount: r.dateCount,
-        presentCount: r.presentCount,
-        rate: r.rate,
-      })),
-    });
-    return result;
   }, [worshipServices, monthAttendances, members.length, selectedYear, selectedMonth]);
 
   // 예배가 한 건도 없으면 가이드만 표시
