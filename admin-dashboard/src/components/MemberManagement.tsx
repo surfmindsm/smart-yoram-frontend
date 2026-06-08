@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useCurrentUser, useMembers, useOrganizations, useDepartments } from '../hooks/queries';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -183,6 +184,17 @@ const MemberManagement: React.FC = () => {
   const canEditMember = permissions.canEdit('/member-management');
   const canDeleteMember = permissions.canDelete('/member-management');
 
+  // React Query: 공유 데이터 (currentUser/members/organizations/departments)
+  const { data: queriedCurrentUser } = useCurrentUser();
+  const queriedChurchId = queriedCurrentUser?.church_id ?? null;
+  const {
+    data: queriedMembers,
+    isLoading: membersLoading,
+    refetch: refetchMembers,
+  } = useMembers();
+  const { data: queriedOrganizations } = useOrganizations(queriedChurchId);
+  const { data: queriedDepartments } = useDepartments(queriedChurchId);
+
   const [members, setMembers] = useState<Member[]>([]); // 현재 페이지 데이터
   const [allMembers, setAllMembers] = useState<Member[]>([]); // 원본 데이터 캐시
   const [loading, setLoading] = useState(true);
@@ -351,29 +363,42 @@ const MemberManagement: React.FC = () => {
     return currentUserPromiseRef.current;
   }, []);
 
-  // 서버에서 원본 데이터 가져오기 (캐싱)
-  const fetchMembers = async () => {
-    try {
-      setLoading(true);
+  // React Query 데이터를 기존 state에 동기화 (자체 페이지네이션/필터 흐름 유지)
+  useEffect(() => {
+    if (queriedCurrentUser !== undefined) {
+      setCurrentUser(queriedCurrentUser);
+    }
+  }, [queriedCurrentUser]);
 
-      // 현재 사용자 정보 (캐시된 호출 사용)
-      const currentUserData = await getCurrentUserCached();
+  useEffect(() => {
+    if (queriedMembers) {
+      setAllMembers(queriedMembers as Member[]);
+    }
+  }, [queriedMembers]);
 
-      // 현재 사용자 정보를 상태에 저장
-      setCurrentUser(currentUserData?.user);
-
-      // Use Supabase Edge Function for members data
-      // limit을 1000으로 설정 (성능 최적화)
-      const response = await supabaseApiService.members.getAll({ limit: 1000 });
-
-      // 원본 데이터 저장 (캐시)
-      // invitation_status 필드가 정확하므로 그대로 사용
-      setAllMembers(response.data);
-    } catch (error) {
-      console.error('교인 목록 조회 실패:', error);
-    } finally {
+  useEffect(() => {
+    // 첫 로딩 끝나면 loading false
+    if (!membersLoading) {
       setLoading(false);
     }
+  }, [membersLoading]);
+
+  useEffect(() => {
+    if (queriedOrganizations) {
+      const flatOrgs = flattenOrganizations(queriedOrganizations as any);
+      setOrganizations(flatOrgs);
+    }
+  }, [queriedOrganizations]);
+
+  useEffect(() => {
+    if (queriedDepartments) {
+      setDepartments(queriedDepartments as string[]);
+    }
+  }, [queriedDepartments]);
+
+  // 외부 호출용 — 기존 코드와 호환을 위해 fetchMembers는 refetch로 위임
+  const fetchMembers = async () => {
+    await refetchMembers();
   };
 
   // Helper function to calculate age from birthdate
@@ -577,45 +602,10 @@ const MemberManagement: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, filteredAndSortedMembers.length]);
 
-  // 서버에서 데이터 가져오기 (초기 로드 시에만)
+  // 페이지 접근 로그 (최초 마운트 시에만) — 데이터 자체는 React Query가 자동 fetch
   useEffect(() => {
-    // 페이지 접근 로그 (최초 마운트 시에만)
     activityLogger.logPageAccess('/member-management', '교인 관리');
-    fetchMembers();
-  }, []); // 한 번만 실행
-
-  // 조직 목록 및 부서 목록 불러오기 (캐시된 currentUser 재사용)
-  useEffect(() => {
-    const fetchOrganizationsAndDepartments = async () => {
-      try {
-        const result = await getCurrentUserCached();
-        if (result?.user?.church_id) {
-          // 조직 목록과 부서 목록을 병렬 호출
-          const [orgResult, deptResult] = await Promise.all([
-            organizationService.getOrganizations(result.user.church_id),
-            supabase
-              .from('departments')
-              .select('name')
-              .eq('church_id', result.user.church_id)
-              .eq('is_active', true)
-              .order('display_order', { ascending: true }),
-          ]);
-
-          const flatOrgs = flattenOrganizations(orgResult.organizations);
-          setOrganizations(flatOrgs);
-
-          if (deptResult.error) {
-            console.error('Error loading departments:', deptResult.error);
-          } else {
-            setDepartments(deptResult.data?.map(d => d.name) || []);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching organizations and departments:', error);
-      }
-    };
-    fetchOrganizationsAndDepartments();
-  }, [getCurrentUserCached]);
+  }, []);
 
   // location.state로 전달된 memberId가 있으면 자동으로 다이얼로그 열기
   // 수정 페이지에서 돌아왔을 때 페이지네이션 복원

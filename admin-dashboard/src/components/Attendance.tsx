@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useMembers, useWorshipServices, useCurrentUser } from '../hooks/queries';
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { supabaseApiService } from '../services/supabaseApiService';
 import { Loader2, Check, X, ChevronUp, ChevronDown, CalendarX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -91,14 +91,16 @@ const getDatesByDayOfMonth = (year: number, month: number, jsDayOfWeek: number):
 
 const Attendance: React.FC = () => {
   const navigate = useNavigate();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [churchId, setChurchId] = useState<number | null>(null);
-  const [, setCurrentUser] = useState<any>(null);
 
-  // 예배 목록
-  const [worshipServices, setWorshipServices] = useState<WorshipService[]>([]);
+  // 공유 데이터는 React Query로 — 화면 간 캐싱
+  const { data: currentUser } = useCurrentUser();
+  const churchId = currentUser?.church_id ?? null;
+  const { data: membersData } = useMembers();
+  const members: Member[] = (membersData as Member[] | undefined) ?? [];
+  const { data: worshipServicesData, isFetched: worshipServicesLoaded } = useWorshipServices(churchId);
+  const worshipServices: WorshipService[] = (worshipServicesData as WorshipService[] | undefined) ?? [];
+
   const [selectedWorshipServiceId, setSelectedWorshipServiceId] = useState<number | null>(null);
-  const [worshipServicesLoaded, setWorshipServicesLoaded] = useState(false);
 
   // 주별 출석 현황용 상태
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -163,16 +165,12 @@ const Attendance: React.FC = () => {
     return token;
   }, []);
 
-  const loadMembers = useCallback(async () => {
+  // members는 React Query로 대체됨 (useMembers). 이 함수는 더 이상 사용되지 않음.
+  const _unusedLoadMembers = useCallback(async () => {
     if (membersLoadedRef.current) return;
-
     try {
       const token = await getToken();
-      if (!token) {
-        setMembers([]);
-        return;
-      }
-
+      if (!token) return;
       const response = await fetch(
         `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/members?limit=1000`,
         {
@@ -184,19 +182,11 @@ const Attendance: React.FC = () => {
           },
         }
       );
-
-      if (!response.ok) {
-        setMembers([]);
-        return;
-      }
-
-      const result = await response.json();
-      const memberList = result.data || [];
-      setMembers(memberList);
+      if (!response.ok) return;
+      await response.json();
       membersLoadedRef.current = true;
     } catch (error: any) {
       console.error('Failed to load members:', error);
-      setMembers([]);
     }
   }, [getToken]);
 
@@ -234,25 +224,12 @@ const Attendance: React.FC = () => {
     }
   }, [selectedYear, selectedMonth, churchId, getToken]);
 
-  const loadWorshipServices = useCallback(async (cid: number) => {
-    try {
-      const result = await supabaseApiService.worshipServices.getAll({
-        church_id: cid,
-        is_active: true,
-        limit: 100,
-      });
-      const list: WorshipService[] = (result?.data || result || []) as WorshipService[];
-      setWorshipServices(list);
-      if (list.length > 0) {
-        setSelectedWorshipServiceId((prev) => prev ?? list[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load worship services:', error);
-      setWorshipServices([]);
-    } finally {
-      setWorshipServicesLoaded(true);
+  // worshipServices가 React Query로 도착하면 selectedWorshipServiceId 초기화
+  useEffect(() => {
+    if (worshipServices.length > 0) {
+      setSelectedWorshipServiceId(prev => prev ?? worshipServices[0].id);
     }
-  }, []);
+  }, [worshipServices]);
 
   const loadWeeklyAttendances = useCallback(async () => {
     if (loadingWeeklyRef.current) return;
@@ -317,33 +294,14 @@ const Attendance: React.FC = () => {
   }, [selectedYear, selectedMonth, churchId, selectedWorshipServiceId, serviceDates.length, getToken]);
 
   // 초기화: 한 번만 실행
+  // members / worshipServices / currentUser는 React Query가 자동으로 로드
+  // initializedRef는 별도 useEffect에서 데이터 도착 후 초기화로 사용
   useEffect(() => {
     if (initializedRef.current) return;
-    initializedRef.current = true;
-
-    const init = async () => {
-      let cid: number | null = churchId;
-      try {
-        const user = await supabaseAuthService.getCurrentUser();
-        setCurrentUser(user?.user || null);
-        if (user?.user?.church_id) {
-          cid = user.user.church_id;
-          setChurchId(cid);
-        }
-      } catch (error: any) {
-        console.error('Failed to get current user:', error);
-      }
-
-      const tasks: Promise<unknown>[] = [loadMembers()];
-      if (cid) tasks.push(loadWorshipServices(cid));
-      // loadMonthAttendances는 churchId state를 deps로 가지므로
-      // setChurchId가 반영된 뒤 별도 useEffect에서 트리거됩니다.
-      await Promise.all(tasks);
-    };
-
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (currentUser && worshipServices.length > 0) {
+      initializedRef.current = true;
+    }
+  }, [currentUser, worshipServices.length]);
 
   // 예배·년도·월·church_id 변경 시 출석 데이터 재로드
   useEffect(() => {

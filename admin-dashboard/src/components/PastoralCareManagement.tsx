@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser, useMembers } from '../hooks/queries';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -131,8 +133,93 @@ interface PastoralCareRecord {
   isUrgent?: boolean;
 }
 
+// 백엔드 응답 → PastoralCareRequest 변환 (부작용 없음)
+const transformRequest = (item: any): PastoralCareRequest => ({
+  id: item.id,
+  churchId: item.church_id,
+  memberId: item.member_id,
+  requesterName: item.requester_name,
+  requesterPhone: item.requester_phone,
+  organizationName: item.organization_name,
+  department: item.department,
+  profilePhotoUrl: item.profile_photo_url,
+  requestType: item.request_type,
+  requestContent: item.request_content,
+  preferredDate: item.preferred_date,
+  preferredTimeStart: item.preferred_time_start,
+  preferredTimeEnd: item.preferred_time_end,
+  status: item.status,
+  priority: item.priority || 'normal',
+  assignedPastorId: item.assigned_pastor_id,
+  assignedPastor: item.assigned_pastor_id ? {
+    id: item.assigned_pastor_id,
+    name: item.assigned_pastor?.name || '담당자 미지정',
+    phone: item.assigned_pastor?.phone || ''
+  } : undefined,
+  scheduledDate: item.scheduled_date,
+  scheduledTime: item.scheduled_time,
+  completionNotes: item.completion_notes,
+  adminNotes: item.admin_notes,
+  createdAt: item.created_at,
+  updatedAt: item.updated_at,
+  completedAt: item.completed_at,
+  address: item.address,
+  latitude: item.latitude,
+  longitude: item.longitude,
+  contactInfo: item.contact_info,
+  isUrgent: item.is_urgent || false,
+  distanceKm: item.distance_km,
+} as PastoralCareRequest);
+
+const extractArray = (response: any): any[] => {
+  if (Array.isArray(response)) return response;
+  if (response && Array.isArray(response.data)) return response.data;
+  if (response && Array.isArray((response as any).items)) return (response as any).items;
+  if (response && Array.isArray((response as any).results)) return (response as any).results;
+  return [];
+};
+
 const PastoralCareManagement: React.FC = () => {
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { data: cachedCurrentUser } = useCurrentUser();
+  const cachedChurchId = cachedCurrentUser?.church_id ?? null;
+
+  // React Query — 심방 신청 / 완료 기록 / 교인
+  const userChurchIdForQuery = cachedChurchId ?? undefined;
+
+  const { data: queriedMembers } = useMembers(!!userChurchIdForQuery);
+
+  const requestsQuery = useQuery({
+    queryKey: ['pastoralCare', 'requests', userChurchIdForQuery ?? 9998],
+    queryFn: async () => {
+      const cid = userChurchIdForQuery ?? 9998;
+      const response = await supabaseApiService.pastoralCare.getAll({
+        church_id: cid,
+        exclude_completed: true,
+      });
+      return extractArray(response).map(transformRequest);
+    },
+    enabled: !!userChurchIdForQuery,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const recordsQuery = useQuery({
+    queryKey: ['pastoralCare', 'records', userChurchIdForQuery ?? 9998],
+    queryFn: async () => {
+      const cid = userChurchIdForQuery ?? 9998;
+      const response = await supabaseApiService.pastoralCare.getAll({
+        church_id: cid,
+        status: 'completed',
+      });
+      return extractArray(response);
+    },
+    enabled: !!userChurchIdForQuery,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+
   const [activeTab, setActiveTab] = useState<'requests' | 'records'>('requests');
   const [requests, setRequests] = useState<PastoralCareRequest[]>([]);
   const [completedRecords, setCompletedRecords] = useState<PastoralCareRecord[]>([]);
@@ -206,81 +293,26 @@ const PastoralCareManagement: React.FC = () => {
     }
   }, [requests, location.state]);
 
-  // API에서 심방 신청 데이터 로드
+  // query 데이터 → 기존 state 동기화 (자체 필터/렌더 흐름 유지)
   useEffect(() => {
-    if (activeTab === 'requests') {
-      loadPastoralCareRequests();
-    } else {
-      loadCompletedRecords();
-    }
-  }, [activeTab, statusFilter]);
-  
-  // 초기 로드 시 모든 데이터 로드 (카운트 업데이트를 위해)
+    if (requestsQuery.data) setRequests(requestsQuery.data);
+  }, [requestsQuery.data]);
   useEffect(() => {
-    const loadAllData = async () => {
-      await Promise.all([
-        loadPastoralCareRequests(),
-        loadCompletedRecords()
-      ]);
-    };
-    loadAllData();
-  }, []);
-
-  const loadPastoralCareRequests = async () => {
-    try {
-      setLoading(true);
-
-      // 현재 사용자의 church_id 가져오기
-      const currentUser = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
-
-      const params: any = {
-        church_id: userChurchId,  // 현재 사용자의 교회 ID로 필터링
-        exclude_completed: true   // 완료된 심방 제외
-      };
-
-      // exclude_completed가 true일 때는 status 필터를 적용하지 않음 (충돌 방지)
-      // if (statusFilter !== 'all') params.status = statusFilter;
-
-      // 심방 신청과 교인 데이터를 병렬로 로드
-      const [response, membersResult] = await Promise.allSettled([
-        supabaseApiService.pastoralCare.getAll(params),
-        supabaseApiService.members.getAll({ church_id: userChurchId, limit: 500 })
-      ]);
-
-      // 교인 데이터 설정
-      if (membersResult.status === 'fulfilled') {
-        const membersData = membersResult.value?.data || membersResult.value || [];
-        setMembers(membersData);
-      } else {
-        console.error('❌ 교인 데이터 로드 실패:', membersResult.reason);
-        setMembers([]);
+    if (queriedMembers) setMembers(queriedMembers as any);
+  }, [queriedMembers]);
+  useEffect(() => {
+    if (!recordsQuery.data) return;
+    const transformedRecords: PastoralCareRecord[] = recordsQuery.data.map((item: any) => {
+      let assignedPastor: PastoralCareRecord['assignedPastor'] = undefined;
+      if (item.assigned_pastor_id && item.assigned_pastor?.name) {
+        assignedPastor = {
+          id: item.assigned_pastor_id,
+          name: item.assigned_pastor.name,
+          phone: item.assigned_pastor.phone || '',
+        };
       }
-
-      // 심방 신청 데이터 처리
-      const finalResponse = response.status === 'fulfilled' ? response.value : { data: [] };
-
-      // 백엔드 응답 구조 확인 및 데이터 추출
-      let pastoralCareData = [];
-
-      // 다양한 응답 구조에 대응
-      if (Array.isArray(finalResponse)) {
-        pastoralCareData = finalResponse;
-      } else if (finalResponse && Array.isArray(finalResponse.data)) {
-        pastoralCareData = finalResponse.data;
-      } else if (finalResponse && Array.isArray((finalResponse as any).items)) {
-        pastoralCareData = (finalResponse as any).items;
-      } else if (finalResponse && Array.isArray((finalResponse as any).results)) {
-        pastoralCareData = (finalResponse as any).results;
-      } else {
-        pastoralCareData = [];
-      }
-
-      // 백엔드 응답 데이터를 프론트엔드 인터페이스에 맞게 변환
-      const transformedRequests: PastoralCareRequest[] = pastoralCareData.map((item: any) => ({
+      return {
         id: item.id,
-        churchId: item.church_id,
-        memberId: item.member_id,
         requesterName: item.requester_name,
         requesterPhone: item.requester_phone,
         organizationName: item.organization_name,
@@ -288,116 +320,33 @@ const PastoralCareManagement: React.FC = () => {
         profilePhotoUrl: item.profile_photo_url,
         requestType: item.request_type,
         requestContent: item.request_content,
-        preferredDate: item.preferred_date,
-        preferredTimeStart: item.preferred_time_start,
-        preferredTimeEnd: item.preferred_time_end,
-        status: item.status,
         priority: item.priority || 'normal',
-        assignedPastorId: item.assigned_pastor_id,
-        assignedPastor: item.assigned_pastor_id ? {
-          id: item.assigned_pastor_id,
-          name: item.assigned_pastor?.name || '담당자 미지정',
-          phone: item.assigned_pastor?.phone || ''
-        } : undefined,
-        scheduledDate: item.scheduled_date,
-        scheduledTime: item.scheduled_time,
+        assignedPastor,
+        scheduledDate: item.scheduled_date || '미지정',
+        scheduledTime: item.scheduled_time || '미지정',
         completionNotes: item.completion_notes,
-        adminNotes: item.admin_notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
         completedAt: item.completed_at,
-        // 🆕 새로 추가된 위치 관련 필드들
+        createdAt: item.created_at,
         address: item.address,
         latitude: item.latitude,
         longitude: item.longitude,
         contactInfo: item.contact_info,
         isUrgent: item.is_urgent || false,
-        distanceKm: item.distance_km  // 위치 검색 결과에서만 사용
-      }));
+      } as PastoralCareRecord;
+    });
+    setCompletedRecords(transformedRecords);
+  }, [recordsQuery.data]);
+  useEffect(() => {
+    setLoading(requestsQuery.isLoading || recordsQuery.isLoading);
+  }, [requestsQuery.isLoading, recordsQuery.isLoading]);
 
-      setRequests(transformedRequests);
-    } catch (error) {
-      console.error('Failed to load pastoral care requests:', error);
-      // 에러 발생 시 빈 배열로 설정
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
+  // 외부 호출용: invalidate 통해 React Query가 재요청하도록
+  const loadPastoralCareRequests = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['pastoralCare', 'requests'] });
   };
 
   const loadCompletedRecords = async () => {
-    try {
-      setLoading(true);
-
-      // 현재 사용자의 church_id 가져오기
-      const currentUser = await supabaseAuthService.getCurrentUser();
-      const userChurchId = currentUser?.user?.church_id || 9998; // 기본값 9998
-
-      const params: any = {
-        church_id: userChurchId,  // 현재 사용자의 교회 ID로 필터링
-        status: 'completed' // 완료된 심방 기록만 조회
-      };
-      
-      const response = await supabaseApiService.pastoralCare.getAll(params);
-      
-      let recordsData = [];
-      
-      if (Array.isArray(response)) {
-        recordsData = response;
-      } else if (response && Array.isArray(response.data)) {
-        recordsData = response.data;
-      } else if (response && Array.isArray((response as any).items)) {
-        recordsData = (response as any).items;
-      } else if (response && Array.isArray((response as any).results)) {
-        recordsData = (response as any).results;
-      } else {
-        console.warn('Unexpected response structure:', response);
-        recordsData = [];
-      }
-      
-      const transformedRecords: PastoralCareRecord[] = recordsData.map((item: any) => {
-        // assigned_pastor_id로 담당자 정보 찾기 (백엔드에서 조인된 데이터 사용)
-        let assignedPastor = undefined;
-        if (item.assigned_pastor_id && item.assigned_pastor?.name) {
-          assignedPastor = {
-            id: item.assigned_pastor_id,
-            name: item.assigned_pastor.name,
-            phone: item.assigned_pastor.phone || ''
-          };
-        }
-
-        return {
-          id: item.id,
-          requesterName: item.requester_name,
-          requesterPhone: item.requester_phone,
-          organizationName: item.organization_name,
-          department: item.department,
-          profilePhotoUrl: item.profile_photo_url,
-          requestType: item.request_type,
-          requestContent: item.request_content,
-          priority: item.priority || 'normal',
-          assignedPastor,
-          scheduledDate: item.scheduled_date || '미지정',
-          scheduledTime: item.scheduled_time || '미지정',
-          completionNotes: item.completion_notes,
-          completedAt: item.completed_at,
-          createdAt: item.created_at,
-          // 🆕 위치 관련 필드 추가
-          address: item.address,
-          latitude: item.latitude,
-          longitude: item.longitude,
-          contactInfo: item.contact_info,
-          isUrgent: item.is_urgent || false
-        };
-      });
-      
-      setCompletedRecords(transformedRecords);
-    } catch (error) {
-      console.error('Failed to load completed pastoral care records:', error);
-      setCompletedRecords([]);
-    } finally {
-      setLoading(false);
-    }
+    await queryClient.invalidateQueries({ queryKey: ['pastoralCare', 'records'] });
   };
 
   const getStatusColor = (status: string) => {

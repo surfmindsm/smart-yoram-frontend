@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '../hooks/queries';
 import {
   Plus,
   Search,
@@ -32,7 +34,6 @@ import {
   OrganizationFilter
 } from '../types/organization';
 import { organizationService } from '../services/organizationService';
-import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabase } from '../lib/supabase';
 
 interface Department {
@@ -238,141 +239,107 @@ const OrganizationManagement: React.FC = () => {
   const [departmentMemberLoading, setDepartmentMemberLoading] = useState(false);
   const [departmentMemberSearchTerm, setDepartmentMemberSearchTerm] = useState('');
 
-  // Get current user's church_id
+  // Get current user's church_id (React Query 캐시 사용)
+  const { data: cachedCurrentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
   useEffect(() => {
-    const loadChurchId = async () => {
-      try {
-        const result = await supabaseAuthService.getCurrentUser();
-        if (result?.user?.church_id) {
-          setChurchId(result.user.church_id);
-        }
-      } catch (error) {
-        console.error('Error loading church_id:', error);
-      }
-    };
-    loadChurchId();
-  }, []);
+    if (cachedCurrentUser?.church_id) {
+      setChurchId(cachedCurrentUser.church_id);
+    }
+  }, [cachedCurrentUser]);
 
-  // Load organizations
-  const loadOrganizations = async () => {
-    if (!churchId) return;
-
-    try {
-      setLoading(true);
+  // React Query — 조직/부서 캐시 공유 (멤버 카운트 포함)
+  const organizationsQuery = useQuery({
+    queryKey: ['organizationManagement', 'orgs', churchId, filter],
+    queryFn: async () => {
+      if (!churchId) return [];
       const result = await organizationService.getOrganizations(churchId, filter);
-
-      // Flatten all organizations (including children) to count members
-      const flattenOrgs = (orgs: ChurchOrganization[]): ChurchOrganization[] => {
-        const flat: ChurchOrganization[] = [];
-        const flatten = (org: ChurchOrganization) => {
-          flat.push(org);
-          if (org.children && org.children.length > 0) {
-            org.children.forEach(child => flatten(child));
-          }
-        };
-        orgs.forEach(org => flatten(org));
-        return flat;
+      // 트리 평탄화 → 멤버 카운트 fetch → 트리에 다시 합산
+      const flat: ChurchOrganization[] = [];
+      const flatten = (org: ChurchOrganization) => {
+        flat.push(org);
+        if (org.children && org.children.length > 0) {
+          org.children.forEach(child => flatten(child));
+        }
       };
-
-      const allOrgs = flattenOrgs(result.organizations);
-
-      // Count members for each organization
+      result.organizations.forEach(org => flatten(org));
       const countMap = new Map<string, number>();
       await Promise.all(
-        allOrgs.map(async (org) => {
-          const { count, error } = await supabase
+        flat.map(async (org) => {
+          const { count } = await supabase
             .from('members')
             .select('*', { count: 'exact', head: true })
             .eq('church_id', churchId)
             .eq('organization_id', org.id);
-
-          if (error) {
-            console.error('Error counting members for org', org.id, error);
-          }
-
           countMap.set(org.id, count || 0);
         })
       );
-
-      // Apply counts to tree structure recursively and sum up children counts
       const applyCount = (org: ChurchOrganization): ChurchOrganization => {
-        // First apply count to all children
         const childrenWithCount = org.children ? org.children.map(child => applyCount(child)) : [];
-
-        // Get direct member count for this organization
-        const directCount = countMap.get(org.id) || 0;
-
-        // Calculate total count including all descendants
-        const childrenTotal = childrenWithCount.reduce((sum, child) => sum + (child.member_count || 0), 0);
-        const totalCount = directCount + childrenTotal;
-
-        return {
-          ...org,
-          member_count: totalCount,
-          children: childrenWithCount
-        };
+        const direct = countMap.get(org.id) || 0;
+        const childrenTotal = childrenWithCount.reduce((sum, c) => sum + (c.member_count || 0), 0);
+        return { ...org, member_count: direct + childrenTotal, children: childrenWithCount };
       };
+      return result.organizations.map(org => applyCount(org));
+    },
+    enabled: !!churchId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
-      const organizationsWithCount = result.organizations.map(org => applyCount(org));
-
-      setOrganizations(organizationsWithCount);
-    } catch (error) {
-      console.error('Error loading organizations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (churchId) {
-      loadOrganizations();
-      if (activeTab === 'departments') {
-        loadDepartments();
-      }
-    }
-  }, [filter, churchId, activeTab]);
-
-  // Load departments
-  const loadDepartments = async () => {
-    if (!churchId) return;
-
-    try {
-      setDepartmentLoading(true);
+  const departmentsQuery = useQuery({
+    queryKey: ['organizationManagement', 'depts', churchId],
+    queryFn: async () => {
+      if (!churchId) return [];
       const { data, error } = await supabase
         .from('departments')
         .select('*')
         .eq('church_id', churchId)
         .order('display_order', { ascending: true });
-
-      if (error) {
-        console.error('부서 목록 로드 오류:', error);
-        alert('부서 목록을 불러오는데 실패했습니다.');
-        return;
-      }
-
-      // 각 부서별 인원 수 집계
-      const departmentsWithCount = await Promise.all(
-        (data || []).map(async (dept) => {
+      if (error) throw error;
+      const list = data || [];
+      return Promise.all(
+        list.map(async (dept) => {
           const { count } = await supabase
             .from('members')
             .select('*', { count: 'exact', head: true })
             .eq('church_id', churchId)
             .eq('department', dept.name);
-
-          return {
-            ...dept,
-            member_count: count || 0
-          };
+          return { ...dept, member_count: count || 0 } as Department;
         })
       );
+    },
+    enabled: !!churchId && activeTab === 'departments',
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
-      setDepartments(departmentsWithCount);
-    } catch (error) {
-      console.error('부서 목록 로드 오류:', error);
-      alert('부서 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setDepartmentLoading(false);
+  // query 데이터 → state 동기화
+  useEffect(() => {
+    if (organizationsQuery.data) {
+      setOrganizations(organizationsQuery.data);
     }
+  }, [organizationsQuery.data]);
+  useEffect(() => {
+    setLoading(organizationsQuery.isLoading);
+  }, [organizationsQuery.isLoading]);
+  useEffect(() => {
+    if (departmentsQuery.data) {
+      setDepartments(departmentsQuery.data);
+    }
+  }, [departmentsQuery.data]);
+  useEffect(() => {
+    setDepartmentLoading(departmentsQuery.isLoading);
+  }, [departmentsQuery.isLoading]);
+
+  // 외부 호출용 — invalidate 통해 query가 재요청하도록
+  const loadOrganizations = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['organizationManagement', 'orgs'] });
+  };
+
+  // 외부 호출용 — invalidate
+  const loadDepartments = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['organizationManagement', 'depts'] });
   };
 
   // Department CRUD handlers

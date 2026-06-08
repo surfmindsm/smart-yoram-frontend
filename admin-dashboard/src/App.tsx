@@ -12,6 +12,19 @@ import { Toaster } from './components/ui';
 import { Spinner, LoadingState } from './components/ui/spinner';
 import { Card } from './components/ui/card';
 import { PageContainer } from './components/ui/PageContainer';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// React Query 클라이언트 — 화면 간 공유 데이터 캐시
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,           // 1분 동안 신선
+      gcTime: 5 * 60_000,          // 5분간 캐시 보관
+      refetchOnWindowFocus: false, // 포커스 시 자동 재요청 끔(과도한 호출 방지)
+      retry: 1,
+    },
+  },
+});
 
 // Lazy load components for code splitting
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -147,6 +160,7 @@ const PageLoadingFallback = () => (
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <ToastProvider>
       <SpinnerProvider>
         <Router>
@@ -600,6 +614,7 @@ function App() {
         </Router>
       </SpinnerProvider>
     </ToastProvider>
+    </QueryClientProvider>
   );
 }
 

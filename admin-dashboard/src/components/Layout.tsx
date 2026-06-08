@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -156,44 +157,56 @@ const Layout: React.FC = () => {
     fetchUserInfo();
   }, [navigate]);
 
-  // 사이드바 메뉴 카운트 fetch — 교인 / 심방 / 중보 기도
-  // 특정 교회에 속한 일반 church_admin 한정 (super_admin은 church_id=0이라 스킵)
+  // 사이드바 메뉴 카운트 — React Query로 캐싱 (화면 간 공유 + 자동 재요청 차단)
+  const churchIdForCounts = userInfo?.church_id;
+  const countsEnabled = !!churchIdForCounts && churchIdForCounts !== 9998;
+
+  const { data: membersCountData } = useQuery({
+    queryKey: ['sidebarCount', 'members', churchIdForCounts],
+    queryFn: async () => {
+      const res: any = await supabaseApiService.members.getAll({ church_id: churchIdForCounts!, limit: 9999 });
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      return list.length as number;
+    },
+    enabled: countsEnabled,
+    staleTime: 2 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+
+  const { data: pastoralCountData } = useQuery({
+    queryKey: ['sidebarCount', 'pastoralCare', churchIdForCounts],
+    queryFn: async () => {
+      const res: any = await supabaseApiService.pastoralCare?.getAll?.({ church_id: churchIdForCounts! });
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      return list.filter((r: any) =>
+        ['pending', 'approved', 'scheduled', 'in_progress'].includes(r.status)
+      ).length as number;
+    },
+    enabled: countsEnabled,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+  });
+
+  const { data: prayersCountData } = useQuery({
+    queryKey: ['sidebarCount', 'prayers', churchIdForCounts],
+    queryFn: async () => {
+      const res: any = await supabaseApiService.prayerRequests?.getAll?.({ church_id: churchIdForCounts! });
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      return list.filter((r: any) => r.status === 'active').length as number;
+    },
+    enabled: countsEnabled,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+  });
+
   useEffect(() => {
-    const churchId = userInfo?.church_id;
-    // super_admin(church_id=0), 커뮤니티 전용(9998), 또는 church_id 없음은 스킵
-    if (!churchId || churchId === 9998) return;
-
-    const fetchCounts = async () => {
-      try {
-        const res: any = await supabaseApiService.members.getAll({ church_id: churchId, limit: 9999 });
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-        setMenuCounts(prev => ({ ...prev, members: list.length }));
-      } catch (err) {
-        // 카운트 실패는 조용히 — 사이드바 핵심 기능 아님
-      }
-
-      try {
-        const res: any = await supabaseApiService.pastoralCare?.getAll?.({ church_id: churchId });
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-        const active = list.filter((r: any) =>
-          ['pending', 'approved', 'scheduled', 'in_progress'].includes(r.status)
-        );
-        setMenuCounts(prev => ({ ...prev, pastoralCare: active.length }));
-      } catch (err) {
-        // 조용히 스킵
-      }
-
-      try {
-        const res: any = await supabaseApiService.prayerRequests?.getAll?.({ church_id: churchId });
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-        const active = list.filter((r: any) => r.status === 'active');
-        setMenuCounts(prev => ({ ...prev, prayers: active.length }));
-      } catch (err) {
-        // 조용히 스킵
-      }
-    };
-    fetchCounts();
-  }, [userInfo?.church_id]);
+    setMenuCounts(prev => ({
+      ...prev,
+      members: membersCountData ?? prev.members,
+      pastoralCare: pastoralCountData ?? prev.pastoralCare,
+      prayers: prayersCountData ?? prev.prayers,
+    }));
+  }, [membersCountData, pastoralCountData, prayersCountData]);
 
   const handleLogout = async () => {
     try {
