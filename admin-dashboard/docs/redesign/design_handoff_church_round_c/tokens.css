@@ -1,0 +1,72 @@
+/* ============================================================
+   Church Round · Design System Tokens  (Direction C — Focused Workspace)
+   Drop-in replacement for the :root block in src/index.css
+   shadcn/ui HSL variables + extended semantic tokens.
+   Hex references in comments for designers.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces (light content area) ---- */
+  --background: 216 33% 96%;        /* #F1F4F9  app canvas */
+  --foreground: 222 48% 11%;        /* #0E1729  ink / primary text */
+  --card: 0 0% 100%;                /* #FFFFFF  cards, panels */
+  --card-foreground: 222 48% 11%;   /* #0E1729 */
+  --popover: 0 0% 100%;             /* #FFFFFF */
+  --popover-foreground: 222 48% 11%;/* #0E1729 */
+
+  /* ---- Brand / Primary (logo blue, unified) ---- */
+  --primary: 215 100% 56%;          /* #1C7CFF  brand action color */
+  --primary-foreground: 0 0% 100%;  /* #FFFFFF */
+
+  /* ---- Neutral roles ---- */
+  --secondary: 216 33% 96%;         /* #F1F4F9  subtle fills */
+  --secondary-foreground: 222 33% 26%; /* #334155 */
+  --muted: 216 33% 96%;             /* #F1F4F9 */
+  --muted-foreground: 215 16% 47%;  /* #64748B  secondary text */
+  --accent: 214 100% 96%;           /* #EAF1FE  hover / selected tint */
+  --accent-foreground: 215 100% 45%;/* #0A5FE0 */
+
+  /* ---- Status ---- */
+  --destructive: 0 72% 51%;         /* #DC2626 */
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 37%;           /* #16A34A */
+  --success-foreground: 0 0% 100%;
+  --warning: 32 81% 36%;            /* #B45309 */
+  --warning-foreground: 0 0% 100%;
+  --info: 221 83% 53%;              /* #2563EB */
+
+  /* ---- Lines & fields ---- */
+  --border: 214 30% 92%;            /* #E3E8F0 */
+  --input: 214 30% 92%;             /* #E3E8F0 */
+  --ring: 215 100% 56%;             /* #1C7CFF  focus ring */
+
+  --radius: 0.75rem;                /* 12px  card radius (controls use 0.5rem) */
+
+  /* ---- Dark sidebar (Direction C signature) ---- */
+  --sidebar: 222 48% 11%;           /* #0E1729  sidebar bg */
+  --sidebar-foreground: 217 28% 82%;/* #C3CDDE  nav label */
+  --sidebar-muted: 218 18% 50%;     /* #6B7A95  group / meta */
+  --sidebar-border: 220 41% 18%;    /* #1B2740 */
+  --sidebar-accent: 215 100% 56%;   /* #1C7CFF  active item */
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-chip: 218 35% 21%;      /* #233149  count badge bg */
+
+  /* ---- Chart series ---- */
+  --chart-1: 215 100% 56%;          /* #1C7CFF  primary */
+  --chart-2: 142 71% 37%;           /* #16A34A  total */
+  --chart-3: 214 60% 86%;           /* #C9DCF8  new / muted bars */
+  --chart-4: 32 81% 46%;            /* #D97A18 */
+  --chart-5: 291 22% 45%;           /* #8A5A86 */
+}
+
+/* ============================================================
+   Semantic status pairs (badges, chips, table states)
+   Use as: bg = *-50, text = *-600
+   ------------------------------------------------------------
+   info     bg #EAF1FE  text #2563EB
+   success  bg #E7F6EC  text #16A34A
+   warning  bg #FBF1E3  text #B45309
+   danger   bg #FCEBEB  text #DC2626
+   neutral  bg #F1F4F9  text #64748B
+   accent   bg #F0E6EF  text #8A5A86
+   ============================================================ */

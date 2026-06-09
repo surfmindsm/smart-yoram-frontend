@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Church Round · C 화면 모음</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@1,400;1,500;1,600&display=swap" rel="stylesheet" />
+<style>
+  :root { --p:#1C7CFF; --ink:#0E1729; }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html,body { margin:0; background:#F1F4F9; color:var(--ink); font-family:'Pretendard',system-ui,sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 32px 80px; }
+  .brand { font-size: 30px; letter-spacing:-.02em; }
+  .brand .c { font-family:'Newsreader',serif; font-style:italic; font-weight:500; color:var(--p); }
+  .brand .r { font-weight:800; }
+  .sub { color:#64748B; font-size:15px; margin-top:10px; line-height:1.6; }
+  .meta { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .pill { font-size:12px; font-weight:600; color:#475569; background:#fff; border:1px solid #E3E8F0; border-radius:999px; padding:6px 13px; }
+  .pill b { color:var(--p); }
+  .grp { margin-top:38px; }
+  .gh { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#94A3B8; margin-bottom:14px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  a.card { display:block; text-decoration:none; color:inherit; background:#fff; border:1px solid #E3E8F0; border-radius:13px; padding:18px; transition:.15s; }
+  a.card:hover { border-color:#BBD4FB; box-shadow:0 10px 24px -12px rgba(28,124,255,.35); transform:translateY(-2px); }
+  .ct { font-size:15px; font-weight:750; letter-spacing:-.01em; }
+  .cd { font-size:12.5px; color:#94A3B8; margin-top:5px; line-height:1.5; }
+  .arrow { color:var(--p); font-weight:700; font-size:13px; margin-top:12px; display:inline-block; }
+  .note { background:#fff; border:1px solid #E3E8F0; border-radius:13px; padding:20px 22px; margin-top:18px; font-size:13.5px; color:#475569; line-height:1.7; }
+  .note b { color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="c">church</span> <span class="r">round</span></div>
+  <div class="sub">Direction C · "Focused Workspace" — 어드민 전 화면 리디자인 시안 모음입니다.<br/>각 화면은 독립 HTML로 동작하며, 툴바의 <b>Tweaks</b>로 브랜드색·사이드바·밀도·반경을 바꿔볼 수 있습니다.</div>
+  <div class="meta">
+    <span class="pill"><b>19</b> 화면</span>
+    <span class="pill">다크 사이드바 · 단일 브랜드 블루</span>
+    <span class="pill">Pretendard · #1C7CFF</span>
+  </div>
+
+  <div class="grp">
+    <div class="gh">운영 · 교인</div>
+    <div class="grid">
+      <a class="card" href="대시보드 시안 →" onclick="return false" style="opacity:.6;cursor:default"><div class="ct">대시보드</div><div class="cd">3방향 비교 시안(A/B/C)</div><span class="arrow">아래 별도 링크 ↓</span></a>
+      <a class="card" href="교인 관리.html"><div class="ct">교인 관리</div><div class="cd">목록 · 필터 · 페이지네이션</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="교인 상세.html"><div class="ct">교인 상세</div><div class="cd">프로필 + 관계 데이터</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="교인 등록.html"><div class="ct">교인 등록</div><div class="cd">접이식 섹션 모달</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="심방 신청 관리.html"><div class="ct">심방 신청</div><div class="cd">상태·우선순위·유형 카드</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="중보 기도 요청.html"><div class="ct">중보 기도</div><div class="cd">기도수·응답 간증</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="조직 관리.html"><div class="ct">조직 관리</div><div class="cd">조직 트리 · 부서</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="관리자 권한 관리.html"><div class="ct">관리자 권한</div><div class="cd">역할 배지 · 변경/해제</div><span class="arrow">열기 →</span></a>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="gh">살림 · 예배 · 소식</div>
+    <div class="grid">
+      <a class="card" href="헌금 관리.html"><div class="ct">헌금 관리</div><div class="cd">통계 · 종류별 분포 · 내역</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="오늘의 말씀.html"><div class="ct">오늘의 말씀</div><div class="cd">다크 히어로 + 목록</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="예배 시간표.html"><div class="ct">예배 시간표</div><div class="cd">유형별 그룹 · 온라인</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="주보 공지.html"><div class="ct">주보 · 공지</div><div class="cd">고정·카테고리·활성토글</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="푸시 알림.html"><div class="ct">푸시 알림</div><div class="cd">작성 + 앱 미리보기</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="SMS 발송.html"><div class="ct">SMS 발송</div><div class="cd">수신자 선택 + 작성</div><span class="arrow">열기 →</span></a>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="gh">도구 · 설정</div>
+    <div class="grid">
+      <a class="card" href="통계 분석.html"><div class="ct">통계 분석</div><div class="cd">출석·성별·연령·구역·증가</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="엑셀 관리.html"><div class="ct">엑셀 관리</div><div class="cd">내보내기/가져오기</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="보안 로그.html"><div class="ct">보안 로그</div><div class="cd">KPI + 로그인 기록</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="교회 설정.html"><div class="ct">교회 설정</div><div class="cd">탭형 설정 폼</div><span class="arrow">열기 →</span></a>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="gh">공개 · 인증</div>
+    <div class="grid">
+      <a class="card" href="로그인.html"><div class="ct">로그인</div><div class="cd">분할형 브랜드 패널</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="랜딩 페이지.html"><div class="ct">랜딩 페이지</div><div class="cd">히어로 + 기능 + CTA</div><span class="arrow">열기 →</span></a>
+      <a class="card" href="Church Round 대시보드 개선 시안.html"><div class="ct">대시보드 (3방향 비교)</div><div class="cd">A 진화 / B 목양 / C 운영</div><span class="arrow">열기 →</span></a>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>개발 핸드오프</b> — 토큰·컴포넌트 매핑과 실제 코드 적용 가이드는
+    <b>design_handoff_church_round_c/README.md</b> 에 정리돼 있습니다. (Claude Code에 이 폴더를 전달하면 실제 `admin-dashboard` 코드에 적용 가능)
+  </div>
+</div>
+</body>
+</html>
