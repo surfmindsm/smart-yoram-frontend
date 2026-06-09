@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrentUser } from '../hooks/queries';
+import { useCurrentUser, useAccountCategories } from '../hooks/queries';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -148,7 +149,8 @@ interface Donation {
 const DonationManagement: React.FC = () => {
   const navigate = useNavigate();
   // currentUser는 다른 화면과 공유 캐시 (loadData 내 getCurrentUser 호출도 캐시 활용 가능)
-  useCurrentUser();
+  const { data: cachedCurrentUser } = useCurrentUser();
+  const churchIdForQuery = (cachedCurrentUser as any)?.church_id ?? null;
   const [activeTab, setActiveTab] = useState<'donations' | 'receipts'>('donations');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
@@ -159,7 +161,18 @@ const DonationManagement: React.FC = () => {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [fundTypes, setFundTypes] = useState<string[]>([]);
+  // 헌금 종류는 계정과목(income 카테고리의 헌금 하위)에서 derive — React Query로 캐싱 공유
+  const categoriesQuery = useAccountCategories();
+  const queryClient = useQueryClient();
+  const fundTypes: string[] = useMemo(() => {
+    const income = categoriesQuery.data?.income ?? [];
+    const offeringParent = income.find((cat: any) => cat.name === '헌금' && !cat.parent_id);
+    if (!offeringParent) return [];
+    return income
+      .filter((cat: any) => cat.parent_id === offeringParent.id)
+      .map((cat: any) => cat.name)
+      .sort();
+  }, [categoriesQuery.data]);
   const [churchInfo, setChurchInfo] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [fundTypeFilter, setFundTypeFilter] = useState<string[]>([]);
@@ -228,6 +241,10 @@ const DonationManagement: React.FC = () => {
   const loadDataRef = useRef(false);
   const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // 적요 인라인 편집
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteValue, setEditingNoteValue] = useState<string>('');
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [excelPreviewData, setExcelPreviewData] = useState<any[]>([]);
   const [validationResults, setValidationResults] = useState<Array<{
@@ -269,15 +286,114 @@ const DonationManagement: React.FC = () => {
     offeredOn: new Date().toISOString().split('T')[0]
   });
 
+  // React Query로 헌금 화면 raw 데이터 캐싱 (페이지 재진입/새로고침 즉시 표시)
+  const donationsDataQuery = useQuery({
+    queryKey: ['donationsScreenData', churchIdForQuery ?? 9998],
+    queryFn: async () => {
+      const userChurchId = churchIdForQuery ?? 9998;
+      const [offeringsResult, membersResult, receiptsResult] = await Promise.allSettled([
+        supabaseApiService.offerings.getAll({ church_id: userChurchId }),
+        supabaseApiService.members.getAll({ limit: 500 }),
+        supabaseApiService.receipts.getAll({ church_id: userChurchId }),
+      ]);
+
+      let offerings: any[] = [];
+      let members: any[] = [];
+      let receipts: any[] = [];
+
+      if (offeringsResult.status === 'fulfilled') {
+        const v = offeringsResult.value;
+        offerings = Array.isArray(v) ? v : (v?.data || v?.offerings || []);
+      }
+      if (membersResult.status === 'fulfilled') {
+        members = membersResult.value?.data || membersResult.value || [];
+      }
+      if (receiptsResult.status === 'fulfilled') {
+        receipts = receiptsResult.value?.data || receiptsResult.value || [];
+      }
+
+      let church: any = null;
+      try {
+        const { data: churchInfo } = await supabase
+          .from('churches')
+          .select('*')
+          .eq('id', userChurchId)
+          .single();
+        if (churchInfo) {
+          church = {
+            id: churchInfo.id,
+            name: churchInfo.name || churchInfo.church_name || '교회명 없음',
+            address: churchInfo.address || churchInfo.church_address || '',
+            business_no: churchInfo.business_no || churchInfo.registration_number || churchInfo.tax_number || '',
+          };
+        }
+      } catch (e) {
+        console.error('교회 정보 가져오기 실패:', e);
+      }
+
+      return { offerings, members, receipts, church };
+    },
+    enabled: !!churchIdForQuery,
+    staleTime: 60_000,
+  });
+
+  // donations Query 데이터 → state 동기화
   useEffect(() => {
+    if (!donationsDataQuery.data) return;
+    const { offerings: offeringsArray, members: membersArray, receipts: receiptsArray, church } = donationsDataQuery.data;
+
+    setMembers(membersArray);
+    setOfferings(offeringsArray);
+    setDonors([]);
+
+    if (church) {
+      setChurchInfo(church);
+      setReceiptInfo(prev => ({
+        ...prev,
+        churchName: church.name || '',
+        churchAddress: church.address || '',
+        churchRegNo: church.business_no || '',
+      }));
+    }
+
+    // 영수증에 member 정보 매핑
+    const receiptsWithMemberInfo = (receiptsArray || []).map((receipt: any) => {
+      const member = membersArray.find((m: any) => m.id === receipt.member_id);
+      return {
+        ...receipt,
+        donorName: member?.name || '무명',
+        member: {
+          id: member?.id,
+          name: member?.name || '무명',
+          phone: member?.phone || '',
+          legal_name: member?.name || '',
+          address: member?.address || '',
+        },
+      };
+    });
+    setReceipts(receiptsWithMemberInfo);
+
+    if (offeringsArray.length > 0) {
+      const convertedDonations = convertOfferingsToDonations(offeringsArray, membersArray);
+      setDonations(convertedDonations);
+    } else {
+      setDonations([]);
+    }
+
+    loadDataRef.current = true;
+    setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [donationsDataQuery.data]);
+
+  useEffect(() => {
+    // 토큰 있고 처음이면 (캐시 없을 때) loadData 폴백
     const currentToken = localStorage.getItem('token');
     const accessToken = localStorage.getItem('access_token');
-
-    // 어떤 토큰이든 존재하면 데이터 로드
-    if ((currentToken || accessToken) && !loadDataRef.current) {
+    if ((currentToken || accessToken) && !loadDataRef.current && !churchIdForQuery) {
       loadDataRef.current = true;
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
@@ -452,78 +568,9 @@ const DonationManagement: React.FC = () => {
     }
   };
 
-  // 헌금 유형을 계정과목 API에서 로드하는 함수
-  const loadFundTypes = async (userChurchId: number) => {
-    try {
-      const token = await supabaseAuthService.getToken();
-      if (!token) {
-        console.error('토큰을 가져올 수 없습니다.');
-        return;
-      }
-
-      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-
-      // 수입(income) 타입의 모든 계정과목 가져오기
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/accounting/admin/categories?type=income&church_id=${userChurchId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const categories = Array.isArray(data) ? data : (data?.data || []);
-
-        console.log('📊 API 응답 categories:', categories);
-
-        // "헌금" 상위 카테고리 찾기
-        const offeringParent = categories.find(
-          (cat: any) => cat.name === '헌금' && !cat.parent_id
-        );
-
-        console.log('🔍 헌금 상위 카테고리:', offeringParent);
-
-        if (offeringParent) {
-          // 모든 하위 항목 확인 (필터링 전)
-          const allChildren = categories.filter(
-            (cat: any) => cat.parent_id === offeringParent.id
-          );
-          console.log('📌 parent_id가 일치하는 모든 하위 항목:', allChildren);
-
-          // "헌금"의 하위 항목 필터링
-          // parent_id만으로 필터링 (is_offering 필드가 설정되지 않을 수 있음)
-          const offeringChildren = categories.filter(
-            (cat: any) => cat.parent_id === offeringParent.id
-          );
-
-          console.log('👶 헌금 하위 항목들 (is_offering 체크 제거):', offeringChildren);
-
-          // 이름만 추출하여 정렬
-          const fundTypeNames = offeringChildren
-            .map((cat: any) => cat.name)
-            .sort();
-
-          setFundTypes(fundTypeNames);
-          console.log('✅ 헌금 유형 로드 완료:', fundTypeNames);
-        } else {
-          console.warn('⚠️ "헌금" 상위 카테고리를 찾을 수 없습니다.');
-          console.log('📋 전체 카테고리 목록:', categories.map((c: any) => ({ name: c.name, parent_id: c.parent_id })));
-          setFundTypes([]);
-        }
-      } else {
-        console.error('헌금 유형 로드 실패:', response.status);
-        setFundTypes([]);
-      }
-    } catch (error) {
-      console.error('헌금 유형 로드 중 오류:', error);
-      setFundTypes([]);
-    }
+  // 헌금 유형은 useAccountCategories 캐시에서 derive — 별도 로딩 함수 불필요
+  const loadFundTypes = async (_userChurchId: number) => {
+    queryClient.invalidateQueries({ queryKey: ['accountCategories'] });
   };
 
   // Offering을 Donation으로 변환하는 함수 (기존 UI 호환성)
@@ -795,13 +842,82 @@ const DonationManagement: React.FC = () => {
       alert(errorMessage);
       setError(errorMessage);
       // 에러 발생 시 데이터 다시 로드
-      loadData();
+      queryClient.invalidateQueries({ queryKey: ['donationsScreenData'] });
     } finally {
       setLoading(false);
     }
   };
 
   // 헌금 수정 저장 함수
+  // 적요 인라인 편집 — 셀 클릭으로 진입
+  const startEditNote = (donation: Donation) => {
+    setEditingNoteId(donation.id);
+    setEditingNoteValue(donation.note || '');
+  };
+
+  const cancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteValue('');
+  };
+
+  const saveEditNote = async () => {
+    if (editingNoteId == null) return;
+    const target = donations.find(d => d.id === editingNoteId);
+    if (!target) {
+      cancelEditNote();
+      return;
+    }
+    const newNote = editingNoteValue.trim();
+    if ((target.note || '') === newNote) {
+      cancelEditNote();
+      return;
+    }
+
+    // 옵티미스틱 업데이트 (state + React Query 캐시)
+    setDonations(prev => prev.map(d =>
+      d.id === editingNoteId ? { ...d, note: newNote } : d
+    ));
+    queryClient.setQueryData(
+      ['donationsScreenData', churchIdForQuery ?? 9998],
+      (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          offerings: (prev.offerings || []).map((o: any) =>
+            o.id === editingNoteId ? { ...o, note: newNote } : o
+          ),
+        };
+      }
+    );
+    const id = editingNoteId;
+    cancelEditNote();
+
+    try {
+      await supabaseApiService.offerings.update(id.toString(), {
+        note: newNote || null,
+      });
+    } catch (error) {
+      console.error('적요 저장 실패:', error);
+      alert('적요 저장에 실패했습니다.');
+      // 실패 시 원래 값으로 롤백
+      setDonations(prev => prev.map(d =>
+        d.id === id ? target : d
+      ));
+      queryClient.setQueryData(
+        ['donationsScreenData', churchIdForQuery ?? 9998],
+        (prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            offerings: (prev.offerings || []).map((o: any) =>
+              o.id === id ? { ...o, note: target.note || null } : o
+            ),
+          };
+        }
+      );
+    }
+  };
+
   const handleUpdateDonation = async () => {
     if (!editingDonation) return;
 
@@ -1222,7 +1338,7 @@ const DonationManagement: React.FC = () => {
       alert(message);
 
       // 데이터 새로고침
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['donationsScreenData'] });
 
       // 모달 닫기
       setIsExcelUploadModalOpen(false);
@@ -1289,7 +1405,7 @@ const DonationManagement: React.FC = () => {
       generateReceiptPDF(selectedMember, donorDonations, selectedYear, result.issue_no || issueNo, receiptInfo);
       
       // 데이터 새로고침
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['donationsScreenData'] });
       setIsReceiptModalOpen(false);
       setSelectedDonor('');
       alert('기부금 영수증이 발급되었습니다.');
@@ -1368,7 +1484,7 @@ const DonationManagement: React.FC = () => {
   });
 
   const formatCurrency = (amount: number) => {
-    return amount.toLocaleString('ko-KR') + '원';
+    return amount.toLocaleString('ko-KR');
   };
 
   // 헌금 유형별 chip 색 페어 (Direction C)
@@ -1833,7 +1949,7 @@ const DonationManagement: React.FC = () => {
                   <div className="px-[18px] py-4">
                     <div className="text-[12px] font-semibold text-muted-foreground">평균 헌금</div>
                     <div className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] tabular-nums">
-                      {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0원'}
+                      {donations.length > 0 ? formatCurrency(Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length)) : '0'}
                     </div>
                   </div>
                 </Card>
@@ -2029,8 +2145,15 @@ const DonationManagement: React.FC = () => {
 
                 {/* 헌금 목록 테이블 */}
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[840px] text-[12.5px]">
-                    <thead className="bg-[#FAFBFD]">
+                  <table className="w-full min-w-[840px] table-fixed">
+                    <colgroup>
+                      <col className="w-[120px]" />
+                      <col className="w-[160px]" />
+                      <col className="w-[140px]" />
+                      <col className="w-[140px]" />
+                      <col />
+                    </colgroup>
+                    <thead className="bg-[#F8FAFD]">
                       <tr>
                         <th
                           className="cursor-pointer px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
@@ -2072,28 +2195,65 @@ const DonationManagement: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F1F4F9] bg-card">
-                      {currentDonations.map((donation) => (
-                        <tr
-                          key={donation.id}
-                          className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
-                          onClick={() => handleEditDonation(donation)}
-                        >
-                          <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{donation.offeredOn}</td>
-                          <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">{donation.donorName}</td>
-                          <td className="px-[18px] py-3 whitespace-nowrap">
-                            <span className={cn(
-                              "inline-flex rounded-[6px] px-[9px] py-[2px] text-[11.5px] font-bold whitespace-nowrap",
-                              getFundTypeChipClass(donation.fundType)
-                            )}>
-                              {donation.fundType}
-                            </span>
-                          </td>
-                          <td className="px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums text-foreground">
-                            {formatCurrency(donation.amount)}
-                          </td>
-                          <td className="px-[18px] py-3 text-[12.5px] text-[#94A3B8]">{donation.note || '—'}</td>
-                        </tr>
-                      ))}
+                      {currentDonations.map((donation) => {
+                        const isEditingNote = editingNoteId === donation.id;
+                        return (
+                          <tr
+                            key={donation.id}
+                            className="cursor-pointer transition-colors hover:bg-[#F8FAFD]"
+                            onClick={() => handleEditDonation(donation)}
+                          >
+                            <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">{donation.offeredOn}</td>
+                            <td className="px-[18px] py-3 whitespace-nowrap text-[13px] font-semibold text-foreground truncate" title={donation.donorName}>{donation.donorName}</td>
+                            <td className="px-[18px] py-3 whitespace-nowrap text-[13px]">
+                              <span className={cn(
+                                "inline-flex rounded-[6px] px-[9px] py-[2px] text-[10.5px] font-semibold whitespace-nowrap",
+                                getFundTypeChipClass(donation.fundType)
+                              )}>
+                                {donation.fundType}
+                              </span>
+                            </td>
+                            <td className="px-[18px] py-3 whitespace-nowrap text-right text-[13px] tabular-nums text-foreground">
+                              {formatCurrency(donation.amount)}
+                            </td>
+                            {/* 적요 — 인라인 편집 가능 */}
+                            <td
+                              className="px-[18px] py-2 text-[13px] text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isEditingNote) startEditNote(donation);
+                              }}
+                            >
+                              {isEditingNote ? (
+                                <input
+                                  type="text"
+                                  value={editingNoteValue}
+                                  onChange={(e) => setEditingNoteValue(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      saveEditNote();
+                                    } else if (e.key === 'Escape') {
+                                      e.preventDefault();
+                                      cancelEditNote();
+                                    }
+                                  }}
+                                  onBlur={() => saveEditNote()}
+                                  autoFocus
+                                  className="h-[32px] w-full rounded-[6px] border border-primary bg-card px-2 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                />
+                              ) : (
+                                <div className="min-h-[32px] flex items-center rounded-[6px] px-2 -mx-2 hover:bg-[#EEF3FC] transition-colors">
+                                  <span className={cn("truncate", !donation.note && "text-[#CBD5E1]")} title={donation.note || ''}>
+                                    {donation.note || '—'}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2172,8 +2332,8 @@ const DonationManagement: React.FC = () => {
               <CardDescription>{selectedYear}년 발행된 기부금 영수증 목록입니다.</CardDescription>
             </CardHeader>
             <div className="overflow-x-auto">
-              <table className="min-w-full text-[12.5px]">
-                  <thead className="bg-[#FAFBFD]">
+              <table className="min-w-full">
+                  <thead className="bg-[#F8FAFD]">
                     <tr>
                       {['발행번호', '기부자', '총액', '발행일', '발행자'].map((h, i) => (
                         <th
@@ -2191,17 +2351,17 @@ const DonationManagement: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {filteredReceipts.map((receipt) => (
-                      <tr key={receipt.id} className="transition-colors hover:bg-[#FAFBFD]">
-                        <td className="px-[18px] py-3 whitespace-nowrap font-mono text-foreground">{receipt.issueNo || receipt.issue_no}</td>
-                        <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">{receipt.donorName || receipt.member?.name || ''}</td>
-                        <td className="px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums text-foreground">
+                      <tr key={receipt.id} className="transition-colors hover:bg-[#F8FAFD]">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] font-mono text-foreground">{receipt.issueNo || receipt.issue_no}</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] font-semibold text-foreground">{receipt.donorName || receipt.member?.name || ''}</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap text-right text-[13px] tabular-nums text-foreground">
                           {formatCurrency(receipt.totalAmount || Number(receipt.total_amount) || 0)}
                         </td>
-                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                           {receipt.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('ko-KR') :
                            receipt.issued_at ? new Date(receipt.issued_at).toLocaleDateString('ko-KR') : ''}
                         </td>
-                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">관리자</td>
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">관리자</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center space-x-1">
                             <Button

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, DollarSign, Save, Copy } from 'lucide-react';
 import {
   Button,
@@ -14,6 +15,7 @@ import {
   ConfirmDialog,
 } from "./ui";
 import { usePageSubtitle, usePageActions } from "../hooks/usePageSubtitle";
+import { useAccountCategories, useBudgets } from "../hooks/queries";
 import { cn } from "../lib/utils";
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
@@ -50,169 +52,83 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('ko-KR').format(Math.round(amount || 0));
 
 const BudgetManagement: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-
-  const [incomeCategories, setIncomeCategories] = useState<AccountCategory[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<AccountCategory[]>([]);
-
-  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const queryClient = useQueryClient();
   const [budgetYear, setBudgetYear] = useState<number>(new Date().getFullYear());
 
+  // 카테고리 캐시
+  const categoriesQuery = useAccountCategories();
+  const incomeCategories: AccountCategory[] = useMemo(
+    () => categoriesQuery.data?.income ?? [],
+    [categoriesQuery.data]
+  );
+  const expenseCategories: AccountCategory[] = useMemo(
+    () => categoriesQuery.data?.expense ?? [],
+    [categoriesQuery.data]
+  );
+
+  // 예산 캐시
+  const budgetsQuery = useBudgets(budgetYear);
+  const loading = categoriesQuery.isLoading || budgetsQuery.isLoading;
+
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
 
-  // 초기 1회: 카테고리 로딩 + 예산 로딩을 순차적으로 (race 방지)
+  // 카테고리 + 예산 응답 변경 시 머지하여 budgets state 동기화
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { income, expense } = await fetchCategories();
-      if (cancelled) return;
-      setIncomeCategories(income);
-      setExpenseCategories(expense);
-      await loadBudgetsWithCategories(income, expense, budgetYear);
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 연도 변경 시: 기존에 가진 카테고리로 예산만 다시 로딩
-  const isInitialMount = React.useRef(true);
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
     if (incomeCategories.length === 0 && expenseCategories.length === 0) return;
-    loadBudgetsWithCategories(incomeCategories, expenseCategories, budgetYear);
+    if (!budgetsQuery.data) return;
+
+    const annualBudgets = budgetsQuery.data;
+
+    setBudgets(prevBudgets => {
+      const allBudgets: Budget[] = [];
+
+      const buildRow = (category: AccountCategory, type: 'income' | 'expense'): Budget => {
+        const existing = annualBudgets.find((b: any) => b.category_id === category.id && b.type === type);
+        const prev = prevBudgets.find(b => b.category_id === category.id && b.type === type);
+        const backendAmount = existing ? Number(existing.budgeted_amount) || 0 : 0;
+        const prevAmount = prev ? Number(prev.budgeted_amount) || 0 : 0;
+        // 사용자가 입력한 값(prev)이 백엔드(existing)와 다르면 사용자 입력 우선
+        const finalAmount = prev && prevAmount !== backendAmount ? prevAmount : backendAmount;
+
+        if (existing) {
+          return { ...existing, budgeted_amount: finalAmount, category };
+        }
+        return {
+          id: 0,
+          church_id: 0,
+          year: budgetYear,
+          month: null,
+          category_id: category.id,
+          type,
+          budgeted_amount: finalAmount,
+          notes: prev?.notes || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          category,
+        };
+      };
+
+      incomeCategories.forEach(c => allBudgets.push(buildRow(c, 'income')));
+      expenseCategories.forEach(c => allBudgets.push(buildRow(c, 'expense')));
+
+      return allBudgets;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgetYear]);
+  }, [incomeCategories, expenseCategories, budgetsQuery.data, budgetYear]);
 
-  const fetchCategories = async (): Promise<{ income: AccountCategory[]; expense: AccountCategory[] }> => {
-    try {
-      setLoading(true);
-      const token = await supabaseAuthService.getToken();
-      if (!token) return { income: [], expense: [] };
-
-      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-
-      const [incomeResponse, expenseResponse] = await Promise.all([
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=income`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=expense`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
-
-      let income: AccountCategory[] = [];
-      let expense: AccountCategory[] = [];
-
-      if (incomeResponse.ok) {
-        const data = await incomeResponse.json();
-        income = Array.isArray(data) ? data : (data?.data || []);
-      }
-      if (expenseResponse.ok) {
-        const data = await expenseResponse.json();
-        expense = Array.isArray(data) ? data : (data?.data || []);
-      }
-      return { income, expense };
-    } catch (error) {
-      console.error('계정과목 로드 실패:', error);
-      return { income: [], expense: [] };
-    }
+  const reloadBudgets = () => {
+    queryClient.invalidateQueries({ queryKey: ['budgets', 'annual', budgetYear] });
+    queryClient.invalidateQueries({ queryKey: ['budgetVsActual', budgetYear] });
   };
-
-  const loadBudgetsWithCategories = async (
-    incomeCats: AccountCategory[],
-    expenseCats: AccountCategory[],
-    year: number
-  ) => {
-    try {
-      setLoading(true);
-      const token = await supabaseAuthService.getToken();
-      if (!token) return;
-
-      const params = new URLSearchParams();
-      params.append('year', year.toString());
-
-      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-      const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets?${params.toString()}`;
-
-      const response = await fetch(functionsUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-          'X-Custom-Auth': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const annualBudgets = Array.isArray(data)
-          ? data.filter(b => b.month === null)
-          : [];
-
-        // 사용자가 입력한 미저장 값을 유지: 현재 state에서 백엔드보다 큰 값을 가진 항목은 보존
-        setBudgets(prevBudgets => {
-          const allBudgets: Budget[] = [];
-
-          const buildRow = (category: AccountCategory, type: 'income' | 'expense'): Budget => {
-            const existing = annualBudgets.find(b => b.category_id === category.id && b.type === type);
-            const prev = prevBudgets.find(b => b.category_id === category.id && b.type === type);
-            const backendAmount = existing ? Number(existing.budgeted_amount) || 0 : 0;
-            const prevAmount = prev ? Number(prev.budgeted_amount) || 0 : 0;
-            // 사용자가 입력한 값(prev)이 백엔드(existing)와 다르면 사용자 입력 우선
-            const finalAmount = prev && prevAmount !== backendAmount ? prevAmount : backendAmount;
-
-            if (existing) {
-              return { ...existing, budgeted_amount: finalAmount, category };
-            }
-            return {
-              id: 0,
-              church_id: 0,
-              year,
-              month: null,
-              category_id: category.id,
-              type,
-              budgeted_amount: finalAmount,
-              notes: prev?.notes || '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              category,
-            };
-          };
-
-          incomeCats.forEach(c => allBudgets.push(buildRow(c, 'income')));
-          expenseCats.forEach(c => allBudgets.push(buildRow(c, 'expense')));
-
-          return allBudgets;
-        });
-      }
-    } catch (error) {
-      console.error('예산 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadBudgets = () => loadBudgetsWithCategories(incomeCategories, expenseCategories, budgetYear);
 
   const saveBudgets = async () => {
     if (!window.confirm('예산을 저장하시겠습니까?')) return;
 
     try {
-      setLoading(true);
+      setSaveLoading(true);
       const token = await supabaseAuthService.getToken();
       if (!token) return;
 
@@ -239,7 +155,7 @@ const BudgetManagement: React.FC = () => {
 
       if (budgetData.length === 0) {
         alert('저장할 예산이 없습니다.');
-        setLoading(false);
+        setSaveLoading(false);
         return;
       }
 
@@ -257,7 +173,7 @@ const BudgetManagement: React.FC = () => {
 
       if (response.ok) {
         alert('예산이 저장되었습니다.');
-        await loadBudgets();
+        reloadBudgets();
       } else {
         const error = await response.json();
         alert(`예산 저장 실패: ${error.error || '알 수 없는 오류'}`);
@@ -266,7 +182,7 @@ const BudgetManagement: React.FC = () => {
       console.error('예산 저장 실패:', error);
       alert('예산 저장 중 오류가 발생했습니다.');
     } finally {
-      setLoading(false);
+      setSaveLoading(false);
     }
   };
 
@@ -294,7 +210,7 @@ const BudgetManagement: React.FC = () => {
 
       if (response.ok) {
         setCopyConfirmOpen(false);
-        await loadBudgets();
+        reloadBudgets();
         alert('전년도 예산이 복사되었습니다.');
       } else {
         const error = await response.json();
@@ -366,7 +282,7 @@ const BudgetManagement: React.FC = () => {
         variant="outline"
         size="sm"
         className="gap-2"
-        disabled={loading}
+        disabled={loading || saveLoading}
       >
         <Copy className="h-3.5 w-3.5" />
         전년도 복사
@@ -375,13 +291,13 @@ const BudgetManagement: React.FC = () => {
         onClick={() => saveBudgetsRef.current()}
         size="sm"
         className="gap-2"
-        disabled={loading}
+        disabled={loading || saveLoading}
       >
         <Save className="h-3.5 w-3.5" />
         저장
       </Button>
     </>,
-    [budgetYear, loading]
+    [budgetYear, loading, saveLoading]
   );
 
   const renderAmountInput = (
@@ -445,7 +361,7 @@ const BudgetManagement: React.FC = () => {
             className="text-[16px] font-bold tabular-nums"
             style={{ color: tone.total }}
           >
-            ₩{formatCurrency(total)}
+            {formatCurrency(total)}
           </span>
         </div>
 
@@ -471,7 +387,7 @@ const BudgetManagement: React.FC = () => {
                 return (
                   <React.Fragment key={category.id}>
                     <div className="flex items-center justify-between gap-2 border-b border-[#EEF1F6] bg-[#F8FAFD] px-4 py-2.5">
-                      <span className="text-[13.5px] font-semibold text-foreground">
+                      <span className="text-[13px] font-bold text-foreground">
                         {category.name}
                         <span className="ml-1.5 text-[11px] font-normal text-[#94A3B8]">(합계)</span>
                       </span>
@@ -479,7 +395,7 @@ const BudgetManagement: React.FC = () => {
                     </div>
                     {children.map(child => (
                       <div key={child.id} className="flex items-center justify-between gap-2 border-b border-[#EEF1F6] px-4 py-2 pl-10">
-                        <span className="flex items-center gap-2 text-[13px] font-medium text-[#475569]">
+                        <span className="flex items-center gap-2 text-[13px] text-[#475569]">
                           <span className="text-[12px] text-[#94A3B8]">└</span>
                           {child.name}
                         </span>
@@ -492,7 +408,7 @@ const BudgetManagement: React.FC = () => {
 
               return (
                 <div key={category.id} className="flex items-center justify-between gap-2 border-b border-[#EEF1F6] px-4 py-2.5">
-                  <span className="text-[13.5px] font-semibold text-foreground">{category.name}</span>
+                  <span className="text-[13px] font-semibold text-foreground">{category.name}</span>
                   {renderAmountInput(category.id, type)}
                 </div>
               );
@@ -532,7 +448,7 @@ const BudgetManagement: React.FC = () => {
               "text-[28px] font-bold leading-tight tracking-[-0.02em] tabular-nums",
               isPositive ? "text-[#2563EB]" : "text-[#B45309]"
             )}>
-              ₩{formatCurrency(totals.net)}
+              {formatCurrency(totals.net)}
             </div>
             <div className="text-[11px] text-[#94A3B8]">
               {budgetYear}년 연간 · 수입 − 지출
@@ -549,7 +465,7 @@ const BudgetManagement: React.FC = () => {
                 <div className="min-w-0">
                   <div className="text-[12px] font-semibold text-muted-foreground">총 수입 예산</div>
                   <div className="truncate text-[20px] font-bold leading-tight tabular-nums text-[#16A34A]">
-                    ₩{formatCurrency(totals.income)}
+                    {formatCurrency(totals.income)}
                   </div>
                   <div className="text-[11px] text-[#94A3B8]">{incomeRatio.toFixed(0)}%</div>
                 </div>
@@ -561,7 +477,7 @@ const BudgetManagement: React.FC = () => {
                 <div className="min-w-0">
                   <div className="text-[12px] font-semibold text-muted-foreground">총 지출 예산</div>
                   <div className="truncate text-[20px] font-bold leading-tight tabular-nums text-[#DC2626]">
-                    ₩{formatCurrency(totals.expense)}
+                    {formatCurrency(totals.expense)}
                   </div>
                   <div className="text-[11px] text-[#94A3B8]">{expenseRatio.toFixed(0)}%</div>
                 </div>

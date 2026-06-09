@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Check, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   Button,
@@ -15,6 +16,7 @@ import {
   DialogTitle,
 } from "./ui";
 import { usePageSubtitle, usePageActions } from "../hooks/usePageSubtitle";
+import { useAccountCategories } from "../hooks/queries";
 import { cn } from "../lib/utils";
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
@@ -34,9 +36,15 @@ interface AccountCategory {
 }
 
 const AccountCategoryManagement: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [incomeCategories, setIncomeCategories] = useState<AccountCategory[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<AccountCategory[]>([]);
+  const queryClient = useQueryClient();
+  const categoriesQuery = useAccountCategories();
+  const loading = categoriesQuery.isLoading;
+  const incomeCategories: AccountCategory[] = categoriesQuery.data?.income ?? [];
+  const expenseCategories: AccountCategory[] = categoriesQuery.data?.expense ?? [];
+
+  const invalidateCategories = () => {
+    queryClient.invalidateQueries({ queryKey: ['accountCategories'] });
+  };
 
   // 추가 모달 상태
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -53,53 +61,6 @@ const AccountCategoryManagement: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<AccountCategory | null>(null);
   const [deleteUsage, setDeleteUsage] = useState<{ budget: number; transaction: number; offering: number } | null>(null);
-
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
-    try {
-      setLoading(true);
-      const token = await supabaseAuthService.getToken();
-      if (!token) return;
-
-      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-
-      const [incomeResponse, expenseResponse] = await Promise.all([
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=income`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=expense`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
-
-      if (incomeResponse.ok) {
-        const data = await incomeResponse.json();
-        const categories = Array.isArray(data) ? data : (data?.data || []);
-        setIncomeCategories(categories);
-      }
-      if (expenseResponse.ok) {
-        const data = await expenseResponse.json();
-        setExpenseCategories(Array.isArray(data) ? data : (data?.data || []));
-      }
-    } catch (error) {
-      console.error('계정과목 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openAddModal = (type: 'income' | 'expense') => {
     setAddModalType(type);
@@ -154,7 +115,7 @@ const AccountCategoryManagement: React.FC = () => {
         setAddModalOpen(false);
         setNewCategoryName('');
         setNewCategoryIsOffering(false);
-        await loadCategories();
+        invalidateCategories();
       } else {
         const error = await response.json();
         alert(`계정과목 추가 실패: ${error.error || '알 수 없는 오류'}`);
@@ -227,7 +188,7 @@ const AccountCategoryManagement: React.FC = () => {
         setDeleteModalOpen(false);
         setDeletingCategory(null);
         setDeleteUsage(null);
-        await loadCategories();
+        invalidateCategories();
       } else {
         const error = await response.json();
         if (error.error && error.error.includes('foreign key constraint')) {
@@ -282,7 +243,7 @@ const AccountCategoryManagement: React.FC = () => {
 
       if (response.ok) {
         closeEditModal();
-        await loadCategories();
+        invalidateCategories();
       } else {
         const error = await response.json();
         alert(`계정과목 수정 실패: ${error.error || '알 수 없는 오류'}`);

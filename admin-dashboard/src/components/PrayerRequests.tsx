@@ -411,7 +411,7 @@ const PrayerRequests: React.FC = () => {
                 <col className="w-[100px]" />
                 <col className="w-[150px]" />
               </colgroup>
-              <thead className="bg-[#FAFBFD]">
+              <thead className="bg-[#F8FAFD]">
                 <tr>
                   <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">요청자</th>
                   <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기도 내용</th>
@@ -423,14 +423,14 @@ const PrayerRequests: React.FC = () => {
                 {filteredRequests.map((request) => (
                   <tr
                     key={request.id}
-                    className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                    className="cursor-pointer transition-colors hover:bg-[#F8FAFD]"
                     onClick={() => {
                       setSelectedRequest(request);
                       setShowDetailModal(true);
                     }}
                   >
                     {/* 요청자 — 아바타 + 이름 */}
-                    <td className="px-[18px] py-3 whitespace-nowrap">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px]">
                       <div className="flex items-center gap-[11px]">
                         <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
                           {request.profilePhotoUrl && !request.isAnonymous ? (
@@ -454,19 +454,19 @@ const PrayerRequests: React.FC = () => {
                     </td>
 
                     {/* 기도 내용 — 1줄 요약 (가변 폭 확장) */}
-                    <td className="px-[18px] py-3 text-foreground">
+                    <td className="px-[18px] py-3 text-[13px] text-foreground">
                       <div className="truncate">
                         {request.prayerContent || <span className="text-[#CBD5E1]">-</span>}
                       </div>
                     </td>
 
                     {/* 공개 */}
-                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                       {request.isPublic ? '전체 공개' : '비공개'}
                     </td>
 
                     {/* 등록일 */}
-                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground tabular-nums">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                       {formatDate(request.createdAt)}
                     </td>
                   </tr>

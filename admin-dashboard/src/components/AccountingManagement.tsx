@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAccountCategories } from '../hooks/queries';
 import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -72,14 +74,19 @@ interface Summary {
 
 const AccountingManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
 
-  // Categories (for transaction modal)
-  const [incomeCategories, setIncomeCategories] = useState<AccountCategory[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<AccountCategory[]>([]);
+  // Categories — React Query 캐시 공유
+  const categoriesQuery = useAccountCategories();
+  const incomeCategories: AccountCategory[] = categoriesQuery.data?.income ?? [];
+  const expenseCategories: AccountCategory[] = categoriesQuery.data?.expense ?? [];
+  const invalidateCategories = () => {
+    queryClient.invalidateQueries({ queryKey: ['accountCategories'] });
+  };
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,21 +123,87 @@ const AccountingManagement: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingTransactionId, setDeletingTransactionId] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadTransactions();
-    loadSummary();
-  }, [typeFilter, dateRange]);
-
   // 검색어나 필터 변경 시 페이지를 1로 리셋
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, typeFilter]);
 
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
+  // React Query — 거래 내역 캐시
+  const typeFilterKey = typeFilter.length === 1 ? typeFilter[0] : 'all';
+  const dateFromKey = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+  const dateToKey = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
+
+  const transformTransaction = (t: any): Transaction => {
+    let receiptUrls: string[] = [];
+    let receiptFiles: ReceiptFile[] = [];
+
+    if (t.receipt_files) {
+      try {
+        const parsed = JSON.parse(t.receipt_files);
+        if (Array.isArray(parsed)) {
+          if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+            receiptFiles = parsed;
+            receiptUrls = parsed.map((r: ReceiptFile) => r.url);
+          } else {
+            receiptUrls = parsed;
+            receiptFiles = parsed.map((url: string) => ({
+              url,
+              filename: url.split('/').pop()?.split('?')[0] || '영수증',
+            }));
+          }
+        } else {
+          receiptUrls = [parsed];
+          receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
+        }
+      } catch {
+        receiptUrls = [t.receipt_files];
+        receiptFiles = [{ url: t.receipt_files, filename: t.receipt_files.split('/').pop()?.split('?')[0] || '영수증' }];
+      }
+    } else if (t.receipt_file) {
+      if (typeof t.receipt_file === 'string' && t.receipt_file.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(t.receipt_file);
+          if (Array.isArray(parsed)) {
+            if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+              receiptFiles = parsed;
+              receiptUrls = parsed.map((r: ReceiptFile) => r.url);
+            } else {
+              receiptUrls = parsed;
+              receiptFiles = parsed.map((url: string) => ({
+                url,
+                filename: url.split('/').pop()?.split('?')[0] || '영수증',
+              }));
+            }
+          } else {
+            receiptUrls = [parsed];
+            receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
+          }
+        } catch {
+          receiptUrls = [t.receipt_file];
+          receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
+        }
+      } else {
+        receiptUrls = [t.receipt_file];
+        receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
+      }
+    } else if (t.receipt_url) {
+      receiptUrls = [t.receipt_url];
+      receiptFiles = [{ url: t.receipt_url, filename: t.receipt_url.split('/').pop()?.split('?')[0] || '영수증' }];
+    }
+
+    return {
+      ...t,
+      receipt_urls: receiptUrls,
+      receipt_url: receiptUrls[0] || undefined,
+      receipt_metadata: receiptFiles,
+    };
+  };
+
+  const transactionsQuery = useQuery({
+    queryKey: ['accountingTransactionsTransformed', typeFilterKey, dateFromKey, dateToKey],
+    queryFn: async () => {
       const token = await supabaseAuthService.getToken();
-      if (!token) return;
+      if (!token) return [];
 
       const params = new URLSearchParams();
       if (typeFilter.length === 1) params.append('type', typeFilter[0]);
@@ -149,122 +222,19 @@ const AccountingManagement: React.FC = () => {
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🔍 백엔드 응답 데이터:', data);
+      if (!response.ok) return [];
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      return list.map(transformTransaction);
+    },
+    staleTime: 60_000,
+  });
 
-        // receipt_files를 receipt_urls로 매핑
-        const transactions = (Array.isArray(data) ? data : (data?.data || [])).map((t: any) => {
-          console.log('🔍 거래 내역:', {
-            id: t.id,
-            receipt_files: t.receipt_files,
-            receipt_file: t.receipt_file,
-            receipt_url: t.receipt_url
-          });
-
-          let receiptUrls: string[] = [];
-          let receiptFiles: ReceiptFile[] = [];
-
-          // receipt_files가 JSON 문자열인 경우 파싱
-          if (t.receipt_files) {
-            try {
-              const parsed = JSON.parse(t.receipt_files);
-              if (Array.isArray(parsed)) {
-                // 객체 배열인 경우 (새 형식: [{url, filename}, ...])
-                if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
-                  receiptFiles = parsed;
-                  receiptUrls = parsed.map((r: ReceiptFile) => r.url);
-                  console.log('✅ receipt_files 파싱 성공 (객체 배열):', receiptFiles);
-                }
-                // 문자열 배열인 경우 (이전 형식: ["url1", "url2"])
-                else {
-                  receiptUrls = parsed;
-                  receiptFiles = parsed.map((url: string) => ({
-                    url,
-                    filename: url.split('/').pop()?.split('?')[0] || '영수증'
-                  }));
-                  console.log('✅ receipt_files 파싱 성공 (URL 배열):', receiptUrls);
-                }
-              } else {
-                receiptUrls = [parsed];
-                receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
-              }
-            } catch (e) {
-              receiptUrls = [t.receipt_files];
-              receiptFiles = [{ url: t.receipt_files, filename: t.receipt_files.split('/').pop()?.split('?')[0] || '영수증' }];
-              console.log('⚠️ receipt_files 파싱 실패, 문자열로 처리:', receiptUrls);
-            }
-          }
-          // 하위 호환성: receipt_file이 있으면 추가
-          else if (t.receipt_file) {
-            // receipt_file이 JSON 문자열인지 확인
-            if (typeof t.receipt_file === 'string' && t.receipt_file.startsWith('[')) {
-              try {
-                const parsed = JSON.parse(t.receipt_file);
-                if (Array.isArray(parsed)) {
-                  // 객체 배열인 경우
-                  if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
-                    receiptFiles = parsed;
-                    receiptUrls = parsed.map((r: ReceiptFile) => r.url);
-                    console.log('✅ receipt_file JSON 파싱 성공 (객체 배열):', receiptFiles);
-                  }
-                  // 문자열 배열인 경우
-                  else {
-                    receiptUrls = parsed;
-                    receiptFiles = parsed.map((url: string) => ({
-                      url,
-                      filename: url.split('/').pop()?.split('?')[0] || '영수증'
-                    }));
-                    console.log('✅ receipt_file JSON 파싱 성공 (URL 배열):', receiptUrls);
-                  }
-                } else {
-                  receiptUrls = [parsed];
-                  receiptFiles = [{ url: parsed, filename: parsed.split('/').pop()?.split('?')[0] || '영수증' }];
-                }
-              } catch (e) {
-                receiptUrls = [t.receipt_file];
-                receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
-                console.log('⚠️ receipt_file JSON 파싱 실패:', receiptUrls);
-              }
-            } else {
-              receiptUrls = [t.receipt_file];
-              receiptFiles = [{ url: t.receipt_file, filename: t.receipt_file.split('/').pop()?.split('?')[0] || '영수증' }];
-              console.log('✅ receipt_file 사용 (일반 URL):', receiptUrls);
-            }
-          }
-          // 하위 호환성: receipt_url이 있으면 추가
-          else if (t.receipt_url) {
-            receiptUrls = [t.receipt_url];
-            receiptFiles = [{ url: t.receipt_url, filename: t.receipt_url.split('/').pop()?.split('?')[0] || '영수증' }];
-            console.log('✅ receipt_url 사용:', receiptUrls);
-          }
-
-          return {
-            ...t,
-            receipt_urls: receiptUrls,
-            receipt_url: receiptUrls[0] || undefined, // 하위 호환성
-            receipt_metadata: receiptFiles // 파일명 정보 포함
-          };
-        });
-
-        console.log('✅ 최종 변환된 거래 내역:', transactions.map((t: Transaction) => ({
-          id: t.id,
-          receipt_urls: t.receipt_urls
-        })));
-
-        setTransactions(transactions);
-      }
-    } catch (error) {
-      console.error('거래 내역 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSummary = async () => {
-    try {
+  const summaryQuery = useQuery({
+    queryKey: ['accountingSummaryByDate', dateFromKey, dateToKey],
+    queryFn: async () => {
       const token = await supabaseAuthService.getToken();
-      if (!token) return;
+      if (!token) return null;
 
       const params = new URLSearchParams();
       if (dateRange?.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
@@ -282,55 +252,30 @@ const AccountingManagement: React.FC = () => {
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setSummary(data);
-      }
-    } catch (error) {
-      console.error('요약 정보 로드 실패:', error);
-    }
+      if (!response.ok) return null;
+      return await response.json();
+    },
+    staleTime: 60_000,
+  });
+
+  // React Query 결과를 기존 state로 동기화
+  useEffect(() => {
+    if (transactionsQuery.data) setTransactions(transactionsQuery.data);
+  }, [transactionsQuery.data]);
+
+  useEffect(() => {
+    if (summaryQuery.data !== undefined) setSummary(summaryQuery.data);
+  }, [summaryQuery.data]);
+
+  const loadTransactions = () => {
+    queryClient.invalidateQueries({ queryKey: ['accountingTransactionsTransformed'] });
+  };
+  const loadSummary = () => {
+    queryClient.invalidateQueries({ queryKey: ['accountingSummaryByDate'] });
   };
 
-  const loadCategories = async () => {
-    try {
-      setLoading(true);
-      const token = await supabaseAuthService.getToken();
-      if (!token) return;
-
-      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-
-      const [incomeResponse, expenseResponse] = await Promise.all([
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=income`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=expense`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-            'X-Custom-Auth': token,
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
-
-      if (incomeResponse.ok) {
-        const data = await incomeResponse.json();
-        setIncomeCategories(Array.isArray(data) ? data : (data?.data || []));
-      }
-      if (expenseResponse.ok) {
-        const data = await expenseResponse.json();
-        setExpenseCategories(Array.isArray(data) ? data : (data?.data || []));
-      }
-    } catch (error) {
-      console.error('계정과목 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadCategories = () => {
+    invalidateCategories();
   };
 
   const uploadReceiptsToStorage = async (files: File[]): Promise<ReceiptFile[]> => {
@@ -659,7 +604,7 @@ const AccountingManagement: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+    return new Intl.NumberFormat('ko-KR').format(Math.round(amount || 0));
   };
 
   const formatDate = (dateString: string) => {
@@ -976,7 +921,7 @@ const AccountingManagement: React.FC = () => {
                 <col className="w-[100px]" />
                 <col className="w-[80px]" />
               </colgroup>
-              <thead className="bg-[#FAFBFD]">
+              <thead className="bg-[#F8FAFD]">
                 <tr>
                   <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">날짜</th>
                   <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">구분</th>
@@ -992,15 +937,15 @@ const AccountingManagement: React.FC = () => {
                 {paginatedTransactions.map((transaction) => (
                   <tr
                     key={transaction.id}
-                    className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                    className="cursor-pointer transition-colors hover:bg-[#F8FAFD]"
                     onClick={() => handleEdit(transaction)}
                   >
-                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground tabular-nums">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                       {formatDate(transaction.transaction_date)}
                     </td>
-                    <td className="px-[18px] py-3 whitespace-nowrap">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px]">
                       <span className={cn(
-                        'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
+                        'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-semibold whitespace-nowrap',
                         transaction.type === 'income'
                           ? 'bg-[#E7F6EC] text-[#16A34A]'
                           : 'bg-[#FCEBEB] text-[#DC2626]'
@@ -1008,24 +953,24 @@ const AccountingManagement: React.FC = () => {
                         {transaction.type === 'income' ? '수입' : '지출'}
                       </span>
                     </td>
-                    <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] font-semibold text-foreground">
                       {transaction.category?.name || <span className="text-[#CBD5E1]">-</span>}
                     </td>
-                    <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                       {transaction.vendor_name || <span className="text-[#CBD5E1]">-</span>}
                     </td>
-                    <td className="px-[18px] py-3 text-muted-foreground">
+                    <td className="px-[18px] py-3 text-[13px] text-foreground">
                       <div className="max-w-[320px] truncate">
                         {transaction.description || <span className="text-[#CBD5E1]">-</span>}
                       </div>
                     </td>
                     <td className={cn(
-                      "px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums",
+                      "px-[18px] py-3 whitespace-nowrap text-right text-[13px] tabular-nums",
                       transaction.type === 'income' ? 'text-[#16A34A]' : 'text-[#DC2626]'
                     )}>
                       {transaction.type === 'income' ? '+' : '−'}{formatCurrency(transaction.amount)}
                     </td>
-                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                    <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                       {getPaymentMethodLabel(transaction.payment_method)}
                     </td>
                     <td

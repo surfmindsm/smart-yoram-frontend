@@ -972,33 +972,33 @@ const OrganizationManagement: React.FC = () => {
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-[900px] w-full table-fixed">
-                  <thead className="bg-[#FAFBFD]">
+                  <thead className="bg-[#F8FAFD]">
                     <tr>
-                      <th className="w-[320px] px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[320px] px-6 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         부서명
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         설명
                       </th>
-                      <th className="w-[100px] px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[100px] px-6 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         인원 수
                       </th>
-                      <th className="w-[130px] px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <th className="w-[130px] px-6 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                         작업
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {departments.map((department) => (
-                      <tr key={department.id} className="cursor-pointer transition-colors hover:bg-[#FAFBFD]">
+                      <tr key={department.id} className="cursor-pointer transition-colors hover:bg-[#F8FAFD]">
                         <td className="w-[320px] px-6 py-4 whitespace-nowrap">
-                          <div className="truncate text-sm font-semibold text-foreground">{department.name}</div>
+                          <div className="truncate text-[13px] font-semibold text-foreground">{department.name}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="truncate text-[12.5px] text-muted-foreground">{department.description || '-'}</div>
+                          <div className="truncate text-[13px] text-foreground">{department.description || '-'}</div>
                         </td>
                         <td className="w-[100px] px-6 py-4 whitespace-nowrap text-right">
-                          <span className="text-[12.5px] text-foreground">{department.member_count || 0}명</span>
+                          <span className="text-[13px] text-foreground tabular-nums">{department.member_count || 0}명</span>
                         </td>
                         <td className="w-[130px] px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -1300,19 +1300,19 @@ const OrganizationManagement: React.FC = () => {
                             className="w-4 h-4"
                           />
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           이름
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           생년월일
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           전화번호
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           주소
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           상태
                         </th>
                       </tr>
@@ -1321,7 +1321,7 @@ const OrganizationManagement: React.FC = () => {
                       {getFilteredMembers().map((member) => (
                         <tr
                           key={member.id}
-                          className={`hover:bg-[#FAFBFD] cursor-pointer ${
+                          className={`hover:bg-[#F8FAFD] cursor-pointer ${
                             member.isCurrentOrganization ? 'bg-gray-100 text-gray-400' : ''
                           }`}
                           onClick={() => {
@@ -1340,19 +1340,19 @@ const OrganizationManagement: React.FC = () => {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium">
+                          <td className="px-4 py-3 text-[13px] font-semibold text-foreground">
                             {member.name}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
                             {member.birthdate || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
                             {member.phone || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground">
                             {member.address || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px]">
                             {member.isCurrentOrganization ? (
                               <Badge variant="secondary" className="text-xs">
                                 이미 소속됨
@@ -1480,19 +1480,19 @@ const OrganizationManagement: React.FC = () => {
                             className="w-4 h-4"
                           />
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           이름
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           생년월일
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           전화번호
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           주소
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
                           상태
                         </th>
                       </tr>
@@ -1501,7 +1501,7 @@ const OrganizationManagement: React.FC = () => {
                       {getFilteredDepartmentMembers().map((member) => (
                         <tr
                           key={member.id}
-                          className={`hover:bg-[#FAFBFD] cursor-pointer ${
+                          className={`hover:bg-[#F8FAFD] cursor-pointer ${
                             member.isCurrentDepartment ? 'bg-gray-100 text-gray-400' : ''
                           }`}
                           onClick={() => {
@@ -1520,19 +1520,19 @@ const OrganizationManagement: React.FC = () => {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium">
+                          <td className="px-4 py-3 text-[13px] font-semibold text-foreground">
                             {member.name}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
                             {member.birthdate || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
                             {member.phone || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px] text-foreground">
                             {member.address || '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-[13px]">
                             {member.isCurrentDepartment ? (
                               <Badge variant="secondary" className="text-xs">
                                 이미 소속됨

@@ -1363,16 +1363,16 @@ export const supabaseApiService = {
           throw fetchError;
         }
 
-        // 2. 헌금 데이터 업데이트
+        // 2. 헌금 데이터 업데이트 (전달된 필드만 부분 업데이트)
+        const offeringPatch: any = { updated_at: new Date().toISOString() };
+        if (updateData.offered_on !== undefined) offeringPatch.offered_on = updateData.offered_on;
+        if (updateData.fund_type !== undefined) offeringPatch.fund_type = updateData.fund_type;
+        if (updateData.amount !== undefined) offeringPatch.amount = updateData.amount;
+        if (updateData.note !== undefined) offeringPatch.note = updateData.note;
+
         const { data, error } = await supabase
           .from('offerings')
-          .update({
-            offered_on: updateData.offered_on,
-            fund_type: updateData.fund_type,
-            amount: updateData.amount,
-            note: updateData.note,
-            updated_at: new Date().toISOString()
-          })
+          .update(offeringPatch)
           .eq('id', id)
           .select(`
             *,
@@ -1407,12 +1407,13 @@ export const supabaseApiService = {
           }
 
           // 회계 거래 업데이트
+          // 전달된 필드만 부분 업데이트
           const accountingUpdateData: any = {
-            transaction_date: updateData.offered_on,
-            amount: updateData.amount,
             description: `헌금 - ${donorName}${data.note ? ` (${data.note})` : ''}`,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           };
+          if (updateData.offered_on !== undefined) accountingUpdateData.transaction_date = updateData.offered_on;
+          if (updateData.amount !== undefined) accountingUpdateData.amount = updateData.amount;
 
           // 헌금 유형이 변경되었으면 계정과목도 업데이트
           if (updateData.fund_type) {

@@ -2292,7 +2292,7 @@ Church Round 앱에 초대되셨습니다.
         {/* === 테이블 (같은 카드 안) === */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-[12.5px]">
-            <thead className="bg-[#FAFBFD]">
+            <thead className="bg-[#F8FAFD]">
               <tr>
                 <th className="w-[44px] px-[18px] py-3 text-left">
                   <input
@@ -2337,7 +2337,7 @@ Church Round 앱에 초대되셨습니다.
                 </tr>
               )}
               {!loading && members.map((member) => (
-                <tr key={member.id} className="transition-colors hover:bg-[#FAFBFD]">
+                <tr key={member.id} className="transition-colors hover:bg-[#F8FAFD]">
                   <td className="px-[18px] py-3" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -2347,7 +2347,7 @@ Church Round 앱에 초대되셨습니다.
                     />
                   </td>
                   {/* 이름 (아바타 + 한글명) */}
-                  <td className="cursor-pointer px-[18px] py-3" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px]" onClick={() => handleMemberClick(member)}>
                     <div className="flex items-center gap-[11px]">
                       {(() => {
                         const photoUrl = cleanPhotoUrl(member.profile_photo_url);
@@ -2380,25 +2380,25 @@ Church Round 앱에 초대되셨습니다.
                     </div>
                   </td>
                   {/* 성별 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {getGenderText(member.gender)}
                   </td>
                   {/* 전화번호 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {member.phone || <span className="text-[#94A3B8]">-</span>}
                   </td>
                   {/* 직분 대분류 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {member.position_main
                       ? getPositionMainLabel(member.position_main)
                       : <span className="text-[#94A3B8]">-</span>}
                   </td>
                   {/* 직분 세부 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {getPositionDetailLabel(member.position_detail) || <span className="text-[#94A3B8]">-</span>}
                   </td>
                   {/* 조직 — 루트부터 최하위까지의 계층 경로 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {(() => {
                       const path = getOrgPath(member.organization_id);
                       if (path.length === 0) {
@@ -2423,11 +2423,11 @@ Church Round 앱에 초대되셨습니다.
                     })()}
                   </td>
                   {/* 부서 */}
-                  <td className="cursor-pointer px-[18px] py-3 text-foreground" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px] text-foreground" onClick={() => handleMemberClick(member)}>
                     {member.department || <span className="text-[#94A3B8]">-</span>}
                   </td>
                   {/* 초대상태 */}
-                  <td className="cursor-pointer px-[18px] py-3" onClick={() => handleMemberClick(member)}>
+                  <td className="cursor-pointer px-[18px] py-3 text-[13px]" onClick={() => handleMemberClick(member)}>
                     <Badge variant={getInvitationStatusBadgeVariant(member.invitation_status || '')}>
                       {getInvitationStatusText(member.invitation_status || '')}
                     </Badge>

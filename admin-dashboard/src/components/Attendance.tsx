@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMembers, useWorshipServices, useCurrentUser } from '../hooks/queries';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { Loader2, Check, X, ChevronUp, ChevronDown, CalendarX } from 'lucide-react';
@@ -91,6 +92,7 @@ const getDatesByDayOfMonth = (year: number, month: number, jsDayOfWeek: number):
 
 const Attendance: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // 공유 데이터는 React Query로 — 화면 간 캐싱
   const { data: currentUser } = useCurrentUser();
@@ -190,19 +192,17 @@ const Attendance: React.FC = () => {
     }
   }, [getToken]);
 
-  // 이번 달 전체 예배에 대한 출석 데이터 fetch (통계 카드용)
-  const loadMonthAttendances = useCallback(async () => {
-    if (!churchId) return; // church_id 미정 상태에선 호출 금지
-    try {
+  // 이번 달 전체 예배에 대한 출석 데이터 — React Query 캐시
+  const monthAttendancesQuery = useQuery({
+    queryKey: ['monthAttendances', churchId ?? null, selectedYear, selectedMonth],
+    queryFn: async () => {
+      if (!churchId) return [];
       const token = await getToken();
-      if (!token) {
-        setMonthAttendances([]);
-        return;
-      }
+      if (!token) return [];
       const first = formatLocalDate(new Date(selectedYear, selectedMonth, 1));
       const last = formatLocalDate(new Date(selectedYear, selectedMonth + 1, 0));
       const response = await fetch(
-        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${first}&end_date=${last}${churchId ? `&church_id=${churchId}` : ''}`,
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${first}&end_date=${last}&church_id=${churchId}`,
         {
           method: 'GET',
           headers: {
@@ -212,17 +212,23 @@ const Attendance: React.FC = () => {
           },
         }
       );
-      if (!response.ok) {
-        setMonthAttendances([]);
-        return;
-      }
-      const data = await response.json();
-      setMonthAttendances(data || []);
-    } catch (error) {
-      console.error('Failed to load month attendances:', error);
-      setMonthAttendances([]);
+      if (!response.ok) return [];
+      return (await response.json()) || [];
+    },
+    enabled: !!churchId,
+    staleTime: 60_000,
+  });
+
+  // monthAttendances Query → state 동기화
+  useEffect(() => {
+    if (monthAttendancesQuery.data !== undefined) {
+      setMonthAttendances(monthAttendancesQuery.data);
     }
-  }, [selectedYear, selectedMonth, churchId, getToken]);
+  }, [monthAttendancesQuery.data]);
+
+  const loadMonthAttendances = useCallback(() => {
+    monthAttendancesQuery.refetch();
+  }, [monthAttendancesQuery]);
 
   // worshipServices가 React Query로 도착하면 selectedWorshipServiceId 초기화
   useEffect(() => {
@@ -231,40 +237,22 @@ const Attendance: React.FC = () => {
     }
   }, [worshipServices]);
 
-  const loadWeeklyAttendances = useCallback(async () => {
-    if (loadingWeeklyRef.current) return;
-    if (!churchId) return; // church_id 미정 상태에선 호출 금지
-    if (!selectedWorshipServiceId) {
-      setWeeklyAttendances([]);
-      return;
-    }
-    if (serviceDates.length === 0) {
-      setWeeklyAttendances([]);
-      return;
-    }
+  // 주간 출석 — React Query 캐시
+  const firstServiceDate = serviceDates[0] ? formatLocalDate(serviceDates[0]) : null;
+  const lastServiceDate = serviceDates[serviceDates.length - 1] ? formatLocalDate(serviceDates[serviceDates.length - 1]) : null;
 
-    const cacheKey = `${selectedYear}-${selectedMonth}-${selectedWorshipServiceId}`;
-
-    if (attendanceCacheRef.current.has(cacheKey)) {
-      setWeeklyAttendances(attendanceCacheRef.current.get(cacheKey) || []);
-      return;
-    }
-
-    try {
-      loadingWeeklyRef.current = true;
-      setLoadingWeekly(true);
+  const weeklyAttendancesQuery = useQuery({
+    queryKey: ['weeklyAttendances', churchId ?? null, selectedYear, selectedMonth, selectedWorshipServiceId ?? null, firstServiceDate, lastServiceDate],
+    queryFn: async () => {
+      if (!churchId) return [];
+      if (!selectedWorshipServiceId) return [];
+      if (!firstServiceDate || !lastServiceDate) return [];
 
       const token = await getToken();
-      if (!token) {
-        setWeeklyAttendances([]);
-        return;
-      }
-
-      const firstDate = formatLocalDate(serviceDates[0]);
-      const lastDate = formatLocalDate(serviceDates[serviceDates.length - 1]);
+      if (!token) return [];
 
       const response = await fetch(
-        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${firstDate}&end_date=${lastDate}&worship_service_id=${selectedWorshipServiceId}${churchId ? `&church_id=${churchId}` : ''}`,
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/attendances?start_date=${firstServiceDate}&end_date=${lastServiceDate}&worship_service_id=${selectedWorshipServiceId}&church_id=${churchId}`,
         {
           method: 'GET',
           headers: {
@@ -274,24 +262,28 @@ const Attendance: React.FC = () => {
           },
         }
       );
+      if (!response.ok) return [];
+      return (await response.json()) || [];
+    },
+    enabled: !!churchId && !!selectedWorshipServiceId && !!firstServiceDate && !!lastServiceDate,
+    staleTime: 60_000,
+  });
 
-      if (!response.ok) {
-        setWeeklyAttendances([]);
-        return;
-      }
-
-      const data = await response.json();
-      setWeeklyAttendances(data || []);
-      attendanceCacheRef.current.set(cacheKey, data || []);
-    } catch (error) {
-      console.error('Failed to load weekly attendances:', error);
-      setWeeklyAttendances([]);
-    } finally {
-      loadingWeeklyRef.current = false;
-      setLoadingWeekly(false);
+  // weeklyAttendances Query → state 동기화
+  useEffect(() => {
+    if (weeklyAttendancesQuery.data !== undefined) {
+      setWeeklyAttendances(weeklyAttendancesQuery.data);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedMonth, churchId, selectedWorshipServiceId, serviceDates.length, getToken]);
+  }, [weeklyAttendancesQuery.data]);
+
+  // loadingWeekly 동기화
+  useEffect(() => {
+    setLoadingWeekly(weeklyAttendancesQuery.isLoading);
+  }, [weeklyAttendancesQuery.isLoading]);
+
+  const loadWeeklyAttendances = useCallback(() => {
+    weeklyAttendancesQuery.refetch();
+  }, [weeklyAttendancesQuery]);
 
   // 초기화: 한 번만 실행
   // members / worshipServices / currentUser는 React Query가 자동으로 로드
@@ -417,14 +409,19 @@ const Attendance: React.FC = () => {
       setWeeklyAttendances(updatedAttendances);
       const cacheKey = `${selectedYear}-${selectedMonth}-${selectedWorshipServiceId}`;
       attendanceCacheRef.current.set(cacheKey, updatedAttendances);
+      // React Query 캐시도 업데이트
+      queryClient.setQueryData(
+        ['weeklyAttendances', churchId ?? null, selectedYear, selectedMonth, selectedWorshipServiceId ?? null, firstServiceDate, lastServiceDate],
+        updatedAttendances
+      );
       // 통계 카드 갱신
-      loadMonthAttendances();
+      queryClient.invalidateQueries({ queryKey: ['monthAttendances'] });
     } catch (error: any) {
       console.error('Failed to update attendance:', error);
       alert(error.message || '출석 체크 중 오류가 발생했습니다.');
       const cacheKey = `${selectedYear}-${selectedMonth}-${selectedWorshipServiceId}`;
       attendanceCacheRef.current.delete(cacheKey);
-      await loadWeeklyAttendances();
+      queryClient.invalidateQueries({ queryKey: ['weeklyAttendances'] });
     } finally {
       setUpdatingWeekly(null);
     }
@@ -576,7 +573,7 @@ const Attendance: React.FC = () => {
                   'flex flex-col items-start gap-1 rounded-[10px] border bg-card px-4 py-3 text-left transition-colors',
                   isActive
                     ? 'border-primary shadow-[0_0_0_3px_rgba(28,124,255,0.12)]'
-                    : 'border-border hover:border-[#CBD5E1] hover:bg-[#FAFBFD]'
+                    : 'border-border hover:border-[#CBD5E1] hover:bg-[#F8FAFD]'
                 )}
               >
                 <div className="flex w-full items-center justify-between gap-2">
@@ -670,22 +667,22 @@ const Attendance: React.FC = () => {
             </div>
           ) : (
             <table className="w-full min-w-[920px] text-[12.5px]">
-              <thead className="bg-[#FAFBFD]">
+              <thead className="bg-[#F8FAFD]">
                 <tr>
                   <th
-                    className="sticky left-0 z-10 w-[160px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    className="sticky left-0 z-10 w-[160px] cursor-pointer bg-[#F8FAFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
                     onClick={() => handleSort('name')}
                   >
                     <span className="flex items-center gap-1">교인명 <SortIcon field="name" /></span>
                   </th>
                   <th
-                    className="sticky left-[160px] z-10 w-[160px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    className="sticky left-[160px] z-10 w-[160px] cursor-pointer bg-[#F8FAFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
                     onClick={() => handleSort('organization')}
                   >
                     <span className="flex items-center gap-1">조직 <SortIcon field="organization" /></span>
                   </th>
                   <th
-                    className="sticky left-[320px] z-10 w-[120px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    className="sticky left-[320px] z-10 w-[120px] cursor-pointer bg-[#F8FAFD] px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
                     onClick={() => handleSort('position')}
                   >
                     <span className="flex items-center gap-1">직분 <SortIcon field="position" /></span>
@@ -700,7 +697,7 @@ const Attendance: React.FC = () => {
                     </th>
                   ))}
                   <th
-                    className="sticky right-0 z-10 w-[100px] cursor-pointer bg-[#FAFBFD] px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
+                    className="sticky right-0 z-10 w-[100px] cursor-pointer bg-[#F8FAFD] px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8] transition-colors hover:text-foreground"
                     onClick={() => handleSort('rate')}
                   >
                     <span className="flex items-center justify-end gap-1">출석률 <SortIcon field="rate" /></span>
@@ -718,14 +715,14 @@ const Attendance: React.FC = () => {
                 {!loadingWeekly && sortedMembers.map((member) => {
                   const attendanceRate = getMemberAttendanceRate(member.id, serviceDates);
                   return (
-                    <tr key={member.id} className="transition-colors hover:bg-[#FAFBFD]">
-                      <td className="sticky left-0 z-10 w-[160px] bg-card px-[18px] py-3 font-semibold text-foreground">
+                    <tr key={member.id} className="transition-colors hover:bg-[#F8FAFD]">
+                      <td className="sticky left-0 z-10 w-[160px] bg-card px-[18px] py-3 text-[13px] font-semibold text-foreground">
                         {member.name}
                       </td>
-                      <td className="sticky left-[160px] z-10 w-[160px] truncate bg-card px-[18px] py-3 text-foreground">
+                      <td className="sticky left-[160px] z-10 w-[160px] truncate bg-card px-[18px] py-3 text-[13px] text-foreground">
                         {member.organization_name || <span className="text-[#CBD5E1]">-</span>}
                       </td>
-                      <td className="sticky left-[320px] z-10 w-[120px] truncate bg-card px-[18px] py-3 text-foreground">
+                      <td className="sticky left-[320px] z-10 w-[120px] truncate bg-card px-[18px] py-3 text-[13px] text-foreground">
                         {member.position_main
                           ? getPositionMainLabel(member.position_main)
                           : <span className="text-[#CBD5E1]">-</span>}
@@ -741,7 +738,7 @@ const Attendance: React.FC = () => {
                             key={index}
                             className={cn(
                               "cursor-pointer px-[16px] py-3 text-center align-middle transition-colors",
-                              attended ? "bg-[#E7F6EC]/40 hover:bg-[#E7F6EC]" : "hover:bg-[#FAFBFD]",
+                              attended ? "bg-[#E7F6EC]/40 hover:bg-[#E7F6EC]" : "hover:bg-[#F8FAFD]",
                               isUpdating && "opacity-50"
                             )}
                             onClick={() => !isUpdating && handleToggleAttendance(member.id, date)}

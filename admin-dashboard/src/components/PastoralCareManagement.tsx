@@ -1400,9 +1400,9 @@ const PastoralCareManagement: React.FC = () => {
                         </td>
 
                         {/* 유형 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                           <span className={cn(
-                            'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold',
+                            'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-semibold',
                             getRequestTypeChipClass(request.requestType)
                           )}>
                             {getRequestTypeText(request.requestType).replace(' 심방', '')}
@@ -1410,9 +1410,9 @@ const PastoralCareManagement: React.FC = () => {
                         </td>
 
                         {/* 우선순위 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px]">
                           <span
-                            className="inline-flex items-center gap-1 text-[12px] font-bold"
+                            className="inline-flex items-center gap-1"
                             style={{ color: priColor }}
                           >
                             <span
@@ -1424,31 +1424,31 @@ const PastoralCareManagement: React.FC = () => {
                         </td>
 
                         {/* 희망/방문일 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                           {request.scheduledDate
                             ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime : ''}`
                             : request.preferredDate || <span className="text-[#CBD5E1]">-</span>}
                         </td>
 
                         {/* 연락처 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                           {request.requesterPhone || <span className="text-[#CBD5E1]">-</span>}
                         </td>
 
                         {/* 담당자 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                           {request.assignedPastor ? request.assignedPastor.name : <span className="text-[#94A3B8]">담당 미정</span>}
                         </td>
 
                         {/* 조직 */}
-                        <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                        <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                           {[request.organizationName, request.department].filter(Boolean).join(' · ') || <span className="text-[#CBD5E1]">-</span>}
                         </td>
 
                         {/* 상태 */}
                         <td className="px-[18px] py-3 whitespace-nowrap">
                           <span className={cn(
-                            'inline-flex rounded-full px-[11px] py-[3px] text-[11px] font-bold whitespace-nowrap',
+                            'inline-flex rounded-full px-[11px] py-[3px] text-[11px] font-semibold whitespace-nowrap',
                             getStatusColor(request.status)
                           )}>
                             {getStatusText(request.status)}
@@ -1557,11 +1557,11 @@ const PastoralCareManagement: React.FC = () => {
                           <div className="font-semibold text-foreground">{record.requesterName}</div>
                         </div>
                       </td>
-                      <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{record.organizationName || '-'}</td>
-                      <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">{record.department || '-'}</td>
-                      <td className="px-[18px] py-3 whitespace-nowrap">
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">{record.organizationName || '-'}</td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">{record.department || '-'}</td>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                         <div className="flex items-center gap-1">
-                          <span className="text-foreground">{getRequestTypeText(record.requestType)}</span>
+                          <span>{getRequestTypeText(record.requestType)}</span>
                           {(record as any).isUrgent && (
                             <Badge variant="danger" className="gap-1">
                               <Zap className="h-3 w-3" />
@@ -1570,21 +1570,21 @@ const PastoralCareManagement: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-[18px] py-3 whitespace-nowrap">
-                        <span className={cn("font-medium", getPriorityColor(record.priority))}>
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px]">
+                        <span className={getPriorityColor(record.priority)}>
                           {getPriorityText(record.priority)}
                         </span>
                       </td>
-                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3 w-3 text-[#94A3B8]" />
                           {record.scheduledDate} {record.scheduledTime}
                         </div>
                       </td>
-                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
                         {record.assignedPastor?.name || '미지정'}
                       </td>
-                      <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                      <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                         <div className="flex items-center gap-1.5">
                           <CheckCircle className="h-3 w-3 text-[#16A34A]" />
                           {record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '-'}

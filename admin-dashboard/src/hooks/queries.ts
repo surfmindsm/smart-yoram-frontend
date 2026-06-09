@@ -71,6 +71,199 @@ export function useDepartments(churchId: number | null | undefined) {
   });
 }
 
+// 6) 계정과목 — 회계/예산/결산/헌금 화면 모두 공유
+export function useAccountCategories() {
+  return useQuery({
+    queryKey: ['accountCategories', 'all'],
+    queryFn: async () => {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return { income: [], expense: [] };
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const headers = {
+        'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+        'X-Custom-Auth': token,
+        'Content-Type': 'application/json',
+      };
+
+      const [incomeResponse, expenseResponse] = await Promise.all([
+        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=income`, { method: 'GET', headers }),
+        fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories?type=expense`, { method: 'GET', headers }),
+      ]);
+
+      let income: any[] = [];
+      let expense: any[] = [];
+
+      if (incomeResponse.ok) {
+        const data = await incomeResponse.json();
+        income = Array.isArray(data) ? data : (data?.data || []);
+      }
+      if (expenseResponse.ok) {
+        const data = await expenseResponse.json();
+        expense = Array.isArray(data) ? data : (data?.data || []);
+      }
+      return { income, expense };
+    },
+    staleTime: 5 * 60_000,    // 5분 — 자주 안 바뀜
+    gcTime: 30 * 60_000,
+  });
+}
+
+// 7) 회계 거래 — 회계 관리 화면에서 사용
+export function useAccountingTransactions(params: {
+  year?: number;
+  month?: number | null;
+  type?: 'income' | 'expense';
+}) {
+  const { year, month, type } = params;
+  return useQuery({
+    queryKey: ['accountingTransactions', year ?? 'all', month ?? 'all', type ?? 'all'],
+    queryFn: async () => {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return [];
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const queryParams = new URLSearchParams();
+      if (year) queryParams.append('year', year.toString());
+      if (month) queryParams.append('month', month.toString());
+      if (type) queryParams.append('type', type);
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/accounting/admin/transactions?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data?.data || []);
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// 8) 회계 요약 — 회계 관리 상단 카드
+export function useAccountingSummary(params: { year?: number; month?: number | null }) {
+  const { year, month } = params;
+  return useQuery({
+    queryKey: ['accountingSummary', year ?? 'all', month ?? 'all'],
+    queryFn: async () => {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return null;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const queryParams = new URLSearchParams();
+      if (year) queryParams.append('year', year.toString());
+      if (month) queryParams.append('month', month.toString());
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/accounting/admin/summary?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) return null;
+      return await response.json();
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// 9) 예산 (연간) — 예산 관리 / 결산에서 사용
+export function useBudgets(year: number) {
+  return useQuery({
+    queryKey: ['budgets', 'annual', year],
+    queryFn: async () => {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return [];
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/budgets/admin/budgets?year=${year}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) return [];
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : [];
+      return list.filter((b: any) => b.month === null);
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// 10) 예산 vs 실적 — 결산 화면
+export function useBudgetVsActual(year: number) {
+  return useQuery({
+    queryKey: ['budgetVsActual', year],
+    queryFn: async () => {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return { comparison: [], summary: null };
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/budgets/admin/budgets/vs-actual?year=${year}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+            'X-Custom-Auth': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) return { comparison: [], summary: null };
+      const data = await response.json();
+      return { comparison: data.comparison || [], summary: data.summary || null };
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// 11) 헌금 목록 — 헌금 관리 화면
+export function useDonations(params: { year?: number; month?: number | null; fundType?: string; memberId?: number | null }) {
+  const { year, month, fundType, memberId } = params;
+  return useQuery({
+    queryKey: ['donations', 'list', year ?? 'all', month ?? 'all', fundType ?? 'all', memberId ?? 'all'],
+    queryFn: async () => {
+      const queryParams: any = { limit: 5000 };
+      if (year) queryParams.year = year;
+      if (month) queryParams.month = month;
+      if (fundType) queryParams.fund_type = fundType;
+      if (memberId) queryParams.member_id = memberId;
+
+      const result = await supabaseApiService.offerings.getAll(queryParams);
+      return Array.isArray(result) ? result : (result?.data || []);
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
 // 5) 활성 예배 목록 — 출석 화면에서 사용
 export function useWorshipServices(churchId: number | null | undefined) {
   return useQuery({

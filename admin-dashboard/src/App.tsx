@@ -12,18 +12,27 @@ import { Toaster } from './components/ui';
 import { Spinner, LoadingState } from './components/ui/spinner';
 import { Card } from './components/ui/card';
 import { PageContainer } from './components/ui/PageContainer';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
 // React Query 클라이언트 — 화면 간 공유 데이터 캐시
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,           // 1분 동안 신선
-      gcTime: 5 * 60_000,          // 5분간 캐시 보관
+      gcTime: 24 * 60 * 60_000,    // 24시간 — persist를 위해 길게 (persist는 gcTime을 넘기지 못함)
       refetchOnWindowFocus: false, // 포커스 시 자동 재요청 끔(과도한 호출 방지)
       retry: 1,
     },
   },
+});
+
+// localStorage 기반 캐시 영속화 — 새로고침해도 데이터 즉시 표시 + 백그라운드 갱신
+const localStoragePersister = createSyncStoragePersister({
+  storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  key: 'church-round:react-query-cache',
+  throttleTime: 1000,
 });
 
 // Lazy load components for code splitting
@@ -160,7 +169,14 @@ const PageLoadingFallback = () => (
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: localStoragePersister,
+        maxAge: 24 * 60 * 60_000, // 24시간 후 캐시 만료
+        buster: 'v1',              // 캐시 무효화 버전 (스키마 바뀔 때 올림)
+      }}
+    >
     <ToastProvider>
       <SpinnerProvider>
         <Router>
@@ -614,7 +630,7 @@ function App() {
         </Router>
       </SpinnerProvider>
     </ToastProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 
