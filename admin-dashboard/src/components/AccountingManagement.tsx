@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui";
 import { Label } from "./ui";
 import { Textarea } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import { PageContainer } from "./ui";
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
+import { DatePicker } from "./ui/date-picker";
 import { DateRangePicker } from "./ui";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Checkbox } from "./ui/checkbox";
@@ -675,6 +677,31 @@ const AccountingManagement: React.FC = () => {
     return labels[method] || method;
   };
 
+  /**
+   * 계정과목 트리 정렬: 부모(parent_id null) 다음 자식들을 그룹별로 출력.
+   * 같은 그룹 내에서는 display_order → name 순.
+   */
+  const sortCategoriesByHierarchy = (categories: AccountCategory[]): AccountCategory[] => {
+    const sortFn = (a: AccountCategory, b: AccountCategory) => {
+      if ((a.display_order || 0) !== (b.display_order || 0)) {
+        return (a.display_order || 0) - (b.display_order || 0);
+      }
+      return a.name.localeCompare(b.name, 'ko-KR');
+    };
+    const parents = categories.filter(c => !c.parent_id).sort(sortFn);
+    const result: AccountCategory[] = [];
+    for (const parent of parents) {
+      result.push(parent);
+      const children = categories.filter(c => c.parent_id === parent.id).sort(sortFn);
+      result.push(...children);
+    }
+    // 부모가 결과에 포함되지 않은 고아 자식들도 끝에 추가
+    const includedIds = new Set(result.map(c => c.id));
+    const orphans = categories.filter(c => !includedIds.has(c.id));
+    result.push(...orphans);
+    return result;
+  };
+
   const exportToExcel = async () => {
     // 엑셀로 내보낼 데이터 준비
     const excelData = filteredTransactions.map((transaction) => ({
@@ -742,124 +769,169 @@ const AccountingManagement: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
+  // 상단바 부제·액션 (Hook은 early return 전)
+  usePageSubtitle(
+    summary ? `수입 ${summary.income_count}건 · 지출 ${summary.expense_count}건` : undefined
+  );
+  usePageActions(
+    <>
+      <Button
+        onClick={exportToExcel}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+        disabled={filteredTransactions.length === 0}
+      >
+        <Download className="h-3.5 w-3.5" />
+        엑셀 다운
+      </Button>
+      <Button
+        onClick={handleAddNew}
+        size="sm"
+        className="gap-2"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        거래 추가
+      </Button>
+    </>,
+    [filteredTransactions.length]
+  );
+
   return (
     <PageContainer>
-      <PageHeader
-        title="회계 관리"
-        actions={
-          <>
-            <Button
-              onClick={exportToExcel}
-              variant="outline"
-              className="flex items-center gap-2"
-              disabled={filteredTransactions.length === 0}
-            >
-              <Download className="w-4 h-4" />
-              엑셀 다운로드
-            </Button>
-            <Button
-              onClick={handleAddNew}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              거래 내역 추가
-            </Button>
-          </>
-        }
-      />
-
-      {/* 검색 및 필터 */}
-      <div className="mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* 검색 Input */}
-          <Input
-            type="text"
-            placeholder="거래처, 내용, 계정과목 검색"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-[400px]"
-          />
-
-          {/* 전체보기 버튼 */}
-          {searchTerm && (
-            <Button
-              onClick={() => setSearchTerm('')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              전체보기
-            </Button>
-          )}
-
-          {/* 구분 필터 */}
-          <Popover>
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer bg-white",
-                typeFilter.length > 0 && "border-blue-300 text-blue-700"
-              )}
-            >
-              <PopoverTrigger asChild>
-                <div className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-sm">구분</span>
-                  {typeFilter.length === 0 && (
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  )}
-                </div>
-              </PopoverTrigger>
-              {typeFilter.length > 0 && (
-                <X
-                  className="h-4 w-4 opacity-50 hover:opacity-100 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setTypeFilter([]);
-                  }}
-                />
-              )}
-            </div>
-            <PopoverContent className="w-[200px] p-3" align="start">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-income"
-                    checked={typeFilter.includes('income')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setTypeFilter([...typeFilter, 'income']);
-                      } else {
-                        setTypeFilter(typeFilter.filter((v) => v !== 'income'));
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="type-income"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    수입
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="type-expense"
-                    checked={typeFilter.includes('expense')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setTypeFilter([...typeFilter, 'expense']);
-                      } else {
-                        setTypeFilter(typeFilter.filter((v) => v !== 'expense'));
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="type-expense"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    지출
-                  </label>
-                </div>
+      {/* KPI strip */}
+      {summary && (
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
+                <TrendingUp className="h-[18px] w-[18px]" />
               </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">총 수입</div>
+                <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#16A34A]">
+                  {formatCurrency(summary.total_income)}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[#94A3B8]">{summary.income_count}건</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
+                <TrendingDown className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">총 지출</div>
+                <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#DC2626]">
+                  {formatCurrency(summary.total_expense)}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[#94A3B8]">{summary.expense_count}건</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center gap-3 px-4 py-[14px]">
+              <div className={cn(
+                "flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px]",
+                summary.net >= 0 ? "bg-[#EAF1FE] text-[#2563EB]" : "bg-[#FBF1E3] text-[#B45309]"
+              )}>
+                <DollarSign className="h-[18px] w-[18px]" />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-muted-foreground">순 수익</div>
+                <div className={cn(
+                  "text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums",
+                  summary.net >= 0 ? "text-[#2563EB]" : "text-[#B45309]"
+                )}>
+                  {formatCurrency(summary.net)}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[#94A3B8]">수입 − 지출</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* 검색·필터 + 테이블 통합 카드 */}
+      <Card className="overflow-hidden">
+        {/* 검색·필터 바 */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="거래처, 내용, 계정과목 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full md:w-[320px]"
+            />
+          </div>
+
+          <div className="flex-1" />
+
+          {/* 구분 필터 — 표준 패턴 */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-[38px] w-auto min-w-[140px] items-center justify-between gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-foreground transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-[12.5px] text-muted-foreground">구분</span>
+                  <span className="font-medium">
+                    {typeFilter.length === 0
+                      ? '전체'
+                      : typeFilter.length === 1
+                        ? (typeFilter[0] === 'income' ? '수입' : '지출')
+                        : `${typeFilter.length}개 선택`}
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="end">
+              <div className="py-1.5">
+                {[
+                  { value: 'income', label: '수입' },
+                  { value: 'expense', label: '지출' },
+                ].map(opt => {
+                  const checked = typeFilter.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      htmlFor={`type-${opt.value}`}
+                      className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-secondary"
+                    >
+                      <Checkbox
+                        id={`type-${opt.value}`}
+                        checked={checked}
+                        onCheckedChange={(c) => {
+                          if (c) {
+                            setTypeFilter([...typeFilter, opt.value]);
+                          } else {
+                            setTypeFilter(typeFilter.filter((v) => v !== opt.value));
+                          }
+                        }}
+                      />
+                      <span className="flex-1">{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {typeFilter.length > 0 && (
+                <div className="border-t border-border px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setTypeFilter([])}
+                    className="text-[12px] font-semibold text-primary hover:underline"
+                  >
+                    선택 초기화
+                  </button>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
 
@@ -869,195 +941,139 @@ const AccountingManagement: React.FC = () => {
             onChange={setDateRange}
           />
         </div>
-      </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">총 수입</p>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_income)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{summary.income_count}건</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* 테이블 */}
+        {loading ? (
+          <LoadingState text="거래 내역을 불러오는 중..." />
+        ) : paginatedTransactions.length === 0 ? (
+          <div className="py-12 text-center">
+            <DollarSign className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <p className="text-[13px] text-muted-foreground">거래 내역이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] text-[12.5px] table-fixed">
+              <colgroup>
+                <col className="w-[110px]" />
+                <col className="w-[80px]" />
+                <col className="w-[140px]" />
+                <col className="w-[140px]" />
+                <col />
+                <col className="w-[130px]" />
+                <col className="w-[100px]" />
+                <col className="w-[80px]" />
+              </colgroup>
+              <thead className="bg-[#FAFBFD]">
+                <tr>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">날짜</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">구분</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">계정과목</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">거래처</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">내용</th>
+                  <th className="px-[18px] py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">금액</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">결제수단</th>
+                  <th className="px-[18px] py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">영수증</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {paginatedTransactions.map((transaction) => (
+                  <tr
+                    key={transaction.id}
+                    className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                    onClick={() => handleEdit(transaction)}
+                  >
+                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground tabular-nums">
+                      {formatDate(transaction.transaction_date)}
+                    </td>
+                    <td className="px-[18px] py-3 whitespace-nowrap">
+                      <span className={cn(
+                        'inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-bold whitespace-nowrap',
+                        transaction.type === 'income'
+                          ? 'bg-[#E7F6EC] text-[#16A34A]'
+                          : 'bg-[#FCEBEB] text-[#DC2626]'
+                      )}>
+                        {transaction.type === 'income' ? '수입' : '지출'}
+                      </span>
+                    </td>
+                    <td className="px-[18px] py-3 whitespace-nowrap font-semibold text-foreground">
+                      {transaction.category?.name || <span className="text-[#CBD5E1]">-</span>}
+                    </td>
+                    <td className="px-[18px] py-3 whitespace-nowrap text-foreground">
+                      {transaction.vendor_name || <span className="text-[#CBD5E1]">-</span>}
+                    </td>
+                    <td className="px-[18px] py-3 text-muted-foreground">
+                      <div className="max-w-[320px] truncate">
+                        {transaction.description || <span className="text-[#CBD5E1]">-</span>}
+                      </div>
+                    </td>
+                    <td className={cn(
+                      "px-[18px] py-3 whitespace-nowrap text-right font-bold tabular-nums",
+                      transaction.type === 'income' ? 'text-[#16A34A]' : 'text-[#DC2626]'
+                    )}>
+                      {transaction.type === 'income' ? '+' : '−'}{formatCurrency(transaction.amount)}
+                    </td>
+                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                      {getPaymentMethodLabel(transaction.payment_method)}
+                    </td>
+                    <td
+                      className="px-[18px] py-3 whitespace-nowrap text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {transaction.receipt_urls && transaction.receipt_urls.length > 0 ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const receipts: ReceiptFile[] = transaction.receipt_urls!.map((url) => {
+                              const filename = url.split('/').pop()?.split('?')[0] || '영수증';
+                              return { url, filename };
+                            });
+                            setPreviewReceipts(receipts);
+                            setCurrentReceiptIndex(0);
+                            setShowReceiptModal(true);
+                          }}
+                          className="relative h-[30px] w-[30px] p-0 text-[#16A34A] hover:bg-[#E7F6EC] hover:text-[#16A34A]"
+                          title="영수증 보기"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {transaction.receipt_urls.length > 1 && (
+                            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                              {transaction.receipt_urls.length}
+                            </span>
+                          )}
+                        </Button>
+                      ) : (
+                        <span className="text-[#CBD5E1]">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">총 지출</p>
-                  <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.total_expense)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{summary.expense_count}건</p>
-                </div>
-                <TrendingDown className="w-8 h-8 text-red-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-muted">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">순 수익</p>
-                  <p className={`text-2xl font-bold ${summary.net >= 0 ? 'text-primary-600' : 'text-orange-600'}`}>
-                    {formatCurrency(summary.net)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">수입 - 지출</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-primary-600" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* 합계 + 페이지네이션 — 카드 밖 (교인 관리 패턴) */}
+      {!loading && filteredTransactions.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[12.5px] text-muted-foreground">
+            전체 <b className="text-foreground">{totalItems.toLocaleString()}</b>건
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(newItemsPerPage) => {
+              setItemsPerPage(newItemsPerPage);
+              setCurrentPage(1);
+            }}
+            itemsPerPageOptions={[10, 20, 50, 100]}
+          />
         </div>
       )}
-
-      {/* Transactions */}
-      <div className="space-y-4">
-          {/* Transactions Table */}
-          {loading ? (
-            <Card>
-              <LoadingState text="거래 내역을 불러오는 중..." />
-            </Card>
-          ) : paginatedTransactions.length === 0 ? (
-            <Card className="border-muted">
-              <CardContent className="text-center py-12">
-                <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">거래 내역이 없습니다.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-muted">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">구분</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">계정과목</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">거래처</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">내용</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">결제수단</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">영수증</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(transaction.transaction_date)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            transaction.type === 'income'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {transaction.type === 'income' ? '수입' : '지출'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.category?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.vendor_name || '-'}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {transaction.description || '-'}
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
-                          {getPaymentMethodLabel(transaction.payment_method)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                          {transaction.receipt_urls && transaction.receipt_urls.length > 0 ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                // URL에서 파일명 추출하여 ReceiptFile[] 생성
-                                const receipts: ReceiptFile[] = transaction.receipt_urls!.map((url) => {
-                                  const filename = url.split('/').pop()?.split('?')[0] || '영수증';
-                                  return { url, filename };
-                                });
-                                setPreviewReceipts(receipts);
-                                setCurrentReceiptIndex(0);
-                                setShowReceiptModal(true);
-                              }}
-                              className="text-green-600 hover:text-green-800 hover:bg-green-50 h-8 w-8 p-0 relative"
-                              title="영수증 보기"
-                            >
-                              <FileText className="w-4 h-4" />
-                              {transaction.receipt_urls.length > 1 && (
-                                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                  {transaction.receipt_urls.length}
-                                </span>
-                              )}
-                            </Button>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(transaction)}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 w-8 p-0"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(transaction.id)}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50 h-8 w-8 p-0"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {/* Total Count and Pagination */}
-          {!loading && filteredTransactions.length > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                전체 {totalItems.toLocaleString()}건
-              </div>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                itemsPerPage={itemsPerPage}
-                totalItems={totalItems}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(newItemsPerPage) => {
-                  setItemsPerPage(newItemsPerPage);
-                  setCurrentPage(1);
-                }}
-                itemsPerPageOptions={[10, 20, 50, 100]}
-              />
-            </div>
-          )}
-      </div>
 
       {/* Add/Edit Transaction Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
@@ -1067,32 +1083,34 @@ const AccountingManagement: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            {/* 거래 유형 */}
+            {/* 거래 유형 — segment 토글 */}
             <div className="space-y-2">
-              <Label>거래 유형</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="type"
-                    value="income"
-                    checked={newTransaction.type === 'income'}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, type: 'income', category_id: '' })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-green-700">수입</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="type"
-                    value="expense"
-                    checked={newTransaction.type === 'expense'}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, type: 'expense', category_id: '' })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-red-700">지출</span>
-                </label>
+              <Label className="block">거래 유형</Label>
+              <div className="inline-flex items-center gap-[2px] rounded-[8px] bg-secondary p-[3px]">
+                <button
+                  type="button"
+                  onClick={() => setNewTransaction({ ...newTransaction, type: 'income', category_id: '' })}
+                  className={cn(
+                    'rounded-[6px] px-4 py-[6px] text-[13px] font-semibold transition-colors',
+                    newTransaction.type === 'income'
+                      ? 'bg-card text-[#16A34A] shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  수입
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewTransaction({ ...newTransaction, type: 'expense', category_id: '' })}
+                  className={cn(
+                    'rounded-[6px] px-4 py-[6px] text-[13px] font-semibold transition-colors',
+                    newTransaction.type === 'expense'
+                      ? 'bg-card text-[#DC2626] shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  지출
+                </button>
               </div>
             </div>
 
@@ -1107,12 +1125,17 @@ const AccountingManagement: React.FC = () => {
                   <SelectValue placeholder="계정과목 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(newTransaction.type === 'income' ? incomeCategories : expenseCategories)
-                    .map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.parent_id ? `  ∙ ${category.name}` : category.name}
-                      </SelectItem>
-                    ))}
+                  {sortCategoriesByHierarchy(
+                    newTransaction.type === 'income' ? incomeCategories : expenseCategories
+                  ).map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.parent_id ? (
+                        <span className="pl-4 text-[#475569]">└ {category.name}</span>
+                      ) : (
+                        <span className="font-semibold text-foreground">{category.name}</span>
+                      )}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1120,11 +1143,10 @@ const AccountingManagement: React.FC = () => {
             {/* 거래 날짜 */}
             <div className="space-y-2">
               <Label htmlFor="transaction_date">거래 날짜 *</Label>
-              <Input
-                id="transaction_date"
-                type="date"
+              <DatePicker
                 value={newTransaction.transaction_date}
-                onChange={(e) => setNewTransaction({ ...newTransaction, transaction_date: e.target.value })}
+                onChange={(value) => setNewTransaction({ ...newTransaction, transaction_date: value })}
+                placeholder="날짜 선택"
               />
             </div>
 
@@ -1133,12 +1155,19 @@ const AccountingManagement: React.FC = () => {
               <Label htmlFor="amount">금액 (원) *</Label>
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="0"
-                value={newTransaction.amount}
-                onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                min="0"
-                step="1000"
+                value={
+                  newTransaction.amount
+                    ? Number(newTransaction.amount).toLocaleString('ko-KR')
+                    : ''
+                }
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/[^\d]/g, '');
+                  setNewTransaction({ ...newTransaction, amount: digits });
+                }}
+                className="text-right tabular-nums"
               />
             </div>
 
@@ -1231,33 +1260,34 @@ const AccountingManagement: React.FC = () => {
                 {/* 현재 업로드된 영수증 (수정 모드일 때) */}
                 {editingTransaction?.receipt_metadata && editingTransaction.receipt_metadata.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">등록된 영수증 ({editingTransaction.receipt_metadata.length}개)</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
+                      등록된 영수증 ({editingTransaction.receipt_metadata.length}개)
+                    </p>
                     {editingTransaction.receipt_metadata.map((receipt, index) => {
                       const isPdf = receipt.url.toLowerCase().endsWith('.pdf') || receipt.url.includes('.pdf?');
                       return (
-                        <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-md">
+                        <div key={index} className="flex items-center gap-2 rounded-[8px] bg-[#FAFBFD] px-3 py-2">
                           {isPdf ? (
-                            <FileText className="w-4 h-4 text-gray-500" />
+                            <FileText className="h-4 w-4 text-[#94A3B8]" />
                           ) : (
-                            <ImageIcon className="w-4 h-4 text-gray-500" />
+                            <ImageIcon className="h-4 w-4 text-[#94A3B8]" />
                           )}
-                          <span className="text-sm text-gray-700 flex-1 truncate">{receipt.filename}</span>
+                          <span className="flex-1 truncate text-[13px] text-foreground">{receipt.filename}</span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => window.open(receipt.url, '_blank')}
-                            className="text-blue-600 hover:text-blue-800 h-8 w-8 p-0"
+                            className="h-[30px] w-[30px] p-0 text-primary hover:bg-accent"
                             title="보기"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              // 다운로드
                               const a = document.createElement('a');
                               a.href = receipt.url;
                               a.download = receipt.filename;
@@ -1266,20 +1296,20 @@ const AccountingManagement: React.FC = () => {
                               a.click();
                               document.body.removeChild(a);
                             }}
-                            className="text-green-600 hover:text-green-800 h-8 w-8 p-0"
+                            className="h-[30px] w-[30px] p-0 text-[#16A34A] hover:bg-[#E7F6EC] hover:text-[#16A34A]"
                             title="다운로드"
                           >
-                            <Download className="w-4 h-4" />
+                            <Download className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveExistingReceipt(index)}
-                            className="text-red-600 hover:text-red-800 h-8 w-8 p-0"
+                            className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
                             title="삭제"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       );
@@ -1290,15 +1320,17 @@ const AccountingManagement: React.FC = () => {
                 {/* 선택된 파일 미리보기 */}
                 {receiptFiles.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-blue-700">새로 추가할 파일 ({receiptFiles.length}개)</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
+                      새로 추가할 파일 ({receiptFiles.length}개)
+                    </p>
                     {receiptFiles.map((file, index) => (
-                      <div key={index} className="flex items-center gap-2 p-3 bg-blue-50 rounded-md">
+                      <div key={index} className="flex items-center gap-2 rounded-[8px] bg-[#EAF1FE] px-3 py-2">
                         {file.type.startsWith('image/') ? (
-                          <ImageIcon className="w-4 h-4 text-blue-600" />
+                          <ImageIcon className="h-4 w-4 text-[#2563EB]" />
                         ) : (
-                          <FileText className="w-4 h-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-[#2563EB]" />
                         )}
-                        <span className="text-sm text-blue-800 flex-1 truncate">{file.name}</span>
+                        <span className="flex-1 truncate text-[13px] text-[#1E40AF]">{file.name}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -1306,9 +1338,10 @@ const AccountingManagement: React.FC = () => {
                           onClick={() => {
                             setReceiptFiles(receiptFiles.filter((_, i) => i !== index));
                           }}
-                          className="text-red-600 hover:text-red-800"
+                          className="h-[30px] w-[30px] p-0 text-[#DC2626] hover:bg-[#FCEBEB] hover:text-[#DC2626]"
+                          title="제거"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     ))}
@@ -1317,24 +1350,44 @@ const AccountingManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* 버튼 */}
-            <div className="flex gap-2 justify-end pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingTransaction(null);
-                }}
-              >
-                취소
-              </Button>
-              <Button
-                type="button"
-                onClick={editingTransaction ? updateTransaction : addTransaction}
-              >
-                {editingTransaction ? '수정' : '저장'}
-              </Button>
+            {/* 버튼 — 편집 모드는 좌측 삭제 + 우측 취소/수정 */}
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-4">
+              <div>
+                {editingTransaction && (
+                  <Button
+                    type="button"
+                    variant="destructive-soft"
+                    size="sm"
+                    onClick={() => {
+                      handleDelete(editingTransaction.id);
+                    }}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    삭제
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingTransaction(null);
+                  }}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={editingTransaction ? updateTransaction : addTransaction}
+                >
+                  {editingTransaction ? '수정' : '저장'}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -1350,10 +1403,11 @@ const AccountingManagement: React.FC = () => {
             <p className="text-sm text-gray-600">
               이 거래 내역을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
-            <div className="flex gap-2 justify-end pt-4">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDeleteDialog(false);
                   setDeletingTransactionId(null);
@@ -1363,9 +1417,12 @@ const AccountingManagement: React.FC = () => {
               </Button>
               <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={deleteTransaction}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="gap-1.5"
               >
+                <Trash2 className="h-3.5 w-3.5" />
                 삭제
               </Button>
             </div>
@@ -1491,10 +1548,11 @@ const AccountingManagement: React.FC = () => {
               )}
 
               {/* 닫기 버튼 */}
-              <div className="flex justify-end pt-2">
+              <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowReceiptModal(false)}
                 >
                   닫기
