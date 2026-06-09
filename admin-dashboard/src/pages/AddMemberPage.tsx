@@ -6,14 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../components/ui";
 import { DatePicker } from "../components/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui";
+import { PageContainer } from "../components/ui";
+import { usePageTitle, usePageLeading, usePageActions } from '../hooks/usePageSubtitle';
 import {
   ContactRound,
   Briefcase,
   Church,
   Heart,
   Plus,
-  MapPin,
-  Save,
   X,
   Camera,
   ChevronDown,
@@ -437,52 +437,42 @@ Church Round 앱에 초대되셨습니다.
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => navigate('/member-management')}
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                뒤로
-              </Button>
-              <div className="flex items-center gap-3">
-                <UserPlus className="w-6 h-6 text-primary" />
-                <h1 className="text-2xl font-bold text-foreground">새 교인 등록</h1>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => navigate('/member-management')}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                취소
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || !isFormValid()}
-                className="flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                {loading ? '등록 중...' : '등록 완료'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+  // 진입형 서브 페이지 — 상단바 통일 (BulkDonationInput 패턴)
+  usePageTitle('새 교인 등록');
+  usePageLeading(
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => navigate('/member-management')}
+      className="h-[32px] w-[32px] p-0"
+      title="교인 관리로 돌아가기"
+    >
+      <ArrowLeft className="h-4 w-4" />
+    </Button>
+  );
+  usePageActions(
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('/member-management')}
+      >
+        취소
+      </Button>
+      <Button
+        size="sm"
+        onClick={handleSubmit}
+        disabled={loading || !isFormValid()}
+      >
+        {loading ? '등록 중...' : '등록'}
+      </Button>
+    </>,
+    [loading, formData.name]
+  );
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+  return (
+    <PageContainer>
+      <div className="space-y-6">
           {/* 프로필 사진 */}
           <div className="bg-card border rounded-lg p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">프로필 사진</h3>
@@ -1233,7 +1223,6 @@ Church Round 앱에 초대되셨습니다.
             </div>
           </details>
         </div>
-      </div>
 
       {/* 초대 메시지 모달 */}
       <Dialog open={showInviteMessage} onOpenChange={handleCloseInviteMessage}>
@@ -1264,32 +1253,22 @@ Church Round 앱에 초대되셨습니다.
               </pre>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                onClick={handleCopyMessage}
                 variant={copySuccess ? "default" : "outline"}
-                className="flex items-center gap-2"
+                size="sm"
+                onClick={handleCopyMessage}
               >
-                {copySuccess ? (
-                  <>
-                    <span className="text-green-600">✓</span>
-                    복사됨!
-                  </>
-                ) : (
-                  <>
-                    <span>📋</span>
-                    메시지 복사
-                  </>
-                )}
+                {copySuccess ? '복사됨!' : '메시지 복사'}
               </Button>
-              <Button onClick={handleCloseInviteMessage}>
+              <Button size="sm" onClick={handleCloseInviteMessage}>
                 확인
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

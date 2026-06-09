@@ -2560,15 +2560,16 @@ Church Round 앱에 초대되셨습니다.
                 onChange={(e) => setNewMember({...newMember, position_main: e.target.value})}
               />
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowAddModal(false)}
               >
                 취소
               </Button>
-              <Button type="submit">
+              <Button type="submit" size="sm">
                 등록
               </Button>
             </div>
@@ -2629,10 +2630,11 @@ Church Round 앱에 초대되셨습니다.
               </p>
             </div>
 
-            <div className="flex justify-end">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowPhotoModal(false)}
-                variant="outline"
               >
                 닫기
               </Button>
@@ -2687,27 +2689,29 @@ Church Round 앱에 초대되셨습니다.
               </>
             )}
 
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordInfo(null);
+                  setShowPassword(false);
+                }}
+              >
+                닫기
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={() => {
                   if (passwordInfo) {
                     navigator.clipboard.writeText(passwordInfo.password);
                     alert('비밀번호가 클립보드에 복사되었습니다.');
                   }
                 }}
-                variant="secondary"
               >
                 복사
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  setPasswordInfo(null);
-                  setShowPassword(false);
-                }}
-                variant="outline"
-              >
-                닫기
               </Button>
             </div>
           </div>
@@ -2716,108 +2720,18 @@ Church Round 앱에 초대되셨습니다.
 
       {/* Member Detail Modal */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden bg-card">
           <DialogHeader>
-            <div className="flex items-start justify-between mb-2">
-              <DialogTitle className="flex items-center gap-2 flex-1">
-                <User className="w-5 h-5" />
-                {selectedMember?.name}님 상세정보
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                교인의 상세 정보를 보고 수정할 수 있습니다.
-              </DialogDescription>
-            </div>
-            <div className="flex justify-end gap-2 -mt-2 mb-4">
-              {!isEditMode ? (
-                <>
-                  <Button
-                    onClick={() => handleSendInvitation(selectedMember!)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                    disabled={smsLoading === selectedMember?.id || !selectedMember?.phone || selectedMember?.invitation_status === 'active'}
-                  >
-                    {smsLoading === selectedMember?.id ? (
-                      <Spinner size="sm" variant="white" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                    앱 사용자 초대
-                  </Button>
-
-                  {/* 관리자 지정 버튼 - Church Super Admin에게만 표시 */}
-                  {currentUser && (isChurchSuperAdmin(currentUser) || isSuperAdmin(currentUser)) && (
-                    <Button
-                      onClick={() => handleAssignAdminRole(selectedMember!)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      disabled={roleChangeLoading}
-                    >
-                      {roleChangeLoading ? (
-                        <Spinner size="sm" variant="white" />
-                      ) : (
-                        <Shield className="w-4 h-4" />
-                      )}
-                      관리자 지정
-                    </Button>
-                  )}
-
-                  {canEditMember && (
-                    <Button
-                      onClick={() => navigate(`/member-management/edit/${selectedMember!.id}`, {
-                        state: {
-                          returnPage: pagination.current_page,
-                          returnPerPage: pagination.per_page
-                        }
-                      })}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      수정
-                    </Button>
-                  )}
-                  {canDeleteMember && (
-                    <Button
-                      onClick={handleDeleteClick}
-                      variant="destructive"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      삭제
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleSaveMember}
-                    variant="default"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    <Save className="w-4 h-4" />
-                    저장
-                  </Button>
-                  <Button
-                    onClick={handleCancelEdit}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    <X className="w-4 h-4" />
-                    취소
-                  </Button>
-                </>
-              )}
-            </div>
+            <DialogTitle>
+              {selectedMember?.name ? `${selectedMember.name}님 상세정보` : '교인 상세정보'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              교인의 상세 정보를 보고 수정할 수 있습니다.
+            </DialogDescription>
           </DialogHeader>
 
           {selectedMember && (
-            <div className="space-y-5">
+            <div className="slim-scrollbar -mr-6 flex-1 overflow-y-auto pr-4 space-y-5">
               {/* === Profile Band (시안 매핑: 사진 + 이름+영문 + 칩들 + 메타 한 줄) === */}
               <div className="flex items-center gap-[18px] rounded-[12px] border border-border bg-card p-[18px]">
                 {/* 사진 (68px rounded-[16px]) */}
@@ -2895,38 +2809,6 @@ Church Round 앱에 초대되셨습니다.
                   </div>
                 </div>
 
-                {/* 우측 빠른 액션 (전화/문자/메일) — 뷰 모드에서만 */}
-                {!isEditMode && (
-                  <div className="flex flex-shrink-0 gap-2">
-                    {selectedMember.phone && (
-                      <a
-                        href={`tel:${selectedMember.phone}`}
-                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
-                      >
-                        <Phone className="h-3.5 w-3.5 text-[#64748B]" />
-                        전화
-                      </a>
-                    )}
-                    {selectedMember.phone && (
-                      <a
-                        href={`sms:${selectedMember.phone}`}
-                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5 text-[#64748B]" />
-                        문자
-                      </a>
-                    )}
-                    {selectedMember.email && (
-                      <a
-                        href={`mailto:${selectedMember.email}`}
-                        className="inline-flex h-[34px] items-center gap-1.5 rounded-[8px] border border-border bg-card px-3 text-[12.5px] font-semibold text-[#334155] transition-colors hover:bg-secondary"
-                      >
-                        <Mail className="h-3.5 w-3.5 text-[#64748B]" />
-                        메일
-                      </a>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* 기본 정보 */}
@@ -3847,6 +3729,100 @@ Church Round 앱에 초대되셨습니다.
             </div>
             </div>
           )}
+
+          {/* 푸터 — 다른 모달과 통일 (좌측 위험 액션, 우측 보조/주 액션) */}
+          {selectedMember && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {!isEditMode && canDeleteMember && (
+                  <Button
+                    variant="destructive-soft"
+                    size="sm"
+                    onClick={handleDeleteClick}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    삭제
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {!isEditMode && (
+                  <>
+                    {/* 보조 액션 그룹 */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSendInvitation(selectedMember)}
+                      disabled={
+                        smsLoading === selectedMember.id
+                        || !selectedMember.phone
+                        || selectedMember.invitation_status === 'active'
+                      }
+                      className="gap-2"
+                    >
+                      {smsLoading === selectedMember.id ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      앱 사용자 초대
+                    </Button>
+                    {currentUser && (isChurchSuperAdmin(currentUser) || isSuperAdmin(currentUser)) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAssignAdminRole(selectedMember)}
+                        disabled={roleChangeLoading}
+                        className="gap-2"
+                      >
+                        {roleChangeLoading ? (
+                          <Spinner size="sm" />
+                        ) : (
+                          <Shield className="h-3.5 w-3.5" />
+                        )}
+                        관리자 지정
+                      </Button>
+                    )}
+                    {/* 구분선 — 보조 액션과 수정/닫기 분리 */}
+                    <div className="mx-1 h-5 w-px bg-border" />
+                    {/* 수정 + 닫기 (닫기가 가장 우측) */}
+                    {canEditMember && (
+                      <Button
+                        size="sm"
+                        onClick={() => navigate(`/member-management/edit/${selectedMember.id}`, {
+                          state: {
+                            returnPage: pagination.current_page,
+                            returnPerPage: pagination.per_page
+                          }
+                        })}
+                      >
+                        수정
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDetailModal(false)}
+                    >
+                      닫기
+                    </Button>
+                  </>
+                )}
+                {isEditMode && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                      취소
+                    </Button>
+                    <Button size="sm" onClick={handleSaveMember}>
+                      저장
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -3871,19 +3847,21 @@ Church Round 앱에 초대되셨습니다.
                 <strong>주의:</strong> 삭제된 정보는 복구할 수 없습니다.
               </p>
             </div>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowDeleteConfirm(false)}
-                variant="outline"
               >
                 취소
               </Button>
               <Button
-                onClick={handleDeleteMember}
                 variant="destructive"
-                className="flex items-center gap-2"
+                size="sm"
+                onClick={handleDeleteMember}
+                className="gap-1.5"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-3.5 w-3.5" />
                 삭제
               </Button>
             </div>
@@ -3923,23 +3901,25 @@ Church Round 앱에 초대되셨습니다.
                 <strong>경고:</strong> 모든 개인정보가 완전히 삭제됩니다.
               </p>
             </div>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowBulkDeleteConfirm(false)}
-                variant="outline"
               >
                 취소
               </Button>
               <Button
-                onClick={confirmBulkDelete}
                 variant="destructive"
-                className="flex items-center gap-2"
+                size="sm"
+                onClick={confirmBulkDelete}
                 disabled={isBulkDeleting}
+                className="gap-1.5"
               >
                 {isBulkDeleting ? (
                   <Spinner size="sm" variant="white" />
                 ) : (
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 )}
                 {isBulkDeleting ? '삭제 중...' : `${selectedMembers.size}명 삭제`}
               </Button>
@@ -4169,23 +4149,25 @@ Church Round 앱에 초대되셨습니다.
             )}
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t flex-shrink-0">
+          <div className="mt-2 flex flex-shrink-0 items-center justify-end gap-2 border-t border-border pt-4">
             <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setShowExcelImportModal(false);
                 setExcelFile(null);
                 setExcelPreviewData(null);
                 setValidationResults(null);
               }}
-              variant="outline"
               disabled={isImporting}
             >
               취소
             </Button>
             <Button
+              size="sm"
               onClick={handleExcelImport}
               disabled={!validationResults || validationResults.filter(r => r.isValid).length === 0 || isImporting}
-              className="flex items-center gap-2"
+              className="gap-1.5"
             >
               {isImporting ? (
                 <>
@@ -4194,7 +4176,7 @@ Church Round 앱에 초대되셨습니다.
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
+                  <Upload className="h-3.5 w-3.5" />
                   {validationResults ? `${validationResults.filter(r => r.isValid).length}개 행 등록` : '등록 시작'}
                 </>
               )}
@@ -4412,8 +4394,10 @@ Church Round 앱에 초대되셨습니다.
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-4">
             <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setAdvancedSearchData({
                   name: '',
@@ -4431,22 +4415,31 @@ Church Round 앱에 초대되셨습니다.
                 });
                 setIsAdvancedSearchActive(false);
               }}
-              variant="outline"
             >
               초기화
             </Button>
-            <Button
-              onClick={() => {
-                setIsAdvancedSearchActive(true);
-                setShowAdvancedSearch(false);
-                setSearchTerm(''); // 기본 검색 비활성화
-                setPagination(prev => ({ ...prev, current_page: 1 })); // 첫 페이지로 이동
-              }}
-              className="flex items-center gap-2"
-            >
-              <Search className="w-4 h-4" />
-              검색 실행
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvancedSearch(false)}
+              >
+                취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsAdvancedSearchActive(true);
+                  setShowAdvancedSearch(false);
+                  setSearchTerm(''); // 기본 검색 비활성화
+                  setPagination(prev => ({ ...prev, current_page: 1 })); // 첫 페이지로 이동
+                }}
+                className="gap-1.5"
+              >
+                <Search className="h-3.5 w-3.5" />
+                검색
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -25,11 +25,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Card, CardContent, LoadingState } from "./ui";
-import { Badge, Button, Combobox } from "./ui";
+import { Badge, Button, Combobox, Input } from "./ui";
 import { Spinner } from "./ui/spinner";
 import { PageContainer } from "./ui";
 import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
-import { SearchFilterBar } from './common';
 import type { Filter as FilterType } from './common';
 import { getPositionDetailLabel } from '../constants/memberPositions';
 
@@ -380,119 +379,105 @@ const PrayerRequests: React.FC = () => {
 
   return (
     <PageContainer>
+      {/* 검색·필터 + 테이블 — 통합 Card (심방 관리 패턴) */}
+      <Card className="overflow-hidden">
+        {/* 검색 바 */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="요청자, 기도 내용으로 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full md:w-[320px]"
+            />
+          </div>
+        </div>
 
-      {/* 검색 — KPI/필터 드롭다운 제거 */}
-      <SearchFilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onClearSearch={() => setSearchTerm('')}
-        searchPlaceholder="요청자, 기도 내용으로 검색"
-        filters={[]}
-      />
-
-      {/* 기도요청 카드 그리드 — 시안 .pr-card 매핑 */}
-      {loading ? (
-        <Card>
+        {/* 테이블 */}
+        {loading ? (
           <LoadingState text="기도요청을 불러오는 중..." />
-        </Card>
-      ) : filteredRequests.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
+        ) : filteredRequests.length === 0 ? (
+          <div className="py-12 text-center">
             <Heart className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
             <p className="text-[13px] text-muted-foreground">기도요청이 없습니다.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {filteredRequests.map((request) => (
-            <div
-              key={request.id}
-              className={cn(
-                'flex cursor-pointer gap-4 rounded-[12px] border border-border bg-card px-5 py-[18px] transition-colors hover:border-[#BBD4FB]',
-                request.isUrgent && 'border-l-[3px] border-l-[#DC2626]'
-              )}
-              onClick={() => {
-                setSelectedRequest(request);
-                setShowDetailModal(true);
-              }}
-            >
-              {/* 아바타 44px — 심방 카드와 동일 */}
-              <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-[#EEF3FC] text-primary">
-                {request.profilePhotoUrl && !request.isAnonymous ? (
-                  <img
-                    src={request.profilePhotoUrl}
-                    alt={request.requesterName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : request.isAnonymous ? (
-                  <Heart className="h-5 w-5" />
-                ) : (
-                  <span className="text-[16px] font-bold">
-                    {request.requesterName?.charAt(0) || <User className="h-5 w-5" />}
-                  </span>
-                )}
-              </div>
+          </div>
+        ) : (
+          <div>
+            <table className="w-full text-[12.5px] table-fixed">
+              <colgroup>
+                <col className="w-[180px]" />
+                <col className="w-[400px]" />
+                <col className="w-[100px]" />
+                <col className="w-[150px]" />
+              </colgroup>
+              <thead className="bg-[#FAFBFD]">
+                <tr>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">요청자</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기도 내용</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">공개</th>
+                  <th className="px-[18px] py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">등록일</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {filteredRequests.map((request) => (
+                  <tr
+                    key={request.id}
+                    className="cursor-pointer transition-colors hover:bg-[#FAFBFD]"
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowDetailModal(true);
+                    }}
+                  >
+                    {/* 요청자 — 아바타 + 이름 */}
+                    <td className="px-[18px] py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-[11px]">
+                        <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[9px] bg-[#EEF3FC] text-primary">
+                          {request.profilePhotoUrl && !request.isAnonymous ? (
+                            <img
+                              src={request.profilePhotoUrl}
+                              alt={request.requesterName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : request.isAnonymous ? (
+                            <Heart className="h-4 w-4" />
+                          ) : (
+                            <span className="text-[13px] font-bold">
+                              {request.requesterName?.charAt(0) || <User className="h-4 w-4" />}
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-semibold text-foreground">
+                          {request.isAnonymous ? '익명' : request.requesterName}
+                        </div>
+                      </div>
+                    </td>
 
-              {/* 메인 */}
-              <div className="min-w-0 flex-1">
-                {/* 상단: 이름 */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[15px] font-bold text-foreground">
-                    {request.isAnonymous ? '익명' : request.requesterName}
-                  </span>
-                </div>
+                    {/* 기도 내용 — 1줄 요약 (가변 폭 확장) */}
+                    <td className="px-[18px] py-3 text-foreground">
+                      <div className="truncate">
+                        {request.prayerContent || <span className="text-[#CBD5E1]">-</span>}
+                      </div>
+                    </td>
 
-                {/* 기도 내용 */}
-                {request.prayerContent && (
-                  <div className="mt-[9px] text-[13px] leading-[1.55] text-[#475569] line-clamp-2">
-                    {request.prayerContent}
-                  </div>
-                )}
+                    {/* 공개 */}
+                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
+                      {request.isPublic ? '전체 공개' : '비공개'}
+                    </td>
 
-                {/* 응답 간증 (있을 때만) */}
-                {request.answeredTestimony && (
-                  <div className="mt-[11px] rounded-[10px] border border-[#CDEBD7] bg-[#F0FAF3] px-[13px] py-[9px]">
-                    <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold text-[#16A34A]">
-                      <Check className="h-3 w-3" />
-                      응답 간증
-                    </div>
-                    <div className="text-[12.5px] leading-[1.5] text-[#3F7A4E] line-clamp-2">
-                      {request.answeredTestimony}
-                    </div>
-                  </div>
-                )}
+                    {/* 등록일 */}
+                    <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground tabular-nums">
+                      {formatDate(request.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
-                {/* 메타 — 공개 · 시간 */}
-                <div className="mt-[11px] flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
-                  <span className="text-[12px] text-[#94A3B8]">
-                    {request.isPublic ? '전체 공개' : '비공개'} · {formatTimeAgo(request.createdAt) || formatDate(request.createdAt)}
-                  </span>
-                </div>
-              </div>
-
-              {/* 우측 액션 — 상세 버튼만 */}
-              <div
-                className="flex flex-shrink-0 items-start"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRequest(request);
-                    setShowDetailModal(true);
-                  }}
-                >
-                  상세
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Total Count Display */}
+      {/* 합계 — 카드 밖 (교인 관리 패턴) */}
       {filteredRequests.length > 0 && (
         <div className="mt-4 flex items-center justify-between">
           <div className="text-[12.5px] text-muted-foreground">
@@ -678,46 +663,69 @@ const PrayerRequests: React.FC = () => {
               </Button>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">요청자</label>
-                  <p className="text-gray-900">{selectedRequest.isAnonymous ? '익명' : selectedRequest.requesterName}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">연락처</label>
-                  <p className="text-gray-900">{selectedRequest.isAnonymous ? '비공개' : (selectedRequest.requesterPhone || '없음')}</p>
-                </div>
-              </div>
+            <div className="mt-2 space-y-5">
+              {/* 요청자 정보 */}
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">요청자 정보</h3>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] md:grid-cols-2">
+                  <div className="flex gap-2">
+                    <dt className="w-[72px] text-muted-foreground">요청자</dt>
+                    <dd className="font-semibold text-foreground">
+                      {selectedRequest.isAnonymous ? '익명' : selectedRequest.requesterName}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-[72px] text-muted-foreground">연락처</dt>
+                    <dd className="text-foreground tabular-nums">
+                      {selectedRequest.isAnonymous ? '비공개' : (selectedRequest.requesterPhone || '-')}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">기도 내용</label>
-                <p className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-md">{selectedRequest.prayerContent}</p>
-              </div>
+              {/* 기도 내용 */}
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기도 내용</h3>
+                <p className="whitespace-pre-wrap rounded-[8px] bg-[#FAFBFD] p-3 text-[13px] leading-relaxed text-foreground">
+                  {selectedRequest.prayerContent || '-'}
+                </p>
+              </section>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">생성일</label>
-                  <p className="text-gray-900">{formatDate(selectedRequest.createdAt)}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">만료일</label>
-                  <p className="text-gray-900">{selectedRequest.expiresAt ? formatDate(selectedRequest.expiresAt) : '없음'}</p>
-                </div>
-              </div>
+              {/* 일정 */}
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">일정</h3>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[13px] md:grid-cols-2">
+                  <div className="flex gap-2">
+                    <dt className="w-[72px] text-muted-foreground">등록일</dt>
+                    <dd className="text-foreground tabular-nums">{formatDate(selectedRequest.createdAt)}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-[72px] text-muted-foreground">만료일</dt>
+                    <dd className="text-foreground tabular-nums">
+                      {selectedRequest.expiresAt ? formatDate(selectedRequest.expiresAt) : '-'}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
 
+              {/* 기도응답 간증 (있을 때만) */}
               {selectedRequest.answeredTestimony && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">기도응답 간증</label>
-                  <p className="text-gray-900 whitespace-pre-wrap bg-green-50 p-3 rounded-md border border-green-200">{selectedRequest.answeredTestimony}</p>
-                </div>
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기도응답 간증</h3>
+                  <p className="whitespace-pre-wrap rounded-[8px] bg-[#E7F6EC] p-3 text-[13px] leading-relaxed text-[#16A34A]">
+                    {selectedRequest.answeredTestimony}
+                  </p>
+                </section>
               )}
 
+              {/* 관리자 메모 (있을 때만) */}
               {selectedRequest.adminNotes && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">관리자 메모</label>
-                  <p className="text-gray-900 whitespace-pre-wrap bg-primary-50 p-3 rounded-md border border-primary-200">{selectedRequest.adminNotes}</p>
-                </div>
+                <section className="space-y-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">관리자 메모</h3>
+                  <p className="whitespace-pre-wrap rounded-[8px] bg-[#EAF1FE] p-3 text-[13px] leading-relaxed text-[#2563EB]">
+                    {selectedRequest.adminNotes}
+                  </p>
+                </section>
               )}
             </div>
 

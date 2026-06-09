@@ -2581,17 +2581,16 @@ const PastoralCareManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
-              <Button variant="outline" onClick={() => setShowCompletionModal(false)}>
+            <div className="flex items-center justify-end gap-2 border-t border-border bg-slate-50 px-6 py-4">
+              <Button variant="ghost" size="sm" onClick={() => setShowCompletionModal(false)}>
                 취소
               </Button>
               <Button
+                size="sm"
                 onClick={handleSaveCompletion}
                 disabled={!completionNotes.trim()}
-                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
-                variant="outline"
               >
-                심방 완료 처리
+                완료 처리
               </Button>
             </div>
           </div>
@@ -2728,14 +2727,11 @@ const PastoralCareManagement: React.FC = () => {
             </div>
 
             {/* 버튼 영역 */}
-            <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 bg-slate-50">
-              <Button variant="outline" onClick={() => setShowRecordDetailModal(false)}>
+            <div className="flex items-center justify-end gap-2 border-t border-border bg-slate-50 px-6 py-4">
+              <Button variant="ghost" size="sm" onClick={() => setShowRecordDetailModal(false)}>
                 취소
               </Button>
-              <Button
-                onClick={handleUpdateNotes}
-              >
-                <Edit className="h-4 w-4 mr-2" />
+              <Button size="sm" onClick={handleUpdateNotes}>
                 일지 저장
               </Button>
             </div>

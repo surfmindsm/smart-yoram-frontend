@@ -411,7 +411,7 @@ const Layout: React.FC = () => {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
+        <nav className="slim-scrollbar-dark flex-1 overflow-y-auto px-3 pb-4 pt-2">
           {menuGroups.map((group, gi) => (
             <div key={`${group.title}-${gi}`}>
               <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-sidebar-muted">

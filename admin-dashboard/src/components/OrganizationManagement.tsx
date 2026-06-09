@@ -1098,9 +1098,10 @@ const OrganizationManagement: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDepartmentCreateModal(false);
                   setDepartmentFormData({ name: '', description: '', is_active: true });
@@ -1108,8 +1109,8 @@ const OrganizationManagement: React.FC = () => {
               >
                 취소
               </Button>
-              <Button onClick={handleCreateDepartment} disabled={departmentLoading}>
-                {departmentLoading ? <Spinner /> : '추가'}
+              <Button size="sm" onClick={handleCreateDepartment} disabled={departmentLoading}>
+                {departmentLoading ? <Spinner size="sm" /> : '등록'}
               </Button>
             </div>
           </div>
@@ -1142,9 +1143,10 @@ const OrganizationManagement: React.FC = () => {
                 rows={3}
               />
             </div>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDepartmentEditModal(false);
                   setEditingDepartment(null);
@@ -1153,8 +1155,8 @@ const OrganizationManagement: React.FC = () => {
               >
                 취소
               </Button>
-              <Button onClick={handleUpdateDepartment} disabled={departmentLoading}>
-                {departmentLoading ? <Spinner /> : '수정'}
+              <Button size="sm" onClick={handleUpdateDepartment} disabled={departmentLoading}>
+                {departmentLoading ? <Spinner size="sm" /> : '수정'}
               </Button>
             </div>
           </div>
@@ -1174,9 +1176,10 @@ const OrganizationManagement: React.FC = () => {
             <p className="text-sm text-red-600">
               이 작업은 되돌릴 수 없습니다.
             </p>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDeleteModal(false);
                   setEditingOrganization(null);
@@ -1186,10 +1189,11 @@ const OrganizationManagement: React.FC = () => {
               </Button>
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={handleConfirmDeleteOrganization}
                 disabled={loading}
               >
-                {loading ? <Spinner /> : '삭제'}
+                {loading ? <Spinner size="sm" /> : '삭제'}
               </Button>
             </div>
           </div>
@@ -1209,9 +1213,10 @@ const OrganizationManagement: React.FC = () => {
             <p className="text-sm text-red-600">
               이 작업은 되돌릴 수 없습니다.
             </p>
-            <div className="flex justify-end space-x-2">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDepartmentDeleteModal(false);
                   setEditingDepartment(null);
@@ -1221,10 +1226,11 @@ const OrganizationManagement: React.FC = () => {
               </Button>
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={handleDeleteDepartment}
                 disabled={departmentLoading}
               >
-                {departmentLoading ? <Spinner /> : '삭제'}
+                {departmentLoading ? <Spinner size="sm" /> : '삭제'}
               </Button>
             </div>
           </div>
@@ -1370,9 +1376,10 @@ const OrganizationManagement: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-2 pt-4 border-t">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowMemberModal(false);
                   setSelectedMemberIds(new Set());
@@ -1383,11 +1390,12 @@ const OrganizationManagement: React.FC = () => {
                 취소
               </Button>
               <Button
+                size="sm"
                 onClick={handleAddMembersToOrganization}
                 disabled={memberLoading || selectedMemberIds.size === 0}
               >
                 {memberLoading ? (
-                  <Spinner />
+                  <Spinner size="sm" />
                 ) : (
                   (() => {
                     const selectedMembers = availableMembers.filter(m => selectedMemberIds.has(m.id));
@@ -1548,9 +1556,10 @@ const OrganizationManagement: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-2 pt-4 border-t">
+            <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowDepartmentMemberModal(false);
                   setSelectedDepartmentMemberIds(new Set());
@@ -1561,11 +1570,12 @@ const OrganizationManagement: React.FC = () => {
                 취소
               </Button>
               <Button
+                size="sm"
                 onClick={handleAddMembersToDepartment}
                 disabled={departmentMemberLoading || selectedDepartmentMemberIds.size === 0}
               >
                 {departmentMemberLoading ? (
-                  <Spinner />
+                  <Spinner size="sm" />
                 ) : (
                   (() => {
                     const selectedMembers = availableDepartmentMembers.filter(m => selectedDepartmentMemberIds.has(m.id));

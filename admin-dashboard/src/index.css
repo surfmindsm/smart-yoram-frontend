@@ -156,6 +156,54 @@
   max-height: 200px !important;
 }
 
+/* Slim scrollbar — 모달/패널 내부 스크롤 영역에 사용 */
+.slim-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+.slim-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.slim-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+.slim-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.slim-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94A3B8;
+  background-clip: content-box;
+}
+
+/* Dark slim scrollbar — 다크 사이드바/패널용 */
+.slim-scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: #2A3548 transparent;
+}
+.slim-scrollbar-dark::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.slim-scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+.slim-scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: #2A3548;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.slim-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: #3A4660;
+  background-clip: content-box;
+}
+
 .rdp-dropdown_root select {
   size: 5 !important;
   max-height: 200px !important;
