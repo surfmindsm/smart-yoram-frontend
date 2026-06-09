@@ -42,6 +42,7 @@ import {
   MessageSquare,
   Clock,
   Search,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from "./ui";
@@ -61,12 +62,13 @@ import { PermissionProvider } from '../contexts/PermissionContext';
 interface MenuItem {
   path: string;
   name: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon?: React.ComponentType<{ className?: string }>;
   count?: string | number;
 }
 
 interface MenuGroup {
   title: string;
+  Icon?: React.ComponentType<{ className?: string }>;
   items: MenuItem[];
 }
 
@@ -262,44 +264,55 @@ const Layout: React.FC = () => {
     return items.filter(item => accessiblePaths.includes(item.path));
   }, [userInfo, accessiblePaths]);
 
-  // Direction C — IA 3 groups: 운영 / 살림 / 도구
+  // 대시보드는 그룹 밖 (최상단 단독 메뉴)
+  const dashboardItem: MenuItem = { path: '/dashboard', name: '대시보드', Icon: Home };
+
+  // Direction C — 그룹 IA 재편: 교인 / 재정 / 예배·소식 / 운영·설정 / 보안·시스템
   const defaultMenuGroups: MenuGroup[] = React.useMemo(() => {
     const groups: MenuGroup[] = [
       {
-        title: '운영',
+        title: '교인 관리',
+        Icon: Users,
         items: filterMenuItems([
-          { path: '/dashboard', name: '대시보드', Icon: Home },
-          { path: '/member-management', name: '교인 관리', Icon: Users, count: menuCounts.members },
-          { path: '/organization-management', name: '조직 · 부서 관리', Icon: Building2 },
-          { path: '/attendance', name: '출석 관리', Icon: CheckSquare },
-          { path: '/pastoral-care', name: '심방 관리', Icon: UserCheck, count: menuCounts.pastoralCare },
-          { path: '/prayer-requests', name: '중보 기도', Icon: Heart, count: menuCounts.prayers },
-        ]),
+          { path: '/member-management', name: '교인 관리', count: menuCounts.members },
+          { path: '/organization-management', name: '조직 · 부서 관리' },
+          { path: '/attendance', name: '출석 관리' },
+          { path: '/pastoral-care', name: '심방 관리', count: menuCounts.pastoralCare },
+          { path: '/prayer-requests', name: '중보 기도', count: menuCounts.prayers },
+        ] as MenuItem[]),
       },
       {
-        title: '살림',
+        title: '재정 관리',
+        Icon: Calculator,
         items: filterMenuItems([
-          { path: '/donations', name: '헌금 관리', Icon: DollarSign },
-          { path: '/accounting', name: '회계 관리', Icon: Calculator },
-          { path: '/account-categories', name: '계정과목 관리', Icon: ListChecks },
-          { path: '/budget', name: '예산 관리', Icon: TrendingUp },
-          { path: '/settlement', name: '결산 관리', Icon: ChartLine },
-          { path: '/daily-verses', name: '오늘의 말씀', Icon: FileText },
-          { path: '/worship-schedule', name: '예배 시간표', Icon: Clock },
-          { path: '/bulletins', name: '주보 · 공지', Icon: FileText },
-          ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항', Icon: Megaphone }]),
-          { path: '/message-sending', name: '푸시 알림', Icon: Bell },
-        ]),
+          { path: '/accounting', name: '회계 관리' },
+          { path: '/account-categories', name: '계정과목 관리' },
+          { path: '/budget', name: '예산 관리' },
+          { path: '/settlement', name: '결산 관리' },
+          { path: '/donations', name: '헌금 관리' },
+        ] as MenuItem[]),
       },
       {
-        title: '도구',
+        title: '예배 & 소식',
+        Icon: Clock,
         items: filterMenuItems([
-          { path: '/analytics', name: '통계 분석', Icon: BarChart3 },
-          { path: '/sms', name: 'SMS 발송', Icon: MessageSquare },
-          { path: '/excel', name: '엑셀 관리', Icon: FileText },
-          { path: '/important-dates', name: '일정 관리', Icon: Calendar },
-          { path: '/church', name: '교회 설정', Icon: Church },
-        ]),
+          { path: '/worship-schedule', name: '예배 시간표' },
+          { path: '/daily-verses', name: '오늘의 말씀' },
+          { path: '/bulletins', name: '주보 · 공지' },
+          ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항' }]),
+          { path: '/message-sending', name: '푸시 알림' },
+          { path: '/sms', name: 'SMS 발송' },
+        ] as MenuItem[]),
+      },
+      {
+        title: '교회 운영 & 설정',
+        Icon: Building2,
+        items: filterMenuItems([
+          { path: '/church', name: '교회 정보' },
+          { path: '/important-dates', name: '일정 관리' },
+          { path: '/analytics', name: '통계 분석' },
+          { path: '/excel', name: '엑셀 관리' },
+        ] as MenuItem[]),
       },
     ];
 
@@ -311,42 +324,43 @@ const Layout: React.FC = () => {
     if (gptEnabled) {
       groups.push({
         title: 'AI (Premium)',
+        Icon: Bot,
         items: [
-          { path: '/ai-chat', name: 'AI 교역자', Icon: Bot },
-          { path: '/ai-agent-management', name: '에이전트 관리', Icon: Bot },
-          { path: '/sermon-library', name: '설교 자료 관리', Icon: Library },
-          { path: '/ai-tools', name: 'AI Tools', Icon: Wrench },
-        ],
+          { path: '/ai-chat', name: 'AI 교역자' },
+          { path: '/ai-agent-management', name: '에이전트 관리' },
+          { path: '/sermon-library', name: '설교 자료 관리' },
+          { path: '/ai-tools', name: 'AI Tools' },
+        ] as MenuItem[],
       });
     }
 
-    // 시스템 / 관리자 메뉴 (역할별)
+    // 보안 & 시스템 (역할별)
     const systemItems: MenuItem[] = [];
     if (userInfo && isChurchSuperAdmin(userInfo)) {
-      systemItems.push({ path: '/security-logs', name: '보안 로그', Icon: Shield });
+      systemItems.push({ path: '/security-logs', name: '보안 로그' } as MenuItem);
     }
     if (userInfo && (isChurchAdmin(userInfo) || isChurchSuperAdmin(userInfo)) && !isSystemAdmin) {
-      systemItems.push({ path: '/system-announcements-list', name: '시스템 공지사항', Icon: Megaphone });
+      systemItems.push({ path: '/system-announcements-list', name: '시스템 공지사항' } as MenuItem);
     }
     if (isSystemAdmin) {
       systemItems.push(
-        { path: '/security-logs', name: '보안 로그', Icon: Shield },
-        { path: '/system-announcements', name: '시스템 공지사항 관리', Icon: Megaphone },
-        { path: '/sermons', name: '명설교 관리', Icon: Video },
-        { path: '/church-applications', name: '교회 가입 신청', Icon: Church },
-        { path: '/community-applications', name: '커뮤니티 신청', Icon: UserCheck2 },
-        { path: '/church-management', name: '교회 관리', Icon: Church },
-        { path: '/gpt-license-management', name: 'GPT 라이선스', Icon: Key },
+        { path: '/security-logs', name: '보안 로그' } as MenuItem,
+        { path: '/system-announcements', name: '시스템 공지사항 관리' } as MenuItem,
+        { path: '/sermons', name: '명설교 관리' } as MenuItem,
+        { path: '/church-applications', name: '교회 가입 신청' } as MenuItem,
+        { path: '/community-applications', name: '커뮤니티 신청' } as MenuItem,
+        { path: '/church-management', name: '교회 관리' } as MenuItem,
+        { path: '/gpt-license-management', name: 'GPT 라이선스' } as MenuItem,
       );
     }
     if (userInfo && isChurchSuperAdmin(userInfo)) {
       systemItems.push(
-        { path: '/admin-roles', name: '관리자 권한 관리', Icon: Shield },
-        { path: '/permission-groups', name: '권한 그룹 관리', Icon: UserCog },
+        { path: '/admin-roles', name: '관리자 권한 관리' } as MenuItem,
+        { path: '/permission-groups', name: '권한 그룹 관리' } as MenuItem,
       );
     }
     if (systemItems.length > 0) {
-      groups.push({ title: '시스템', items: systemItems });
+      groups.push({ title: '보안 & 시스템', Icon: Shield, items: systemItems });
     }
 
     return groups;
@@ -356,6 +370,29 @@ const Layout: React.FC = () => {
     const baseMenuGroups = isCommunityOnlyUser ? communityMenuGroups : defaultMenuGroups;
     return baseMenuGroups.filter(group => group.items && group.items.length > 0);
   }, [isCommunityOnlyUser, communityMenuGroups, defaultMenuGroups]);
+
+  // 그룹 펼침/접힘 상태 (localStorage로 영속화)
+  const STORAGE_KEY = 'sidebar:collapsed-groups';
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set();
+  });
+
+  const toggleGroup = React.useCallback((title: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  }, []);
+
 
   // 현재 활성 메뉴 정보 (탑바 breadcrumb 용)
   const activeMenu = React.useMemo(() => {
@@ -412,53 +449,94 @@ const Layout: React.FC = () => {
 
         {/* Nav */}
         <nav className="slim-scrollbar-dark flex-1 overflow-y-auto px-3 pb-4 pt-2">
-          {menuGroups.map((group, gi) => (
-            <div key={`${group.title}-${gi}`}>
-              <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-sidebar-muted">
-                {group.title}
-              </div>
-              {group.items.map((item) => {
-                const isActive =
-                  location.pathname === item.path ||
-                  location.pathname.startsWith(item.path + '/');
-                const Icon = item.Icon;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
+          {/* 대시보드 — 그룹 밖 단독 메뉴 */}
+          {!isCommunityOnlyUser && (() => {
+            const isActive =
+              location.pathname === dashboardItem.path ||
+              location.pathname.startsWith(dashboardItem.path + '/');
+            const Icon = dashboardItem.Icon!;
+            return (
+              <Link
+                to={dashboardItem.path}
+                className={cn(
+                  'mb-2 flex items-center gap-[11px] rounded-[7px] px-2.5 py-[8px] text-[13.5px] font-semibold transition-colors',
+                  isActive
+                    ? 'bg-primary text-white'
+                    : 'text-sidebar-foreground hover:bg-[#172033]'
+                )}
+              >
+                <Icon className={cn('h-4 w-4 flex-shrink-0', isActive ? 'text-white' : 'text-[#9DB0CC]')} />
+                <span className="truncate">{dashboardItem.name}</span>
+              </Link>
+            );
+          })()}
+
+          {menuGroups.map((group, gi) => {
+            // 사용자가 명시적으로 접었으면 접힌 상태 유지 (활성 메뉴 있어도)
+            const isExpanded = !collapsedGroups.has(group.title);
+            const GroupIcon = group.Icon;
+            return (
+              <div key={`${group.title}-${gi}`} className="mb-1">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.title)}
+                  className="flex w-full items-center justify-between rounded-[7px] px-2.5 py-[8px] text-left transition-colors hover:bg-[#172033]/60"
+                >
+                  <span className="flex items-center gap-2.5">
+                    {GroupIcon && (
+                      <GroupIcon className="h-[15px] w-[15px] flex-shrink-0 text-[#C3CDDE]" />
+                    )}
+                    <span className="text-[13px] font-bold tracking-[-0.01em] text-[#E6ECF6]">
+                      {group.title}
+                    </span>
+                  </span>
+                  <ChevronDown
                     className={cn(
-                      'flex items-center gap-[11px] rounded-[7px] px-2.5 py-[7px] text-[13px] font-medium transition-colors',
-                      isActive
-                        ? 'bg-primary text-white'
-                        : 'text-sidebar-foreground hover:bg-[#172033]',
+                      "h-4 w-4 text-[#C3CDDE] transition-transform",
+                      isExpanded ? "rotate-0" : "-rotate-90"
                     )}
-                  >
-                    <Icon
-                      className={cn(
-                        'h-4 w-4 flex-shrink-0',
-                        isActive ? 'text-white' : 'text-[#6B7A95]',
-                      )}
-                    />
-                    <span className="truncate">{item.name}</span>
-                    {item.count != null && item.count !== 0 && (
-                      <span
-                        className={cn(
-                          'ml-auto rounded-full px-[7px] py-px text-[10.5px] font-bold tabular-nums',
-                          isActive
-                            ? 'bg-white/20 text-white'
-                            : 'bg-sidebar-chip text-[#9DB0CC]',
-                        )}
-                      >
-                        {typeof item.count === 'number' && item.count >= 1000
-                          ? `${Math.floor(item.count / 1000)}k+`
-                          : item.count}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                  />
+                </button>
+                {isExpanded && (
+                  <div className="mt-0.5 space-y-px pl-[26px]">
+                    {group.items.map((item) => {
+                      const isActive =
+                        location.pathname === item.path ||
+                        location.pathname.startsWith(item.path + '/');
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={cn(
+                            'flex items-center gap-2 rounded-[6px] px-2.5 py-[7px] text-[12.5px] font-medium transition-colors',
+                            isActive
+                              ? 'bg-primary text-white'
+                              : 'text-[#AEBACE] hover:bg-[#172033] hover:text-white'
+                          )}
+                        >
+                          <span className="truncate">{item.name}</span>
+                          {item.count != null && item.count !== 0 && (
+                            <span
+                              className={cn(
+                                'ml-auto rounded-full px-[7px] py-px text-[10.5px] font-bold tabular-nums',
+                                isActive
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-sidebar-chip text-[#9DB0CC]'
+                              )}
+                            >
+                              {typeof item.count === 'number' && item.count >= 1000
+                                ? `${Math.floor(item.count / 1000)}k+`
+                                : item.count}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* User block + actions */}

@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "./ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import React, { useState, useEffect, useMemo } from 'react';
+import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import {
+  Card,
+  LoadingState,
+  PageContainer,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui";
+import { usePageSubtitle, usePageActions } from "../hooks/usePageSubtitle";
+import { cn } from "../lib/utils";
 import { supabaseAuthService } from '../services/supabaseAuthService';
-import { Spinner } from "./ui/spinner";
 
 interface AccountCategory {
   id: number;
@@ -51,18 +60,19 @@ interface BudgetSummary {
   };
 }
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('ko-KR').format(Math.round(amount || 0));
+
 const SettlementManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
-
-  // Budget Analysis
   const [budgetVsActual, setBudgetVsActual] = useState<BudgetVsActual[]>([]);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [analysisYear, setAnalysisYear] = useState<number>(new Date().getFullYear());
-  const [analysisMonth, setAnalysisMonth] = useState<number | null>(null);
 
   useEffect(() => {
     loadBudgetVsActual();
-  }, [analysisYear, analysisMonth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisYear]);
 
   const loadBudgetVsActual = async () => {
     try {
@@ -72,9 +82,6 @@ const SettlementManagement: React.FC = () => {
 
       const params = new URLSearchParams();
       params.append('year', analysisYear.toString());
-      if (analysisMonth) {
-        params.append('month', analysisMonth.toString());
-      }
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
       const functionsUrl = `${supabaseUrl}/functions/v1/budgets/admin/budgets/vs-actual?${params.toString()}`;
@@ -100,327 +107,289 @@ const SettlementManagement: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+  // 정렬 및 그룹화: 수입 → 지출, 헌금 그룹화
+  const rows = useMemo(() => {
+    const offeringParentId = budgetVsActual.find(
+      item => item.category?.name === '헌금' && !item.category.parent_id
+    )?.category_id;
+
+    const sorted = [...budgetVsActual].sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'income' ? -1 : 1;
+      const aChild = a.category?.parent_id === offeringParentId;
+      const bChild = b.category?.parent_id === offeringParentId;
+      if (aChild && !bChild) return -1;
+      if (!aChild && bChild) return 1;
+      return (a.category?.name || '').localeCompare(b.category?.name || '', 'ko-KR');
+    });
+
+    const result: Array<{ kind: 'parent' | 'child' | 'normal'; item: BudgetVsActual; aggBudget?: number; aggActual?: number; aggDiff?: number; aggRate?: number }> = [];
+    const handledChildren = new Set<number>();
+
+    sorted.forEach(item => {
+      const isOfferingParent = item.category?.name === '헌금' && !item.category?.parent_id;
+      if (isOfferingParent) {
+        const children = sorted.filter(i => i.category?.parent_id === item.category_id);
+        const aggBudget = children.reduce((s, i) => s + Number(i.budgeted_amount || 0), 0);
+        const aggActual = children.reduce((s, i) => s + Number(i.actual_amount || 0), 0);
+        const aggDiff = aggActual - aggBudget;
+        const aggRate = aggBudget > 0 ? (aggActual / aggBudget) * 100 : (aggActual > 0 ? 999.9 : 0);
+        result.push({ kind: 'parent', item, aggBudget, aggActual, aggDiff, aggRate });
+        children.forEach(child => {
+          handledChildren.add(child.category_id);
+          result.push({ kind: 'child', item: child });
+        });
+        return;
+      }
+      if (item.category?.parent_id === offeringParentId && handledChildren.has(item.category_id)) return;
+      if (item.category?.parent_id === offeringParentId) return;
+      result.push({ kind: 'normal', item });
+    });
+
+    return result;
+  }, [budgetVsActual]);
+
+  // 상단바 슬롯
+  usePageSubtitle(`${analysisYear}년 예산 대비 실적`);
+  usePageActions(
+    <Select value={analysisYear.toString()} onValueChange={(value) => setAnalysisYear(parseInt(value))}>
+      <SelectTrigger className="h-9 w-[120px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+          <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>,
+    [analysisYear]
+  );
+
+  // 집행률 색상 — 중립 톤 (지출 초과시에만 경고)
+  const rateColor = (rate: number, isExpense = false) => {
+    if (isExpense && rate > 100) return '#DC2626'; // 지출 예산 초과만 경고
+    return '#475569'; // 그 외 모두 중립 슬레이트
   };
+
+  const renderRateBar = (rate: number, isExpense = false) => {
+    const color = rateColor(rate, isExpense);
+    return (
+      <div className="flex flex-col items-end gap-1 min-w-[100px]">
+        <span className="text-[12.5px] font-semibold tabular-nums" style={{ color }}>
+          {rate.toFixed(1)}%
+        </span>
+        <div className="h-[6px] w-[100px] overflow-hidden rounded-full bg-[#F1F4F9]">
+          <div
+            className="h-full transition-all"
+            style={{ width: `${Math.min(rate, 100)}%`, backgroundColor: color }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderTypeBadge = (type: 'income' | 'expense') => (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        type === 'income' ? "bg-[#E7F6EC] text-[#16A34A]" : "bg-[#FCEBEB] text-[#DC2626]"
+      )}
+    >
+      {type === 'income' ? '수입' : '지출'}
+    </span>
+  );
 
   return (
     <PageContainer>
-      <PageHeader
-        title="결산 관리"
-        description="예산 대비 실적을 분석하고 집행률을 확인합니다."
-      />
-
-      <div className="space-y-4">
-        {/* Analysis Controls */}
-        <Card className="border-muted">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">연도:</label>
-                <Select value={analysisYear.toString()} onValueChange={(value) => setAnalysisYear(parseInt(value))}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                      <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      {/* 상단 통합 카드 */}
+      {budgetSummary && (() => {
+        const netBudget = budgetSummary.budget.net;
+        const netActual = budgetSummary.actual.net;
+        const isPositiveActual = netActual >= 0;
+        return (
+          <Card className="mb-4 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(280px,340px)_1fr]">
+              {/* 좌측 — 순 실적 */}
+              <div className={cn(
+                "flex flex-col justify-center gap-2 border-b px-6 py-5 md:border-b-0 md:border-r",
+                "border-[#EEF1F6]",
+                isPositiveActual ? "bg-[#F4F8FF]" : "bg-[#FFF8EE]"
+              )}>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px]",
+                    isPositiveActual ? "bg-[#EAF1FE] text-[#2563EB]" : "bg-[#FBF1E3] text-[#B45309]"
+                  )}>
+                    <DollarSign className="h-[16px] w-[16px]" />
+                  </div>
+                  <div className="text-[12px] font-semibold text-muted-foreground">순 실적</div>
+                </div>
+                <div className={cn(
+                  "text-[26px] font-bold leading-tight tracking-[-0.02em] tabular-nums",
+                  isPositiveActual ? "text-[#2563EB]" : "text-[#B45309]"
+                )}>
+                  ₩{formatCurrency(netActual)}
+                </div>
+                <div className="text-[11px] text-[#94A3B8]">
+                  예산 순액 ₩{formatCurrency(netBudget)}
+                </div>
               </div>
 
-              <div className="text-sm text-gray-600">
-                연간 예산 대비 실적 분석
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary Cards */}
-        {budgetSummary && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-4">수입 현황</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">예산</span>
-                    <span className="font-medium">{formatCurrency(budgetSummary.budget.income)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">실적</span>
-                    <span className="font-medium text-green-600">{formatCurrency(budgetSummary.actual.income)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">집행률</span>
-                    <span className={`font-medium ${budgetSummary.execution_rate.income > 100 ? 'text-orange-600' : 'text-primary-600'}`}>
+              {/* 우측 — 수입/지출 집행 현황 */}
+              <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 수입 */}
+                <div className="border-b px-5 py-4 md:border-b-0 md:border-r border-[#EEF1F6]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
+                      <TrendingUp className="h-[14px] w-[14px]" />
+                    </div>
+                    <div className="text-[12px] font-semibold text-muted-foreground">수입</div>
+                    <span
+                      className="ml-auto text-[14px] font-bold tabular-nums"
+                      style={{ color: rateColor(budgetSummary.execution_rate.income) }}
+                    >
                       {budgetSummary.execution_rate.income.toFixed(1)}%
                     </span>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="space-y-1 text-[12px]">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">예산</span>
+                      <span className="font-medium tabular-nums">₩{formatCurrency(budgetSummary.budget.income)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">실적</span>
+                      <span className="font-bold tabular-nums text-[#16A34A]">₩{formatCurrency(budgetSummary.actual.income)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-[6px] w-full overflow-hidden rounded-full bg-[#F1F4F9]">
                     <div
-                      className={`h-3 rounded-full ${budgetSummary.execution_rate.income > 100 ? 'bg-orange-600' : 'bg-green-600'}`}
-                      style={{ width: `${Math.min(budgetSummary.execution_rate.income, 100)}%` }}
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(budgetSummary.execution_rate.income, 100)}%`,
+                        backgroundColor: rateColor(budgetSummary.execution_rate.income),
+                      }}
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted">
-              <CardContent className="p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-4">지출 현황</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">예산</span>
-                    <span className="font-medium">{formatCurrency(budgetSummary.budget.expense)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">실적</span>
-                    <span className="font-medium text-red-600">{formatCurrency(budgetSummary.actual.expense)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">집행률</span>
-                    <span className={`font-medium ${budgetSummary.execution_rate.expense > 100 ? 'text-orange-600' : 'text-primary-600'}`}>
+                {/* 지출 */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
+                      <TrendingDown className="h-[14px] w-[14px]" />
+                    </div>
+                    <div className="text-[12px] font-semibold text-muted-foreground">지출</div>
+                    <span
+                      className="ml-auto text-[14px] font-bold tabular-nums"
+                      style={{ color: rateColor(budgetSummary.execution_rate.expense, true) }}
+                    >
                       {budgetSummary.execution_rate.expense.toFixed(1)}%
                     </span>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="space-y-1 text-[12px]">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">예산</span>
+                      <span className="font-medium tabular-nums">₩{formatCurrency(budgetSummary.budget.expense)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">실적</span>
+                      <span className="font-bold tabular-nums text-[#DC2626]">₩{formatCurrency(budgetSummary.actual.expense)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-[6px] w-full overflow-hidden rounded-full bg-[#F1F4F9]">
                     <div
-                      className={`h-3 rounded-full ${budgetSummary.execution_rate.expense > 100 ? 'bg-orange-600' : 'bg-primary-600'}`}
-                      style={{ width: `${Math.min(budgetSummary.execution_rate.expense, 100)}%` }}
+                      className="h-full transition-all"
+                      style={{
+                        width: `${Math.min(budgetSummary.execution_rate.expense, 100)}%`,
+                        backgroundColor: rateColor(budgetSummary.execution_rate.expense, true),
+                      }}
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {/* 상세 테이블 */}
+      <Card className="overflow-hidden">
+        {loading ? (
+          <LoadingState text="불러오는 중..." />
+        ) : budgetVsActual.length === 0 ? (
+          <div className="py-12 text-center text-[13px] text-muted-foreground">
+            예산 데이터가 없습니다.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#EEF1F6] bg-[#F8FAFD]">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">계정과목</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">구분</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">예산</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">실적</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">차액</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">집행률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => {
+                  const { item } = row;
+                  const isParent = row.kind === 'parent';
+                  const isChild = row.kind === 'child';
+                  const budget = isParent ? (row.aggBudget ?? 0) : Number(item.budgeted_amount || 0);
+                  const actual = isParent ? (row.aggActual ?? 0) : Number(item.actual_amount || 0);
+                  const difference = isParent ? (row.aggDiff ?? 0) : Number(item.difference || 0);
+                  const rate = isParent ? (row.aggRate ?? 0) : Number(item.execution_rate || 0);
+                  const isExpense = item.type === 'expense';
+
+                  return (
+                    <tr
+                      key={`${row.kind}-${item.category_id}-${item.type}-${idx}`}
+                      className={cn(
+                        "border-b border-[#EEF1F6] transition-colors",
+                        isParent ? "bg-[#F8FAFD]" : "hover:bg-[#F8FAFD]"
+                      )}
+                    >
+                      <td className={cn(
+                        "px-4 py-3 text-[13px]",
+                        isParent ? "font-bold text-foreground" : isChild ? "pl-10 font-medium text-[#475569]" : "font-semibold text-foreground"
+                      )}>
+                        {isChild && <span className="mr-1.5 text-[12px] text-[#94A3B8]">└</span>}
+                        {item.category?.name || '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {renderTypeBadge(item.type)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-[13px] tabular-nums text-foreground">
+                        ₩{formatCurrency(budget)}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right text-[13px] font-bold tabular-nums",
+                          item.type === 'income' ? "text-[#16A34A]" : "text-[#DC2626]"
+                        )}
+                      >
+                        ₩{formatCurrency(actual)}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right text-[13px] font-medium tabular-nums",
+                          difference > 0 ? "text-[#16A34A]" : difference < 0 ? "text-[#DC2626]" : "text-muted-foreground"
+                        )}
+                      >
+                        {difference > 0 ? '+' : ''}₩{formatCurrency(difference)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end">{renderRateBar(rate, isExpense)}</div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* Detailed Comparison Table */}
-        {loading ? (
-          <Card className="border-muted">
-            <CardContent className="text-center py-12">
-              <Spinner />
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-muted">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">계정과목</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">구분</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">예산</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">실적</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">차액</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">집행률</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {budgetVsActual
-                      .sort((a, b) => {
-                        if (a.type !== b.type) {
-                          return a.type === 'income' ? -1 : 1;
-                        }
-
-                        // 헌금 카테고리의 parent_id 찾기
-                        const offeringParentId = budgetVsActual.find(item =>
-                          item.category?.name === '헌금' && !item.category.parent_id
-                        )?.category_id;
-
-                        // 헌금의 하위 항목들은 함께 그룹화
-                        const aIsOfferingChild = a.category?.parent_id === offeringParentId;
-                        const bIsOfferingChild = b.category?.parent_id === offeringParentId;
-
-                        if (aIsOfferingChild && !bIsOfferingChild) return -1;
-                        if (!aIsOfferingChild && bIsOfferingChild) return 1;
-
-                        return (a.category?.name || '').localeCompare(b.category?.name || '', 'ko-KR');
-                      })
-                      .reduce((acc, item, index, array) => {
-                        const isOfferingParent = item.category?.name === '헌금' && !item.category?.parent_id;
-
-                        // 헌금 상위 항목인 경우, 하위 항목들의 합계 계산
-                        if (isOfferingParent) {
-                          const offeringChildren = array.filter(i => i.category?.parent_id === item.category_id);
-                          const totalBudget = offeringChildren.reduce((sum, i) => sum + i.budgeted_amount, 0);
-                          const totalActual = offeringChildren.reduce((sum, i) => sum + i.actual_amount, 0);
-                          const totalDifference = totalActual - totalBudget;
-                          const totalExecutionRate = totalBudget > 0 ? (totalActual / totalBudget) * 100 : (totalActual > 0 ? 999.9 : 0);
-
-                          // 헌금 상위 카테고리 행 추가
-                          acc.push(
-                            <tr key={`parent_${item.category_id}_${item.type}`} className="bg-gray-50 font-semibold">
-                              <td className="px-4 py-3 text-sm text-gray-900">{item.category?.name}</td>
-                              <td className="px-4 py-3 text-sm">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  item.type === 'income'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {item.type === 'income' ? '수입' : '지출'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                {formatCurrency(totalBudget)}
-                              </td>
-                              <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                item.type === 'income' ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {formatCurrency(totalActual)}
-                              </td>
-                              <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                totalDifference > 0 ? 'text-green-600' : totalDifference < 0 ? 'text-red-600' : 'text-gray-600'
-                              }`}>
-                                {totalDifference > 0 ? '+' : ''}{formatCurrency(totalDifference)}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-center">
-                                <div className="flex flex-col items-center gap-1">
-                                  <span className={`font-medium ${
-                                    totalExecutionRate > 100 ? 'text-orange-600' : 'text-primary-600'
-                                  }`}>
-                                    {totalExecutionRate.toFixed(1)}%
-                                  </span>
-                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                    <div
-                                      className={`h-2 rounded-full ${
-                                        totalExecutionRate > 100 ? 'bg-orange-600' : 'bg-primary-600'
-                                      }`}
-                                      style={{ width: `${Math.min(totalExecutionRate, 100)}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-
-                          // 헌금 하위 항목들 추가
-                          offeringChildren.forEach(child => {
-                            acc.push(
-                              <tr key={`${child.category_id}_${child.type}`} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-600 pl-8">
-                                  ∙ {child.category?.name || '-'}
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    child.type === 'income'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-red-100 text-red-800'
-                                  }`}>
-                                    {child.type === 'income' ? '수입' : '지출'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                  {formatCurrency(child.budgeted_amount)}
-                                </td>
-                                <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                  child.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                  {formatCurrency(child.actual_amount)}
-                                </td>
-                                <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                  child.difference > 0 ? 'text-green-600' : child.difference < 0 ? 'text-red-600' : 'text-gray-600'
-                                }`}>
-                                  {child.difference > 0 ? '+' : ''}{formatCurrency(child.difference)}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-center">
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className={`font-medium ${
-                                      child.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
-                                    }`}>
-                                      {child.execution_rate.toFixed(1)}%
-                                    </span>
-                                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                                      <div
-                                        className={`h-2 rounded-full ${
-                                          child.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
-                                        }`}
-                                        style={{ width: `${Math.min(child.execution_rate, 100)}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        } else {
-                          // 헌금의 하위 항목이 아니면서 상위 항목도 아닌 경우만 개별 표시
-                          const offeringParentId = array.find(i =>
-                            i.category?.name === '헌금' && !i.category?.parent_id
-                          )?.category_id;
-
-                          if (item.category?.parent_id !== offeringParentId) {
-                            acc.push(
-                              <tr key={`${item.category_id}_${item.type}`} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  {item.category?.name || '-'}
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    item.type === 'income'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-red-100 text-red-800'
-                                  }`}>
-                                    {item.type === 'income' ? '수입' : '지출'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                  {formatCurrency(item.budgeted_amount)}
-                                </td>
-                                <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                  item.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                  {formatCurrency(item.actual_amount)}
-                                </td>
-                                <td className={`px-4 py-3 text-sm text-right font-medium ${
-                                  item.difference > 0 ? 'text-green-600' : item.difference < 0 ? 'text-red-600' : 'text-gray-600'
-                                }`}>
-                                  {item.difference > 0 ? '+' : ''}{formatCurrency(item.difference)}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-center">
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className={`font-medium ${
-                                      item.execution_rate > 100 ? 'text-orange-600' : 'text-primary-600'
-                                    }`}>
-                                      {item.execution_rate.toFixed(1)}%
-                                    </span>
-                                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                                      <div
-                                        className={`h-2 rounded-full ${
-                                          item.execution_rate > 100 ? 'bg-orange-600' : 'bg-primary-600'
-                                        }`}
-                                        style={{ width: `${Math.min(item.execution_rate, 100)}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          }
-                        }
-
-                        return acc;
-                      }, [] as React.ReactElement[])}
-                  </tbody>
-                </table>
-                {budgetVsActual.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    예산 데이터가 없습니다.
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      </Card>
     </PageContainer>
   );
 };
