@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent, LoadingState } from "./ui";
@@ -799,61 +799,89 @@ const AccountingManagement: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* KPI strip */}
-      {summary && (
-        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
-                <TrendingUp className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">총 수입</div>
-                <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#16A34A]">
-                  {formatCurrency(summary.total_income)}
-                </div>
-                <div className="mt-0.5 text-[11px] text-[#94A3B8]">{summary.income_count}건</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
-              <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
-                <TrendingDown className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">총 지출</div>
-                <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#DC2626]">
-                  {formatCurrency(summary.total_expense)}
-                </div>
-                <div className="mt-0.5 text-[11px] text-[#94A3B8]">{summary.expense_count}건</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-3 px-4 py-[14px]">
+      {/* KPI strip — 통합 요약 카드 */}
+      {summary && (() => {
+        const total = summary.total_income + summary.total_expense;
+        const incomeRatio = total > 0 ? (summary.total_income / total) * 100 : 0;
+        const expenseRatio = total > 0 ? (summary.total_expense / total) * 100 : 0;
+        const isPositive = summary.net >= 0;
+        return (
+          <Card className="mb-4 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(280px,360px)_1fr]">
+              {/* 좌측 — 순 수익 강조 */}
               <div className={cn(
-                "flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px]",
-                summary.net >= 0 ? "bg-[#EAF1FE] text-[#2563EB]" : "bg-[#FBF1E3] text-[#B45309]"
+                "flex flex-col justify-center gap-2 border-b px-6 py-5 md:border-b-0 md:border-r",
+                "border-[#EEF1F6]",
+                isPositive ? "bg-[#F4F8FF]" : "bg-[#FFF8EE]"
               )}>
-                <DollarSign className="h-[18px] w-[18px]" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold text-muted-foreground">순 수익</div>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px]",
+                    isPositive ? "bg-[#EAF1FE] text-[#2563EB]" : "bg-[#FBF1E3] text-[#B45309]"
+                  )}>
+                    <DollarSign className="h-[16px] w-[16px]" />
+                  </div>
+                  <div className="text-[12px] font-semibold text-muted-foreground">순 수익</div>
+                </div>
                 <div className={cn(
-                  "text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums",
-                  summary.net >= 0 ? "text-[#2563EB]" : "text-[#B45309]"
+                  "text-[28px] font-bold leading-tight tracking-[-0.02em] tabular-nums",
+                  isPositive ? "text-[#2563EB]" : "text-[#B45309]"
                 )}>
                   {formatCurrency(summary.net)}
                 </div>
-                <div className="mt-0.5 text-[11px] text-[#94A3B8]">수입 − 지출</div>
+                <div className="text-[11px] text-[#94A3B8]">
+                  거래 {summary.income_count + summary.expense_count}건 · 수입 − 지출
+                </div>
+              </div>
+
+              {/* 우측 — 수입/지출 비율 */}
+              <div className="flex flex-col justify-center gap-3 px-6 py-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
+                      <TrendingUp className="h-[18px] w-[18px]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold text-muted-foreground">총 수입</div>
+                      <div className="truncate text-[20px] font-bold leading-tight tabular-nums text-[#16A34A]">
+                        {formatCurrency(summary.total_income)}
+                      </div>
+                      <div className="text-[11px] text-[#94A3B8]">{summary.income_count}건 · {incomeRatio.toFixed(0)}%</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
+                      <TrendingDown className="h-[18px] w-[18px]" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold text-muted-foreground">총 지출</div>
+                      <div className="truncate text-[20px] font-bold leading-tight tabular-nums text-[#DC2626]">
+                        {formatCurrency(summary.total_expense)}
+                      </div>
+                      <div className="text-[11px] text-[#94A3B8]">{summary.expense_count}건 · {expenseRatio.toFixed(0)}%</div>
+                    </div>
+                  </div>
+                </div>
+                {/* 비율 바 */}
+                <div className="flex h-[8px] w-full overflow-hidden rounded-full bg-[#F1F4F9]">
+                  {total > 0 ? (
+                    <>
+                      <div
+                        className="h-full bg-[#16A34A] transition-all"
+                        style={{ width: `${incomeRatio}%` }}
+                      />
+                      <div
+                        className="h-full bg-[#DC2626] transition-all"
+                        style={{ width: `${expenseRatio}%` }}
+                      />
+                    </>
+                  ) : null}
+                </div>
               </div>
             </div>
           </Card>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 검색·필터 + 테이블 통합 카드 */}
       <Card className="overflow-hidden">
@@ -872,7 +900,7 @@ const AccountingManagement: React.FC = () => {
 
           <div className="flex-1" />
 
-          {/* 구분 필터 — 표준 패턴 */}
+          {/* 구분 필터 — 단일 선택 */}
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -884,9 +912,7 @@ const AccountingManagement: React.FC = () => {
                   <span className="font-medium">
                     {typeFilter.length === 0
                       ? '전체'
-                      : typeFilter.length === 1
-                        ? (typeFilter[0] === 'income' ? '수입' : '지출')
-                        : `${typeFilter.length}개 선택`}
+                      : (typeFilter[0] === 'income' ? '수입' : '지출')}
                   </span>
                 </span>
                 <ChevronDown className="h-4 w-4 opacity-50" />
@@ -895,43 +921,30 @@ const AccountingManagement: React.FC = () => {
             <PopoverContent className="w-[200px] p-0" align="end">
               <div className="py-1.5">
                 {[
+                  { value: '', label: '전체' },
                   { value: 'income', label: '수입' },
                   { value: 'expense', label: '지출' },
                 ].map(opt => {
-                  const checked = typeFilter.includes(opt.value);
+                  const selected =
+                    opt.value === ''
+                      ? typeFilter.length === 0
+                      : typeFilter[0] === opt.value;
                   return (
-                    <label
-                      key={opt.value}
-                      htmlFor={`type-${opt.value}`}
-                      className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-secondary"
+                    <button
+                      key={opt.value || 'all'}
+                      type="button"
+                      onClick={() => setTypeFilter(opt.value ? [opt.value] : [])}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2.5 px-3 py-2 text-left text-[13px] transition-colors hover:bg-secondary",
+                        selected ? "font-semibold text-primary" : "text-foreground"
+                      )}
                     >
-                      <Checkbox
-                        id={`type-${opt.value}`}
-                        checked={checked}
-                        onCheckedChange={(c) => {
-                          if (c) {
-                            setTypeFilter([...typeFilter, opt.value]);
-                          } else {
-                            setTypeFilter(typeFilter.filter((v) => v !== opt.value));
-                          }
-                        }}
-                      />
                       <span className="flex-1">{opt.label}</span>
-                    </label>
+                      {selected && <Check className="h-4 w-4 text-primary" />}
+                    </button>
                   );
                 })}
               </div>
-              {typeFilter.length > 0 && (
-                <div className="border-t border-border px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setTypeFilter([])}
-                    className="text-[12px] font-semibold text-primary hover:underline"
-                  >
-                    선택 초기화
-                  </button>
-                </div>
-              )}
             </PopoverContent>
           </Popover>
 
