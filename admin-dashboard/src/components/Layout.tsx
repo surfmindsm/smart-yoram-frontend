@@ -281,7 +281,7 @@ const Layout: React.FC = () => {
         items: filterMenuItems([
           { path: '/donations', name: '헌금 관리', Icon: DollarSign },
           { path: '/accounting', name: '회계 관리', Icon: Calculator },
-          { path: '/account-categories', name: '계정 과목 관리', Icon: ListChecks },
+          { path: '/account-categories', name: '계정과목 관리', Icon: ListChecks },
           { path: '/budget', name: '예산 관리', Icon: TrendingUp },
           { path: '/settlement', name: '결산 관리', Icon: ChartLine },
           { path: '/daily-verses', name: '오늘의 말씀', Icon: FileText },

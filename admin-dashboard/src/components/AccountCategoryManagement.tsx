@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit, DollarSign, Check, X } from 'lucide-react';
-import { Button } from "./ui";
-import { Input } from "./ui";
-import { Card, CardContent, LoadingState } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import { Plus, Trash2, Check, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  Button,
+  Input,
+  Card,
+  LoadingState,
+  PageContainer,
+  Label,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui";
+import { usePageSubtitle, usePageActions } from "../hooks/usePageSubtitle";
+import { cn } from "../lib/utils";
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
 interface AccountCategory {
@@ -15,7 +27,7 @@ interface AccountCategory {
   description?: string;
   parent_id?: number | null;
   is_active: boolean;
-  is_offering?: boolean;  // 헌금 계정과목 여부
+  is_offering?: boolean;
   display_order: number;
   created_at: string;
   updated_at: string;
@@ -25,12 +37,22 @@ const AccountCategoryManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [incomeCategories, setIncomeCategories] = useState<AccountCategory[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<AccountCategory[]>([]);
+
+  // 추가 모달 상태
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addModalType, setAddModalType] = useState<'income' | 'expense'>('income');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryIsOffering, setNewCategoryIsOffering] = useState(false);
-  const [addingType, setAddingType] = useState<'income' | 'expense' | null>(null);
-  const [offeringParentId, setOfferingParentId] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // 수정 모달
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<AccountCategory | null>(null);
   const [editingName, setEditingName] = useState('');
+
+  // 삭제 확인 모달
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<AccountCategory | null>(null);
+  const [deleteUsage, setDeleteUsage] = useState<{ budget: number; transaction: number; offering: number } | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -67,15 +89,6 @@ const AccountCategoryManagement: React.FC = () => {
         const data = await incomeResponse.json();
         const categories = Array.isArray(data) ? data : (data?.data || []);
         setIncomeCategories(categories);
-
-        // "헌금" 상위 카테고리 ID 찾기 (parent_id가 null이고 name이 "헌금")
-        const offeringParent = categories.find(
-          (cat: AccountCategory) => cat.name === '헌금' && !cat.parent_id
-        );
-        if (offeringParent) {
-          setOfferingParentId(offeringParent.id);
-          console.log('✅ 헌금 상위 카테고리 ID:', offeringParent.id);
-        }
       }
       if (expenseResponse.ok) {
         const data = await expenseResponse.json();
@@ -88,7 +101,14 @@ const AccountCategoryManagement: React.FC = () => {
     }
   };
 
-  const addCategory = async (type: 'income' | 'expense') => {
+  const openAddModal = (type: 'income' | 'expense') => {
+    setAddModalType(type);
+    setNewCategoryName('');
+    setNewCategoryIsOffering(false);
+    setAddModalOpen(true);
+  };
+
+  const addCategory = async () => {
     if (!newCategoryName.trim()) {
       alert('계정과목 이름을 입력해주세요.');
       return;
@@ -100,10 +120,8 @@ const AccountCategoryManagement: React.FC = () => {
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 
-      // 헌금 과목이면 자동으로 parent_id를 헌금 상위 카테고리로 설정
       let parentId = null;
-      if (type === 'income' && newCategoryIsOffering) {
-        // 실시간으로 "헌금" 상위 카테고리 찾기
+      if (addModalType === 'income' && newCategoryIsOffering) {
         const offeringParent = incomeCategories.find(
           (cat) => cat.name === '헌금' && !cat.parent_id
         );
@@ -114,7 +132,6 @@ const AccountCategoryManagement: React.FC = () => {
         }
 
         parentId = offeringParent.id;
-        console.log('✅ 헌금 상위 카테고리 ID 찾음:', parentId);
       }
 
       const response = await fetch(`${supabaseUrl}/functions/v1/accounting/admin/categories`, {
@@ -126,17 +143,17 @@ const AccountCategoryManagement: React.FC = () => {
         },
         body: JSON.stringify({
           name: newCategoryName.trim(),
-          type: type,
+          type: addModalType,
           parent_id: parentId,
           is_active: true,
-          is_offering: type === 'income' ? newCategoryIsOffering : false,  // 수입 타입일 때만 헌금 여부 적용
+          is_offering: addModalType === 'income' ? newCategoryIsOffering : false,
         }),
       });
 
       if (response.ok) {
+        setAddModalOpen(false);
         setNewCategoryName('');
         setNewCategoryIsOffering(false);
-        setAddingType(null);
         await loadCategories();
       } else {
         const error = await response.json();
@@ -148,23 +165,17 @@ const AccountCategoryManagement: React.FC = () => {
     }
   };
 
-  const deleteCategory = async (id: number) => {
+  const openDeleteModal = async (category: AccountCategory) => {
+    setDeletingCategory(category);
+    setDeleteUsage(null);
+    setDeleteModalOpen(true);
+
     try {
       const token = await supabaseAuthService.getToken();
-      if (!token) {
-        alert('인증 토큰을 가져올 수 없습니다. 다시 로그인해주세요.');
-        return;
-      }
+      if (!token) return;
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-      if (!supabaseUrl) {
-        alert('Supabase URL이 설정되지 않았습니다.');
-        console.error('REACT_APP_SUPABASE_URL이 환경변수에 없습니다.');
-        return;
-      }
-
-      // 삭제 전 사용 여부 확인
-      const checkUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories/${id}/usage`;
+      const checkUrl = `${supabaseUrl}/functions/v1/accounting/admin/categories/${category.id}/usage`;
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
         headers: {
@@ -176,85 +187,20 @@ const AccountCategoryManagement: React.FC = () => {
 
       if (checkResponse.ok) {
         const usage = await checkResponse.json();
-        const { budgetCount = 0, transactionCount = 0, offeringCount = 0 } = usage;
-
-        if (budgetCount > 0 || transactionCount > 0 || offeringCount > 0) {
-          const usageDetails = [];
-          if (budgetCount > 0) usageDetails.push(`예산 ${budgetCount}건`);
-          if (transactionCount > 0) usageDetails.push(`회계거래 ${transactionCount}건`);
-          if (offeringCount > 0) usageDetails.push(`헌금 ${offeringCount}건`);
-
-          alert(
-            `⚠️ 이 계정과목은 현재 사용 중입니다.\n\n` +
-            `${usageDetails.join(', ')}\n\n` +
-            `사용 중인 계정과목은 삭제할 수 없습니다.\n` +
-            `먼저 관련 데이터를 다른 계정과목으로 이동하거나 삭제해주세요.`
-          );
-          return;
-        }
-      }
-
-      // 사용 중이 아니면 삭제 확인
-      if (!window.confirm('이 계정과목을 삭제하시겠습니까?')) {
-        return;
-      }
-
-      const url = `${supabaseUrl}/functions/v1/accounting/admin/categories/${id}`;
-      console.log('DELETE 요청 URL:', url);
-      console.log('토큰:', token.substring(0, 20) + '...');
-
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-          'X-Custom-Auth': token,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('응답 상태:', response.status);
-
-      if (response.ok) {
-        alert('계정과목이 삭제되었습니다.');
-        await loadCategories();
-      } else {
-        const error = await response.json();
-        console.error('서버 응답 에러:', error);
-
-        // 외래 키 제약 조건 오류 메시지 개선
-        if (error.error && error.error.includes('foreign key constraint')) {
-          alert(
-            `⚠️ 이 계정과목은 현재 사용 중입니다.\n\n` +
-            `예산, 회계거래, 또는 헌금 데이터에서 참조되고 있어 삭제할 수 없습니다.\n\n` +
-            `먼저 관련 데이터를 다른 계정과목으로 이동하거나 삭제해주세요.`
-          );
-        } else {
-          alert(`계정과목 삭제 실패: ${error.error || '알 수 없는 오류'}`);
-        }
+        setDeleteUsage({
+          budget: usage.budgetCount || 0,
+          transaction: usage.transactionCount || 0,
+          offering: usage.offeringCount || 0,
+        });
       }
     } catch (error) {
-      console.error('계정과목 삭제 실패 (전체 에러):', error);
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        alert('서버와 통신할 수 없습니다. 네트워크 연결을 확인해주세요.\n\n상세 정보: ' + error.message);
-      } else {
-        alert('계정과목 삭제 중 오류가 발생했습니다.\n\n상세 정보: ' + (error as Error).message);
-      }
+      console.error('사용 여부 확인 실패:', error);
     }
   };
 
-  const startEditing = (id: number, currentName: string) => {
-    setEditingId(id);
-    setEditingName(currentName);
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingName('');
-  };
-
-  const updateCategory = async (id: number) => {
-    if (!editingName.trim()) {
-      alert('계정과목 이름을 입력해주세요.');
+  const confirmDelete = async () => {
+    if (!deletingCategory) return;
+    if (deleteUsage && (deleteUsage.budget > 0 || deleteUsage.transaction > 0 || deleteUsage.offering > 0)) {
       return;
     }
 
@@ -266,12 +212,61 @@ const AccountCategoryManagement: React.FC = () => {
       }
 
       const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-      if (!supabaseUrl) {
-        alert('Supabase URL이 설정되지 않았습니다.');
-        return;
-      }
+      const url = `${supabaseUrl}/functions/v1/accounting/admin/categories/${deletingCategory.id}`;
 
-      const url = `${supabaseUrl}/functions/v1/accounting/admin/categories/${id}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          'X-Custom-Auth': token,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        setDeleteModalOpen(false);
+        setDeletingCategory(null);
+        setDeleteUsage(null);
+        await loadCategories();
+      } else {
+        const error = await response.json();
+        if (error.error && error.error.includes('foreign key constraint')) {
+          alert('이 계정과목은 현재 사용 중이라 삭제할 수 없습니다.');
+        } else {
+          alert(`계정과목 삭제 실패: ${error.error || '알 수 없는 오류'}`);
+        }
+      }
+    } catch (error) {
+      console.error('계정과목 삭제 실패:', error);
+      alert('계정과목 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const openEditModal = (category: AccountCategory) => {
+    setSelectedCategory(category);
+    setEditingName(category.name);
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setSelectedCategory(null);
+    setEditingName('');
+  };
+
+  const updateCategory = async () => {
+    if (!selectedCategory) return;
+    if (!editingName.trim()) {
+      alert('계정과목 이름을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const token = await supabaseAuthService.getToken();
+      if (!token) return;
+
+      const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+      const url = `${supabaseUrl}/functions/v1/accounting/admin/categories/${selectedCategory.id}`;
 
       const response = await fetch(url, {
         method: 'PUT',
@@ -286,8 +281,7 @@ const AccountCategoryManagement: React.FC = () => {
       });
 
       if (response.ok) {
-        setEditingId(null);
-        setEditingName('');
+        closeEditModal();
         await loadCategories();
       } else {
         const error = await response.json();
@@ -295,329 +289,309 @@ const AccountCategoryManagement: React.FC = () => {
       }
     } catch (error) {
       console.error('계정과목 수정 실패:', error);
-      alert('계정과목 수정 중 오류가 발생했습니다.\n\n상세 정보: ' + (error as Error).message);
+      alert('계정과목 수정 중 오류가 발생했습니다.');
     }
+  };
+
+  const requestDelete = () => {
+    if (!selectedCategory) return;
+    const target = selectedCategory;
+    closeEditModal();
+    openDeleteModal(target);
+  };
+
+  usePageSubtitle(undefined);
+  usePageActions(null, []);
+
+  const renderCategoryRow = (
+    category: AccountCategory,
+    isChild = false,
+    color: 'income' | 'expense' = 'income'
+  ) => {
+    const isOfferingParent = category.name === '헌금' && !category.parent_id && color === 'income';
+    const clickable = !isOfferingParent;
+    return (
+      <button
+        key={category.id}
+        type="button"
+        onClick={clickable ? () => openEditModal(category) : undefined}
+        disabled={!clickable}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 border-b border-[#EEF1F6] px-4 text-left transition-colors",
+          isChild ? "py-2 pl-10" : "py-3",
+          clickable
+            ? "cursor-pointer hover:bg-[#F8FAFD] focus:bg-[#F8FAFD] focus:outline-none"
+            : "cursor-default"
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          {isChild && (
+            <span className="text-[12px] text-[#94A3B8]">└</span>
+          )}
+          <span className={cn(
+            "truncate text-[13.5px]",
+            isChild ? "font-medium text-[#475569]" : "font-semibold text-foreground"
+          )}>
+            {category.name}
+          </span>
+          {category.is_offering && (
+            <span className="inline-flex items-center rounded-full bg-[#E7F6EC] px-2 py-0.5 text-[10.5px] font-semibold text-[#16A34A]">
+              헌금
+            </span>
+          )}
+          {category.code && (
+            <span className="truncate text-[11.5px] text-[#94A3B8]">{category.code}</span>
+          )}
+          {isOfferingParent && (
+            <span className="text-[11px] text-[#94A3B8]">시스템 항목</span>
+          )}
+        </div>
+      </button>
+    );
+  };
+
+  const renderColumn = (
+    type: 'income' | 'expense',
+    title: string,
+    icon: React.ReactNode,
+    categories: AccountCategory[]
+  ) => {
+    const isIncome = type === 'income';
+    const tone = isIncome
+      ? { bg: '#E7F6EC', fg: '#16A34A' }
+      : { bg: '#FCEBEB', fg: '#DC2626' };
+
+    const parents = categories.filter(c => !c.parent_id);
+
+    return (
+      <Card className="overflow-hidden">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between border-b border-[#EEF1F6] px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px]"
+              style={{ backgroundColor: tone.bg, color: tone.fg }}
+            >
+              {icon}
+            </div>
+            <div className="text-[14px] font-bold leading-tight text-foreground">{title}</div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openAddModal(type)}
+            className="h-8 gap-1.5 text-[12px]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            추가
+          </Button>
+        </div>
+
+        {/* 리스트 */}
+        {loading ? (
+          <LoadingState text="불러오는 중..." />
+        ) : parents.length === 0 ? (
+          <div className="py-10 text-center text-[13px] text-muted-foreground">
+            등록된 {title}이 없습니다.
+          </div>
+        ) : (
+          <div>
+            {parents.map((parent) => {
+              const children = categories.filter(c => c.parent_id === parent.id);
+              return (
+                <React.Fragment key={parent.id}>
+                  {renderCategoryRow(parent, false, type)}
+                  {children.map(child => renderCategoryRow(child, true, type))}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    );
   };
 
   return (
     <PageContainer>
-      <PageHeader
-        title="계정 과목 관리"
-        description="수입 및 지출 계정 과목을 관리합니다."
-      />
-
-      <div className="max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Income Categories */}
-        <Card className="border-muted">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-green-700">수입 계정과목</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setAddingType(addingType === 'income' ? null : 'income')}
-                className="text-gray-900 hover:bg-gray-100"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                추가
-              </Button>
-            </div>
-
-            {addingType === 'income' && (
-              <div className="mb-4 space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="계정과목 이름"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addCategory('income')}
-                  />
-                  <Button onClick={() => addCategory('income')} size="sm">
-                    저장
-                  </Button>
-                  <Button onClick={() => { setAddingType(null); setNewCategoryName(''); setNewCategoryIsOffering(false); }} variant="outline" size="sm">
-                    취소
-                  </Button>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newCategoryIsOffering}
-                    onChange={(e) => setNewCategoryIsOffering(e.target.checked)}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                  />
-                  <span>헌금 과목으로 설정 (헌금 관리 화면에 표시됨)</span>
-                </label>
-              </div>
-            )}
-
-            {loading ? (
-              <LoadingState text="불러오는 중..." />
-            ) : (
-              <div className="divide-y">
-                {incomeCategories
-                  .filter(c => !c.parent_id)
-                  .map((category) => (
-                    <React.Fragment key={category.id}>
-                      {/* 상위 카테고리 */}
-                      <div className="flex items-center justify-between py-3 group hover:bg-gray-50">
-                        <div className="flex items-center gap-2 flex-1">
-                          {editingId === category.id ? (
-                            // 수정 모드
-                            <div className="flex items-center gap-2 flex-1">
-                              <Input
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && updateCategory(category.id)}
-                                className="flex-1"
-                                autoFocus
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => updateCategory(category.id)}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              >
-                                <Check className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={cancelEditing}
-                                className="text-gray-600 hover:text-gray-700 hover:bg-gray-100"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            // 보기 모드
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-gray-900">{category.name}</p>
-                                {category.is_offering && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <DollarSign className="w-3 h-3" />
-                                    헌금
-                                  </span>
-                                )}
-                              </div>
-                              {category.code && <p className="text-sm text-gray-500">{category.code}</p>}
-                            </div>
-                          )}
-                        </div>
-                        {/* 헌금 상위 카테고리는 수정/삭제 버튼 숨김 */}
-                        {!(category.name === '헌금' && !category.parent_id) && editingId !== category.id && (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(category.id, category.name)}
-                              className="text-gray-400 hover:text-blue-600"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteCategory(category.id)}
-                              className="text-gray-400 hover:text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 하위 항목들 */}
-                      {incomeCategories
-                        .filter(c => c.parent_id === category.id)
-                        .map((child) => {
-                          return (
-                            <div key={child.id} className="flex items-center justify-between py-2 pl-6 group hover:bg-gray-50 border-l-2 border-gray-200">
-                              <div className="flex items-center gap-2 flex-1">
-                                {editingId === child.id ? (
-                                  // 수정 모드
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <Input
-                                      value={editingName}
-                                      onChange={(e) => setEditingName(e.target.value)}
-                                      onKeyPress={(e) => e.key === 'Enter' && updateCategory(child.id)}
-                                      className="flex-1"
-                                      autoFocus
-                                    />
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => updateCategory(child.id)}
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    >
-                                      <Check className="w-3 h-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={cancelEditing}
-                                      className="text-gray-600 hover:text-gray-700 hover:bg-gray-100"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  // 보기 모드
-                                  <div>
-                                    <p className="font-medium text-gray-700 text-sm">{child.name}</p>
-                                    {child.code && <p className="text-xs text-gray-500">{child.code}</p>}
-                                  </div>
-                                )}
-                              </div>
-                              {/* 모든 하위 항목 수정/삭제 가능 */}
-                              {editingId !== child.id && (
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => startEditing(child.id, child.name)}
-                                    className="text-gray-400 hover:text-blue-600"
-                                  >
-                                    <Edit className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteCategory(child.id)}
-                                    className="text-gray-400 hover:text-red-600"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </React.Fragment>
-                  ))}
-                {incomeCategories.filter(c => !c.parent_id).length === 0 && (
-                  <p className="text-center text-gray-500 py-4">등록된 수입 계정과목이 없습니다.</p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Expense Categories */}
-        <Card className="border-muted">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-red-700">지출 계정과목</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setAddingType(addingType === 'expense' ? null : 'expense')}
-                className="text-gray-900 hover:bg-gray-100"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                추가
-              </Button>
-            </div>
-
-            {addingType === 'expense' && (
-              <div className="mb-4 flex gap-2">
-                <Input
-                  placeholder="계정과목 이름"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addCategory('expense')}
-                />
-                <Button onClick={() => addCategory('expense')} size="sm">
-                  저장
-                </Button>
-                <Button onClick={() => { setAddingType(null); setNewCategoryName(''); }} variant="outline" size="sm">
-                  취소
-                </Button>
-              </div>
-            )}
-
-            {loading ? (
-              <LoadingState text="불러오는 중..." />
-            ) : (
-              <div className="divide-y">
-                {expenseCategories.map((category) => (
-                  <div key={category.id} className="flex items-center justify-between py-3 group hover:bg-gray-50">
-                    <div className="flex items-center gap-2 flex-1">
-                      {editingId === category.id ? (
-                        // 수정 모드
-                        <div className="flex items-center gap-2 flex-1">
-                          <Input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && updateCategory(category.id)}
-                            className="flex-1"
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateCategory(category.id)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={cancelEditing}
-                            className="text-gray-600 hover:text-gray-700 hover:bg-gray-100"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        // 보기 모드
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className={`text-gray-900 ${category.parent_id ? 'font-medium' : 'font-semibold'}`}>
-                              {category.name}
-                            </p>
-                            {category.parent_id && (
-                              <span className="text-xs text-gray-500">
-                                (하위 항목)
-                              </span>
-                            )}
-                          </div>
-                          {category.code && <p className="text-sm text-gray-500">{category.code}</p>}
-                        </div>
-                      )}
-                    </div>
-                    {editingId !== category.id && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditing(category.id, category.name)}
-                          className="text-gray-400 hover:text-blue-600"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteCategory(category.id)}
-                          className="text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {expenseCategories.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">등록된 지출 계정과목이 없습니다.</p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* 좌우 컬럼 */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {renderColumn(
+          'income',
+          '수입 계정과목',
+          <TrendingUp className="h-[16px] w-[16px]" />,
+          incomeCategories
+        )}
+        {renderColumn(
+          'expense',
+          '지출 계정과목',
+          <TrendingDown className="h-[16px] w-[16px]" />,
+          expenseCategories
+        )}
       </div>
+
+      {/* 추가 모달 */}
+      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>
+              {addModalType === 'income' ? '수입' : '지출'} 계정과목 추가
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-category-name" className="text-[12.5px] font-semibold">
+                계정과목 이름 <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="new-category-name"
+                placeholder="예: 십일조, 사역비"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                autoFocus
+              />
+            </div>
+            {addModalType === 'income' && (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-[8px] border border-border bg-[#F8FAFD] px-3 py-2.5">
+                <Checkbox
+                  checked={newCategoryIsOffering}
+                  onCheckedChange={(c) => setNewCategoryIsOffering(c === true)}
+                  className="mt-0.5"
+                />
+                <div className="text-[12.5px] leading-tight">
+                  <div className="font-semibold text-foreground">헌금 과목으로 설정</div>
+                  <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                    헌금 관리 화면의 종류 옵션에 표시됩니다.
+                  </div>
+                </div>
+              </label>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setAddModalOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={addCategory}>
+              <Check className="mr-1 h-3.5 w-3.5" />
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 수정 모달 */}
+      <Dialog open={editModalOpen} onOpenChange={(open) => { if (!open) closeEditModal(); }}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>계정과목 수정</DialogTitle>
+          </DialogHeader>
+          {selectedCategory && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-category-type" className="text-[12.5px] font-semibold">구분</Label>
+                <div
+                  id="edit-category-type"
+                  className="flex h-[38px] w-full items-center rounded-[8px] border border-border bg-[#F8FAFD] px-3 text-[13px] text-muted-foreground"
+                >
+                  {selectedCategory.type === 'income' ? '수입' : '지출'}
+                  <span className="ml-2 text-[11.5px] text-[#94A3B8]">
+                    · {selectedCategory.parent_id ? '하위 항목' : '상위 항목'}
+                  </span>
+                  {selectedCategory.is_offering && (
+                    <span className="ml-auto inline-flex items-center rounded-full bg-[#E7F6EC] px-2 py-0.5 text-[11px] font-semibold text-[#16A34A]">
+                      헌금
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-category-name" className="text-[12.5px] font-semibold">
+                  계정과목 이름 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-category-name"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && updateCategory()}
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between sm:gap-2">
+            <Button
+              variant="destructive-soft"
+              onClick={requestDelete}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              삭제
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={closeEditModal}>
+                취소
+              </Button>
+              <Button onClick={updateCategory}>
+                수정
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 삭제 확인 모달 */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>계정과목 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-[13px]">
+            {deletingCategory && (
+              <p className="text-foreground">
+                <span className="font-semibold">"{deletingCategory.name}"</span> 계정과목을 삭제하시겠습니까?
+              </p>
+            )}
+            {deleteUsage === null ? (
+              <p className="text-[12px] text-muted-foreground">사용 여부 확인 중...</p>
+            ) : (deleteUsage.budget > 0 || deleteUsage.transaction > 0 || deleteUsage.offering > 0) ? (
+              <div className="rounded-[8px] border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                <div className="mb-1 text-[12.5px] font-semibold text-destructive">
+                  사용 중인 계정과목이라 삭제할 수 없습니다
+                </div>
+                <ul className="space-y-0.5 text-[11.5px] text-muted-foreground">
+                  {deleteUsage.budget > 0 && <li>· 예산: {deleteUsage.budget}건</li>}
+                  {deleteUsage.transaction > 0 && <li>· 회계 거래: {deleteUsage.transaction}건</li>}
+                  {deleteUsage.offering > 0 && <li>· 헌금: {deleteUsage.offering}건</li>}
+                </ul>
+                <p className="mt-2 text-[11.5px] text-muted-foreground">
+                  관련 데이터를 다른 계정과목으로 이동하거나 삭제한 후 다시 시도해주세요.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                이 작업은 되돌릴 수 없습니다.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={
+                deleteUsage === null ||
+                (deleteUsage && (deleteUsage.budget > 0 || deleteUsage.transaction > 0 || deleteUsage.offering > 0)) || undefined
+              }
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 };
