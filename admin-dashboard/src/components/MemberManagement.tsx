@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useCurrentUser, useMembers, useOrganizations, useDepartments } from '../hooks/queries';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabaseApiService } from '../services/supabaseApiService';
@@ -2802,7 +2803,7 @@ Church Round 앱에 초대되셨습니다.
                         selectedMember.organization_name,
                         selectedMember.department,
                         selectedMember.registration_date
-                          ? `등록 ${new Date(selectedMember.registration_date).toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '')}`
+                          ? `등록 ${formatDateUtil(selectedMember.registration_date)}`
                           : null
                       ].filter(Boolean).join(' · ')}
                     </span>

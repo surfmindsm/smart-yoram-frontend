@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
 import { UserPlus, UserMinus, AlertCircle, Users } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 
 interface ChurchAdmin {
@@ -232,7 +233,7 @@ export default function ChurchGptLicenseAssignment() {
                       <div className="text-sm text-gray-600">{admin.email}</div>
                       <div className="text-xs text-gray-500">
                         할당: {admin.license_assigned_at ?
-                          new Date(admin.license_assigned_at).toLocaleDateString('ko-KR') :
+                          formatDateUtil(admin.license_assigned_at) :
                           '알 수 없음'
                         }
                       </div>

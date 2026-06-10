@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Card, CardContent } from "./ui";
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -680,7 +681,7 @@ const SermonLibrary: React.FC = () => {
                       <td className="p-4 text-slate-600">{material.author || '-'}</td>
                       <td className="p-4 text-slate-600">{material.scripture_reference || '-'}</td>
                       <td className="p-4 text-slate-600">
-                        {material.created_at ? new Date(material.created_at).toLocaleDateString('ko-KR') : '-'}
+                        {material.created_at ? formatDateUtil(material.created_at) : '-'}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center space-x-1">
@@ -1144,7 +1145,7 @@ const SermonLibrary: React.FC = () => {
                   <div>
                     <Label className="text-sm font-medium text-slate-700">등록일</Label>
                     <div className="mt-1 text-slate-900">
-                      {selectedMaterial.created_at ? new Date(selectedMaterial.created_at).toLocaleDateString('ko-KR') : '-'}
+                      {selectedMaterial.created_at ? formatDateUtil(selectedMaterial.created_at) : '-'}
                     </div>
                   </div>
                 </div>

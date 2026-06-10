@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '../utils/dateUtils';
 import { 
   Plus, 
   Edit3, 
@@ -435,13 +436,13 @@ const SystemAnnouncementManagement: React.FC = () => {
                       <div className="flex items-center text-xs text-muted-foreground space-x-4">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(announcement.start_date).toLocaleDateString()}
-                          {announcement.end_date && 
-                            ` ~ ${new Date(announcement.end_date).toLocaleDateString()}`
+                          {formatDateUtil(announcement.start_date)}
+                          {announcement.end_date &&
+                            ` ~ ${formatDateUtil(announcement.end_date)}`
                           }
                         </div>
                         <div>
-                          작성: {new Date(announcement.created_at).toLocaleString()}
+                          작성: {formatDateTimeUtil(announcement.created_at)}
                         </div>
                       </div>
                     </div>

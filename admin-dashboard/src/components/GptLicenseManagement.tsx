@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui";
 import { Plus, Settings, AlertCircle } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 
 interface ChurchLicenseStats {
   church_id: number;
@@ -335,7 +336,7 @@ export default function GptLicenseManagement() {
                           </div>
                           {admin.has_gpt_license && admin.license_assigned_at && (
                             <div className="text-xs text-gray-500 mt-1">
-                              할당일: {new Date(admin.license_assigned_at).toLocaleDateString('ko-KR')}
+                              할당일: {formatDateUtil(admin.license_assigned_at)}
                             </div>
                           )}
                         </div>
@@ -386,7 +387,7 @@ export default function GptLicenseManagement() {
                           <div className="font-medium">{license.user_name}</div>
                           <div className="text-sm text-gray-600">{license.user_email}</div>
                           <div className="text-xs text-gray-500">
-                            할당일: {new Date(license.assigned_at).toLocaleDateString('ko-KR')}
+                            할당일: {formatDateUtil(license.assigned_at)}
                           </div>
                           <div className="text-xs text-gray-500">
                             할당자: {license.assigned_by}

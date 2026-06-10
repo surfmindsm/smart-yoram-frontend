@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Plus, Edit2, Trash2, Pin } from 'lucide-react';
 import { announcementService } from '../services/api';
 import { Button } from "./ui";
@@ -239,7 +240,7 @@ const Announcements: React.FC = () => {
                     <div className="text-sm text-muted-foreground">
                       {announcement.category && <><CategoryBadge category={announcement.category} subcategory={announcement.subcategory} /> | </> }
                       작성자: {announcement.author_name} |
-                      작성일: {new Date(announcement.created_at).toLocaleDateString('ko-KR')} |
+                      작성일: {formatDateUtil(announcement.created_at)} |
                       대상: {getTargetAudienceText(announcement.target_audience)}
                     </div>
                     <p className="text-muted-foreground whitespace-pre-wrap mt-2">{announcement.content}</p>

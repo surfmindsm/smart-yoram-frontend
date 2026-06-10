@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccountCategories } from '../hooks/queries';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Plus, Search, Trash2, Edit, DollarSign, TrendingUp, TrendingDown, Download, X, ChevronDown, Upload, Image as ImageIcon, FileText, Eye, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -607,9 +608,7 @@ const AccountingManagement: React.FC = () => {
     return new Intl.NumberFormat('ko-KR').format(Math.round(amount || 0));
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR');
-  };
+  const formatDate = (dateString: string) => formatDateUtil(dateString);
 
   const getPaymentMethodLabel = (method: string | null | undefined) => {
     if (!method) return '-';
@@ -846,52 +845,20 @@ const AccountingManagement: React.FC = () => {
           <div className="flex-1" />
 
           {/* 구분 필터 — 단일 선택 */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex h-[38px] w-auto min-w-[140px] items-center justify-between gap-2 rounded-[8px] border border-border bg-card px-3 text-[13px] text-foreground transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="text-[12.5px] text-muted-foreground">구분</span>
-                  <span className="font-medium">
-                    {typeFilter.length === 0
-                      ? '전체'
-                      : (typeFilter[0] === 'income' ? '수입' : '지출')}
-                  </span>
-                </span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="end">
-              <div className="py-1.5">
-                {[
-                  { value: '', label: '전체' },
-                  { value: 'income', label: '수입' },
-                  { value: 'expense', label: '지출' },
-                ].map(opt => {
-                  const selected =
-                    opt.value === ''
-                      ? typeFilter.length === 0
-                      : typeFilter[0] === opt.value;
-                  return (
-                    <button
-                      key={opt.value || 'all'}
-                      type="button"
-                      onClick={() => setTypeFilter(opt.value ? [opt.value] : [])}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2.5 px-3 py-2 text-left text-[13px] transition-colors hover:bg-secondary",
-                        selected ? "font-semibold text-primary" : "text-foreground"
-                      )}
-                    >
-                      <span className="flex-1">{opt.label}</span>
-                      {selected && <Check className="h-4 w-4 text-primary" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Select
+            value={typeFilter.length === 0 ? 'all' : typeFilter[0]}
+            onValueChange={(value) => setTypeFilter(value === 'all' ? [] : [value])}
+          >
+            <SelectTrigger className="h-[38px] w-auto min-w-[140px] gap-2">
+              <span className="text-[12.5px] text-muted-foreground">구분</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              <SelectItem value="income">수입</SelectItem>
+              <SelectItem value="expense">지출</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* 기간 선택 */}
           <DateRangePicker

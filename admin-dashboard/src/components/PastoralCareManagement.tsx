@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser, useMembers } from '../hooks/queries';
+import { formatDate } from '../utils/dateUtils';
 import { useLocation } from 'react-router-dom';
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -977,7 +978,7 @@ const PastoralCareManagement: React.FC = () => {
   const handleDeleteRecord = async (record: PastoralCareRecord) => {
     const confirmMessage = `⚠️ 경고: 심방 기록 완전 삭제\n\n` +
       `신청자: ${record.requesterName}님\n` +
-      `완료일: ${record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '정보 없음'}\n\n` +
+      `완료일: ${record.completedAt ? formatDate(record.completedAt) : '정보 없음'}\n\n` +
       `이 작업은 되돌릴 수 없으며, 모든 심방 기록이 영구적으로 삭제됩니다.\n\n` +
       `정말로 삭제하시겠습니까?`;
 
@@ -1426,7 +1427,7 @@ const PastoralCareManagement: React.FC = () => {
                         {/* 희망/방문일 */}
                         <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                           {request.scheduledDate
-                            ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime : ''}`
+                            ? `${request.scheduledDate}${request.scheduledTime ? ' ' + request.scheduledTime.slice(0, 5) : ''}`
                             : request.preferredDate || <span className="text-[#CBD5E1]">-</span>}
                         </td>
 
@@ -1578,7 +1579,7 @@ const PastoralCareManagement: React.FC = () => {
                       <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3 w-3 text-[#94A3B8]" />
-                          {record.scheduledDate} {record.scheduledTime}
+                          {record.scheduledDate} {record.scheduledTime?.slice(0, 5)}
                         </div>
                       </td>
                       <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">
@@ -1587,7 +1588,7 @@ const PastoralCareManagement: React.FC = () => {
                       <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
                         <div className="flex items-center gap-1.5">
                           <CheckCircle className="h-3 w-3 text-[#16A34A]" />
-                          {record.completedAt ? new Date(record.completedAt).toLocaleDateString('ko-KR') : '-'}
+                          {formatDate(record.completedAt, '-')}
                         </div>
                       </td>
                       <td className="px-[18px] py-3 whitespace-nowrap">
@@ -2385,7 +2386,7 @@ const PastoralCareManagement: React.FC = () => {
                   <div className="print-section text-center mb-4">
                     <h2 className="text-2xl font-bold text-slate-800 mb-1">심방 카드</h2>
                     <div className="text-sm text-slate-600">
-                      발급일: {new Date().toLocaleDateString('ko-KR')}
+                      발급일: {formatDate(new Date())}
                     </div>
                   </div>
 
@@ -2523,7 +2524,7 @@ const PastoralCareManagement: React.FC = () => {
                   <div>
                     <p className="text-sm text-slate-600">예정 일시</p>
                     <p className="font-medium">
-                      {selectedRequest.scheduledDate} {selectedRequest.scheduledTime}
+                      {selectedRequest.scheduledDate} {selectedRequest.scheduledTime?.slice(0, 5)}
                     </p>
                   </div>
                 )}
@@ -2642,7 +2643,7 @@ const PastoralCareManagement: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">심방일</label>
-                  <p className="text-slate-900">{selectedRecord.scheduledDate} {selectedRecord.scheduledTime}</p>
+                  <p className="text-slate-900">{selectedRecord.scheduledDate} {selectedRecord.scheduledTime?.slice(0, 5)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">담당 목회자</label>
@@ -2714,13 +2715,13 @@ const PastoralCareManagement: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">신청일</label>
                   <p className="text-sm text-slate-600">
-                    {new Date(selectedRecord.createdAt).toLocaleDateString('ko-KR')}
+                    {formatDate(selectedRecord.createdAt)}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">완료일</label>
                   <p className="text-sm text-slate-600">
-                    {selectedRecord.completedAt ? new Date(selectedRecord.completedAt).toLocaleDateString('ko-KR') : '미기록'}
+                    {formatDate(selectedRecord.completedAt, '미기록')}
                   </p>
                 </div>
               </div>

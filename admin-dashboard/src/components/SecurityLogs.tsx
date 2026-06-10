@@ -25,6 +25,7 @@ import { Spinner } from "./ui/spinner";
 import { Pagination } from './common/Pagination';
 import { StandardPagination } from '../types';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 
 interface LoginRecord {
   id: number;
@@ -522,7 +523,7 @@ const SecurityLogs: React.FC = () => {
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="text-sm">
-                                {new Date(record.timestamp).toLocaleDateString('ko-KR')}
+                                {formatDateUtil(record.timestamp)}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(record.timestamp).toLocaleTimeString('ko-KR')}
@@ -611,7 +612,7 @@ const SecurityLogs: React.FC = () => {
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="text-sm">
-                                {new Date(log.timestamp).toLocaleDateString('ko-KR')}
+                                {formatDateUtil(log.timestamp)}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(log.timestamp).toLocaleTimeString('ko-KR')}

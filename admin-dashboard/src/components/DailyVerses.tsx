@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Button } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
 import { Input } from "./ui";
@@ -271,7 +272,7 @@ const DailyVerses: React.FC = () => {
                             {verse.is_active ? "활성" : "비활성"}
                           </Badge>
                           <span className="text-xs text-gray-500">
-                            {new Date(verse.created_at).toLocaleDateString('ko-KR')}
+                            {formatDateUtil(verse.created_at)}
                           </span>
                         </div>
                       </div>

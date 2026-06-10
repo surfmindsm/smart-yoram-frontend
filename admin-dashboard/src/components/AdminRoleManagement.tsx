@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
   ROLES,
@@ -296,7 +297,7 @@ const AdminRoleManagement: React.FC = () => {
                       )}
                     </td>
                     <td className="px-[18px] py-3 whitespace-nowrap text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString('ko-KR')}
+                      {formatDateUtil(user.created_at)}
                     </td>
                     <td className="px-[18px] py-3 whitespace-nowrap text-right">
                       {editingUser === user.id ? (

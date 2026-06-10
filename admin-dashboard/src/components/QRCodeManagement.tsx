@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { api } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Button } from "./ui";
@@ -284,7 +285,7 @@ const QRCodeManagement: React.FC = () => {
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <p><strong>코드:</strong> {qrCode.code}</p>
                         <p><strong>유형:</strong> {qrCode.qr_type}</p>
-                        <p><strong>생성일:</strong> {new Date(qrCode.created_at).toLocaleDateString('ko-KR')}</p>
+                        <p><strong>생성일:</strong> {formatDateUtil(qrCode.created_at)}</p>
                         <p>
                           <strong>상태:</strong> 
                           <Badge 
@@ -396,7 +397,7 @@ const QRCodeManagement: React.FC = () => {
                             <strong>{scanResult.member.name}</strong>님의 출석이 기록되었습니다.
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(scanResult.attendance.attendance_date).toLocaleDateString('ko-KR')} 
+                            {formatDateUtil(scanResult.attendance.attendance_date)} 
                             {' - ' + scanResult.attendance.attendance_type}
                           </p>
                         </div>

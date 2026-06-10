@@ -274,10 +274,10 @@ const Layout: React.FC = () => {
         title: '교인 관리',
         Icon: Users,
         items: filterMenuItems([
-          { path: '/member-management', name: '교인 관리', count: menuCounts.members },
-          { path: '/organization-management', name: '조직 · 부서 관리' },
-          { path: '/attendance', name: '출석 관리' },
-          { path: '/pastoral-care', name: '심방 관리', count: menuCounts.pastoralCare },
+          { path: '/member-management', name: '교인', count: menuCounts.members },
+          { path: '/organization-management', name: '조직 · 부서' },
+          { path: '/attendance', name: '출석' },
+          { path: '/pastoral-care', name: '심방', count: menuCounts.pastoralCare },
           { path: '/prayer-requests', name: '중보 기도', count: menuCounts.prayers },
         ] as MenuItem[]),
       },
@@ -285,11 +285,11 @@ const Layout: React.FC = () => {
         title: '재정 관리',
         Icon: Calculator,
         items: filterMenuItems([
-          { path: '/accounting', name: '회계 관리' },
-          { path: '/account-categories', name: '계정과목 관리' },
-          { path: '/budget', name: '예산 관리' },
-          { path: '/settlement', name: '결산 관리' },
-          { path: '/donations', name: '헌금 관리' },
+          { path: '/accounting', name: '회계' },
+          { path: '/account-categories', name: '계정과목' },
+          { path: '/budget', name: '예산' },
+          { path: '/settlement', name: '결산' },
+          { path: '/donations', name: '헌금' },
         ] as MenuItem[]),
       },
       {
@@ -297,8 +297,7 @@ const Layout: React.FC = () => {
         Icon: Clock,
         items: filterMenuItems([
           { path: '/worship-schedule', name: '예배 시간표' },
-          { path: '/daily-verses', name: '오늘의 말씀' },
-          { path: '/bulletins', name: '주보 · 공지' },
+          { path: '/bulletins', name: '주보' },
           ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항' }]),
           { path: '/message-sending', name: '푸시 알림' },
           { path: '/sms', name: 'SMS 발송' },
@@ -309,9 +308,9 @@ const Layout: React.FC = () => {
         Icon: Building2,
         items: filterMenuItems([
           { path: '/church', name: '교회 정보' },
-          { path: '/important-dates', name: '일정 관리' },
+          { path: '/important-dates', name: '일정' },
           { path: '/analytics', name: '통계 분석' },
-          { path: '/excel', name: '엑셀 관리' },
+          { path: '/excel', name: '엑셀' },
         ] as MenuItem[]),
       },
     ];
@@ -327,8 +326,8 @@ const Layout: React.FC = () => {
         Icon: Bot,
         items: [
           { path: '/ai-chat', name: 'AI 교역자' },
-          { path: '/ai-agent-management', name: '에이전트 관리' },
-          { path: '/sermon-library', name: '설교 자료 관리' },
+          { path: '/ai-agent-management', name: '에이전트' },
+          { path: '/sermon-library', name: '설교 자료' },
           { path: '/ai-tools', name: 'AI Tools' },
         ] as MenuItem[],
       });
@@ -345,18 +344,18 @@ const Layout: React.FC = () => {
     if (isSystemAdmin) {
       systemItems.push(
         { path: '/security-logs', name: '보안 로그' } as MenuItem,
-        { path: '/system-announcements', name: '시스템 공지사항 관리' } as MenuItem,
-        { path: '/sermons', name: '명설교 관리' } as MenuItem,
+        { path: '/system-announcements', name: '시스템 공지사항' } as MenuItem,
+        { path: '/sermons', name: '명설교' } as MenuItem,
         { path: '/church-applications', name: '교회 가입 신청' } as MenuItem,
         { path: '/community-applications', name: '커뮤니티 신청' } as MenuItem,
-        { path: '/church-management', name: '교회 관리' } as MenuItem,
+        { path: '/church-management', name: '교회' } as MenuItem,
         { path: '/gpt-license-management', name: 'GPT 라이선스' } as MenuItem,
       );
     }
     if (userInfo && isChurchSuperAdmin(userInfo)) {
       systemItems.push(
-        { path: '/admin-roles', name: '관리자 권한 관리' } as MenuItem,
-        { path: '/permission-groups', name: '권한 그룹 관리' } as MenuItem,
+        { path: '/admin-roles', name: '관리자 권한' } as MenuItem,
+        { path: '/permission-groups', name: '권한 그룹' } as MenuItem,
       );
     }
     if (systemItems.length > 0) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import {
   Plus,
   Edit3,
@@ -775,7 +776,7 @@ const SermonManagement: React.FC = () => {
                             {sermon.sermon_date && (
                               <div className="flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                {new Date(sermon.sermon_date).toLocaleDateString('ko-KR')}
+                                {formatDateUtil(sermon.sermon_date)}
                               </div>
                             )}
                             {sermon.duration_seconds && (

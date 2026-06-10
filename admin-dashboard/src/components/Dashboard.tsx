@@ -1213,7 +1213,7 @@ const Dashboard = React.memo(() => {
                   <p className="text-sm text-muted-foreground">일정</p>
                   <p className="font-medium">
                     {selectedPastoralCare.scheduled_date || selectedPastoralCare.preferred_date}
-                    {selectedPastoralCare.scheduled_time && ` ${selectedPastoralCare.scheduled_time}`}
+                    {selectedPastoralCare.scheduled_time && ` ${selectedPastoralCare.scheduled_time.slice(0, 5)}`}
                   </p>
                 </div>
               )}

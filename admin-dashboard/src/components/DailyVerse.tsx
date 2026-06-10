@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
 import { Button } from "./ui";
 import { Input } from "./ui";
@@ -130,14 +131,7 @@ const DailyVerse: React.FC = () => {
   };
 
   // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
-  };
+  const formatDate = (dateString: string) => formatDateUtil(dateString);
 
   if (loading) {
     return (

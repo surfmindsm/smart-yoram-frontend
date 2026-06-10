@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
+import { formatDate } from '../utils/dateUtils';
 import { Button } from "./ui";
 import { Input } from "./ui";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui";
@@ -322,8 +323,8 @@ const ChurchManagement: React.FC = () => {
                     church.subscription_plan === 'enterprise' ? '엔터프라이즈' : church.subscription_plan,
         '교인 제한': getMemberLimitInfo(church),
         '활성 상태': church.is_active ? '활성' : '비활성',
-        '등록일': new Date(church.created_at).toLocaleDateString('ko-KR'),
-        '수정일': church.updated_at ? new Date(church.updated_at).toLocaleDateString('ko-KR') : '없음',
+        '등록일': formatDate(church.created_at),
+        '수정일': church.updated_at ? formatDate(church.updated_at) : '없음',
       }));
 
       // 워크시트 생성
@@ -539,7 +540,7 @@ const ChurchManagement: React.FC = () => {
                       <span className="font-medium">{memberCounts[parseInt(church.id)] || 0}명</span>
                     </td>
                     <td className="py-4 px-6 text-muted-foreground whitespace-nowrap">
-                      {new Date(church.created_at).toLocaleDateString('ko-KR')}
+                      {formatDate(church.created_at)}
                     </td>
                   </tr>
                 ))}
@@ -688,7 +689,7 @@ const ChurchManagement: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">설립일</label>
                   <p className="text-foreground">
-                    {selectedChurch.established_date ? new Date(selectedChurch.established_date).toLocaleDateString('ko-KR') : '미설정'}
+                    {selectedChurch.established_date ? formatDate(selectedChurch.established_date) : '미설정'}
                   </p>
                 </div>
                 <div>
@@ -766,7 +767,7 @@ const ChurchManagement: React.FC = () => {
                         ? "text-red-600"
                         : "text-foreground"
                     )}>
-                      {new Date(selectedChurch.subscription_end_date).toLocaleDateString('ko-KR')}
+                      {formatDate(selectedChurch.subscription_end_date)}
                     </p>
                   </div>
                 )}

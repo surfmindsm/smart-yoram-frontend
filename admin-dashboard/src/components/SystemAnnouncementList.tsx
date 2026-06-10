@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import {
   AlertTriangle,
   Megaphone,
@@ -96,17 +97,7 @@ const SystemAnnouncementList: React.FC = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  const formatDate = (dateString: string) => formatDateUtil(dateString, dateString);
 
   const isRead = (announcementId: number) => {
     return readAnnouncements.has(announcementId);

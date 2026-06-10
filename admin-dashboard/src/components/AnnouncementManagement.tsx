@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { supabaseApiService } from '../services/supabaseApiService';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { Button } from "./ui";
 import { useToast } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, LoadingState } from "./ui";
@@ -347,7 +348,7 @@ const AnnouncementManagement: React.FC = () => {
                           {announcement.author_name || '관리자'}
                         </td>
                         <td className="px-[18px] py-3 text-muted-foreground">
-                          {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
+                          {formatDateUtil(announcement.created_at)}
                         </td>
                         <td className="px-[18px] py-3 text-center tabular-nums text-foreground">
                           {announcement.view_count?.toLocaleString() || 0}
@@ -452,7 +453,7 @@ const AnnouncementManagement: React.FC = () => {
               </Badge>
               <span>작성자: {selectedAnnouncement?.author_name || '관리자'}</span>
               <span>·</span>
-              <span>{selectedAnnouncement?.created_at ? new Date(selectedAnnouncement.created_at).toLocaleDateString('ko-KR') : ''}</span>
+              <span>{selectedAnnouncement?.created_at ? formatDateUtil(selectedAnnouncement.created_at) : ''}</span>
               <span>·</span>
               <span>조회수: {selectedAnnouncement?.view_count?.toLocaleString() || 0}</span>
             </DialogDescription>

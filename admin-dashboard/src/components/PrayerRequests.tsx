@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../hooks/queries';
+import { formatDateTime } from '../utils/dateUtils';
 import { supabaseApiService } from '../services/supabaseApiService';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import {
@@ -167,20 +168,7 @@ const PrayerRequests: React.FC = () => {
     isPublic: true
   });
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '날짜 없음';
-    try {
-      return new Date(dateString).toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return '잘못된 날짜';
-    }
-  };
+  const formatDate = (dateString: string) => formatDateTime(dateString, '날짜 없음');
 
   const formatTimeAgo = (dateString: string) => {
     if (!dateString) return '';

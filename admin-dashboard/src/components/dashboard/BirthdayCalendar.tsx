@@ -703,7 +703,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                                   {care.members?.name || care.requester_name}
                                 </p>
                                 {care.scheduled_time && (
-                                  <p className="text-xs text-green-700">{care.scheduled_time}</p>
+                                  <p className="text-xs text-green-700">{care.scheduled_time.slice(0, 5)}</p>
                                 )}
                                 {care.address && (
                                   <p className="text-xs text-green-700 mt-1">{care.address}</p>
@@ -888,7 +888,7 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
                                     {care.members?.name || care.requester_name}
                                   </p>
                                   {care.scheduled_time && (
-                                    <p className="text-xs text-green-700">{care.scheduled_time}</p>
+                                    <p className="text-xs text-green-700">{care.scheduled_time.slice(0, 5)}</p>
                                   )}
                                   {care.address && (
                                     <p className="text-xs text-green-700 mt-0.5">{care.address}</p>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDateTime as formatDateTimeUtil } from '../utils/dateUtils';
 import { Button } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
 import { Input } from "./ui";
@@ -197,15 +198,7 @@ const CommunityApplicationManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const formatDate = (dateString: string) => formatDateTimeUtil(dateString);
 
   return (
     <div className="p-6">

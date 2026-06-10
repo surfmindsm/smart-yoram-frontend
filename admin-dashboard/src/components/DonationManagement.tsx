@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser, useAccountCategories } from '../hooks/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { formatDate } from '../utils/dateUtils';
 import {
   Plus,
   Search,
@@ -2358,8 +2359,7 @@ const DonationManagement: React.FC = () => {
                           {formatCurrency(receipt.totalAmount || Number(receipt.total_amount) || 0)}
                         </td>
                         <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground tabular-nums">
-                          {receipt.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('ko-KR') :
-                           receipt.issued_at ? new Date(receipt.issued_at).toLocaleDateString('ko-KR') : ''}
+                          {formatDate(receipt.issuedAt || receipt.issued_at, '')}
                         </td>
                         <td className="px-[18px] py-3 whitespace-nowrap text-[13px] text-foreground">관리자</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
