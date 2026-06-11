@@ -1,15 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate as formatDateUtil } from '../utils/dateUtils';
+import { Megaphone } from 'lucide-react';
 import {
-  AlertTriangle,
-  Megaphone,
-  Info
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { Badge } from "./ui";
-import { Dialog, DialogContent } from "./ui";
-import { Spinner } from "./ui/spinner";
+  Card,
+  LoadingState,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  PageContainer,
+} from "./ui";
 import { announcementService, Announcement } from '../services/announcementService';
+import { usePageSubtitle } from '../hooks/usePageSubtitle';
+import { cn } from '../lib/utils';
+
+const PRIORITY_CHIP: Record<string, string> = {
+  urgent: 'bg-[#FCEBEB] text-[#DC2626]',
+  important: 'bg-[#FBF1E3] text-[#B45309]',
+  normal: 'bg-[#EAF1FE] text-[#2563EB]',
+};
+
+const PRIORITY_LABEL: Record<string, string> = {
+  urgent: '긴급',
+  important: '중요',
+  normal: '일반',
+};
+
+const getPriorityChipClass = (priority?: string) =>
+  PRIORITY_CHIP[priority || 'normal'] || PRIORITY_CHIP.normal;
+const getPriorityLabel = (priority?: string) =>
+  PRIORITY_LABEL[priority || 'normal'] || PRIORITY_LABEL.normal;
 
 const SystemAnnouncementList: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -26,7 +48,6 @@ const SystemAnnouncementList: React.FC = () => {
   const loadAnnouncements = async () => {
     try {
       setLoading(true);
-      // 활성화된 시스템 공지사항만 조회 (교회 관리자용)
       const data = await announcementService.getActiveSystemAnnouncements();
       setAnnouncements(data);
     } catch (error: any) {
@@ -53,7 +74,6 @@ const SystemAnnouncementList: React.FC = () => {
     setSelectedAnnouncement(announcement);
     setIsDetailDialogOpen(true);
 
-    // 읽음 처리
     if (!readAnnouncements.has(announcement.id)) {
       try {
         await announcementService.markSystemAnnouncementAsRead(announcement.id);
@@ -67,186 +87,127 @@ const SystemAnnouncementList: React.FC = () => {
     }
   };
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      case 'important':
-        return <Megaphone className="w-4 h-4 text-orange-500" />;
-      default:
-        return <Info className="w-4 h-4 text-primary-500" />;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const colors = {
-      urgent: 'bg-red-100 text-red-800',
-      important: 'bg-orange-100 text-orange-800',
-      normal: 'bg-primary-100 text-primary-800'
-    };
-    const labels = {
-      urgent: '긴급',
-      important: '중요',
-      normal: '일반'
-    };
-
-    return (
-      <Badge className={colors[priority as keyof typeof colors]}>
-        {labels[priority as keyof typeof labels]}
-      </Badge>
-    );
-  };
-
-  const formatDate = (dateString: string) => formatDateUtil(dateString, dateString);
-
-  const isRead = (announcementId: number) => {
-    return readAnnouncements.has(announcementId);
-  };
-
+  const isRead = (announcementId: number) => readAnnouncements.has(announcementId);
   const unreadCount = announcements.filter(a => !isRead(a.id)).length;
 
+  usePageSubtitle(
+    unreadCount > 0
+      ? `전체 ${announcements.length}건 · 읽지 않음 ${unreadCount}건`
+      : `전체 ${announcements.length}건`
+  );
+
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">시스템 공지사항</h1>
-          <p className="text-muted-foreground">
-            Church Round 시스템 공지사항을 확인하세요
-            {unreadCount > 0 && (
-              <span className="ml-2 text-red-600 font-medium">
-                (읽지 않은 공지 {unreadCount}개)
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* 공지사항 테이블 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>공지사항 목록</span>
-            <Badge variant="secondary">
-              총 {announcements.length}개
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-12">
-              <Spinner size="lg" />
-              <p className="text-muted-foreground mt-4">로딩 중...</p>
-            </div>
-          ) : announcements.length === 0 ? (
-            <div className="text-center py-12">
-              <Megaphone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-muted-foreground">현재 활성화된 공지사항이 없습니다.</p>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-20">구분</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">제목</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">등록일</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {announcements.map((announcement, index) => {
-                    const read = isRead(announcement.id);
-
-                    return (
-                      <tr
-                        key={announcement.id}
-                        onClick={() => handleViewDetail(announcement)}
-                        className={`cursor-pointer transition-colors ${
-                          read
-                            ? 'bg-white hover:bg-gray-50'
-                            : 'bg-blue-50 hover:bg-blue-100'
-                        }`}
-                      >
-                        {/* 구분 (우선순위) */}
-                        <td className="px-4 py-3">
-                          {getPriorityBadge(announcement.priority)}
-                        </td>
-
-                        {/* 제목 */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center space-x-2">
-                            {getPriorityIcon(announcement.priority)}
-                            <span className={`font-medium ${
-                              read ? 'text-gray-700' : 'text-gray-900'
-                            }`}>
-                              {announcement.title}
-                            </span>
-                            {!read && (
-                              <Badge className="bg-red-500 text-white text-xs ml-2">N</Badge>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* 등록일 */}
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {formatDate(announcement.start_date)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <PageContainer>
+      {loading ? (
+        <Card>
+          <LoadingState text="공지사항을 불러오는 중..." />
+        </Card>
+      ) : announcements.length === 0 ? (
+        <Card>
+          <div className="py-12 text-center">
+            <Megaphone className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <h3 className="mb-2 text-[15px] font-bold text-foreground">활성화된 공지사항이 없습니다</h3>
+            <p className="text-[13px] text-muted-foreground">새로운 시스템 공지가 등록되면 여기에 표시됩니다.</p>
+          </div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[100px]" />
+                <col />
+                <col className="w-[140px]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[#EEF1F6] bg-[#F8FAFD]">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">구분</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">제목</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">등록일</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {announcements.map((announcement) => {
+                  const read = isRead(announcement.id);
+                  return (
+                    <tr
+                      key={announcement.id}
+                      onClick={() => handleViewDetail(announcement)}
+                      className={cn(
+                        'cursor-pointer transition-colors',
+                        read ? 'hover:bg-[#F8FAFD]' : 'bg-[#EEF3FC] hover:bg-[#E0EAFA]'
+                      )}
+                    >
+                      <td className="px-4 py-3">
+                        <span className={cn(
+                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                          getPriorityChipClass(announcement.priority)
+                        )}>
+                          {getPriorityLabel(announcement.priority)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[13px] truncate" title={announcement.title}>
+                        <span className={cn(
+                          'font-semibold',
+                          read ? 'text-foreground' : 'text-foreground'
+                        )}>
+                          {announcement.title}
+                        </span>
+                        {!read && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-[#DC2626] px-1.5 py-0 text-[10px] font-bold text-white">
+                            NEW
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
+                        {formatDateUtil(announcement.start_date)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* 상세보기 다이얼로그 */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[720px] max-h-[80vh] overflow-y-auto">
           {selectedAnnouncement && (
-            <div className="space-y-6">
-              {/* 헤더 */}
-              <div className="border-b pb-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  {getPriorityBadge(selectedAnnouncement.priority)}
-                  {!isRead(selectedAnnouncement.id) && (
-                    <Badge className="bg-red-500 text-white">NEW</Badge>
-                  )}
+            <>
+              <DialogHeader>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={cn(
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                    getPriorityChipClass(selectedAnnouncement.priority)
+                  )}>
+                    {getPriorityLabel(selectedAnnouncement.priority)}
+                  </span>
                 </div>
-                <h2 className="text-xl font-bold text-foreground flex items-center space-x-2">
-                  {getPriorityIcon(selectedAnnouncement.priority)}
-                  <span>{selectedAnnouncement.title}</span>
-                </h2>
-                <div className="text-sm text-muted-foreground mt-2">
-                  등록일: {formatDate(selectedAnnouncement.start_date)}
-                  {selectedAnnouncement.end_date &&
-                    ` ~ ${formatDate(selectedAnnouncement.end_date)}`
-                  }
+                <DialogTitle>{selectedAnnouncement.title}</DialogTitle>
+                <div className="mt-1 text-[12px] text-muted-foreground tabular-nums">
+                  {formatDateUtil(selectedAnnouncement.start_date)}
+                  {selectedAnnouncement.end_date && ` ~ ${formatDateUtil(selectedAnnouncement.end_date)}`}
                 </div>
-              </div>
+              </DialogHeader>
 
-              {/* 내용 */}
-              <div className="py-4">
-                <p className="whitespace-pre-wrap text-foreground leading-relaxed">
+              <div className="rounded-[8px] border border-border bg-[#FAFBFD] px-4 py-3 mt-4">
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
                   {selectedAnnouncement.content}
                 </p>
               </div>
 
-              {/* 하단 버튼 */}
-              <div className="border-t pt-4 flex justify-center">
-                <button
-                  onClick={() => setIsDetailDialogOpen(false)}
-                  className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
-                >
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsDetailDialogOpen(false)}>
                   닫기
-                </button>
-              </div>
-            </div>
+                </Button>
+              </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

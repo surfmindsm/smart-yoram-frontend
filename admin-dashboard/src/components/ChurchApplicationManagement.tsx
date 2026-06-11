@@ -1,44 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { formatDateTime as formatDateTimeUtil } from '../utils/dateUtils';
-import { Button } from "./ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui";
-import { Input } from "./ui";
-import { Label } from "./ui";
-import { Textarea } from "./ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui";
-import { Badge } from "./ui";
-import { Alert, AlertDescription } from "./ui";
-import { 
-  Search, 
-  Eye, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Filter,
+import {
+  Button,
+  Card,
+  LoadingState,
+  Input,
+  Label,
+  Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Alert,
+  AlertDescription,
+  PageContainer,
+  toast,
+} from "./ui";
+import {
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
   FileText,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  User,
-  Calendar,
   Download,
-  MessageSquare,
   AlertCircle,
-  Loader2
+  ExternalLink,
 } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 import {
   churchApplicationService,
   ChurchApplication,
   ApplicationsResponse,
-  ApplicationsQueryParams
+  ApplicationsQueryParams,
 } from '../services/churchApplicationService';
+import { usePageSubtitle } from '../hooks/usePageSubtitle';
+import { cn } from '../lib/utils';
+
+const STATUS_CHIP_CLASS: Record<string, string> = {
+  pending: 'bg-[#FBF1E3] text-[#B45309]',
+  approved: 'bg-[#E7F6EC] text-[#16A34A]',
+  rejected: 'bg-[#FCEBEB] text-[#DC2626]',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: '검토중',
+  approved: '승인됨',
+  rejected: '반려됨',
+};
 
 const ChurchApplicationManagement: React.FC = () => {
   const [applications, setApplications] = useState<ChurchApplication[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<ChurchApplication[]>([]);
   const [statistics, setStatistics] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -50,38 +67,29 @@ const ChurchApplicationManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
 
-  // 데이터 로드 함수
   const loadApplications = async () => {
     setLoading(true);
     setError('');
-    
     try {
       const params: ApplicationsQueryParams = {
         page: 1,
-        limit: 100, // 일단 많이 가져와서 클라이언트 사이드에서 필터링
-        status: statusFilter === 'all' ? undefined : statusFilter as any,
+        limit: 100,
+        status: statusFilter === 'all' ? undefined : (statusFilter as any),
         search: searchTerm || undefined,
       };
-
       const response: ApplicationsResponse = await churchApplicationService.getApplications(params);
-      
-      // 백엔드에서 오는 데이터 정제
-      const processedApplications = response.applications.map(app => ({
+      const processed = response.applications.map(app => ({
         ...app,
-        // attachments가 문자열로 오는 경우 JSON 파싱
-        attachments: typeof app.attachments === 'string' 
-          ? JSON.parse(app.attachments || '[]') 
-          : (app.attachments || [])
+        attachments: typeof app.attachments === 'string'
+          ? JSON.parse(app.attachments || '[]')
+          : (app.attachments || []),
       }));
-      
-      setApplications(processedApplications);
-      setFilteredApplications(processedApplications);
+      setApplications(processed);
       setStatistics(response.statistics);
     } catch (err: any) {
       console.error('신청서 목록 조회 실패:', err);
       setError(err.message || '데이터를 불러오는 중 오류가 발생했습니다.');
       setApplications([]);
-      setFilteredApplications([]);
     } finally {
       setLoading(false);
     }
@@ -89,73 +97,43 @@ const ChurchApplicationManagement: React.FC = () => {
 
   useEffect(() => {
     loadApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, searchTerm]);
 
-  useEffect(() => {
-    // applications이 undefined이거나 배열이 아닌 경우 안전하게 처리
-    if (!applications || !Array.isArray(applications)) {
-      setFilteredApplications([]);
-      return;
-    }
-
-    let filtered = applications.filter(app => {
+  const filteredApplications = useMemo(() => {
+    if (!applications || !Array.isArray(applications)) return [];
+    const search = searchTerm.toLowerCase();
+    return applications.filter(app => {
       const matchesSearch =
-        app.church_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.admin_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.email.toLowerCase().includes(searchTerm.toLowerCase());
-
+        !search ||
+        app.church_name.toLowerCase().includes(search) ||
+        app.admin_name.toLowerCase().includes(search) ||
+        app.email.toLowerCase().includes(search);
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
-
-    setFilteredApplications(filtered);
   }, [applications, searchTerm, statusFilter]);
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: '검토중', variant: 'secondary' as const, icon: Clock },
-      approved: { label: '승인됨', variant: 'default' as const, icon: CheckCircle },
-      rejected: { label: '반려됨', variant: 'destructive' as const, icon: XCircle }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
-    if (!config) return null;
-
-    const IconComponent = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <IconComponent className="w-3 h-3" />
-        {config.label}
-      </Badge>
-    );
-  };
-
 
   const handleViewDetails = (application: ChurchApplication) => {
     setSelectedApplication(application);
     setShowDetailsModal(true);
   };
 
-  const handleApprove = async (applicationId: number, notes?: string) => {
+  const handleApprove = async (applicationId: number) => {
     setProcessingId(applicationId);
     try {
-      const result = await churchApplicationService.approveApplication(applicationId, notes);
-      
-      // 성공적으로 승인되면 목록 다시 로드
+      const result = await churchApplicationService.approveApplication(applicationId);
       await loadApplications();
-      
-      alert('신청이 승인되었습니다.');
-      console.log('승인 결과:', result);
-      
-      // 계정 생성 정보가 있다면 보여주기
+      toast({ title: '승인 완료', description: '신청이 승인되었습니다.' });
       if (result.user_account) {
-        alert(`계정이 생성되었습니다.\n아이디: ${result.user_account.username}\n임시 비밀번호: ${result.user_account.temporary_password}`);
+        toast({
+          title: '계정 생성됨',
+          description: `아이디: ${result.user_account.username} · 임시 비밀번호: ${result.user_account.temporary_password}`,
+        });
       }
     } catch (error: any) {
       console.error('승인 처리 실패:', error);
-      setError(error.message || '승인 처리 중 오류가 발생했습니다.');
+      toast({ title: '승인 실패', description: error.message || '승인 처리 중 오류가 발생했습니다.', variant: 'destructive' });
     } finally {
       setProcessingId(null);
     }
@@ -163,512 +141,485 @@ const ChurchApplicationManagement: React.FC = () => {
 
   const handleReject = async () => {
     if (!selectedApplication || !rejectionReason.trim()) {
-      setError('반려 사유를 입력해주세요.');
+      toast({ title: '오류', description: '반려 사유를 입력해주세요.', variant: 'destructive' });
       return;
     }
-
     setProcessingId(selectedApplication.id);
     try {
-      const result = await churchApplicationService.rejectApplication(
-        selectedApplication.id, 
-        rejectionReason
-      );
-      
-      // 성공적으로 반려되면 목록 다시 로드
+      await churchApplicationService.rejectApplication(selectedApplication.id, rejectionReason);
       await loadApplications();
-      
       setShowRejectModal(false);
       setRejectionReason('');
-      alert('신청이 반려되었습니다.');
-      console.log('반려 결과:', result);
+      toast({ title: '반려 완료', description: '신청이 반려되었습니다.' });
     } catch (error: any) {
       console.error('반려 처리 실패:', error);
-      setError(error.message || '반려 처리 중 오류가 발생했습니다.');
+      toast({ title: '반려 실패', description: error.message || '반려 처리 중 오류가 발생했습니다.', variant: 'destructive' });
     } finally {
       setProcessingId(null);
     }
   };
 
-  const formatDate = (dateString: string) => formatDateTimeUtil(dateString);
+  // 상단바
+  usePageSubtitle(
+    statistics.pending > 0
+      ? `검토 대기 ${statistics.pending}건 · 전체 ${statistics.total}건`
+      : `전체 ${statistics.total}건`
+  );
+
+  const renderStatusChip = (status: string) => (
+    <span className={cn(
+      'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+      STATUS_CHIP_CLASS[status] || 'bg-[#F1F4F9] text-[#64748B]'
+    )}>
+      {STATUS_LABEL[status] || status}
+    </span>
+  );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">교회 가입 신청 관리</h1>
-          <p className="text-gray-600">교회 가입 신청서를 검토하고 승인/반려 처리하세요</p>
-        </div>
-      </div>
-
-      {/* 검색 및 필터 */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="신청자명, 단체명, 이메일로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+    <PageContainer>
+      {/* KPI strip */}
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card>
+          <div className="flex items-center gap-3 px-4 py-[14px]">
+            <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FBF1E3] text-[#B45309]">
+              <Clock className="h-[18px] w-[18px]" />
             </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="상태 필터" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체 상태</SelectItem>
-                <SelectItem value="pending">검토중</SelectItem>
-                <SelectItem value="approved">승인됨</SelectItem>
-                <SelectItem value="rejected">반려됨</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <div className="text-[12px] font-semibold text-muted-foreground">검토중</div>
+              <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#B45309]">
+                {statistics.pending}
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* 통계 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <Clock className="h-4 w-4 text-primary-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">검토중</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(applications || []).filter(app => app.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">승인됨</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(applications || []).filter(app => app.status === 'approved').length}
-                </p>
+          <div className="flex items-center gap-3 px-4 py-[14px]">
+            <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7F6EC] text-[#16A34A]">
+              <CheckCircle className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-muted-foreground">승인됨</div>
+              <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#16A34A]">
+                {statistics.approved}
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
-
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="h-4 w-4 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">반려됨</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(applications || []).filter(app => app.status === 'rejected').length}
-                </p>
+          <div className="flex items-center gap-3 px-4 py-[14px]">
+            <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#FCEBEB] text-[#DC2626]">
+              <XCircle className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-muted-foreground">반려됨</div>
+              <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-[#DC2626]">
+                {statistics.rejected}
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
-
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <FileText className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">전체</p>
-                <p className="text-2xl font-bold text-gray-900">{(applications || []).length}</p>
+          <div className="flex items-center gap-3 px-4 py-[14px]">
+            <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px] bg-[#EAF1FE] text-[#2563EB]">
+              <FileText className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <div className="text-[12px] font-semibold text-muted-foreground">전체</div>
+              <div className="text-[20px] font-bold leading-tight tracking-[-0.02em] tabular-nums text-foreground">
+                {statistics.total}
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
       {/* 에러 메시지 */}
       {error && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* 신청 목록 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>신청 목록</CardTitle>
-          <CardDescription>
-            {(filteredApplications || []).length}개의 신청서가 있습니다
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {(filteredApplications || []).map((application) => (
-              <div key={application.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    
-                    {getStatusBadge(application.status)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {formatDate(application.submitted_at)}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{application.church_name}</h3>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <User className="w-4 h-4 mr-1" />
-                      {application.admin_name}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="w-4 h-4 mr-1" />
-                      {application.email}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="w-4 h-4 mr-1" />
-                      {application.phone}
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-700 mb-4 line-clamp-2">
-                  {application.description}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
-                    {(application.attachments || []).length > 0 && (
-                      <span className="flex items-center">
-                        <FileText className="w-3 h-3 mr-1" />
-                        첨부파일 {(application.attachments || []).length}개
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(application)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      상세보기
-                    </Button>
-                    
-                    {application.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleApprove(application.id)}
-                          disabled={processingId === application.id || loading}
-                        >
-                          {processingId === application.id ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                          )}
-                          {processingId === application.id ? '승인 중...' : '승인'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedApplication(application);
-                            setShowRejectModal(true);
-                          }}
-                          disabled={processingId === application.id || loading}
-                        >
-                          {processingId === application.id ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <XCircle className="w-4 h-4 mr-1" />
-                          )}
-                          {processingId === application.id ? '반려 중...' : '반려'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+      <Card className="overflow-hidden">
+        {/* 검색 + 필터 바 */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+            <Input
+              type="text"
+              placeholder="교회명·신청자·이메일 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 md:w-[320px]"
+            />
           </div>
+          <div className="flex-1" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-[38px] w-auto min-w-[140px] gap-2">
+              <span className="text-[12.5px] text-muted-foreground">상태</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              <SelectItem value="pending">검토중</SelectItem>
+              <SelectItem value="approved">승인됨</SelectItem>
+              <SelectItem value="rejected">반려됨</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          {loading && (filteredApplications || []).length === 0 && (
-            <div className="text-center py-12">
-              <Spinner size="xl" variant="muted" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">데이터를 불러오는 중...</h3>
-            </div>
-          )}
-
-          {!loading && (filteredApplications || []).length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">검색 결과가 없습니다</h3>
-              <p className="text-gray-600">다른 검색어나 필터를 시도해보세요.</p>
-            </div>
-          )}
-        </CardContent>
+        {/* 테이블 */}
+        {loading ? (
+          <LoadingState text="신청서를 불러오는 중..." />
+        ) : filteredApplications.length === 0 ? (
+          <div className="py-12 text-center">
+            <FileText className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+            <h3 className="mb-2 text-[15px] font-bold text-foreground">
+              {searchTerm || statusFilter !== 'all' ? '조건에 맞는 신청서가 없습니다' : '신청서가 없습니다'}
+            </h3>
+            <p className="text-[13px] text-muted-foreground">
+              {searchTerm || statusFilter !== 'all' ? '검색어나 필터를 조정해보세요.' : '아직 등록된 신청서가 없습니다.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[100px]" />
+                <col />
+                <col className="w-[140px]" />
+                <col className="w-[200px]" />
+                <col className="w-[80px]" />
+                <col className="w-[180px]" />
+                <col className="w-[180px]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[#EEF1F6] bg-[#F8FAFD]">
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">상태</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">교회명</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">담당자</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">이메일</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">첨부</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청일시</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">작업</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {filteredApplications.map((app) => (
+                  <tr
+                    key={app.id}
+                    onClick={() => handleViewDetails(app)}
+                    className="cursor-pointer transition-colors hover:bg-[#F8FAFD]"
+                  >
+                    <td className="px-4 py-3">{renderStatusChip(app.status)}</td>
+                    <td className="px-4 py-3 text-[13px] font-semibold text-foreground truncate" title={app.church_name}>
+                      {app.church_name}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-foreground truncate">{app.admin_name}</td>
+                    <td className="px-4 py-3 text-[13px] text-foreground truncate" title={app.email}>{app.email}</td>
+                    <td className="px-4 py-3 text-center text-[13px] text-foreground tabular-nums">
+                      {(app.attachments || []).length > 0 ? `${(app.attachments || []).length}개` : <span className="text-[#CBD5E1]">-</span>}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
+                      {formatDateTimeUtil(app.submitted_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      {app.status === 'pending' ? (
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="success-soft"
+                            onClick={() => handleApprove(app.id)}
+                            disabled={processingId === app.id || loading}
+                            className="h-8 gap-1.5 text-[12px]"
+                          >
+                            {processingId === app.id ? <Spinner size="sm" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                            승인
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive-soft"
+                            onClick={() => {
+                              setSelectedApplication(app);
+                              setShowRejectModal(true);
+                            }}
+                            disabled={processingId === app.id || loading}
+                            className="h-8 gap-1.5 text-[12px]"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            반려
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-muted-foreground">처리 완료</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       {/* 상세보기 모달 */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
-              신청서 상세보기
-            </DialogTitle>
-            <DialogDescription>
-              커뮤니티 회원 신청서의 상세 정보를 확인하고 승인 여부를 결정할 수 있습니다.
-            </DialogDescription>
+            <DialogTitle>신청서 상세</DialogTitle>
           </DialogHeader>
-          
+
           {selectedApplication && (
-            <div className="space-y-6">
+            <div className="space-y-5 py-2">
+              {/* 상태·신청일 */}
+              <div className="flex items-center justify-between gap-3 rounded-[8px] bg-[#F8FAFD] px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">상태</span>
+                  {renderStatusChip(selectedApplication.status)}
+                </div>
+                <div className="text-[12px] text-muted-foreground tabular-nums">
+                  신청 {formatDateTimeUtil(selectedApplication.submitted_at)}
+                </div>
+              </div>
+
               {/* 기본 정보 */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">기본 정보</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>신청 상태</Label>
-                    <div className="mt-1">{getStatusBadge(selectedApplication.status)}</div>
+              <div className="space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">기본 정보</div>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-[13px] md:grid-cols-2">
+                  <div className="flex gap-2">
+                    <dt className="w-[90px] text-muted-foreground">교회명</dt>
+                    <dd className="font-semibold text-foreground">{selectedApplication.church_name}</dd>
                   </div>
-                  <div>
-                    <Label>교회명</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.church_name}</p>
+                  <div className="flex gap-2">
+                    <dt className="w-[90px] text-muted-foreground">담당자</dt>
+                    <dd className="text-foreground">{selectedApplication.admin_name}</dd>
                   </div>
-                  <div>
-                    <Label>담당자명</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.admin_name}</p>
+                  <div className="flex gap-2">
+                    <dt className="w-[90px] text-muted-foreground">이메일</dt>
+                    <dd className="truncate text-foreground">{selectedApplication.email}</dd>
                   </div>
-                  <div>
-                    <Label>이메일</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.email}</p>
-                  </div>
-                  <div>
-                    <Label>연락처</Label>
-                    <p className="mt-1 text-sm">{selectedApplication.phone}</p>
+                  <div className="flex gap-2">
+                    <dt className="w-[90px] text-muted-foreground">연락처</dt>
+                    <dd className="text-foreground tabular-nums">{selectedApplication.phone}</dd>
                   </div>
                   {selectedApplication.business_no && (
-                    <div>
-                      <Label>사업자등록번호</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.business_no}</p>
-                    </div>
-                  )}
-                  {selectedApplication.address && (
-                    <div>
-                      <Label>주소</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.address}</p>
+                    <div className="flex gap-2">
+                      <dt className="w-[90px] text-muted-foreground">사업자번호</dt>
+                      <dd className="text-foreground tabular-nums">{selectedApplication.business_no}</dd>
                     </div>
                   )}
                   {selectedApplication.denomination && (
-                    <div>
-                      <Label>교단</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.denomination}</p>
+                    <div className="flex gap-2">
+                      <dt className="w-[90px] text-muted-foreground">교단</dt>
+                      <dd className="text-foreground">{selectedApplication.denomination}</dd>
                     </div>
                   )}
                   {selectedApplication.established_year && (
-                    <div>
-                      <Label>설립연도</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.established_year}</p>
+                    <div className="flex gap-2">
+                      <dt className="w-[90px] text-muted-foreground">설립연도</dt>
+                      <dd className="text-foreground tabular-nums">{selectedApplication.established_year}</dd>
                     </div>
                   )}
                   {selectedApplication.member_count && (
-                    <div>
-                      <Label>교인 수</Label>
-                      <p className="mt-1 text-sm">{selectedApplication.member_count}</p>
+                    <div className="flex gap-2">
+                      <dt className="w-[90px] text-muted-foreground">교인 수</dt>
+                      <dd className="text-foreground tabular-nums">{selectedApplication.member_count}명</dd>
+                    </div>
+                  )}
+                  {selectedApplication.address && (
+                    <div className="flex gap-2 md:col-span-2">
+                      <dt className="w-[90px] flex-shrink-0 text-muted-foreground">주소</dt>
+                      <dd className="text-foreground">{selectedApplication.address}</dd>
                     </div>
                   )}
                   {selectedApplication.website && (
-                    <div>
-                      <Label>웹사이트</Label>
-                      <p className="mt-1 text-sm">
-                        <a href={selectedApplication.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
-                          {selectedApplication.website}
+                    <div className="flex gap-2 md:col-span-2">
+                      <dt className="w-[90px] flex-shrink-0 text-muted-foreground">웹사이트</dt>
+                      <dd>
+                        <a
+                          href={selectedApplication.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                        >
+                          <span className="truncate">{selectedApplication.website}</span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         </a>
-                      </p>
+                      </dd>
                     </div>
                   )}
-                </div>
+                </dl>
               </div>
 
               {/* 상세 설명 */}
-              <div>
-                <Label>상세 소개 및 신청 사유</Label>
-                <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm whitespace-pre-wrap">{selectedApplication.description}</p>
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">신청 사유</div>
+                <div className="rounded-[8px] border border-border bg-[#FAFBFD] px-3 py-2.5">
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                    {selectedApplication.description}
+                  </p>
                 </div>
               </div>
 
-              {/* 첨부파일 */}
-              <div>
-                <Label>첨부파일</Label>
-                <div className="mt-1 space-y-2">
-                  {(selectedApplication.attachments || []).length > 0 ? (
-                    (selectedApplication.attachments || []).map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 mr-2 text-gray-500" />
-                          <span className="text-sm">{file.filename}</span>
-                          <span className="text-xs text-gray-400 ml-2">({(file.size / 1024).toFixed(1)}KB)</span>
+              {/* 첨부 파일 */}
+              {(selectedApplication.attachments || []).length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">첨부 파일</div>
+                  <div className="space-y-1.5">
+                    {(selectedApplication.attachments || []).map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-2 rounded-[8px] border border-border bg-[#FAFBFD] px-3 py-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 flex-shrink-0 text-[#94A3B8]" />
+                          <span className="truncate text-[13px] font-medium text-foreground">{file.filename}</span>
+                          <span className="flex-shrink-0 text-[11.5px] text-[#94A3B8] tabular-nums">
+                            {(file.size / 1024).toFixed(1)}KB
+                          </span>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 flex-shrink-0 p-0 text-primary"
                           onClick={async () => {
                             try {
                               await churchApplicationService.downloadAttachment(selectedApplication.id, file.filename);
                             } catch (error) {
-                              alert('파일 다운로드에 실패했습니다. 백엔드 API가 구현되지 않았거나 파일이 존재하지 않습니다.');
+                              toast({ title: '오류', description: '파일 다운로드에 실패했습니다.', variant: 'destructive' });
                               console.error('다운로드 에러:', error);
                             }
                           }}
                         >
-                          <Download className="w-4 h-4" />
+                          <Download className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-500">
-                      첨부된 파일이 없습니다.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 검토 정보 */}
-              {(selectedApplication.reviewed_at || selectedApplication.rejection_reason) && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">검토 정보</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedApplication.reviewed_at && (
-                      <div>
-                        <Label>검토일시</Label>
-                        <p className="mt-1 text-sm">{formatDate(selectedApplication.reviewed_at)}</p>
-                      </div>
-                    )}
-                    {selectedApplication.reviewed_by && (
-                      <div>
-                        <Label>검토자</Label>
-                        <p className="mt-1 text-sm">{selectedApplication.reviewed_by}</p>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                  {selectedApplication.rejection_reason && (
-                    <div className="mt-4">
-                      <Label>반려 사유</Label>
-                      <div className="mt-1 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-800">{selectedApplication.rejection_reason}</p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedApplication.notes && (
-                    <div className="mt-4">
-                      <Label>검토 메모</Label>
-                      <div className="mt-1 p-3 bg-primary-50 border border-primary-200 rounded-lg">
-                        <p className="text-sm text-primary-800">{selectedApplication.notes}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
-              {/* 액션 버튼 */}
-              {selectedApplication.status === 'pending' && (
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      setShowRejectModal(true);
-                    }}
-                  >
-                    <XCircle className="w-4 h-4 mr-1" />
-                    반려
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      handleApprove(selectedApplication.id);
-                      setShowDetailsModal(false);
-                    }}
-                    disabled={processingId === selectedApplication.id || loading}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    승인
-                  </Button>
+              {/* 검토 정보 */}
+              {(selectedApplication.reviewed_at || selectedApplication.rejection_reason) && (
+                <div className="space-y-3 border-t border-[#EEF1F6] pt-4">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">검토 정보</div>
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-[13px] md:grid-cols-2">
+                    {selectedApplication.reviewed_at && (
+                      <div className="flex gap-2">
+                        <dt className="w-[90px] text-muted-foreground">검토일</dt>
+                        <dd className="text-foreground tabular-nums">{formatDateTimeUtil(selectedApplication.reviewed_at)}</dd>
+                      </div>
+                    )}
+                    {selectedApplication.reviewed_by && (
+                      <div className="flex gap-2">
+                        <dt className="w-[90px] text-muted-foreground">검토자</dt>
+                        <dd className="text-foreground">{selectedApplication.reviewed_by}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {selectedApplication.rejection_reason && (
+                    <div className="rounded-[8px] border border-[#FAD9D9] bg-[#FFF8F8] px-3 py-2.5">
+                      <div className="mb-1 text-[11.5px] font-semibold text-[#DC2626]">반려 사유</div>
+                      <p className="whitespace-pre-wrap text-[13px] text-[#DC2626]">{selectedApplication.rejection_reason}</p>
+                    </div>
+                  )}
+                  {selectedApplication.notes && (
+                    <div className="rounded-[8px] border border-[#D6E6FE] bg-[#F0F6FF] px-3 py-2.5">
+                      <div className="mb-1 text-[11.5px] font-semibold text-[#2563EB]">검토 메모</div>
+                      <p className="whitespace-pre-wrap text-[13px] text-[#2563EB]">{selectedApplication.notes}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
+
+          <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between sm:gap-2">
+            {selectedApplication?.status === 'pending' ? (
+              <>
+                <Button
+                  variant="destructive-soft"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setShowRejectModal(true);
+                  }}
+                  className="gap-1.5"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  반려
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setShowDetailsModal(false)}>닫기</Button>
+                  <Button
+                    onClick={() => {
+                      if (selectedApplication) {
+                        handleApprove(selectedApplication.id);
+                        setShowDetailsModal(false);
+                      }
+                    }}
+                    disabled={processingId === selectedApplication?.id || loading}
+                    className="gap-1.5"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    승인
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div />
+                <Button variant="ghost" onClick={() => setShowDetailsModal(false)}>닫기</Button>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* 반려 모달 */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-600" />
-              신청 반려
-            </DialogTitle>
+            <DialogTitle>신청 반려</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <Alert>
-              <AlertDescription>
-                신청을 반려하시려는 이유를 명확히 작성해주세요. 
-                신청자에게 이메일로 반려 사유가 전달됩니다.
-              </AlertDescription>
-            </Alert>
-            
-            <div>
-              <Label htmlFor="rejectionReason">반려 사유 *</Label>
+          <div className="space-y-3 py-2">
+            <div className="rounded-[8px] border border-[#FAD9D9] bg-[#FFF8F8] px-3 py-2 text-[12.5px] text-[#DC2626]">
+              반려 사유를 명확히 작성해주세요. 신청자에게 이메일로 전달됩니다.
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rejectionReason" className="text-[12.5px] font-semibold">
+                반려 사유 <span className="text-destructive">*</span>
+              </Label>
               <Textarea
                 id="rejectionReason"
-                placeholder="반려 사유를 자세히 입력해주세요..."
+                placeholder="반려 사유를 자세히 입력해주세요"
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={4}
-                className="mt-1"
               />
             </div>
-            
-            <div className="flex justify-end space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectionReason('');
-                }}
-              >
-                취소
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleReject}
-                disabled={processingId !== null || loading || !rejectionReason.trim()}
-              >
-                <XCircle className="w-4 h-4 mr-1" />
-                반려 처리
-              </Button>
-            </div>
           </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowRejectModal(false);
+                setRejectionReason('');
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={processingId !== null || loading || !rejectionReason.trim()}
+            >
+              반려 처리
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 

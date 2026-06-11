@@ -1,27 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from "./ui";
-import { Input } from "./ui";
-import { Card, CardContent, LoadingState } from "./ui";
-import { Badge } from "./ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui";
-import { Label } from "./ui";
-import { Textarea } from "./ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
+import {
+  Button,
+  Input,
+  Card,
+  LoadingState,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Label,
+  Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  PageContainer,
+  Checkbox,
+  ConfirmDialog,
+} from "./ui";
 import { DatePicker } from "./ui/date-picker";
 import {
   Calendar,
   Plus,
-  Edit,
   Trash2,
-  CheckCircle,
-  Circle,
   Bell,
-  Search
+  Search,
 } from 'lucide-react';
 import { supabaseAuthService } from '../services/supabaseAuthService';
 import { useToast } from '../hooks/use-toast';
+import { usePageSubtitle, usePageActions } from '../hooks/usePageSubtitle';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { cn } from '../lib/utils';
 
 interface Member {
@@ -58,7 +69,8 @@ const ImportantDatesManagement: React.FC = () => {
   const [viewOnly, setViewOnly] = useState(false);
   const [editingDate, setEditingDate] = useState<ImportantDate | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'all'>('all');
+  const [deleteTarget, setDeleteTarget] = useState<ImportantDate | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -260,8 +272,6 @@ const ImportantDatesManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('정말 삭제하시겠습니까?')) return;
-
     try {
       // 낙관적 업데이트: UI에서 먼저 제거
       const prevDates = dates;
@@ -381,29 +391,27 @@ const ImportantDatesManagement: React.FC = () => {
     setEditingDate(null);
   };
 
-  // 검색 필터
-  const searchFilter = (date: ImportantDate) => {
-    if (!searchTerm) return true;
-    return (
-      date.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      date.members?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // 활성 항목 (미완료)
-  const activeDates = dates.filter(date =>
-    date.is_active && !date.is_completed && searchFilter(date)
-  );
-
-  // 완료된 항목
-  const completedDates = dates.filter(date =>
-    date.is_completed && searchFilter(date)
-  );
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
+  // 검색 + 상태 필터 + 정렬
+  const filteredDates = useMemo(() => {
+    const search = searchTerm.toLowerCase();
+    return dates
+      .filter(d => {
+        if (statusFilter === 'active' && (d.is_completed || !d.is_active)) return false;
+        if (statusFilter === 'completed' && !d.is_completed) return false;
+        if (search) {
+          return (
+            d.title.toLowerCase().includes(search) ||
+            d.members?.name.toLowerCase().includes(search)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        // 미완료 우선, 그 다음 날짜순(가까운 것부터)
+        if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+        return (a.event_date || '').localeCompare(b.event_date || '');
+      });
+  }, [dates, searchTerm, statusFilter]);
 
   const getDaysUntil = (dateStr: string) => {
     const eventDate = new Date(dateStr);
@@ -414,188 +422,164 @@ const ImportantDatesManagement: React.FC = () => {
     return diffDays;
   };
 
+  const getDdayLabel = (days: number) => {
+    if (days < 0) return `D+${Math.abs(days)}`;
+    if (days === 0) return 'D-Day';
+    return `D-${days}`;
+  };
+
+  const getDdayClass = (days: number) => {
+    if (days < 0) return 'bg-[#F1F4F9] text-[#64748B]';     // 지난 일정
+    if (days === 0) return 'bg-[#FCEBEB] text-[#DC2626]';   // 오늘
+    if (days <= 7) return 'bg-[#FBF1E3] text-[#B45309]';    // 7일 이내
+    return 'bg-[#EAF1FE] text-[#2563EB]';                    // 일반
+  };
+
+  // 상단바
+  usePageSubtitle(`전체 ${dates.length}건`);
+  usePageActions(
+    <Button onClick={handleAdd} size="sm" className="gap-2">
+      <Plus className="h-3.5 w-3.5" />
+      일정 추가
+    </Button>,
+    [dates.length]
+  );
+
   return (
     <PageContainer>
-      <PageHeader title="일정 관리" />
-
-      {/* Add and Search */}
-      <div className="mb-6 flex gap-3">
-        <Button onClick={handleAdd} size="lg" className="text-base px-6">
-          <Plus className="h-5 w-5 mr-2" />
-          일정 추가
-        </Button>
-        <div className="relative flex-1 max-w-sm ml-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      {/* Active Dates List */}
-      <div className="space-y-4">
-        {loading ? (
-          <Card>
-            <LoadingState text="일정 목록을 불러오는 중..." />
-          </Card>
-        ) : activeDates.length === 0 && completedDates.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>일정이 없습니다</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* 활성 일정 */}
-            <div className="space-y-3">
-              {activeDates.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                    활성 일정이 없습니다
-                  </CardContent>
-                </Card>
-              ) : (
-                activeDates.map((date) => {
-                  const daysUntil = getDaysUntil(date.event_date);
-                  return (
-                    <Card key={date.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          {/* 좌측 체크박스 */}
-                          <button
-                            onClick={() => handleComplete(date)}
-                            className="mt-1 flex-shrink-0 transition-colors hover:text-primary"
-                          >
-                            <Circle className="h-6 w-6 text-gray-400 hover:text-gray-600" />
-                          </button>
-
-                          {/* 중앙 콘텐츠 */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold">{date.title}</h3>
-                              {date.enable_dday_alert && (
-                                <Bell className="h-4 w-4 text-primary-500 flex-shrink-0" />
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              {date.event_date && <p>날짜: {formatDate(date.event_date)}</p>}
-                              {date.members && <p>교인: {date.members.name}</p>}
-                              {date.notes && <p>메모: {date.notes}</p>}
-                              {date.enable_dday_alert && (
-                                <p>알림: {date.alert_days_before}일 전부터</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 우측 액션 버튼과 D-day */}
-                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                            {date.event_date && (
-                              <Badge
-                                variant={daysUntil < 0 ? "secondary" : daysUntil === 0 ? "destructive" : "default"}
-                              >
-                                {daysUntil < 0 ? `D+${Math.abs(daysUntil)}` : daysUntil === 0 ? 'D-Day' : `D-${daysUntil}`}
-                              </Badge>
-                            )}
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(date)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDelete(date.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
+      {loading ? (
+        <Card>
+          <LoadingState text="일정 목록을 불러오는 중..." />
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          {/* 검색 + 필터 바 */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF1F6] px-[16px] py-[14px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+              <Input
+                type="text"
+                placeholder="제목·교인 검색"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 md:w-[320px]"
+              />
             </div>
 
-            {/* 완료된 항목 토글 버튼 */}
-            {completedDates.length > 0 && (
-              <div className="pt-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowCompleted(!showCompleted)}
-                  className="w-full justify-start text-muted-foreground hover:text-foreground"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  완료된 항목 {completedDates.length}개 {showCompleted ? '숨기기' : '보기'}
+            <div className="flex-1" />
+
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="h-[38px] w-auto min-w-[140px] gap-2">
+                <span className="text-[12.5px] text-muted-foreground">상태</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                <SelectItem value="active">활성</SelectItem>
+                <SelectItem value="completed">완료</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 빈 상태 또는 테이블 */}
+          {filteredDates.length === 0 ? (
+            <div className="py-12 text-center">
+              <Calendar className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
+              <h3 className="mb-2 text-[15px] font-bold text-foreground">
+                {searchTerm || statusFilter !== 'all' ? '조건에 맞는 일정이 없습니다' : '일정이 없습니다'}
+              </h3>
+              <p className="mb-4 text-[13px] text-muted-foreground">
+                {searchTerm || statusFilter !== 'all' ? '검색어나 필터를 조정해보세요.' : '새로운 일정을 추가해보세요.'}
+              </p>
+              {!searchTerm && statusFilter === 'all' && (
+                <Button onClick={handleAdd} size="sm" className="gap-2">
+                  <Plus className="h-3.5 w-3.5" />
+                  일정 추가
                 </Button>
-              </div>
-            )}
-
-            {/* 완료된 일정 */}
-            {showCompleted && completedDates.length > 0 && (
-              <div className="space-y-3 pt-2">
-                {completedDates.map((date) => (
-                  <Card key={date.id} className="hover:shadow-md transition-shadow opacity-75">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        {/* 좌측 체크박스 */}
-                        <button
-                          onClick={() => handleComplete(date)}
-                          className="mt-1 flex-shrink-0 transition-colors hover:text-primary"
-                        >
-                          <CheckCircle className="h-6 w-6 text-green-500" />
-                        </button>
-
-                        {/* 중앙 콘텐츠 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold line-through text-muted-foreground">
-                              {date.title}
-                            </h3>
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            {date.event_date && <p>날짜: {formatDate(date.event_date)}</p>}
-                            {date.members && <p>교인: {date.members.name}</p>}
-                            {date.notes && <p>메모: {date.notes}</p>}
-                          </div>
-                        </div>
-
-                        {/* 우측 액션 버튼 */}
-                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(date)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(date.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </div>
+          ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[44px]" />
+                <col />
+                <col className="w-[140px]" />
+                <col className="w-[140px]" />
+                <col className="w-[100px]" />
+                <col className="w-[60px]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[#EEF1F6] bg-[#F8FAFD]">
+                  <th className="px-3 py-3"></th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">제목</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">날짜</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">교인</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">D-day</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">알림</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                {filteredDates.map((date) => {
+                  const daysUntil = date.event_date ? getDaysUntil(date.event_date) : null;
+                  return (
+                    <tr
+                      key={date.id}
+                      className={cn(
+                        'cursor-pointer transition-colors hover:bg-[#F8FAFD]',
+                        date.is_completed && 'opacity-60'
+                      )}
+                      onClick={() => handleEdit(date)}
+                    >
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={date.is_completed}
+                          onCheckedChange={() => handleComplete(date)}
+                        />
+                      </td>
+                      <td
+                        className={cn(
+                          'px-4 py-3 text-[13px] font-semibold text-foreground truncate',
+                          date.is_completed && 'line-through text-muted-foreground'
+                        )}
+                        title={date.title}
+                      >
+                        {date.title}
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
+                        {date.event_date ? formatDateUtil(date.event_date) : <span className="text-[#CBD5E1]">-</span>}
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-foreground truncate">
+                        {date.members?.name || <span className="text-[#CBD5E1]">-</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {daysUntil !== null && !date.is_completed ? (
+                          <span
+                            className={cn(
+                              'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums',
+                              getDdayClass(daysUntil)
+                            )}
+                          >
+                            {getDdayLabel(daysUntil)}
+                          </span>
+                        ) : (
+                          <span className="text-[#CBD5E1]">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {date.enable_dday_alert && (
+                          <Bell className="mx-auto h-3.5 w-3.5 text-primary" />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          )}
+        </Card>
+      )}
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { setShowModal(open); if (!open) setViewOnly(false); }}>
@@ -683,18 +667,59 @@ const ImportantDatesManagement: React.FC = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowModal(false); setViewOnly(false); }}>
-              {viewOnly ? '닫기' : '취소'}
-            </Button>
-            {!viewOnly && (
-              <Button onClick={handleSave}>
-                {editingDate ? '수정' : '저장'}
+          <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between sm:gap-2">
+            {!viewOnly && editingDate ? (
+              <Button
+                type="button"
+                variant="destructive-soft"
+                onClick={() => {
+                  const target = editingDate;
+                  setShowModal(false);
+                  setDeleteTarget(target);
+                }}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제
               </Button>
+            ) : (
+              <div />
             )}
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => { setShowModal(false); setViewOnly(false); }}>
+                {viewOnly ? '닫기' : '취소'}
+              </Button>
+              {!viewOnly && (
+                <Button onClick={handleSave}>
+                  {editingDate ? '수정' : '저장'}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 삭제 확인 */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="일정 삭제"
+        description={
+          <span>
+            <span className="font-semibold">"{deleteTarget?.title}"</span> 일정을 삭제하시겠습니까?
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+          </span>
+        }
+        confirmText="삭제"
+        variant="destructive"
+        onConfirm={async () => {
+          if (deleteTarget) {
+            await handleDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </PageContainer>
   );
 };

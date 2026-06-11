@@ -1,24 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Search, CheckSquare, Square, RotateCcw, Clock } from 'lucide-react';
-import { Button } from "./ui";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { PageContainer, PageHeader } from "./ui";
-import { Input } from "./ui";
-import { Label } from "./ui";
-import { Textarea } from "./ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui";
-import { Checkbox } from "./ui";
-import { toast } from "./ui";
-import { Badge } from "./ui";
+import { Send, Search, RotateCcw } from 'lucide-react';
 import {
+  Button,
+  Card,
+  Input,
+  Label,
+  Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Checkbox,
+  toast,
+  Badge,
+  PageContainer,
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  LoadingState,
 } from "./ui";
 import { supabaseApiService } from '../services/supabaseApiService';
-import { formatDate as formatDateUtil } from '../utils/dateUtils';
+import { formatDateTime as formatDateTimeUtil } from '../utils/dateUtils';
+import { usePageSubtitle } from '../hooks/usePageSubtitle';
+import { cn } from '../lib/utils';
 
 interface Member {
   id: number;
@@ -468,80 +474,71 @@ export default function MessageSending() {
     setSelectedDepartment('all');
   };
 
+  // 상단바 부제
+  usePageSubtitle(
+    activeTab === 'send'
+      ? `${selectedMembers.length}명 선택 · 전체 ${members.length}명`
+      : `전체 ${messageHistory.length}건`
+  );
+
   return (
     <PageContainer>
-      <PageHeader
-        title="메시지 보내기"
-        description="교인들에게 푸시 알림 메시지를 발송합니다."
-      />
-
-      {/* Tabs */}
-      <div className="mb-6 border-b border-slate-200">
-        <div className="flex gap-4">
-          <button
-            onClick={() => setActiveTab('send')}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'send'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            }`}
-          >
-            <Send className="inline-block w-4 h-4 mr-2" />
-            메시지 보내기
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'history'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            }`}
-          >
-            <Clock className="inline-block w-4 h-4 mr-2" />
-            메시지 전송 기록
-          </button>
-        </div>
+      {/* 탭 — 헌금/조직/심방 화면과 동일한 언더라인 스타일 */}
+      <div className="mb-4 inline-flex items-center gap-1 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('send')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'send'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          메시지 보내기
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('history')}
+          className={cn(
+            'relative px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            activeTab === 'history'
+              ? 'text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          전송 기록
+        </button>
       </div>
 
-      {/* Message Send Tab */}
       {activeTab === 'send' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left: Member Selection */}
-          <div className="lg:col-span-2 space-y-4">
-            <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>발송 대상 선택</CardTitle>
+          <div className="space-y-4 lg:col-span-2">
+            <Card className="overflow-hidden">
+              {/* 헤더 */}
+              <div className="flex items-center justify-between gap-3 border-b border-[#EEF1F6] px-4 py-3">
+                <div className="text-[14px] font-bold leading-tight text-foreground">발송 대상 선택</div>
                 <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-muted-foreground">
+                    {selectedMembers.length}명 선택
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={isAllSelected ? handleDeselectAll : handleSelectAll}
+                    className="h-8 gap-1.5 text-[12px]"
                   >
-                    {isAllSelected ? (
-                      <>
-                        <Square className="mr-2 h-4 w-4" />
-                        전체 해제
-                      </>
-                    ) : (
-                      <>
-                        <CheckSquare className="mr-2 h-4 w-4" />
-                        전체 선택
-                      </>
-                    )}
+                    {isAllSelected ? '전체 해제' : '전체 선택'}
                   </Button>
-                  <span className="text-sm text-slate-600">
-                    {selectedMembers.length}명 선택됨
-                  </span>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Filters */}
-              <div className="space-y-3">
-                {/* Search */}
+
+              {/* 필터 */}
+              <div className="space-y-3 border-b border-[#EEF1F6] px-4 py-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
                   <Input
                     placeholder="이름 또는 전화번호 검색"
                     value={searchTerm}
@@ -550,10 +547,9 @@ export default function MessageSending() {
                   />
                 </div>
 
-                {/* Position Filters */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs text-slate-600 mb-1">직분 (대분류)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-semibold text-muted-foreground">직분 (대분류)</Label>
                     <Select value={selectedPosition} onValueChange={handlePositionChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="직분 대분류" />
@@ -568,15 +564,15 @@ export default function MessageSending() {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label className="text-xs text-slate-600 mb-1">직분 (세부)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-semibold text-muted-foreground">직분 (세부)</Label>
                     <Select
                       value={selectedPositionDetail}
                       onValueChange={setSelectedPositionDetail}
                       disabled={selectedPosition === 'all'}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={selectedPosition === 'all' ? '대분류를 먼저 선택하세요' : '직분 세부'} />
+                        <SelectValue placeholder={selectedPosition === 'all' ? '대분류 먼저 선택' : '직분 세부'} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">전체</SelectItem>
@@ -588,12 +584,9 @@ export default function MessageSending() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                {/* Department and Organization Filters */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs text-slate-600 mb-1">부서</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-semibold text-muted-foreground">부서</Label>
                     <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                       <SelectTrigger>
                         <SelectValue placeholder="부서 선택" />
@@ -601,16 +594,14 @@ export default function MessageSending() {
                       <SelectContent>
                         <SelectItem value="all">전체</SelectItem>
                         {departments.map(dept => (
-                          <SelectItem key={dept} value={dept}>
-                            {dept}
-                          </SelectItem>
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div>
-                    <Label className="text-xs text-slate-600 mb-1">조직</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-semibold text-muted-foreground">조직</Label>
                     <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
                       <SelectTrigger>
                         <SelectValue placeholder="조직 선택" />
@@ -627,104 +618,113 @@ export default function MessageSending() {
                   </div>
                 </div>
 
-                {/* Reset Button */}
                 <div className="flex justify-end">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={handleResetFilters}
-                    className="text-slate-600"
+                    className="h-8 gap-1.5 text-[12px] text-muted-foreground"
                   >
-                    <RotateCcw className="mr-2 h-4 w-4" />
+                    <RotateCcw className="h-3.5 w-3.5" />
                     필터 초기화
                   </Button>
                 </div>
               </div>
 
-              {/* Member List - Table Format */}
-              <div className="border rounded-lg max-h-[500px] overflow-y-auto">
+              {/* 교인 목록 */}
+              <div className="max-h-[500px] overflow-auto">
                 {filteredMembers.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500">
-                    교인 목록이 없습니다
+                  <div className="py-10 text-center text-[13px] text-muted-foreground">
+                    교인 목록이 없습니다.
                   </div>
                 ) : (
                   <table className="w-full">
-                    <thead className="bg-slate-50 sticky top-0">
-                      <tr className="text-xs text-slate-600 border-b">
-                        <th className="p-2 text-left w-10">
+                    <thead className="sticky top-0 z-10 bg-[#F8FAFD]">
+                      <tr className="border-b border-[#EEF1F6]">
+                        <th className="w-[44px] px-3 py-2.5 text-left">
                           <Checkbox
                             checked={isAllSelected}
                             onCheckedChange={isAllSelected ? handleDeselectAll : handleSelectAll}
                           />
                         </th>
-                        <th className="p-2 text-left">이름</th>
-                        <th className="p-2 text-left">직분</th>
-                        <th className="p-2 text-left">부서</th>
-                        <th className="p-2 text-left">조직</th>
-                        <th className="p-2 text-left">전화번호</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">이름</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">직분</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">부서</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">조직</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">전화번호</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
-                      {filteredMembers.map((member) => (
-                        <tr
-                          key={member.id}
-                          className="hover:bg-slate-50 transition-colors cursor-pointer"
-                          onClick={() => handleMemberSelect(member.id)}
-                        >
-                          <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              id={`member-${member.id}`}
-                              checked={selectedMembers.includes(member.id)}
-                              onCheckedChange={() => handleMemberSelect(member.id)}
-                            />
-                          </td>
-                          <td className="p-2">
-                            <span className="font-medium text-slate-900">{member.name}</span>
-                          </td>
-                          <td className="p-2 text-sm text-slate-600">
-                            {member.position_main && (
-                              <div>
-                                {POSITION_MAIN_OPTIONS.find(p => p.value === member.position_main)?.label || member.position_main}
-                              </div>
+                    <tbody className="divide-y divide-[#F1F4F9] bg-card">
+                      {filteredMembers.map((member) => {
+                        const isSelected = selectedMembers.includes(member.id);
+                        return (
+                          <tr
+                            key={member.id}
+                            className={cn(
+                              'cursor-pointer transition-colors',
+                              isSelected ? 'bg-[#EEF3FC] hover:bg-[#E0EAFA]' : 'hover:bg-[#F8FAFD]'
                             )}
-                            {member.position_detail && (
-                              <div className="text-xs text-slate-500">
-                                {POSITION_DETAIL_LABELS[member.position_detail] || member.position_detail}
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-2 text-sm text-slate-600">
-                            {member.department || '-'}
-                          </td>
-                          <td className="p-2 text-sm text-slate-600">
-                            {member.organization_name || '-'}
-                          </td>
-                          <td className="p-2 text-xs text-slate-500">
-                            {member.phone}
-                          </td>
-                        </tr>
-                      ))}
+                            onClick={() => handleMemberSelect(member.id)}
+                          >
+                            <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                id={`member-${member.id}`}
+                                checked={isSelected}
+                                onCheckedChange={() => handleMemberSelect(member.id)}
+                              />
+                            </td>
+                            <td className="px-3 py-2.5 text-[13px] font-semibold text-foreground">
+                              {member.name}
+                            </td>
+                            <td className="px-3 py-2.5 text-[13px] text-foreground">
+                              {member.position_main ? (
+                                <>
+                                  <div>
+                                    {POSITION_MAIN_OPTIONS.find(p => p.value === member.position_main)?.label || member.position_main}
+                                  </div>
+                                  {member.position_detail && (
+                                    <div className="text-[11.5px] text-[#94A3B8]">
+                                      {POSITION_DETAIL_LABELS[member.position_detail] || member.position_detail}
+                                    </div>
+                                  )}
+                                </>
+                              ) : <span className="text-[#CBD5E1]">-</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-[13px] text-foreground">
+                              {member.department || <span className="text-[#CBD5E1]">-</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-[13px] text-foreground">
+                              {member.organization_name || <span className="text-[#CBD5E1]">-</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-[13px] text-foreground tabular-nums">
+                              {member.phone}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
               </div>
 
-              <div className="text-sm text-slate-600">
+              {/* 푸터 */}
+              <div className="border-t border-[#EEF1F6] bg-[#F8FAFD] px-4 py-2 text-[12px] text-muted-foreground">
                 전체 {members.length}명 중 {filteredMembers.length}명 표시
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </Card>
+          </div>
 
         {/* Right: Message Content */}
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>메시지 내용</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title">제목</Label>
+          <Card className="overflow-hidden">
+            <div className="border-b border-[#EEF1F6] px-4 py-3 text-[14px] font-bold leading-tight text-foreground">
+              메시지 내용
+            </div>
+            <div className="space-y-4 px-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-[12.5px] font-semibold">
+                  제목 <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -733,8 +733,10 @@ export default function MessageSending() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="body">내용</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="body" className="text-[12.5px] font-semibold">
+                  내용 <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   id="body"
                   value={formData.body}
@@ -744,80 +746,74 @@ export default function MessageSending() {
                 />
               </div>
 
-              <div className="pt-4 border-t">
+              <div className="border-t border-[#EEF1F6] pt-3">
                 <Button
                   onClick={handleSendNotification}
                   disabled={isLoading || selectedMembers.length === 0}
                   size="lg"
-                  className="w-full"
+                  className="w-full gap-2"
                 >
-                  <Send className="mr-2 h-4 w-4" />
-                  {isLoading ? '발송 중...' : `${selectedMembers.length}명에게 메시지 발송`}
+                  <Send className="h-3.5 w-3.5" />
+                  {isLoading ? '발송 중...' : `${selectedMembers.length}명에게 발송`}
                 </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
-      </div>
+        </div>
+        </div>
       )}
 
-      {/* Message History Tab */}
       {activeTab === 'history' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>메시지 전송 기록</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="mt-0">
+          <Card className="overflow-hidden">
             {historyLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="text-slate-600">로딩 중...</div>
-              </div>
+              <LoadingState text="전송 기록을 불러오는 중..." />
             ) : messageHistory.length === 0 ? (
-              <div className="text-center py-12 text-slate-600">
+              <div className="py-12 text-center text-[13px] text-muted-foreground">
                 전송 기록이 없습니다.
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">발송 일시</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">발송자</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 w-1/5">제목</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 w-1/4">내용</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">받는 사용자</th>
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-[160px]" />
+                    <col className="w-[120px]" />
+                    <col className="w-[200px]" />
+                    <col />
+                    <col className="w-[140px]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-[#EEF1F6] bg-[#F8FAFD]">
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">발송 일시</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">발송자</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">제목</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">내용</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">수신자</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-[#F1F4F9] bg-card">
                     {messageHistory.map((history) => (
                       <tr
                         key={history.id}
-                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        className="cursor-pointer transition-colors hover:bg-[#F8FAFD]"
                         onClick={() => setSelectedHistoryDetail(history)}
                       >
-                        <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">
-                          {new Date(history.sent_at).toLocaleString('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        <td className="px-4 py-3 text-[13px] text-foreground tabular-nums">
+                          {formatDateTimeUtil(history.sent_at)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-700">
+                        <td className="px-4 py-3 text-[13px] text-foreground truncate">
                           {history.sender_name}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-900 font-medium">
-                          <div className="line-clamp-2">{history.title}</div>
+                        <td className="px-4 py-3 text-[13px] font-semibold text-foreground truncate" title={history.title}>
+                          {history.title}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-700">
-                          <div className="line-clamp-2">{history.content}</div>
+                        <td className="px-4 py-3 text-[13px] text-foreground truncate" title={history.content}>
+                          {history.content}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-700">
-                          <div className="flex flex-col gap-1">
-                            <span>선택: {history.recipient_count}명</span>
-                            <span className="text-xs text-slate-500">앱: {history.app_user_count}명</span>
-                          </div>
+                        <td className="px-4 py-3 text-right text-[13px] text-foreground tabular-nums">
+                          {history.recipient_count}명
+                          <span className="ml-1 text-[11px] text-[#94A3B8]">(앱 {history.app_user_count})</span>
                         </td>
                       </tr>
                     ))}
@@ -825,69 +821,60 @@ export default function MessageSending() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
 
       {/* Message History Detail Dialog */}
       <Dialog open={!!selectedHistoryDetail} onOpenChange={() => setSelectedHistoryDetail(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
           {selectedHistoryDetail && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-xl">
-                  {selectedHistoryDetail.title}
-                </DialogTitle>
-                <DialogDescription className="mt-2">
-                  {new Date(selectedHistoryDetail.sent_at).toLocaleString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
-                </DialogDescription>
+                <DialogTitle>{selectedHistoryDetail.title}</DialogTitle>
+                <div className="mt-1 text-[12px] text-muted-foreground tabular-nums">
+                  {formatDateTimeUtil(selectedHistoryDetail.sent_at)}
+                </div>
               </DialogHeader>
 
-              <div className="space-y-6 mt-4">
+              <div className="mt-4 space-y-4">
                 {/* 발송 정보 */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <div className="text-sm text-slate-600 mb-1">발송자</div>
-                    <div className="font-medium text-slate-900">{selectedHistoryDetail.sender_name}</div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-[8px] bg-[#F8FAFD] px-3 py-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">발송자</div>
+                    <div className="mt-1 text-[13px] font-semibold text-foreground">{selectedHistoryDetail.sender_name}</div>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <div className="text-sm text-slate-600 mb-1">선택된 교인</div>
-                    <div className="font-medium text-slate-900">{selectedHistoryDetail.recipient_count}명</div>
+                  <div className="rounded-[8px] bg-[#F8FAFD] px-3 py-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">선택된 교인</div>
+                    <div className="mt-1 text-[13px] font-semibold text-foreground tabular-nums">{selectedHistoryDetail.recipient_count}명</div>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <div className="text-sm text-slate-600 mb-1">앱 사용자</div>
-                    <div className="font-medium text-slate-900">{selectedHistoryDetail.app_user_count}명</div>
+                  <div className="rounded-[8px] bg-[#F8FAFD] px-3 py-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">앱 사용자</div>
+                    <div className="mt-1 text-[13px] font-semibold text-foreground tabular-nums">{selectedHistoryDetail.app_user_count}명</div>
                   </div>
                 </div>
 
                 {/* 메시지 내용 */}
-                <div>
-                  <div className="text-sm font-medium text-slate-700 mb-2">메시지 내용</div>
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">메시지 내용</div>
+                  <div className="rounded-[8px] border border-border bg-[#FAFBFD] px-3 py-2.5">
+                    <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
                       {selectedHistoryDetail.content}
                     </div>
                   </div>
                 </div>
 
-                {/* 받는 사용자 목록 */}
-                <div>
-                  <div className="text-sm font-medium text-slate-700 mb-2">
-                    받는 사용자 목록 ({selectedHistoryDetail.recipient_member_ids.length}명)
+                {/* 받는 사용자 */}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94A3B8]">
+                    받는 사용자 ({selectedHistoryDetail.recipient_member_ids.length}명)
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 max-h-60 overflow-y-auto">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="max-h-60 overflow-y-auto rounded-[8px] border border-border bg-[#FAFBFD] px-3 py-2.5">
+                    <div className="flex flex-wrap gap-1.5">
                       {selectedHistoryDetail.recipient_member_ids.map((memberId) => {
                         const member = members.find((m) => m.id === memberId);
                         return (
-                          <Badge key={memberId} variant="secondary" className="text-xs">
+                          <Badge key={memberId} variant="secondary" className="text-[11px]">
                             {member ? `${member.name} (${member.phone})` : `ID: ${memberId}`}
                           </Badge>
                         );

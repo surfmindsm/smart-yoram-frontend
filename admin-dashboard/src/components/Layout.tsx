@@ -299,8 +299,7 @@ const Layout: React.FC = () => {
           { path: '/worship-schedule', name: '예배 시간표' },
           { path: '/bulletins', name: '주보' },
           ...(isSystemAdmin ? [] : [{ path: '/announcements', name: '공지사항' }]),
-          { path: '/message-sending', name: '푸시 알림' },
-          { path: '/sms', name: 'SMS 발송' },
+          { path: '/message-sending', name: '메시지' },
         ] as MenuItem[]),
       },
       {
@@ -309,8 +308,6 @@ const Layout: React.FC = () => {
         items: filterMenuItems([
           { path: '/church', name: '교회 정보' },
           { path: '/important-dates', name: '일정' },
-          { path: '/analytics', name: '통계 분석' },
-          { path: '/excel', name: '엑셀' },
         ] as MenuItem[]),
       },
     ];
