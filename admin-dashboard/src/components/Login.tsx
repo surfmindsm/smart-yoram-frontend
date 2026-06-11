@@ -7,7 +7,7 @@ import { Input } from "./ui";
 import { Label } from "./ui";
 import { Alert, AlertDescription } from "./ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { UserPlus, ArrowLeft, AlertTriangle, Users, DollarSign, Calendar, BarChart3 } from 'lucide-react';
+import { UserPlus, ArrowLeft, AlertTriangle, Users, DollarSign, Calendar, BarChart3, Mail, RefreshCw } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 
 // Church Round wordmark (Newsreader italic "church" + bold "round")
@@ -181,26 +181,29 @@ const Login: React.FC = () => {
       </div>
 
       {/* === Right: Form === */}
-      <div className="flex w-full flex-shrink-0 items-center justify-center bg-card px-10 py-10 lg:w-[480px]">
-        <div className="w-full max-w-[340px]">
-          <Wordmark size={22} />
+      <div className="flex w-full flex-1 items-center justify-center bg-card px-10 py-10">
+        <div className="w-full max-w-[400px]">
           {/* welcome */}
           {step === 'login' ? (
-            <div className="mt-[26px]">
-              <div className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">
+            <div>
+              <div className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-foreground">
                 다시 오신 것을 환영합니다
               </div>
-              <div className="mt-[5px] text-[13.5px] text-muted-foreground">
+              <div className="mt-1.5 text-[13.5px] text-muted-foreground">
                 관리자 계정으로 로그인하세요.
               </div>
             </div>
           ) : (
-            <div className="mt-[26px]">
-              <div className="text-[23px] font-bold leading-tight tracking-[-0.02em] text-foreground">
+            <div>
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#EAF1FE] text-[#2563EB]">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-foreground">
                 이메일 인증
               </div>
-              <div className="mt-[5px] text-[13.5px] text-muted-foreground">
-                <b className="text-foreground">{email}</b>로 보낸 6자리 인증 코드를 입력하세요.
+              <div className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+                <b className="text-foreground">{email}</b>로 보낸 6자리 인증 코드를<br />
+                아래에 입력하세요.
               </div>
             </div>
           )}
@@ -268,61 +271,66 @@ const Login: React.FC = () => {
               </Button>
             </form>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div className="mt-6 space-y-4">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
-              <form onSubmit={handleEmailVerification} className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="verification-code">인증 코드</Label>
+              <form onSubmit={handleEmailVerification} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="verification-code" className="text-[12.5px] font-semibold">인증 코드</Label>
                   <Input
                     id="verification-code"
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     required
-                    placeholder="6자리 인증 코드"
+                    placeholder="000000"
                     value={emailVerificationCode}
-                    onChange={(e) => setEmailVerificationCode(e.target.value)}
+                    onChange={(e) => setEmailVerificationCode(e.target.value.replace(/\D/g, ''))}
                     maxLength={6}
-                    className="text-center text-lg tracking-widest"
+                    autoFocus
+                    className="h-14 text-center text-[24px] font-bold tracking-[0.5em] tabular-nums placeholder:tracking-[0.5em] placeholder:text-[#CBD5E1]"
                   />
+                  <p className="text-[11.5px] text-muted-foreground">
+                    이메일을 받지 못하셨다면 스팸함을 확인해주세요.
+                  </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <Button
                     type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleBackToLogin}
+                    variant="ghost"
+                    size="sm"
+                    onClick={sendEmailVerification}
                     disabled={loading}
+                    className="gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"
                   >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    뒤로
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    인증 코드 재발송
                   </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={loading || emailVerificationCode.length !== 6}
-                  >
-                    {loading ? <Spinner size="sm" text="인증 중..." /> : '인증 완료'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleBackToLogin}
+                      disabled={loading}
+                      className="gap-1.5"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      뒤로
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading || emailVerificationCode.length !== 6}
+                    >
+                      {loading ? <Spinner size="sm" text="인증 중..." /> : '인증 완료'}
+                    </Button>
+                  </div>
                 </div>
               </form>
-
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={sendEmailVerification}
-                  disabled={loading}
-                  className="text-xs"
-                >
-                  인증 코드 재발송
-                </Button>
-              </div>
             </div>
           )}
 
@@ -332,57 +340,65 @@ const Login: React.FC = () => {
               {/* 구분선 */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-[#EEF1F6]" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">또는</span>
+                <div className="relative flex justify-center text-[11px] font-semibold uppercase tracking-[0.06em]">
+                  <span className="bg-card px-3 text-[#94A3B8]">또는</span>
                 </div>
               </div>
 
               {/* 회원 신청 섹션 */}
-              <div className="text-center space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <p className="text-[13px] font-semibold text-foreground">
                     아직 계정이 없으신가요?
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    신청 후 승인을 받아 이용하실 수 있습니다
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    신청 후 승인을 받아 이용하실 수 있습니다.
                   </p>
                 </div>
 
-                {/* 가입 신청 버튼 - 2열 그리드 */}
+                {/* 가입 신청 카드 - 2열 그리드 */}
                 <TooltipProvider>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* 교회 가입 신청 버튼 */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* 교회 가입 신청 카드 */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
+                        <button
                           type="button"
-                          variant="outline"
-                          className="h-24 flex flex-col items-center justify-center space-y-2"
                           onClick={handleChurchSignupClick}
+                          className="group flex flex-col items-start gap-2 rounded-[10px] border border-[#EEF1F6] bg-[#FAFBFD] p-3 text-left transition-colors hover:border-primary/40 hover:bg-[#F0F6FF]"
                         >
-                          <UserPlus className="w-6 h-6" />
-                          <span className="text-sm font-semibold">교회 가입 신청</span>
-                        </Button>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#EAF1FE] text-[#2563EB]">
+                            <UserPlus className="h-[18px] w-[18px]" />
+                          </span>
+                          <div>
+                            <div className="text-[13px] font-bold text-foreground">교회 가입 신청</div>
+                            <div className="text-[11.5px] text-muted-foreground">교회 관리자용</div>
+                          </div>
+                        </button>
                       </TooltipTrigger>
                       <TooltipContent className="bg-gray-900 text-white border-gray-800">
                         <p className="max-w-xs">교회 관리자 계정을 신청합니다.<br />교회 정보 관리 및 교인 관리가 가능합니다.</p>
                       </TooltipContent>
                     </Tooltip>
 
-                    {/* 커뮤니티 가입 신청 버튼 */}
+                    {/* 커뮤니티 가입 신청 카드 */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
+                        <button
                           type="button"
-                          variant="outline"
-                          className="h-24 flex flex-col items-center justify-center space-y-2"
                           onClick={handleCommunitySignupClick}
+                          className="group flex flex-col items-start gap-2 rounded-[10px] border border-[#EEF1F6] bg-[#FAFBFD] p-3 text-left transition-colors hover:border-primary/40 hover:bg-[#F0F6FF]"
                         >
-                          <UserPlus className="w-6 h-6" />
-                          <span className="text-sm font-semibold">커뮤니티 가입 신청</span>
-                        </Button>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#F3EAFE] text-[#7E22CE]">
+                            <UserPlus className="h-[18px] w-[18px]" />
+                          </span>
+                          <div>
+                            <div className="text-[13px] font-bold text-foreground">커뮤니티 가입 신청</div>
+                            <div className="text-[11.5px] text-muted-foreground">모바일 앱 전용</div>
+                          </div>
+                        </button>
                       </TooltipTrigger>
                       <TooltipContent className="bg-gray-900 text-white border-gray-800">
                         <p className="max-w-xs">일반 커뮤니티 회원 계정을 신청합니다.<br />교회 정보 없이 커뮤니티 기능만 이용할 수 있습니다.<br /><strong className="text-yellow-400">📱 모바일 앱 전용</strong> - 웹 관리자 페이지 로그인 불가</p>
@@ -390,19 +406,10 @@ const Login: React.FC = () => {
                     </Tooltip>
                   </div>
                 </TooltipProvider>
-
-                <div className="pt-2 space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    교회 관리자는 '교회 가입 신청'을 이용해주세요
-                  </p>
-                  <p className="text-xs text-yellow-600 font-medium">
-                    💡 일반 회원(member)은 모바일 앱 전용입니다 (웹 관리자 페이지 로그인 불가)
-                  </p>
-                </div>
               </div>
 
               {/* 서비스 이용약관 및 개인정보처리방침 링크 */}
-              <div className="border-t border-border pt-4 text-center">
+              <div className="mt-6 border-t border-[#EEF1F6] pt-4 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <Button
                     type="button"

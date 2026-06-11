@@ -41,7 +41,6 @@ import {
   ListChecks,
   MessageSquare,
   Clock,
-  Search,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -434,17 +433,8 @@ const Layout: React.FC = () => {
           </span>
         </Link>
 
-        {/* Quick search */}
-        <div className="mx-4 mt-3.5 mb-1.5 flex h-[34px] items-center gap-2 rounded-lg border border-[hsl(var(--sidebar-chip))] bg-[#172033] px-3 text-[12.5px] text-[#6B7A95]">
-          <Search className="h-3.5 w-3.5" />
-          <span>빠른 검색</span>
-          <span className="ml-auto rounded border border-[hsl(var(--sidebar-chip))] px-1.5 py-px text-[10px]">
-            ⌘K
-          </span>
-        </div>
-
         {/* Nav */}
-        <nav className="slim-scrollbar-dark flex-1 overflow-y-auto px-3 pb-4 pt-2">
+        <nav className="slim-scrollbar-dark flex-1 overflow-y-auto px-3 pb-4 pt-4">
           {/* 대시보드 — 그룹 밖 단독 메뉴 */}
           {!isCommunityOnlyUser && (() => {
             const isActive =
@@ -534,6 +524,30 @@ const Layout: React.FC = () => {
             );
           })}
         </nav>
+
+        {/* 후원 계좌 */}
+        <div className="flex-shrink-0 border-t border-sidebar-border px-4 py-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#6B7A95]">후원 계좌</span>
+          </div>
+          <p className="mb-2 text-[11px] leading-relaxed text-[#9DB0CC]">
+            Church Round의 발전을 위해 소중한 후원 부탁드립니다.
+          </p>
+          <div className="space-y-1 rounded-[8px] bg-[#172033] px-2.5 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] text-[#6B7A95]">은행</span>
+              <span className="text-[11.5px] font-semibold text-[#E6ECF6]">우리은행</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] text-[#6B7A95]">예금주</span>
+              <span className="text-[11.5px] font-semibold text-[#E6ECF6]">이선민</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-sidebar-border pt-1">
+              <span className="text-[10.5px] text-[#6B7A95]">계좌번호</span>
+              <span className="text-[11.5px] font-semibold tabular-nums text-[#E6ECF6]">326-353703-02-001</span>
+            </div>
+          </div>
+        </div>
 
         {/* User block + actions */}
         <div className="flex-shrink-0 border-t border-sidebar-border">
