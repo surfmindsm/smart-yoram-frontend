@@ -1,56 +1,77 @@
 import React from 'react';
+import { ShoppingBag, Briefcase, Newspaper, Wrench } from 'lucide-react';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function CommunitySection() {
   const [sectionRef, isVisible] = useIntersectionObserver({ threshold: 0.1 });
-  const communityFeatures = [
+
+  const items = [
     {
-      title: "중고 장터",
-      description: "인증된 교인 간 거래로 안전한 교회 중심 중고 거래",
+      Icon: ShoppingBag,
+      title: '중고 장터',
+      desc: '인증된 교인 간 거래로 안전한 교회 중심 중고 거래.',
+      tint: { bg: '#EAF1FE', fg: '#2563EB' },
     },
     {
-      title: "구인·구직",
-      description: "사역자, 반주자, 방송·음향 인력 등 교회 관련 구인 게시",
+      Icon: Briefcase,
+      title: '구인·구직',
+      desc: '사역자, 반주자, 방송·음향 인력 등 교회 관련 구인 게시.',
+      tint: { bg: '#E7F6EC', fg: '#16A34A' },
     },
     {
-      title: "교계 소식",
-      description: "컨퍼런스, 세미나, 행사 등 대외 교계 소식 공유",
+      Icon: Newspaper,
+      title: '교계 소식',
+      desc: '컨퍼런스, 세미나, 행사 등 대외 교계 소식 공유.',
+      tint: { bg: '#F3EAFE', fg: '#7E22CE' },
     },
     {
-      title: "교회 공사/업체 정보",
-      description: "인증된 업자를 통해 합리적인 견적 확인",
+      Icon: Wrench,
+      title: '교회 공사·업체',
+      desc: '인증된 업자를 통해 합리적인 견적을 확인하세요.',
+      tint: { bg: '#FBF1E3', fg: '#B45309' },
     },
   ];
 
   return (
-    <section id="community" className="relative py-16 md:py-24 lg:py-32 px-6 bg-white" ref={sectionRef}>
-      <div className="max-w-7xl mx-auto">
-        {/* 섹션 타이틀 */}
-        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">COMMUNITY</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
+    <section
+      id="community"
+      ref={sectionRef}
+      className="bg-[#F8FAFD] py-20 md:py-[80px]"
+    >
+      <div className="mx-auto max-w-[1040px] px-6">
+        <div
+          className={`text-center transition-all duration-700 ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+          }`}
+        >
+          <h2 className="text-[26px] font-extrabold tracking-[-0.02em] text-[#0E1729] md:text-[30px]">
             교회 커뮤니티
           </h2>
-          <p className="text-base md:text-lg lg:text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
-            인증된 교인 간 안전한 거래와 소통
+          <p className="mx-auto mt-3 max-w-[560px] text-[14px] text-[#64748B] md:text-[15px]">
+            인증된 교인 간 안전한 거래와 소통을 한 곳에서.
           </p>
         </div>
 
-        {/* 2x2 그리드 레이아웃 */}
-        <div className="grid md:grid-cols-2 gap-px bg-gray-200">
-          {communityFeatures.map((feature, index) => (
+        <div className="mt-11 grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-[22px]">
+          {items.map(({ Icon, title, desc, tint }, i) => (
             <div
-              key={index}
-              className={`group bg-gray-50 p-6 md:p-8 lg:p-12 hover:bg-white transition-all duration-700 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              key={title}
+              className={`rounded-[16px] border border-[#EEF1F6] bg-white p-[26px] transition-all duration-700 hover:border-primary/30 hover:shadow-[0_8px_24px_-12px_rgba(28,124,255,0.18)] ${
+                isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
               }`}
-              style={{ transitionDelay: `${index * 150 + 300}ms` }}
+              style={{ transitionDelay: `${i * 80 + 200}ms` }}
             >
-              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2 md:mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-sm md:text-base text-gray-600 font-light leading-relaxed">
-                {feature.description}
+              <div
+                className="mb-4 flex h-12 w-12 items-center justify-center rounded-[12px]"
+                style={{ background: tint.bg, color: tint.fg }}
+              >
+                <Icon className="h-[23px] w-[23px]" />
+              </div>
+              <div className="text-[17px] font-bold tracking-[-0.01em] text-[#0E1729]">
+                {title}
+              </div>
+              <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#64748B]">
+                {desc}
               </p>
             </div>
           ))}

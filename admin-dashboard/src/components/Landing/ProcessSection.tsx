@@ -1,3 +1,5 @@
+import React from 'react';
+import { MessageCircle, KeyRound, Rocket } from 'lucide-react';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function ProcessSection() {
@@ -5,80 +7,69 @@ export function ProcessSection() {
 
   const steps = [
     {
-      number: "①",
-      title: "도입 상담 신청",
-      description: "간단한 교회 정보 입력 후 전담 매니저 배정",
-      icon: "💬",
-      bgColor: "bg-primary-50"
+      Icon: MessageCircle,
+      step: 'STEP 01',
+      title: '도입 상담 신청',
+      desc: '간단한 교회 정보 입력 후 전담 매니저가 배정됩니다.',
     },
     {
-      number: "②",
-      title: "관리자 계정 개설",
-      description: "교회 관리자용 계정 발급 및 초기 세팅 지원",
-      icon: "🧭",
-      bgColor: "bg-green-50"
+      Icon: KeyRound,
+      step: 'STEP 02',
+      title: '관리자 계정 개설',
+      desc: '교회 관리자용 계정 발급 및 초기 세팅을 지원합니다.',
     },
     {
-      number: "③",
-      title: "서비스 시작",
-      description: "교적·요람·커뮤니티 즉시 사용 가능",
-      icon: "🚀",
-      bgColor: "bg-primary-50"
-    }
+      Icon: Rocket,
+      step: 'STEP 03',
+      title: '서비스 시작',
+      desc: '교적·요람·커뮤니티를 즉시 사용할 수 있습니다.',
+    },
   ];
 
   return (
-    <section id="process" className="relative py-16 md:py-24 lg:py-32 px-6 bg-gray-50" ref={sectionRef}>
-      <div className="max-w-7xl mx-auto">
-        {/* 섹션 타이틀 */}
-        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">PROCESS</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
-            도입 절차
-          </h2>
-          <p className="text-base md:text-lg lg:text-xl text-gray-600 font-light max-w-2xl leading-relaxed">
-            평균 1-2시간 내 모든 설정 완료
-          </p>
-        </div>
+    <section
+      id="process"
+      ref={sectionRef}
+      className="mx-auto max-w-[1040px] px-6 py-20 md:py-[80px]"
+    >
+      <div
+        className={`text-center transition-all duration-700 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+        }`}
+      >
+        <h2 className="text-[26px] font-extrabold tracking-[-0.02em] text-[#0E1729] md:text-[30px]">
+          도입 절차
+        </h2>
+        <p className="mx-auto mt-3 max-w-[560px] text-[14px] text-[#64748B] md:text-[15px]">
+          평균 1–2시간 내에 모든 설정이 완료됩니다.
+        </p>
+      </div>
 
-        {/* 세로 타임라인 레이아웃 */}
-        <div className="space-y-0 border-l-2 border-gray-200 ml-4 md:ml-8">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              className={`group relative pl-8 md:pl-12 pb-12 md:pb-16 last:pb-0 transition-all duration-700 ${
-                isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
-              }`}
-              style={{ transitionDelay: `${index * 150 + 300}ms` }}
-            >
-              {/* 타임라인 도트 */}
-              <div className="absolute -left-2 md:-left-3 top-0 w-4 h-4 md:w-5 md:h-5 bg-gray-900 rounded-full group-hover:scale-125 transition-transform"></div>
-
-              {/* 컨텐츠 */}
-              <div>
-                <span className="text-xs md:text-sm text-gray-400 font-light mb-3 md:mb-4 block">
-                  STEP {index + 1}
-                </span>
-                <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
-                  {step.title}
-                </h3>
-                <p className="text-base md:text-lg text-gray-600 font-light leading-relaxed max-w-2xl">
-                  {step.description}
-                </p>
+      <div className="mt-11 grid grid-cols-1 gap-[18px] md:grid-cols-3 md:gap-[22px]">
+        {steps.map(({ Icon, step, title, desc }, i) => (
+          <div
+            key={title}
+            className={`rounded-[16px] border border-[#EEF1F6] bg-white p-[26px] transition-all duration-700 ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+            }`}
+            style={{ transitionDelay: `${i * 80 + 200}ms` }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-[#EAF1FE] text-primary">
+                <Icon className="h-[23px] w-[23px]" />
               </div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#94A3B8]">
+                {step}
+              </span>
             </div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="mt-12 md:mt-16 lg:mt-20 pt-8 md:pt-12 border-t border-gray-200">
-          <p className="text-sm md:text-base text-gray-500 font-light mb-2">지금 바로 시작하세요</p>
-          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-400">
-            <span>무료 도입 상담</span>
-            <span>·</span>
-            <span>1-2시간 빠른 설정</span>
+            <div className="mt-4 text-[18px] font-bold tracking-[-0.01em] text-[#0E1729]">
+              {title}
+            </div>
+            <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#64748B]">
+              {desc}
+            </p>
           </div>
-        </div>
+        ))}
       </div>
     </section>
   );

@@ -1,120 +1,82 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Users, DollarSign, Calendar, BarChart3, Building2, ShieldCheck } from 'lucide-react';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 export function FeaturesSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [sectionRef, isVisible] = useIntersectionObserver({ threshold: 0.1 });
 
   const features = [
     {
-      number: "01",
-      title: "교적 관리",
-      details: [
-        "교인 기본정보, 가족관계, 직분, 봉사부서 등 모든 정보를 한 곳에서 관리",
-        "교인 검색 및 필터링으로 원하는 정보를 빠르게 조회",
-        "출석 체크 및 통계 분석으로 교회 성장 추이 파악",
-        "엑셀 다운로드로 편리한 데이터 관리"
-      ]
+      Icon: Users,
+      title: '교인 관리',
+      desc: '교적·심방·중보기도까지 한 흐름으로. 가족·차량·성례 기록을 체계적으로 관리합니다.',
     },
     {
-      number: "02",
-      title: "스마트 요람",
-      details: [
-        "iOS/Android 앱으로 교인 명단을 언제 어디서나 조회",
-        "전화, 문자, 이메일 등 빠른 연락 기능 제공",
-        "권한별 정보 공개 설정으로 개인정보 보호",
-        "오프라인에서도 기본 정보 확인 가능"
-      ]
+      Icon: DollarSign,
+      title: '재정·헌금',
+      desc: '십일조부터 건축헌금까지 종류별 통계와 기부금 영수증을 손쉽게 발급합니다.',
     },
     {
-      number: "03",
-      title: "교회 소식",
-      details: [
-        "주보 PDF 업로드 및 모바일 앱 자동 배포",
-        "교회 행사 일정 등록 및 알림 발송",
-        "기도제목 공유 및 교인 간 기도 응답 공유",
-        "공지사항 카테고리별 관리 및 푸시 알림"
-      ]
+      Icon: Calendar,
+      title: '예배·소식',
+      desc: '예배 시간표, 주보, 오늘의 말씀, 공지와 푸시 알림을 교인 앱과 연결합니다.',
     },
     {
-      number: "04",
-      title: "커뮤니티",
-      details: [
-        "무료나눔, 물품판매, 물품요청 게시판 운영",
-        "구인공고 및 구직 정보 교류",
-        "찬양팀 모집 및 봉사자 구인 기능",
-        "교인 인증을 통한 안전한 거래 환경 제공"
-      ]
-    }
+      Icon: BarChart3,
+      title: '통계 분석',
+      desc: '출석·연령·구역·증가 추이를 한눈에. 데이터로 목회를 돕습니다.',
+    },
+    {
+      Icon: Building2,
+      title: '조직 · 목장',
+      desc: '부서·구역·목장 구조와 교인 배정을 트리로 관리합니다.',
+    },
+    {
+      Icon: ShieldCheck,
+      title: '안전한 운영',
+      desc: '권한 관리와 보안 로그로 교회 데이터를 안전하게 지킵니다.',
+    },
   ];
 
   return (
-    <section id="features" className="relative py-16 md:py-24 lg:py-32 px-6 bg-gray-50" ref={sectionRef}>
-      <div className="max-w-7xl mx-auto">
-        {/* 섹션 타이틀 - Big Typo */}
-        <div className={`mb-12 md:mb-16 lg:mb-24 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <p className="text-xs md:text-sm text-gray-400 font-light mb-4 md:mb-6 tracking-wider">FEATURES</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-tight mb-6 md:mb-8">
-            핵심 기능
-          </h2>
-          <div className="w-12 md:w-16 h-px bg-gray-900"></div>
-        </div>
+    <section
+      id="features"
+      ref={sectionRef}
+      className="mx-auto max-w-[1040px] px-6 py-20 md:py-[80px]"
+    >
+      <div
+        className={`text-center transition-all duration-700 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+        }`}
+      >
+        <h2 className="text-[26px] font-extrabold tracking-[-0.02em] text-[#0E1729] md:text-[30px]">
+          목회에 집중하도록, 행정은 가볍게
+        </h2>
+        <p className="mx-auto mt-3 max-w-[560px] text-[14px] text-[#64748B] md:text-[15px]">
+          교회 운영에 필요한 모든 기능을 한 플랫폼에서.
+        </p>
+      </div>
 
-        {/* 기능 목록 - 아코디언 */}
-        <div className="space-y-0 border-t border-gray-200">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className={`border-b border-gray-200 transition-all duration-700 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
-              style={{ transitionDelay: `${index * 150 + 300}ms` }}
-            >
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full text-left py-6 md:py-8 px-3 md:px-4 hover:bg-white transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4 md:gap-8">
-                  {/* 왼쪽: 번호와 타이틀 */}
-                  <div className="flex items-start gap-4 md:gap-8 flex-1">
-                    <span className="text-xs md:text-sm text-gray-400 font-light min-w-[30px] md:min-w-[40px]">
-                      {feature.number}
-                    </span>
-                    <div className="flex-1">
-                      <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2 md:mb-4">
-                        {feature.title}
-                      </h3>
-
-                      {/* 상세 내용 - 아코디언 */}
-                      {openIndex === index && (
-                        <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 max-w-3xl">
-                          <ul className="space-y-3 md:space-y-4">
-                            {feature.details.map((detail, detailIndex) => (
-                              <li key={detailIndex} className="flex items-start gap-2 md:gap-3">
-                                <span className="text-gray-400 mt-1 text-sm md:text-base">•</span>
-                                <span className="text-sm md:text-base text-gray-600 font-light leading-relaxed">
-                                  {detail}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 오른쪽: 화살표 아이콘 */}
-                  <ChevronDown
-                    className={`w-5 h-5 md:w-6 md:h-6 text-gray-400 flex-shrink-0 mt-1 transition-transform duration-300 ${
-                      openIndex === index ? 'rotate-180' : ''
-                    }`}
-                  />
-                </div>
-              </button>
+      <div className="mt-11 grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-[22px] lg:grid-cols-3">
+        {features.map(({ Icon, title, desc }, i) => (
+          <div
+            key={title}
+            className={`rounded-[16px] border border-[#EEF1F6] bg-white p-[26px] transition-all duration-700 hover:border-primary/30 hover:shadow-[0_8px_24px_-12px_rgba(28,124,255,0.18)] ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+            }`}
+            style={{ transitionDelay: `${i * 80 + 200}ms` }}
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[12px] bg-[#EAF1FE] text-primary">
+              <Icon className="h-[23px] w-[23px]" />
             </div>
-          ))}
-        </div>
+            <div className="text-[17px] font-bold tracking-[-0.01em] text-[#0E1729]">
+              {title}
+            </div>
+            <p className="mt-2.5 text-[13.5px] leading-[1.65] text-[#64748B]">
+              {desc}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   );
