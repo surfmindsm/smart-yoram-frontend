@@ -24,7 +24,8 @@
   "build": {
     "env": {
       "CI": "false",
-      "GENERATE_SOURCEMAP": "false"
+      "GENERATE_SOURCEMAP": "false",
+      "NODE_OPTIONS": "--max-old-space-size=4096"
     }
   }
 }
