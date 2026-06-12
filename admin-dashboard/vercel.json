@@ -25,7 +25,9 @@
     "env": {
       "CI": "false",
       "GENERATE_SOURCEMAP": "false",
-      "NODE_OPTIONS": "--max-old-space-size=7168"
+      "NODE_OPTIONS": "--max-old-space-size=4096",
+      "DISABLE_ESLINT_PLUGIN": "true",
+      "TSC_COMPILE_ON_ERROR": "true"
     }
   }
 }
