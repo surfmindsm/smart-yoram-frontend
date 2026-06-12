@@ -20,5 +20,11 @@
   "github": {
     "enabled": true
   },
-  "public": true
+  "public": true,
+  "build": {
+    "env": {
+      "CI": "false",
+      "GENERATE_SOURCEMAP": "false"
+    }
+  }
 }
