@@ -152,7 +152,7 @@ const Login: React.FC = () => {
         <Wordmark dark />
 
         <div className="mt-auto text-[38px] font-extrabold leading-[1.25] tracking-[-0.025em]">
-          교회의 모든 살림을<br />한 곳에서, 단정하게.
+          번거로운 교회 행정,<br />이제 가볍게.
         </div>
         <p className="mt-[18px] max-w-[420px] text-[15px] leading-[1.65] text-[#9DB0CC]">
           Church Round 관리자 페이지에서 교회 운영에 필요한 모든 기능을 한 곳에서 다루세요.

@@ -28,8 +28,8 @@ export function HeroSection() {
 
         {/* 헤드라인 */}
         <h1 className="mx-auto mt-[22px] max-w-[760px] text-[32px] font-extrabold leading-[1.2] tracking-[-0.03em] text-[#0E1729] md:text-[46px]">
-          교회의 모든 살림을<br />
-          <span className="text-primary">한 곳에서</span> 단정하게.
+          번거로운 교회 행정,<br />
+          <span className="text-primary">이제 가볍게.</span>
         </h1>
 
         {/* 부제 */}
