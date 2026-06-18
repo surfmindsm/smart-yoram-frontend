@@ -1041,79 +1041,81 @@ const BirthdayCalendar: React.FC<BirthdayCalendarProps> = ({
           font-weight: 600;
         }
 
-        /* 생일 배지 - 기본 (가운데) */
-        .birthday-calendar-wrapper .has-birthday .rdp-day_button {
+        /* 배지 점 공통 베이스 */
+        .birthday-calendar-wrapper .has-birthday .rdp-day_button,
+        .birthday-calendar-wrapper .has-event .rdp-day_button,
+        .birthday-calendar-wrapper .has-pastoral-care .rdp-day_button {
           position: relative;
         }
 
+        /* 생일 점 (빨강) - ::after */
         .birthday-calendar-wrapper .has-birthday .rdp-day_button::after {
           content: '';
           position: absolute;
-          bottom: 0.5rem;
+          bottom: 0.32rem;
           left: 50%;
           transform: translateX(-50%);
-          width: 0.4rem;
-          height: 0.4rem;
+          width: 0.32rem;
+          height: 0.32rem;
           background-color: #ef4444;
           border-radius: 50%;
         }
 
-        /* 생일과 일정이 둘 다 있을 때 - 생일 배지 왼쪽으로 */
-        .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::after {
-          left: 50%;
-          transform: translateX(-0.5rem);
-        }
-
-        /* 일정 배지 - 기본 (가운데) */
-        .birthday-calendar-wrapper .has-event .rdp-day_button {
-          position: relative;
-        }
-
+        /* 일정 점 (파랑) - ::before */
         .birthday-calendar-wrapper .has-event .rdp-day_button::before {
           content: '';
           position: absolute;
-          bottom: 0.5rem;
+          bottom: 0.32rem;
           left: 50%;
           transform: translateX(-50%);
-          width: 0.4rem;
-          height: 0.4rem;
+          width: 0.32rem;
+          height: 0.32rem;
           background-color: #3b82f6;
           border-radius: 50%;
         }
 
-        /* 생일과 일정이 둘 다 있을 때 - 일정 배지 오른쪽으로 */
-        .birthday-calendar-wrapper .has-birthday.has-event .rdp-day_button::before {
+        /* 심방 단독 (녹색 점) - ::before 활용 (일정과 겹치지 않을 때) */
+        .birthday-calendar-wrapper .has-pastoral-care:not(.has-event) .rdp-day_button::before {
+          content: '';
+          position: absolute;
+          bottom: 0.32rem;
           left: 50%;
-          transform: translateX(0.5rem);
+          transform: translateX(-50%);
+          width: 0.32rem;
+          height: 0.32rem;
+          background-color: #22c55e;
+          border-radius: 50%;
         }
 
-        /* 심방 배지 - border-bottom 사용 (가운데) */
-        .birthday-calendar-wrapper .has-pastoral-care .rdp-day_button {
-          position: relative;
-          border-bottom: 3px solid #22c55e;
+        /* 생일+일정 → 좌(빨강) · 우(파랑) */
+        .birthday-calendar-wrapper .has-birthday.has-event:not(.has-pastoral-care) .rdp-day_button::after {
+          transform: translateX(calc(-50% - 0.28rem));
+        }
+        .birthday-calendar-wrapper .has-birthday.has-event:not(.has-pastoral-care) .rdp-day_button::before {
+          transform: translateX(calc(-50% + 0.28rem));
         }
 
-        /* 생일과 심방이 둘 다 있을 때 - 생일 배지 왼쪽, 심방은 border 유지 */
-        .birthday-calendar-wrapper .has-birthday.has-pastoral-care .rdp-day_button::after {
-          left: 50%;
-          transform: translateX(-0.5rem);
+        /* 생일+심방 → 좌(빨강) · 우(녹색) */
+        .birthday-calendar-wrapper .has-birthday.has-pastoral-care:not(.has-event) .rdp-day_button::after {
+          transform: translateX(calc(-50% - 0.28rem));
+        }
+        .birthday-calendar-wrapper .has-birthday.has-pastoral-care:not(.has-event) .rdp-day_button::before {
+          transform: translateX(calc(-50% + 0.28rem));
         }
 
-        /* 일정과 심방이 둘 다 있을 때 - 일정 배지 왼쪽, 심방은 border 유지 */
-        .birthday-calendar-wrapper .has-event.has-pastoral-care .rdp-day_button::before {
-          left: 50%;
-          transform: translateX(-0.5rem);
+        /* 일정+심방 → 좌(파랑) · 우(녹색 box-shadow 점) */
+        .birthday-calendar-wrapper .has-event.has-pastoral-care:not(.has-birthday) .rdp-day_button::before {
+          transform: translateX(calc(-50% - 0.28rem));
+          box-shadow: 0.56rem 0 0 0 #22c55e;
         }
 
-        /* 생일+일정+심방이 모두 있을 때 - 생일 왼쪽, 일정 오른쪽, 심방은 border */
+        /* 생일+일정+심방 → 좌(빨강) · 중(파랑) · 우(녹색 box-shadow 점) */
         .birthday-calendar-wrapper .has-birthday.has-event.has-pastoral-care .rdp-day_button::after {
-          left: 50%;
-          transform: translateX(-0.75rem);
+          transform: translateX(calc(-50% - 0.5rem));
         }
-
         .birthday-calendar-wrapper .has-birthday.has-event.has-pastoral-care .rdp-day_button::before {
-          left: 50%;
-          transform: translateX(0.75rem);
+          transform: translateX(-50%);
+          box-shadow: 0.5rem 0 0 0 #22c55e;
         }
 
         /* 공휴일 - 날짜 텍스트 색상 빨간색 (일요일과 동일) */
